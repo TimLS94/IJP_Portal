@@ -80,8 +80,24 @@ function ApplicantDocuments() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // PDF-Validierung
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.pdf')) {
+      toast.error('Nur PDF-Dateien sind erlaubt!');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // MIME-Type prüfen
+    if (file.type && file.type !== 'application/pdf' && file.type !== 'application/x-pdf') {
+      toast.error('Die Datei ist keine gültige PDF-Datei!');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     if (file.size > 10 * 1024 * 1024) {
       toast.error('Datei ist zu groß (max. 10 MB)');
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -433,7 +449,7 @@ function ApplicantDocuments() {
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-2">
-                  PDF, DOC, DOCX, JPG, PNG • Max. 10 MB
+                  Nur PDF-Dateien • Max. 10 MB
                 </p>
               </div>
             </div>

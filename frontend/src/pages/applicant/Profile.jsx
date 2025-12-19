@@ -165,8 +165,24 @@ function ApplicantProfile() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // PDF-Validierung
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.pdf')) {
+      toast.error('Nur PDF-Dateien sind erlaubt!');
+      if (fileInputRefs.current[docType]) fileInputRefs.current[docType].value = '';
+      return;
+    }
+
+    // MIME-Type prüfen
+    if (file.type && file.type !== 'application/pdf' && file.type !== 'application/x-pdf') {
+      toast.error('Die Datei ist keine gültige PDF-Datei!');
+      if (fileInputRefs.current[docType]) fileInputRefs.current[docType].value = '';
+      return;
+    }
+
     if (file.size > 10 * 1024 * 1024) {
       toast.error('Datei ist zu groß (max. 10 MB)');
+      if (fileInputRefs.current[docType]) fileInputRefs.current[docType].value = '';
       return;
     }
 

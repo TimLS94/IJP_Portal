@@ -11,6 +11,16 @@ from app.models.applicant import Applicant
 
 
 class DocumentService:
+    # PDF Magic Bytes (erste Bytes einer echten PDF-Datei)
+    PDF_MAGIC_BYTES = b'%PDF'
+    
+    # Erlaubte MIME-Types für PDF
+    ALLOWED_MIME_TYPES = [
+        'application/pdf',
+        'application/x-pdf',
+        'application/octet-stream'  # Manchmal von Browsern gesendet
+    ]
+    
     @staticmethod
     def get_file_extension(filename: str) -> str:
         """Extrahiert die Dateiendung"""
@@ -23,6 +33,16 @@ class DocumentService:
         return ext in settings.ALLOWED_EXTENSIONS
     
     @staticmethod
+    def is_valid_pdf(file_content: bytes) -> bool:
+        """
+        Prüft ob die Datei wirklich eine PDF ist (Magic Bytes Check).
+        Dies verhindert, dass umbenannte Dateien hochgeladen werden.
+        """
+        if len(file_content) < 4:
+            return False
+        return file_content[:4] == DocumentService.PDF_MAGIC_BYTES
+    
+    @staticmethod
     async def save_file(
         file: UploadFile,
         applicant_id: int,
@@ -32,19 +52,35 @@ class DocumentService:
     ) -> Document:
         """Speichert eine Datei und erstellt einen Datenbank-Eintrag"""
         
-        # Dateiendung prüfen
+        # 1. Dateiendung prüfen
         if not DocumentService.is_allowed_file(file.filename):
             raise HTTPException(
                 status_code=400,
-                detail=f"Dateityp nicht erlaubt. Erlaubt: {', '.join(settings.ALLOWED_EXTENSIONS)}"
+                detail="Nur PDF-Dateien sind erlaubt. Bitte laden Sie eine PDF-Datei hoch."
             )
         
-        # Dateigröße prüfen
+        # 2. MIME-Type prüfen (erste Verteidigungslinie)
+        if file.content_type and file.content_type not in DocumentService.ALLOWED_MIME_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail="Nur PDF-Dateien sind erlaubt. Die hochgeladene Datei ist keine gültige PDF."
+            )
+        
+        # 3. Datei einlesen
         file_content = await file.read()
+        
+        # 4. Dateigröße prüfen
         if len(file_content) > settings.MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=400,
                 detail=f"Datei zu groß. Maximum: {settings.MAX_FILE_SIZE / 1024 / 1024} MB"
+            )
+        
+        # 5. PDF Magic Bytes prüfen (echte PDF-Validierung)
+        if not DocumentService.is_valid_pdf(file_content):
+            raise HTTPException(
+                status_code=400,
+                detail="Die Datei ist keine gültige PDF. Bitte stellen Sie sicher, dass Sie eine echte PDF-Datei hochladen."
             )
         
         # Eindeutigen Dateinamen generieren
