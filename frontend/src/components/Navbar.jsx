@@ -38,34 +38,34 @@ function Navbar() {
   const getMenuItems = () => {
     if (isApplicant) {
       return [
-        { to: '/applicant/profile', icon: User, label: 'Mein Profil' },
-        { to: '/applicant/documents', icon: FolderOpen, label: 'Dokumente' },
-        { to: '/applicant/applications', icon: FileText, label: 'Bewerbungen' },
-        { to: '/applicant/ijp-auftrag', icon: ClipboardList, label: 'IJP beauftragen', highlight: true },
+        { to: '/applicant/profile', icon: User, label: t('nav.profile') },
+        { to: '/applicant/documents', icon: FolderOpen, label: t('nav.documents') },
+        { to: '/applicant/applications', icon: FileText, label: t('nav.applications') },
+        { to: '/applicant/ijp-auftrag', icon: ClipboardList, label: t('nav.ijpRequest'), highlight: true },
         { divider: true },
-        { to: '/applicant/settings', icon: Settings, label: 'Einstellungen' },
+        { to: '/applicant/settings', icon: Settings, label: t('nav.settings') },
       ];
     }
     if (isCompany) {
       return [
-        { to: '/company/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { to: '/company/profile', icon: Building2, label: 'Firmenprofil' },
-        { to: '/company/jobs', icon: Briefcase, label: 'Stellenangebote' },
-        { to: '/company/applications', icon: FileText, label: 'Bewerbungen' },
+        { to: '/company/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
+        { to: '/company/profile', icon: Building2, label: t('nav.companyProfile') },
+        { to: '/company/jobs', icon: Briefcase, label: t('nav.jobs') },
+        { to: '/company/applications', icon: FileText, label: t('nav.companyApplications') },
         { divider: true },
-        { to: '/company/settings', icon: Settings, label: 'Einstellungen' },
+        { to: '/company/settings', icon: Settings, label: t('nav.settings') },
       ];
     }
     if (isAdmin) {
       return [
-        { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { to: '/admin/job-requests', icon: ClipboardList, label: 'IJP-Aufträge' },
-        { to: '/admin/applications', icon: FileText, label: 'Bewerbungen' },
-        { to: '/admin/users', icon: Users, label: 'Benutzer' },
-        { to: '/admin/jobs', icon: Briefcase, label: 'Stellenangebote' },
-        { to: '/admin/blog', icon: BookOpen, label: 'Blog verwalten' },
+        { to: '/admin/dashboard', icon: LayoutDashboard, label: t('nav.adminDashboard') },
+        { to: '/admin/job-requests', icon: ClipboardList, label: t('nav.adminJobRequests') },
+        { to: '/admin/applications', icon: FileText, label: t('nav.adminApplications') },
+        { to: '/admin/users', icon: Users, label: t('nav.adminUsers') },
+        { to: '/admin/jobs', icon: Briefcase, label: t('nav.adminJobs') },
+        { to: '/admin/blog', icon: BookOpen, label: t('nav.adminBlog') },
         { divider: true },
-        { to: '/admin/settings', icon: Settings, label: 'Einstellungen' },
+        { to: '/admin/settings', icon: Settings, label: t('nav.settings') },
       ];
     }
     return [];
@@ -75,9 +75,9 @@ function Navbar() {
 
   // Benutzer-Label
   const getUserLabel = () => {
-    if (isAdmin) return 'Admin';
-    if (isCompany) return 'Firma';
-    return 'Bewerber';
+    if (isAdmin) return t('admin.admins');
+    if (isCompany) return t('auth.company');
+    return t('auth.applicant');
   };
 
   const getUserIcon = () => {
@@ -198,7 +198,7 @@ function Navbar() {
                           className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                         >
                           <LogOut className="h-4 w-4" />
-                          <span>Abmelden</span>
+                          <span>{t('nav.logout')}</span>
                         </button>
                       </div>
                     </div>
@@ -230,7 +230,7 @@ function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <Briefcase className="h-5 w-5 text-gray-400" />
-                <span>Stellenangebote</span>
+                <span>{t('nav.jobs')}</span>
               </Link>
               <Link
                 to="/blog"
@@ -249,14 +249,14 @@ function Navbar() {
                   className="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Anmelden
+                  {t('nav.login')}
                 </Link>
                 <Link
                   to="/register"
                   className="block px-4 py-3 text-center bg-primary-600 text-white rounded-lg font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Registrieren
+                  {t('nav.register')}
                 </Link>
               </div>
             ) : (
@@ -311,7 +311,7 @@ function Navbar() {
                     className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg"
                   >
                     <LogOut className="h-5 w-5" />
-                    <span>Abmelden</span>
+                    <span>{t('nav.logout')}</span>
                   </button>
                 </div>
               </>

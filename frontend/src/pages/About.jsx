@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
-  Users, Globe, Briefcase, Award, CheckCircle, ArrowRight,
+  Users, Briefcase, Award, CheckCircle, ArrowRight,
   Building2, GraduationCap, UserCheck, Target, Heart
 } from 'lucide-react';
 
 function About() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -12,11 +15,10 @@ function About() {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Über IJP
+              {t('about.title')}
             </h1>
             <p className="text-xl text-primary-100">
-              Wir verbinden internationale Talente mit deutschen Unternehmen – 
-              für eine erfolgreiche Zusammenarbeit über Grenzen hinweg.
+              {t('about.subtitle')}
             </p>
           </div>
         </div>
@@ -28,15 +30,12 @@ function About() {
           <div className="max-w-4xl mx-auto">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">Unsere Mission</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">{t('about.mission.title')}</h2>
                 <p className="text-gray-600 mb-4">
-                  IJP – International Job Placement wurde gegründet, um internationalen Fachkräften 
-                  und Studenten den Weg nach Deutschland zu ebnen und gleichzeitig deutschen 
-                  Unternehmen Zugang zu motivierten und qualifizierten Arbeitskräften zu ermöglichen.
+                  {t('about.mission.text1')}
                 </p>
                 <p className="text-gray-600">
-                  Wir verstehen die Herausforderungen auf beiden Seiten und bieten eine Plattform, 
-                  die den gesamten Vermittlungsprozess transparent, effizient und persönlich gestaltet.
+                  {t('about.mission.text2')}
                 </p>
               </div>
               <div className="bg-gradient-to-br from-primary-50 to-blue-50 rounded-2xl p-8">
@@ -46,8 +45,8 @@ function About() {
                       <Target className="h-6 w-6 text-primary-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">Zielgerichtet</h3>
-                      <p className="text-sm text-gray-600">Passende Jobs für Ihre Qualifikationen</p>
+                      <h3 className="font-semibold text-gray-900">{t('about.values.targeted')}</h3>
+                      <p className="text-sm text-gray-600">{t('about.values.targetedDesc')}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -55,8 +54,8 @@ function About() {
                       <UserCheck className="h-6 w-6 text-green-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">Persönlich</h3>
-                      <p className="text-sm text-gray-600">Individuelle Betreuung für jeden Bewerber</p>
+                      <h3 className="font-semibold text-gray-900">{t('about.values.personal')}</h3>
+                      <p className="text-sm text-gray-600">{t('about.values.personalDesc')}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -64,8 +63,8 @@ function About() {
                       <Heart className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">Engagiert</h3>
-                      <p className="text-sm text-gray-600">Wir begleiten Sie bis zum Erfolg</p>
+                      <h3 className="font-semibold text-gray-900">{t('about.values.committed')}</h3>
+                      <p className="text-sm text-gray-600">{t('about.values.committedDesc')}</p>
                     </div>
                   </div>
                 </div>
@@ -79,9 +78,9 @@ function About() {
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Unsere Leistungen</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('about.services.title')}</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Von der ersten Bewerbung bis zum erfolgreichen Arbeitsantritt – wir unterstützen Sie bei jedem Schritt.
+              {t('about.services.subtitle')}
             </p>
           </div>
 
@@ -90,9 +89,9 @@ function About() {
               <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
                 <GraduationCap className="h-6 w-6 text-blue-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Studentenferienjobs</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{t('about.services.summer')}</h3>
               <p className="text-sm text-gray-600">
-                Sommerjobs in Deutschland für internationale Studierende während der Semesterferien.
+                {t('about.services.summerDesc')}
               </p>
             </div>
 
@@ -100,9 +99,9 @@ function About() {
               <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
                 <Briefcase className="h-6 w-6 text-orange-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Saisonarbeit</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{t('about.services.seasonal')}</h3>
               <p className="text-sm text-gray-600">
-                Saisonale Beschäftigung in Landwirtschaft, Gastronomie und anderen Branchen.
+                {t('about.services.seasonalDesc')}
               </p>
             </div>
 
@@ -110,9 +109,9 @@ function About() {
               <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
                 <Award className="h-6 w-6 text-purple-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Fachkräfte</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{t('about.services.skilled')}</h3>
               <p className="text-sm text-gray-600">
-                Vermittlung qualifizierter Fachkräfte für dauerhafte Beschäftigung in Deutschland.
+                {t('about.services.skilledDesc')}
               </p>
             </div>
 
@@ -120,9 +119,9 @@ function About() {
               <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
                 <Building2 className="h-6 w-6 text-green-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Ausbildung</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{t('about.services.training')}</h3>
               <p className="text-sm text-gray-600">
-                Ausbildungsplätze für junge Talente, die ihre Karriere in Deutschland starten möchten.
+                {t('about.services.trainingDesc')}
               </p>
             </div>
           </div>
@@ -139,15 +138,15 @@ function About() {
                 <div className="p-3 bg-green-100 rounded-xl">
                   <Users className="h-8 w-8 text-green-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">Für Bewerber</h3>
+                <h3 className="text-2xl font-bold text-gray-900">{t('about.forApplicants.title')}</h3>
               </div>
               <ul className="space-y-3 mb-6">
                 {[
-                  'Kostenlose Registrierung und Profilerstellung',
-                  'Zugang zu exklusiven Stellenangeboten',
-                  'Persönliche Betreuung durch unser Team',
-                  'Unterstützung bei Visum und Dokumenten',
-                  'Tipps für Vorstellungsgespräche'
+                  t('about.forApplicants.benefit1'),
+                  t('about.forApplicants.benefit2'),
+                  t('about.forApplicants.benefit3'),
+                  t('about.forApplicants.benefit4'),
+                  t('about.forApplicants.benefit5')
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
@@ -159,7 +158,7 @@ function About() {
                 to="/register" 
                 className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-green-700 transition-colors"
               >
-                Jetzt registrieren
+                {t('about.forApplicants.cta')}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -170,15 +169,15 @@ function About() {
                 <div className="p-3 bg-blue-100 rounded-xl">
                   <Building2 className="h-8 w-8 text-blue-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">Für Unternehmen</h3>
+                <h3 className="text-2xl font-bold text-gray-900">{t('about.forCompanies.title')}</h3>
               </div>
               <ul className="space-y-3 mb-6">
                 {[
-                  'Zugang zu motivierten internationalen Bewerbern',
-                  'Vorgeprüfte und qualifizierte Kandidaten',
-                  'Einfache Stellenausschreibung',
-                  'Direkter Kontakt zu Bewerbern',
-                  'Unterstützung beim Einstellungsprozess'
+                  t('about.forCompanies.benefit1'),
+                  t('about.forCompanies.benefit2'),
+                  t('about.forCompanies.benefit3'),
+                  t('about.forCompanies.benefit4'),
+                  t('about.forCompanies.benefit5')
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <CheckCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
@@ -190,7 +189,7 @@ function About() {
                 to="/register" 
                 className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
               >
-                Firma registrieren
+                {t('about.forCompanies.cta')}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -202,9 +201,9 @@ function About() {
       <section className="py-16 bg-gray-900 text-white">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-4">Haben Sie Fragen?</h2>
+            <h2 className="text-3xl font-bold mb-4">{t('about.contact.title')}</h2>
             <p className="text-gray-400 mb-8">
-              Unser Team steht Ihnen gerne zur Verfügung. Kontaktieren Sie uns für weitere Informationen.
+              {t('about.contact.subtitle')}
             </p>
             <div className="bg-gray-800 rounded-xl p-6 text-left">
               <p className="font-semibold mb-2">IJP International Job Placement UG</p>

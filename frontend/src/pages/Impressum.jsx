@@ -1,18 +1,21 @@
-import { MapPin, Mail, Phone, Building2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Building2, Mail } from 'lucide-react';
 
 function Impressum() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-bold text-gray-900 mb-8">Impressum</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-8">{t('impressum.title')}</h1>
           
           <div className="bg-white rounded-2xl shadow-sm p-8 space-y-8">
             {/* Angaben gemäß § 5 TMG */}
             <section>
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-primary-600" />
-                Angaben gemäß § 5 TMG
+                {t('impressum.according')}
               </h2>
               <div className="text-gray-700 space-y-1">
                 <p className="font-semibold">IJP International Job Placement UG (haftungsbeschränkt)</p>
@@ -25,7 +28,7 @@ function Impressum() {
 
             {/* Kontakt */}
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Kontakt</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('impressum.contact')}</h2>
               <div className="text-gray-700 space-y-2">
                 <p className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-gray-400" />
@@ -36,35 +39,34 @@ function Impressum() {
 
             {/* Handelsregister */}
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Registereintrag</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('impressum.register')}</h2>
               <div className="text-gray-700 space-y-1">
-                <p>Eintragung im Handelsregister</p>
-                <p>Registergericht: Amtsgericht Berlin-Charlottenburg</p>
-                <p>Registernummer: [wird nach Eintragung ergänzt]</p>
+                <p>{t('impressum.registerCourt')}: Amtsgericht Berlin-Charlottenburg</p>
+                <p>{t('impressum.registerNumber')}: [wird nach Eintragung ergänzt]</p>
               </div>
             </section>
 
             {/* Vertretungsberechtigter */}
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Vertretungsberechtigter Geschäftsführer</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('impressum.ceo')}</h2>
               <p className="text-gray-700">Tim Schäfer</p>
             </section>
 
             {/* USt-ID */}
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Umsatzsteuer-ID</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('impressum.vatId')}</h2>
               <p className="text-gray-700">
-                Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz:<br />
+                {t('impressum.vatIdDesc')}:<br />
                 [wird nach Erteilung ergänzt]
               </p>
             </section>
 
             {/* Streitschlichtung */}
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Streitschlichtung</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('impressum.dispute')}</h2>
               <div className="text-gray-700 space-y-3">
                 <p>
-                  Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{' '}
+                  {t('impressum.disputeText1')}{' '}
                   <a 
                     href="https://ec.europa.eu/consumers/odr/" 
                     target="_blank" 
@@ -74,54 +76,35 @@ function Impressum() {
                     https://ec.europa.eu/consumers/odr/
                   </a>
                 </p>
-                <p>
-                  Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer 
-                  Verbraucherschlichtungsstelle teilzunehmen.
-                </p>
+                <p>{t('impressum.disputeText2')}</p>
               </div>
             </section>
 
             {/* Haftung für Inhalte */}
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Haftung für Inhalte</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('impressum.liabilityContent')}</h2>
               <p className="text-gray-700">
                 Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den 
                 allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht 
-                verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen 
-                zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder 
-                Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. 
-                Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten 
-                Rechtsverletzung möglich. Bei Bekanntwerden von entsprechenden Rechtsverletzungen werden wir 
-                diese Inhalte umgehend entfernen.
+                verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen.
               </p>
             </section>
 
             {/* Haftung für Links */}
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Haftung für Links</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('impressum.liabilityLinks')}</h2>
               <p className="text-gray-700">
                 Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. 
-                Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der 
-                verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich. Die 
-                verlinkten Seiten wurden zum Zeitpunkt der Verlinkung auf mögliche Rechtsverstöße überprüft. 
-                Rechtswidrige Inhalte waren zum Zeitpunkt der Verlinkung nicht erkennbar. Eine permanente inhaltliche 
-                Kontrolle der verlinkten Seiten ist jedoch ohne konkrete Anhaltspunkte einer Rechtsverletzung nicht 
-                zumutbar. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Links umgehend entfernen.
+                Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen.
               </p>
             </section>
 
             {/* Urheberrecht */}
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Urheberrecht</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('impressum.copyright')}</h2>
               <p className="text-gray-700">
                 Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen 
-                Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der 
-                Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers. 
-                Downloads und Kopien dieser Seite sind nur für den privaten, nicht kommerziellen Gebrauch gestattet. 
-                Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden die Urheberrechte 
-                Dritter beachtet. Insbesondere werden Inhalte Dritter als solche gekennzeichnet. Sollten Sie trotzdem 
-                auf eine Urheberrechtsverletzung aufmerksam werden, bitten wir um einen entsprechenden Hinweis. Bei 
-                Bekanntwerden von Rechtsverletzungen werden wir derartige Inhalte umgehend entfernen.
+                Urheberrecht.
               </p>
             </section>
           </div>

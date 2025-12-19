@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { jobsAPI } from '../../lib/api';
 import { MapPin, Calendar, Building2, Search, Filter, Briefcase, ChevronDown, X, Languages } from 'lucide-react';
-
-const positionTypes = [
-  { value: '', label: 'Alle Stellenarten' },
-  { value: 'studentenferienjob', label: 'Studentenferienjob' },
-  { value: 'saisonjob', label: 'Saisonjob (8 Monate)' },
-  { value: 'fachkraft', label: 'Fachkraft' },
-  { value: 'ausbildung', label: 'Ausbildung' }
-];
 
 const positionTypeColors = {
   studentenferienjob: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -18,30 +11,37 @@ const positionTypeColors = {
   ausbildung: 'bg-green-100 text-green-800 border-green-200'
 };
 
-// Sprachniveau Labels (kurz)
-const languageLevelLabels = {
-  not_required: null,
-  basic: 'Grundkenntnisse',
-  good: 'Gute Kenntnisse',
-  fluent: 'Fließend'
-};
-
 const languageLevelColors = {
   basic: 'bg-yellow-50 text-yellow-700 border-yellow-200',
   good: 'bg-blue-50 text-blue-700 border-blue-200',
   fluent: 'bg-green-50 text-green-700 border-green-200'
 };
 
-// Sprachfilter-Optionen
-const germanLevelFilter = [
-  { value: '', label: 'Alle Deutschkenntnisse' },
-  { value: 'not_required', label: 'Keine erforderlich' },
-  { value: 'basic', label: 'Grundkenntnisse' },
-  { value: 'good', label: 'Gute Kenntnisse' },
-  { value: 'fluent', label: 'Fließend' }
-];
-
 function Jobs() {
+  const { t } = useTranslation();
+  
+  const positionTypes = [
+    { value: '', label: t('jobs.allTypes') },
+    { value: 'studentenferienjob', label: t('positionTypes.studentenferienjob') },
+    { value: 'saisonjob', label: t('positionTypes.saisonjob') },
+    { value: 'fachkraft', label: t('positionTypes.fachkraft') },
+    { value: 'ausbildung', label: t('positionTypes.ausbildung') }
+  ];
+
+  const languageLevelLabels = {
+    not_required: null,
+    basic: t('languageLevels.a2'),
+    good: t('languageLevels.b1'),
+    fluent: t('languageLevels.c1')
+  };
+
+  const germanLevelFilter = [
+    { value: '', label: t('jobs.allTypes') },
+    { value: 'not_required', label: t('languageLevels.none') },
+    { value: 'basic', label: t('languageLevels.a2') },
+    { value: 'good', label: t('languageLevels.b1') },
+    { value: 'fluent', label: t('languageLevels.c1') }
+  ];
   const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +139,7 @@ function Jobs() {
       <div className="flex items-center gap-3 mb-8">
         <Briefcase className="h-8 w-8 text-primary-600" />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Stellenangebote</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('jobs.title')}</h1>
           <p className="text-gray-600">Finden Sie Ihren passenden Job in Deutschland</p>
         </div>
       </div>
@@ -253,7 +253,7 @@ function Jobs() {
       {!loading && (
         <div className="mb-4 flex items-center justify-between">
           <p className="text-gray-600">
-            <span className="font-semibold text-gray-900">{jobs.length}</span> Stellenangebote gefunden
+            <span className="font-semibold text-gray-900">{jobs.length}</span> {t('jobs.title')}
           </p>
         </div>
       )}
@@ -266,7 +266,7 @@ function Jobs() {
       ) : jobs.length === 0 ? (
         <div className="card text-center py-12">
           <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg mb-2">Keine Stellenangebote gefunden</p>
+          <p className="text-gray-500 text-lg mb-2">{t('jobs.noJobs')}</p>
           <p className="text-gray-400">Versuchen Sie andere Suchkriterien</p>
         </div>
       ) : (

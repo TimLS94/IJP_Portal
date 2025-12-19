@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { jobRequestsAPI, applicantAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
@@ -19,6 +20,7 @@ const statusColors = {
 };
 
 function ApplicantJobRequest() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [hasRequest, setHasRequest] = useState(false);
   const [request, setRequest] = useState(null);

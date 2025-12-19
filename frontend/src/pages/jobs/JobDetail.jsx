@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { jobsAPI, applicationsAPI } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -8,26 +9,11 @@ import {
   ArrowLeft, Send, CheckCircle, Languages, AlertTriangle, FileText, Loader2, ClipboardList
 } from 'lucide-react';
 
-const positionTypeLabels = {
-  studentenferienjob: 'Studentenferienjob',
-  saisonjob: 'Saisonjob (8 Monate)',
-  fachkraft: 'Fachkraft',
-  ausbildung: 'Ausbildung'
-};
-
 const positionTypeColors = {
   studentenferienjob: 'bg-blue-100 text-blue-800 border-blue-200',
   saisonjob: 'bg-orange-100 text-orange-800 border-orange-200',
   fachkraft: 'bg-purple-100 text-purple-800 border-purple-200',
   ausbildung: 'bg-green-100 text-green-800 border-green-200'
-};
-
-// Sprachniveau Labels
-const languageLevelLabels = {
-  not_required: 'Nicht erforderlich',
-  basic: 'Grundkenntnisse (A1-A2)',
-  good: 'Gute Kenntnisse (B1-B2)',
-  fluent: 'Fließend (C1-C2)'
 };
 
 const languageLevelColors = {
@@ -38,6 +24,21 @@ const languageLevelColors = {
 };
 
 function JobDetail() {
+  const { t } = useTranslation();
+  
+  const positionTypeLabels = {
+    studentenferienjob: t('positionTypes.studentenferienjob'),
+    saisonjob: t('positionTypes.saisonjob'),
+    fachkraft: t('positionTypes.fachkraft'),
+    ausbildung: t('positionTypes.ausbildung')
+  };
+
+  const languageLevelLabels = {
+    not_required: t('languageLevels.none'),
+    basic: t('languageLevels.a2'),
+    good: t('languageLevels.b1'),
+    fluent: t('languageLevels.c1')
+  };
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, isApplicant } = useAuth();

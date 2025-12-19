@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, ExternalLink } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { MapPin } from 'lucide-react';
 
 function Footer() {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -18,7 +20,7 @@ function Footer() {
               className="h-10 w-auto mb-4 brightness-0 invert"
             />
             <p className="text-sm text-gray-400 mb-4">
-              Ihre Brücke zu internationalen Karrieremöglichkeiten in Deutschland.
+              {t('footer.description')}
             </p>
             <div className="space-y-2 text-sm">
               <p className="flex items-start gap-2">
@@ -35,26 +37,26 @@ function Footer() {
 
           {/* Für Bewerber */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Für Bewerber</h3>
+            <h3 className="text-white font-semibold mb-4">{t('footer.forApplicants')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link to="/jobs" className="hover:text-primary-400 transition-colors">
-                  Stellenangebote
+                  {t('nav.jobs')}
                 </Link>
               </li>
               <li>
                 <Link to="/register" className="hover:text-primary-400 transition-colors">
-                  Kostenlos registrieren
+                  {t('nav.register')}
                 </Link>
               </li>
               <li>
                 <Link to="/blog" className="hover:text-primary-400 transition-colors">
-                  Blog & Ratgeber
+                  {t('nav.blog')}
                 </Link>
               </li>
               <li>
                 <Link to="/about" className="hover:text-primary-400 transition-colors">
-                  Über IJP
+                  {t('nav.about')}
                 </Link>
               </li>
             </ul>
@@ -62,21 +64,21 @@ function Footer() {
 
           {/* Für Unternehmen */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Für Unternehmen</h3>
+            <h3 className="text-white font-semibold mb-4">{t('footer.forCompanies')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link to="/register" className="hover:text-primary-400 transition-colors">
-                  Als Firma registrieren
+                  {t('nav.register')}
                 </Link>
               </li>
               <li>
                 <Link to="/about" className="hover:text-primary-400 transition-colors">
-                  Unsere Leistungen
+                  {t('nav.about')}
                 </Link>
               </li>
               <li>
                 <Link to="/blog" className="hover:text-primary-400 transition-colors">
-                  Aktuelles
+                  {t('nav.blog')}
                 </Link>
               </li>
             </ul>
@@ -84,21 +86,21 @@ function Footer() {
 
           {/* Rechtliches */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Rechtliches</h3>
+            <h3 className="text-white font-semibold mb-4">{t('footer.legal')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link to="/impressum" className="hover:text-primary-400 transition-colors">
-                  Impressum
+                  {t('impressum.title')}
                 </Link>
               </li>
               <li>
                 <Link to="/datenschutz" className="hover:text-primary-400 transition-colors">
-                  Datenschutz
+                  {t('datenschutz.title')}
                 </Link>
               </li>
               <li>
                 <Link to="/agb" className="hover:text-primary-400 transition-colors">
-                  AGB
+                  {t('agb.title')}
                 </Link>
               </li>
             </ul>
@@ -110,14 +112,14 @@ function Footer() {
       <div className="border-t border-gray-800">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-            <p>© {currentYear} IJP International Job Placement UG. Alle Rechte vorbehalten.</p>
+            <p>© {currentYear} {t('footer.copyright')}</p>
             <div className="flex items-center gap-4">
               <Link to="/impressum" className="hover:text-gray-300 transition-colors">
-                Impressum
+                {t('impressum.title')}
               </Link>
               <span>•</span>
               <Link to="/datenschutz" className="hover:text-gray-300 transition-colors">
-                Datenschutz
+                {t('datenschutz.title')}
               </Link>
             </div>
           </div>
