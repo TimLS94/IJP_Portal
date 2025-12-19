@@ -1,0 +1,638 @@
+"""
+API Endpoints für IJP-Aufträge (Job Requests)
+"""
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+from typing import Optional
+from datetime import datetime
+from pydantic import BaseModel
+import csv
+import io
+import zipfile
+import os
+
+from app.core.database import get_db
+from app.core.security import get_current_user
+from app.core.config import settings
+from app.models.user import User, UserRole
+from app.models.applicant import Applicant, PositionType
+from app.models.job_request import JobRequest, JobRequestStatus, JOB_REQUEST_STATUS_LABELS, JOB_REQUEST_STATUS_COLORS
+from app.models.document import Document
+from app.services.email_service import email_service
+
+router = APIRouter(prefix="/job-requests", tags=["IJP-Aufträge"])
+
+
+# ========== PYDANTIC SCHEMAS ==========
+
+class CreateJobRequestSchema(BaseModel):
+    privacy_consent: bool
+    preferred_location: Optional[str] = None
+    preferred_start_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class UpdateJobRequestStatusSchema(BaseModel):
+    status: JobRequestStatus
+    admin_notes: Optional[str] = None
+    matched_company_name: Optional[str] = None
+    matched_job_title: Optional[str] = None
+    interview_date: Optional[str] = None  # ISO format date string
+    contract_date: Optional[str] = None   # ISO format date string
+
+
+# ========== DATENSCHUTZ TEXT ==========
+
+PRIVACY_CONSENT_TEXT = """
+DATENSCHUTZERKLÄRUNG - IJP Vermittlungsservice
+
+Mit Ihrer Zustimmung erklären Sie sich einverstanden, dass:
+
+1. DATENVERARBEITUNG
+IJP International Job Placement Ihre personenbezogenen Daten (Name, Kontaktdaten, 
+Qualifikationen, Dokumente) zum Zweck der Arbeitsvermittlung verarbeitet.
+
+2. DATENWEITERGABE AN PARTNERUNTERNEHMEN
+Ihre Daten und Dokumente an potenzielle Arbeitgeber (Partnerunternehmen) 
+weitergegeben werden dürfen, soweit dies für die Stellenvermittlung erforderlich ist.
+
+3. ZWECKBINDUNG
+Die Datenverarbeitung erfolgt ausschließlich zum Zweck der Arbeitsvermittlung 
+und damit verbundener Dienstleistungen.
+
+4. SPEICHERDAUER
+Ihre Daten werden für die Dauer des Vermittlungsprozesses sowie für einen 
+angemessenen Zeitraum danach gespeichert (max. 2 Jahre nach Abschluss).
+
+5. WIDERRUF
+Sie können Ihre Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen. 
+Ein Widerruf berührt nicht die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung.
+
+6. IHRE RECHTE
+Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung 
+der Verarbeitung Ihrer Daten gemäß DSGVO.
+
+Datum der Zustimmung: {date}
+"""
+
+
+# ========== HELPER ==========
+
+def require_admin(current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin-Rechte erforderlich")
+    return current_user
+
+
+# ========== BEWERBER ENDPOINTS ==========
+
+@router.get("/my")
+async def get_my_job_request(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Holt den aktuellen IJP-Auftrag des Bewerbers"""
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(status_code=403, detail="Nur für Bewerber")
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        return {"has_request": False, "request": None}
+    
+    job_request = db.query(JobRequest).filter(
+        JobRequest.applicant_id == applicant.id,
+        JobRequest.status.notin_([JobRequestStatus.CANCELLED, JobRequestStatus.COMPLETED])
+    ).first()
+    
+    if not job_request:
+        return {"has_request": False, "request": None}
+    
+    return {
+        "has_request": True,
+        "request": {
+            "id": job_request.id,
+            "status": job_request.status.value,
+            "status_label": JOB_REQUEST_STATUS_LABELS.get(job_request.status),
+            "status_color": JOB_REQUEST_STATUS_COLORS.get(job_request.status),
+            "privacy_consent": job_request.privacy_consent,
+            "privacy_consent_date": job_request.privacy_consent_date,
+            "preferred_location": job_request.preferred_location,
+            "preferred_start_date": job_request.preferred_start_date,
+            "notes": job_request.notes,
+            "created_at": job_request.created_at,
+            "updated_at": job_request.updated_at,
+        }
+    }
+
+
+@router.get("/privacy-text")
+async def get_privacy_text():
+    """Gibt den Datenschutz-Text zurück"""
+    return {
+        "text": PRIVACY_CONSENT_TEXT.format(date=datetime.now().strftime("%d.%m.%Y um %H:%M Uhr"))
+    }
+
+
+@router.post("")
+async def create_job_request(
+    data: CreateJobRequestSchema,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Erstellt einen neuen IJP-Auftrag (Bewerber beauftragt IJP)"""
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(status_code=403, detail="Nur für Bewerber")
+    
+    if not data.privacy_consent:
+        raise HTTPException(
+            status_code=400, 
+            detail="Sie müssen der Datenschutzerklärung zustimmen"
+        )
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        raise HTTPException(status_code=400, detail="Bitte vervollständigen Sie zuerst Ihr Profil")
+    
+    # Prüfen ob bereits ein aktiver Auftrag existiert
+    existing = db.query(JobRequest).filter(
+        JobRequest.applicant_id == applicant.id,
+        JobRequest.status.notin_([JobRequestStatus.CANCELLED, JobRequestStatus.COMPLETED])
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Sie haben bereits einen aktiven IJP-Auftrag")
+    
+    # Prüfen ob Profil vollständig
+    required_fields = ['first_name', 'last_name', 'phone', 'position_type']
+    for field in required_fields:
+        if not getattr(applicant, field, None):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Bitte vervollständigen Sie Ihr Profil (fehlt: {field})"
+            )
+    
+    job_request = JobRequest(
+        applicant_id=applicant.id,
+        privacy_consent=True,
+        privacy_consent_date=datetime.utcnow(),
+        privacy_consent_text=PRIVACY_CONSENT_TEXT.format(date=datetime.now().strftime("%d.%m.%Y um %H:%M Uhr")),
+        preferred_location=data.preferred_location,
+        preferred_start_date=data.preferred_start_date,
+        notes=data.notes,
+        status=JobRequestStatus.PENDING
+    )
+    
+    db.add(job_request)
+    db.commit()
+    db.refresh(job_request)
+    
+    # E-Mail an Bewerber
+    email_service.send_email(
+        to_email=current_user.email,
+        subject="IJP-Auftrag erfolgreich erstellt",
+        html_content=f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h1 style="color: #2563eb;">IJP-Auftrag erstellt!</h1>
+                <p>Hallo {applicant.first_name},</p>
+                <p>Ihr IJP-Auftrag wurde erfolgreich erstellt.</p>
+                <p>Wir werden Ihre Unterlagen prüfen und uns bei passenden Stellen bei Ihnen melden.</p>
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <p><strong>Auftragsnummer:</strong> #{job_request.id}</p>
+                    <p><strong>Status:</strong> {JOB_REQUEST_STATUS_LABELS.get(job_request.status)}</p>
+                </div>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP-Team</p>
+            </div>
+        </body>
+        </html>
+        """
+    )
+    
+    return {
+        "message": "IJP-Auftrag erfolgreich erstellt",
+        "request_id": job_request.id
+    }
+
+
+@router.delete("/my")
+async def cancel_my_job_request(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Storniert den aktuellen IJP-Auftrag"""
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(status_code=403, detail="Nur für Bewerber")
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Profil nicht gefunden")
+    
+    job_request = db.query(JobRequest).filter(
+        JobRequest.applicant_id == applicant.id,
+        JobRequest.status.notin_([JobRequestStatus.CANCELLED, JobRequestStatus.COMPLETED])
+    ).first()
+    
+    if not job_request:
+        raise HTTPException(status_code=404, detail="Kein aktiver Auftrag gefunden")
+    
+    job_request.status = JobRequestStatus.CANCELLED
+    db.commit()
+    
+    return {"message": "Auftrag storniert"}
+
+
+# ========== ADMIN ENDPOINTS ==========
+
+@router.get("/admin/status-options")
+async def get_status_options(current_user: User = Depends(require_admin)):
+    """Gibt alle Status-Optionen zurück"""
+    return {
+        "statuses": [
+            {
+                "value": status.value,
+                "label": JOB_REQUEST_STATUS_LABELS.get(status),
+                "color": JOB_REQUEST_STATUS_COLORS.get(status)
+            }
+            for status in JobRequestStatus
+        ]
+    }
+
+
+@router.get("/admin")
+async def list_job_requests(
+    status_filter: Optional[JobRequestStatus] = None,
+    position_type: Optional[PositionType] = None,
+    search: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Listet alle IJP-Aufträge für Admin"""
+    query = db.query(JobRequest).join(Applicant)
+    
+    if status_filter:
+        query = query.filter(JobRequest.status == status_filter)
+    
+    if position_type:
+        query = query.filter(Applicant.position_type == position_type)
+    
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            (Applicant.first_name.ilike(search_term)) |
+            (Applicant.last_name.ilike(search_term))
+        )
+    
+    total = query.count()
+    requests = query.order_by(JobRequest.created_at.desc()).offset(skip).limit(limit).all()
+    
+    result = []
+    for req in requests:
+        applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+        user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
+        doc_count = db.query(Document).filter(Document.applicant_id == applicant.id).count() if applicant else 0
+        
+        result.append({
+            "id": req.id,
+            "applicant_id": applicant.id if applicant else None,
+            "applicant_name": f"{applicant.first_name} {applicant.last_name}" if applicant else "Unbekannt",
+            "applicant_email": user.email if user else None,
+            "applicant_phone": applicant.phone if applicant else None,
+            "position_type": applicant.position_type.value if applicant and applicant.position_type else None,
+            "status": req.status.value,
+            "status_label": JOB_REQUEST_STATUS_LABELS.get(req.status),
+            "status_color": JOB_REQUEST_STATUS_COLORS.get(req.status),
+            "privacy_consent": req.privacy_consent,
+            "privacy_consent_date": req.privacy_consent_date,
+            "preferred_location": req.preferred_location,
+            "notes": req.notes,
+            "admin_notes": req.admin_notes,
+            "document_count": doc_count,
+            "created_at": req.created_at,
+            "updated_at": req.updated_at,
+        })
+    
+    return {"total": total, "requests": result}
+
+
+@router.get("/admin/{request_id}")
+async def get_job_request_details(
+    request_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Holt detaillierte Informationen zu einem IJP-Auftrag"""
+    req = db.query(JobRequest).filter(JobRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Auftrag nicht gefunden")
+    
+    applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+    user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
+    documents = db.query(Document).filter(Document.applicant_id == applicant.id).all() if applicant else []
+    
+    return {
+        "request": {
+            "id": req.id,
+            "status": req.status.value,
+            "status_label": JOB_REQUEST_STATUS_LABELS.get(req.status),
+            "status_color": JOB_REQUEST_STATUS_COLORS.get(req.status),
+            "privacy_consent": req.privacy_consent,
+            "privacy_consent_date": req.privacy_consent_date,
+            "preferred_location": req.preferred_location,
+            "preferred_start_date": req.preferred_start_date,
+            "notes": req.notes,
+            "admin_notes": req.admin_notes,
+            # Vermittlungs-Daten
+            "matched_company_name": req.matched_company_name,
+            "matched_job_title": req.matched_job_title,
+            "interview_date": req.interview_date,
+            "contract_date": req.contract_date,
+            "created_at": req.created_at,
+            "updated_at": req.updated_at,
+        },
+        "applicant": {
+            "id": applicant.id if applicant else None,
+            "first_name": applicant.first_name if applicant else None,
+            "last_name": applicant.last_name if applicant else None,
+            "email": user.email if user else None,
+            "phone": applicant.phone if applicant else None,
+            "date_of_birth": applicant.date_of_birth if applicant else None,
+            "nationality": applicant.nationality if applicant else None,
+            "position_type": applicant.position_type.value if applicant and applicant.position_type else None,
+            "address": {
+                "street": applicant.street if applicant else None,
+                "house_number": applicant.house_number if applicant else None,
+                "postal_code": applicant.postal_code if applicant else None,
+                "city": applicant.city if applicant else None,
+                "country": applicant.country if applicant else None,
+            },
+            "german_level": applicant.german_level.value if applicant and applicant.german_level else None,
+            "english_level": applicant.english_level.value if applicant and applicant.english_level else None,
+            "work_experience_years": applicant.work_experience_years if applicant else None,
+            "university_name": applicant.university_name if applicant else None,
+            "field_of_study": applicant.field_of_study if applicant else None,
+        },
+        "documents": [
+            {
+                "id": doc.id,
+                "document_type": doc.document_type.value,
+                "original_name": doc.original_name,
+                "file_path": doc.file_path,
+                "uploaded_at": doc.uploaded_at,
+            }
+            for doc in documents
+        ]
+    }
+
+
+@router.put("/admin/{request_id}/status")
+async def update_job_request_status(
+    request_id: int,
+    data: UpdateJobRequestStatusSchema,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert den Status eines IJP-Auftrags"""
+    req = db.query(JobRequest).filter(JobRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Auftrag nicht gefunden")
+    
+    old_status = req.status
+    req.status = data.status
+    
+    # Optionale Felder aktualisieren
+    if data.admin_notes is not None:
+        req.admin_notes = data.admin_notes
+    if data.matched_company_name is not None:
+        req.matched_company_name = data.matched_company_name
+    if data.matched_job_title is not None:
+        req.matched_job_title = data.matched_job_title
+    if data.interview_date:
+        from datetime import datetime
+        try:
+            req.interview_date = datetime.fromisoformat(data.interview_date.replace('Z', '+00:00'))
+        except:
+            req.interview_date = None
+    if data.contract_date:
+        from datetime import datetime
+        try:
+            req.contract_date = datetime.fromisoformat(data.contract_date.replace('Z', '+00:00'))
+        except:
+            req.contract_date = None
+    
+    db.commit()
+    db.refresh(req)
+    
+    # E-Mail bei Statusänderung
+    if data.status != old_status:
+        applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+        user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
+        
+        if user:
+            email_service.send_email(
+                to_email=user.email,
+                subject=f"IJP-Auftrag Status Update: {JOB_REQUEST_STATUS_LABELS.get(data.status)}",
+                html_content=f"""
+                <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h1 style="color: #2563eb;">Status-Update zu Ihrem IJP-Auftrag</h1>
+                        <p>Hallo {applicant.first_name},</p>
+                        <p>Der Status Ihres IJP-Auftrags wurde aktualisiert:</p>
+                        <div style="background: #dbeafe; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                            <strong style="font-size: 18px; color: #1d4ed8;">{JOB_REQUEST_STATUS_LABELS.get(data.status)}</strong>
+                        </div>
+                        <p><a href="http://localhost:5173/applicant/ijp-auftrag" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Details ansehen</a></p>
+                        <p>Mit freundlichen Grüßen,<br>Ihr IJP-Team</p>
+                    </div>
+                </body>
+                </html>
+                """
+            )
+    
+    return {
+        "message": "Status aktualisiert",
+        "status": req.status.value,
+        "status_label": JOB_REQUEST_STATUS_LABELS.get(req.status)
+    }
+
+
+@router.get("/admin/export/csv")
+async def export_job_requests_csv(
+    status_filter: Optional[JobRequestStatus] = None,
+    position_type: Optional[PositionType] = None,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Exportiert IJP-Aufträge als CSV mit vollständigen Profildaten"""
+    query = db.query(JobRequest).join(Applicant)
+    
+    if status_filter:
+        query = query.filter(JobRequest.status == status_filter)
+    if position_type:
+        query = query.filter(Applicant.position_type == position_type)
+    
+    requests = query.order_by(JobRequest.created_at.desc()).all()
+    
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    
+    # Header - Alle Profildaten
+    writer.writerow([
+        # Auftrag
+        'Auftrags-ID', 'Auftragsdatum', 'Status', 'Bevorzugte Region', 'Bewerber-Notizen', 'Admin-Notizen',
+        'Datenschutz-Zustimmung', 'Datenschutz-Datum',
+        # Persönliche Daten
+        'Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Geburtsdatum', 'Geburtsort', 'Nationalität',
+        # Adresse
+        'Straße', 'Hausnummer', 'PLZ', 'Stadt', 'Land',
+        # Stellenart
+        'Stellenart',
+        # Qualifikationen
+        'Deutschkenntnisse', 'Englischkenntnisse', 'Weitere Sprachen',
+        'Berufserfahrung (Jahre)', 'Berufserfahrung (Details)',
+        'Schon in Deutschland gewesen', 'Deutschland-Details',
+        # Studenten-Daten
+        'Universität', 'Uni-Stadt', 'Uni-Land', 'Studienfach', 'Fachsemester',
+        'Semesterferien von', 'Semesterferien bis', 'Weiterstudieren',
+        # Fachkraft/Ausbildung
+        'Beruf', 'Abschluss', 'Abschlussjahr', 'Schulabschluss', 'Wunschberuf',
+        # Verfügbarkeit
+        'Verfügbar ab', 'Verfügbar bis', 'Bevorzugter Arbeitsbereich',
+        # Meta
+        'Zusätzliche Infos', 'Anzahl Dokumente'
+    ])
+    
+    for req in requests:
+        applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+        user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
+        doc_count = db.query(Document).filter(Document.applicant_id == applicant.id).count() if applicant else 0
+        
+        # Andere Sprachen als String
+        other_langs = ''
+        if applicant and applicant.other_languages:
+            try:
+                langs = applicant.other_languages if isinstance(applicant.other_languages, list) else []
+                other_langs = ', '.join([f"{l.get('language', '')}: {l.get('level', '')}" for l in langs])
+            except:
+                other_langs = str(applicant.other_languages)
+        
+        writer.writerow([
+            # Auftrag
+            req.id,
+            req.created_at.strftime('%d.%m.%Y %H:%M') if req.created_at else '',
+            JOB_REQUEST_STATUS_LABELS.get(req.status, req.status.value),
+            req.preferred_location or '',
+            req.notes or '',
+            req.admin_notes or '',
+            'Ja' if req.privacy_consent else 'Nein',
+            req.privacy_consent_date.strftime('%d.%m.%Y %H:%M') if req.privacy_consent_date else '',
+            # Persönliche Daten
+            applicant.first_name if applicant else '',
+            applicant.last_name if applicant else '',
+            user.email if user else '',
+            applicant.phone if applicant else '',
+            applicant.date_of_birth.strftime('%d.%m.%Y') if applicant and applicant.date_of_birth else '',
+            applicant.place_of_birth if applicant else '',
+            applicant.nationality if applicant else '',
+            # Adresse
+            applicant.street if applicant else '',
+            applicant.house_number if applicant else '',
+            applicant.postal_code if applicant else '',
+            applicant.city if applicant else '',
+            applicant.country if applicant else '',
+            # Stellenart
+            applicant.position_type.value if applicant and applicant.position_type else '',
+            # Qualifikationen
+            applicant.german_level.value if applicant and applicant.german_level else '',
+            applicant.english_level.value if applicant and applicant.english_level else '',
+            other_langs,
+            applicant.work_experience_years if applicant else '',
+            applicant.work_experience if applicant else '',
+            'Ja' if applicant and applicant.been_to_germany else 'Nein',
+            applicant.germany_details if applicant else '',
+            # Studenten-Daten
+            applicant.university_name if applicant else '',
+            applicant.university_city if applicant else '',
+            applicant.university_country if applicant else '',
+            applicant.field_of_study if applicant else '',
+            applicant.current_semester if applicant else '',
+            applicant.semester_break_start.strftime('%d.%m.%Y') if applicant and applicant.semester_break_start else '',
+            applicant.semester_break_end.strftime('%d.%m.%Y') if applicant and applicant.semester_break_end else '',
+            'Ja' if applicant and applicant.continue_studying else 'Nein',
+            # Fachkraft/Ausbildung
+            applicant.profession if applicant else '',
+            applicant.degree if applicant else '',
+            applicant.degree_year if applicant else '',
+            applicant.school_degree if applicant else '',
+            applicant.desired_profession if applicant else '',
+            # Verfügbarkeit
+            applicant.available_from.strftime('%d.%m.%Y') if applicant and applicant.available_from else '',
+            applicant.available_until.strftime('%d.%m.%Y') if applicant and applicant.available_until else '',
+            applicant.preferred_work_area if applicant else '',
+            # Meta
+            applicant.additional_info if applicant else '',
+            doc_count
+        ])
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=ijp_auftraege_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"}
+    )
+
+
+@router.get("/admin/{request_id}/documents/download-all")
+async def download_all_documents(
+    request_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Lädt alle Dokumente eines IJP-Auftrags als ZIP herunter"""
+    req = db.query(JobRequest).filter(JobRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Auftrag nicht gefunden")
+    
+    applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
+    
+    documents = db.query(Document).filter(Document.applicant_id == applicant.id).all()
+    
+    if not documents:
+        raise HTTPException(status_code=404, detail="Keine Dokumente vorhanden")
+    
+    zip_buffer = io.BytesIO()
+    files_added = 0
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for doc in documents:
+            # Baue den vollständigen Pfad: uploads/{applicant_id}/{filename}
+            full_path = os.path.join(settings.UPLOAD_DIR, str(applicant.id), doc.file_name)
+            
+            if os.path.exists(full_path):
+                archive_name = f"{doc.document_type.value}_{doc.original_name}"
+                zip_file.write(full_path, archive_name)
+                files_added += 1
+            elif os.path.exists(doc.file_path):
+                # Fallback: Versuche den gespeicherten Pfad direkt
+                archive_name = f"{doc.document_type.value}_{doc.original_name}"
+                zip_file.write(doc.file_path, archive_name)
+                files_added += 1
+    
+    if files_added == 0:
+        raise HTTPException(status_code=404, detail="Keine Dateien gefunden auf dem Server")
+    
+    zip_buffer.seek(0)
+    filename = f"dokumente_auftrag_{req.id}_{applicant.first_name}_{applicant.last_name}.zip"
+    
+    return StreamingResponse(
+        iter([zip_buffer.getvalue()]),
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
