@@ -152,10 +152,17 @@ function CompanyJobs() {
                     )}
                   </button>
                   <Link 
+                    to={`/company/jobs/${job.id}/edit`}
+                    className="btn-primary text-sm flex items-center gap-1"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Bearbeiten
+                  </Link>
+                  <Link 
                     to={`/jobs/${job.id}`}
                     className="btn-secondary text-sm flex items-center gap-1"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Eye className="h-4 w-4" />
                     Ansehen
                   </Link>
                   <button

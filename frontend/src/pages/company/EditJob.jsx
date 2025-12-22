@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
@@ -7,7 +7,6 @@ import {
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
   Languages, Plus, Minus
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 const positionTypes = [
   { value: 'studentenferienjob', label: 'Studentenferienjob' },
@@ -22,7 +21,6 @@ const salaryTypes = [
   { value: 'yearly', label: 'Pro Jahr' }
 ];
 
-// Sprachniveaus - vereinfacht und verständlich
 const languageLevels = [
   { value: 'not_required', label: 'Nicht erforderlich' },
   { value: 'basic', label: 'Grundkenntnisse (A1-A2)' },
@@ -30,7 +28,6 @@ const languageLevels = [
   { value: 'fluent', label: 'Fließend (C1-C2)' }
 ];
 
-// Häufige Sprachen für weitere Anforderungen
 const commonLanguages = [
   'Russisch', 'Ukrainisch', 'Polnisch', 'Türkisch', 'Arabisch',
   'Spanisch', 'Französisch', 'Italienisch', 'Portugiesisch', 'Rumänisch',
@@ -40,7 +37,6 @@ const commonLanguages = [
 // Gesetzlicher Mindestlohn in Deutschland
 const MINIMUM_WAGE = 13.90;
 
-// Custom Select mit Styling
 function StyledSelect({ options, placeholder, value, onChange, className = '' }) {
   return (
     <div className="relative">
@@ -61,21 +57,57 @@ function StyledSelect({ options, placeholder, value, onChange, className = '' })
   );
 }
 
-function CreateJob() {
+function EditJob() {
+  const { id } = useParams();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [otherLanguages, setOtherLanguages] = useState([]);
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
-    defaultValues: {
-      german_required: 'not_required',
-      english_required: 'not_required'
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm();
+
+  const germanRequired = watch('german_required') || 'not_required';
+  const englishRequired = watch('english_required') || 'not_required';
+
+  useEffect(() => {
+    loadJob();
+  }, [id]);
+
+  const loadJob = async () => {
+    try {
+      const response = await jobsAPI.get(id);
+      const job = response.data;
+      
+      // Formular mit bestehenden Daten füllen
+      reset({
+        title: job.title || '',
+        position_type: job.position_type || '',
+        description: job.description || '',
+        requirements: job.requirements || '',
+        benefits: job.benefits || '',
+        location: job.location || '',
+        remote_possible: job.remote_possible || false,
+        start_date: job.start_date || '',
+        end_date: job.end_date || '',
+        salary_min: job.salary_min ? String(job.salary_min).replace('.', ',') : '',
+        salary_max: job.salary_max ? String(job.salary_max).replace('.', ',') : '',
+        salary_type: job.salary_type || '',
+        german_required: job.german_required || 'not_required',
+        english_required: job.english_required || 'not_required',
+        is_active: job.is_active
+      });
+      
+      // Weitere Sprachen setzen
+      if (job.other_languages_required && job.other_languages_required.length > 0) {
+        setOtherLanguages(job.other_languages_required);
+      }
+    } catch (error) {
+      toast.error('Stellenangebot nicht gefunden');
+      navigate('/company/jobs');
+    } finally {
+      setLoading(false);
     }
-  });
+  };
 
-  const germanRequired = watch('german_required');
-  const englishRequired = watch('english_required');
-
-  // Weitere Sprachen verwalten
   const addOtherLanguage = () => {
     setOtherLanguages([...otherLanguages, { language: '', level: 'basic' }]);
   };
@@ -93,7 +125,6 @@ function CreateJob() {
   // Konvertiert deutsche Zahlenformate (Komma) zu Float
   const parseGermanNumber = (value) => {
     if (!value) return null;
-    // Ersetze Komma durch Punkt für Dezimalzahlen
     const normalized = String(value).replace(',', '.');
     const parsed = parseFloat(normalized);
     return isNaN(parsed) ? null : parsed;
@@ -110,10 +141,9 @@ function CreateJob() {
         ])
       );
       
-      // Gehalt konvertieren (unterstützt Komma als Dezimaltrennzeichen)
+      // Gehalt konvertieren mit Mindestlohn-Validierung
       if (cleanData.salary_min) {
         cleanData.salary_min = parseGermanNumber(cleanData.salary_min);
-        // Mindestlohn-Validierung
         if (cleanData.salary_min < MINIMUM_WAGE) {
           toast.error(`Der Mindestlohn darf nicht unter ${MINIMUM_WAGE.toFixed(2).replace('.', ',')}€ liegen`);
           setSaving(false);
@@ -122,7 +152,6 @@ function CreateJob() {
       }
       if (cleanData.salary_max) {
         cleanData.salary_max = parseGermanNumber(cleanData.salary_max);
-        // Mindestlohn-Validierung auch für Maximum
         if (cleanData.salary_max < MINIMUM_WAGE) {
           toast.error(`Der Lohn darf nicht unter ${MINIMUM_WAGE.toFixed(2).replace('.', ',')}€ liegen`);
           setSaving(false);
@@ -133,17 +162,23 @@ function CreateJob() {
       // Sprachanforderungen hinzufügen
       cleanData.other_languages_required = otherLanguages.filter(l => l.language);
       
-      await jobsAPI.create(cleanData);
-      toast.success('Stellenangebot erstellt!');
+      await jobsAPI.update(id, cleanData);
+      toast.success('Stellenangebot aktualisiert!');
       navigate('/company/jobs');
     } catch (error) {
-      console.error('Fehler beim Erstellen:', error);
-      const errorMessage = error.response?.data?.detail || error.message || 'Fehler beim Erstellen';
-      toast.error(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+      toast.error(error.response?.data?.detail || 'Fehler beim Speichern');
     } finally {
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -157,12 +192,37 @@ function CreateJob() {
           <Briefcase className="h-8 w-8 text-primary-600" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Neue Stelle erstellen</h1>
-          <p className="text-gray-600">Veröffentlichen Sie ein neues Stellenangebot</p>
+          <h1 className="text-3xl font-bold text-gray-900">Stelle bearbeiten</h1>
+          <p className="text-gray-600">Ändern Sie die Details Ihres Stellenangebots</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        {/* Status */}
+        <div className="card bg-gradient-to-r from-gray-50 to-white border-l-4 border-l-primary-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-900">Sichtbarkeit</h3>
+              <p className="text-sm text-gray-600">Ist die Stelle öffentlich sichtbar?</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                {...register('is_active')}
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-primary-100 
+                            rounded-full peer peer-checked:after:translate-x-full 
+                            after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                            after:bg-white after:border after:rounded-full after:h-5 after:w-5 
+                            after:transition-all peer-checked:bg-green-500"></div>
+              <span className="ml-3 text-gray-700 font-medium">
+                {watch('is_active') ? 'Aktiv' : 'Inaktiv'}
+              </span>
+            </label>
+          </div>
+        </div>
+
         {/* Grundinformationen */}
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
@@ -213,7 +273,7 @@ function CreateJob() {
           </div>
         </div>
 
-        {/* ========== SPRACHANFORDERUNGEN ========== */}
+        {/* Sprachanforderungen */}
         <div className="card border-l-4 border-l-blue-500">
           <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
             <Languages className="h-5 w-5 text-blue-600" />
@@ -223,7 +283,6 @@ function CreateJob() {
             Geben Sie an, welche Sprachkenntnisse für diese Stelle erforderlich sind.
           </p>
           
-          {/* Deutsch & Englisch */}
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="label">Deutschkenntnisse</label>
@@ -243,7 +302,6 @@ function CreateJob() {
             </div>
           </div>
           
-          {/* Weitere Sprachen */}
           <div className="border-t pt-4">
             <div className="flex items-center justify-between mb-4">
               <label className="label mb-0">Weitere Sprachanforderungen</label>
@@ -260,7 +318,7 @@ function CreateJob() {
             
             {otherLanguages.length === 0 ? (
               <p className="text-gray-500 text-sm italic">
-                Keine weiteren Sprachanforderungen. Klicken Sie auf "Sprache hinzufügen" falls benötigt.
+                Keine weiteren Sprachanforderungen.
               </p>
             ) : (
               <div className="space-y-3">
@@ -287,7 +345,6 @@ function CreateJob() {
                       type="button"
                       onClick={() => removeOtherLanguage(index)}
                       className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Sprache entfernen"
                     >
                       <Minus className="h-5 w-5" />
                     </button>
@@ -307,7 +364,7 @@ function CreateJob() {
               <textarea
                 className="input-styled"
                 rows={4}
-                placeholder="Welche weiteren Qualifikationen und Fähigkeiten werden benötigt?"
+                placeholder="Welche weiteren Qualifikationen werden benötigt?"
                 {...register('requirements')}
               />
             </div>
@@ -317,7 +374,7 @@ function CreateJob() {
               <textarea
                 className="input-styled"
                 rows={4}
-                placeholder="Was bieten Sie den Bewerbern? (Unterkunft, Verpflegung, etc.)"
+                placeholder="Was bieten Sie den Bewerbern?"
                 {...register('benefits')}
               />
             </div>
@@ -456,7 +513,7 @@ function CreateJob() {
             ) : (
               <Save className="h-5 w-5" />
             )}
-            Stelle veröffentlichen
+            Änderungen speichern
           </button>
         </div>
       </form>
@@ -464,4 +521,4 @@ function CreateJob() {
   );
 }
 
-export default CreateJob;
+export default EditJob;

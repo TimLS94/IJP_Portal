@@ -3,15 +3,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import { authAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { Mail, Lock, User, Building2, Loader2, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, Building2, Loader2, CheckCircle, Clock } from 'lucide-react';
 
 function Register() {
   const { t } = useTranslation();
-  const { registerApplicant, registerCompany } = useAuth();
+  const { registerApplicant } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [userType, setUserType] = useState('applicant');
+  const [companyPending, setCompanyPending] = useState(false);
   const { register, handleSubmit, formState: { errors }, watch } = useForm();
 
   const password = watch('password');
@@ -24,9 +26,14 @@ function Register() {
         toast.success(t('auth.registerSuccess'));
         navigate('/applicant/profile');
       } else {
-        await registerCompany(data.email, data.password, data.companyName);
-        toast.success(t('auth.registerSuccess'));
-        navigate('/company/dashboard');
+        // Firmen-Registrierung: Konto wird erst nach Admin-Freischaltung aktiviert
+        await authAPI.registerCompany(
+          { email: data.email, password: data.password },
+          data.companyName
+        );
+        // Zeige Pending-Status an
+        setCompanyPending(true);
+        toast.success('Registrierung erfolgreich!');
       }
     } catch (error) {
       toast.error(error.response?.data?.detail || t('auth.registerFailed'));
@@ -34,6 +41,33 @@ function Register() {
       setLoading(false);
     }
   };
+  
+  // Wenn Firma registriert und auf Freischaltung wartet
+  if (companyPending) {
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="card text-center">
+          <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Clock className="h-10 w-10 text-amber-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Registrierung erfolgreich!</h1>
+          <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 text-left">
+            <p className="text-amber-800 font-medium mb-2">⏳ Warten auf Freischaltung</p>
+            <p className="text-amber-700 text-sm">
+              Ihr Unternehmenskonto wird derzeit von unserem Team geprüft. 
+              Sie erhalten eine E-Mail-Benachrichtigung, sobald Ihr Konto freigeschaltet wurde.
+            </p>
+          </div>
+          <p className="text-gray-600 mb-6">
+            Dieser Prozess dauert in der Regel 1-2 Werktage.
+          </p>
+          <Link to="/" className="btn-primary inline-block">
+            Zurück zur Startseite
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto">

@@ -120,7 +120,9 @@ async def toggle_user_active(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Aktiviert/Deaktiviert einen Benutzer"""
+    """Aktiviert/Deaktiviert einen Benutzer. Bei Firmen wird eine Aktivierungs-E-Mail gesendet."""
+    from app.services.email_service import email_service
+    
     user = db.query(User).filter(User.id == user_id).first()
     
     if not user:
@@ -135,8 +137,18 @@ async def toggle_user_active(
             detail="Sie können sich nicht selbst deaktivieren"
         )
     
+    was_inactive = not user.is_active
     user.is_active = not user.is_active
     db.commit()
+    
+    # Wenn eine FIRMA aktiviert wird, sende Aktivierungs-E-Mail
+    if user.is_active and was_inactive and user.role == UserRole.COMPANY:
+        company = db.query(Company).filter(Company.user_id == user.id).first()
+        if company:
+            email_service.send_company_activated(
+                to_email=user.email,
+                company_name=company.company_name
+            )
     
     return {"message": f"Benutzer {'aktiviert' if user.is_active else 'deaktiviert'}", "is_active": user.is_active}
 

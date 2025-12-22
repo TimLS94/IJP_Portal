@@ -1,9 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from datetime import date, datetime
 from app.models.applicant import PositionType
 from app.models.job_posting import RequiredLanguageLevel
 from app.schemas.company import CompanyResponse
+
+# Mindestlohn in Deutschland (aktuell)
+MINIMUM_WAGE = 13.90
 
 
 class OtherLanguageRequirement(BaseModel):
@@ -23,8 +26,8 @@ class JobPostingBase(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     
-    salary_min: Optional[int] = None
-    salary_max: Optional[int] = None
+    salary_min: Optional[float] = None
+    salary_max: Optional[float] = None
     salary_type: Optional[str] = None
     
     # Sprachanforderungen
@@ -33,6 +36,22 @@ class JobPostingBase(BaseModel):
     other_languages_required: Optional[List[OtherLanguageRequirement]] = []
     
     additional_requirements: Optional[dict] = {}
+    
+    @field_validator('salary_min')
+    @classmethod
+    def validate_salary_min(cls, v):
+        """Stellt sicher, dass der Mindestlohn nicht unterschritten wird"""
+        if v is not None and v < MINIMUM_WAGE:
+            raise ValueError(f'Der Mindestlohn darf nicht unter {MINIMUM_WAGE}€ liegen')
+        return v
+    
+    @field_validator('salary_max')
+    @classmethod
+    def validate_salary_max(cls, v):
+        """Stellt sicher, dass der Maximallohn nicht unter dem Mindestlohn liegt"""
+        if v is not None and v < MINIMUM_WAGE:
+            raise ValueError(f'Der Lohn darf nicht unter {MINIMUM_WAGE}€ liegen')
+        return v
 
 
 class JobPostingCreate(JobPostingBase):
@@ -51,8 +70,8 @@ class JobPostingUpdate(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     
-    salary_min: Optional[int] = None
-    salary_max: Optional[int] = None
+    salary_min: Optional[float] = None
+    salary_max: Optional[float] = None
     salary_type: Optional[str] = None
     
     german_required: Optional[RequiredLanguageLevel] = None
@@ -61,6 +80,22 @@ class JobPostingUpdate(BaseModel):
     
     additional_requirements: Optional[dict] = None
     is_active: Optional[bool] = None
+    
+    @field_validator('salary_min')
+    @classmethod
+    def validate_salary_min(cls, v):
+        """Stellt sicher, dass der Mindestlohn nicht unterschritten wird"""
+        if v is not None and v < MINIMUM_WAGE:
+            raise ValueError(f'Der Mindestlohn darf nicht unter {MINIMUM_WAGE}€ liegen')
+        return v
+    
+    @field_validator('salary_max')
+    @classmethod
+    def validate_salary_max(cls, v):
+        """Stellt sicher, dass der Maximallohn nicht unter dem Mindestlohn liegt"""
+        if v is not None and v < MINIMUM_WAGE:
+            raise ValueError(f'Der Lohn darf nicht unter {MINIMUM_WAGE}€ liegen')
+        return v
 
 
 class JobPostingResponse(JobPostingBase):

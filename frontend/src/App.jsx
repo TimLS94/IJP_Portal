@@ -25,6 +25,7 @@ import CompanyProfile from './pages/company/Profile';
 import CompanyJobs from './pages/company/Jobs';
 import CompanyApplications from './pages/company/Applications';
 import CreateJob from './pages/company/CreateJob';
+import EditJob from './pages/company/EditJob';
 
 // Admin-Seiten
 import AdminDashboard from './pages/admin/Dashboard';
@@ -98,6 +99,7 @@ function App() {
             <Route path="profile" element={<CompanyProfile />} />
             <Route path="jobs" element={<CompanyJobs />} />
             <Route path="jobs/new" element={<CreateJob />} />
+            <Route path="jobs/:id/edit" element={<EditJob />} />
             <Route path="applications" element={<CompanyApplications />} />
             <Route path="settings" element={<AccountSettings />} />
           </Route>

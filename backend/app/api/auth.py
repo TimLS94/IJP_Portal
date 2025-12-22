@@ -145,13 +145,17 @@ async def register_applicant(
     )
 
 
-@router.post("/register/company", response_model=Token)
+@router.post("/register/company")
 async def register_company(
     user_data: UserCreate,
     company_name: str,
     db: Session = Depends(get_db)
 ):
-    """Registriert eine neue Firma"""
+    """
+    Registriert eine neue Firma.
+    WICHTIG: Firmen sind nach der Registrierung DEAKTIVIERT und müssen erst 
+    von einem Admin freigeschaltet werden.
+    """
     
     # Prüfen ob E-Mail bereits existiert
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -161,11 +165,12 @@ async def register_company(
             detail="E-Mail-Adresse bereits registriert"
         )
     
-    # Benutzer erstellen
+    # Benutzer erstellen - DEAKTIVIERT bis Admin freischaltet
     user = User(
         email=user_data.email,
         password_hash=get_password_hash(user_data.password),
-        role=UserRole.COMPANY
+        role=UserRole.COMPANY,
+        is_active=False  # Firma muss erst aktiviert werden!
     )
     db.add(user)
     db.commit()
@@ -179,20 +184,14 @@ async def register_company(
     db.add(company)
     db.commit()
     
-    # Willkommens-E-Mail senden
-    email_service.send_welcome_email(
+    # E-Mail senden: Registrierung erhalten, warten auf Freischaltung
+    email_service.send_company_registration_pending(
         to_email=user.email,
-        name=company_name,
-        role="company"
+        company_name=company_name
     )
     
-    # Token erstellen
-    access_token = create_access_token(
-        data={"sub": str(user.id)},
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
-    
-    return Token(
-        access_token=access_token,
-        user=UserResponse.model_validate(user)
-    )
+    # KEIN Token zurückgeben - Firma muss erst aktiviert werden
+    return {
+        "message": "Registrierung erfolgreich! Ihr Unternehmen wird geprüft und in Kürze freigeschaltet. Sie erhalten eine E-Mail-Benachrichtigung.",
+        "status": "pending_activation"
+    }

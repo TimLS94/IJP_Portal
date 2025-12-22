@@ -24,11 +24,23 @@ function Login() {
         navigate('/applicant/profile');
       } else if (user.role === 'company') {
         navigate('/company/dashboard');
+      } else if (user.role === 'admin') {
+        navigate('/admin/dashboard');
       } else {
         navigate('/');
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || t('auth.loginFailed'));
+      const errorDetail = error.response?.data?.detail;
+      
+      // Spezielle Fehlermeldung für deaktivierte Benutzer (Firmen)
+      if (errorDetail === 'Benutzer ist deaktiviert') {
+        toast.error('Ihr Konto wurde noch nicht freigeschaltet. Bitte warten Sie auf die Aktivierung durch einen Administrator.', {
+          duration: 6000,
+          icon: '⏳'
+        });
+      } else {
+        toast.error(errorDetail || t('auth.loginFailed'));
+      }
     } finally {
       setLoading(false);
     }

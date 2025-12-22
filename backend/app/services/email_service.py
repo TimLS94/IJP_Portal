@@ -170,6 +170,78 @@ class EmailService:
         
         return self.send_email(to_email, subject, html_content)
     
+    def send_company_registration_pending(
+        self,
+        to_email: str,
+        company_name: str
+    ) -> bool:
+        """Benachrichtigt die Firma, dass die Registrierung eingegangen ist und auf Aktivierung wartet"""
+        subject = "IJP Portal - Registrierung eingegangen"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h1 style="color: #2563eb;">Registrierung eingegangen</h1>
+                <p>Hallo {company_name},</p>
+                <p>vielen Dank für Ihre Registrierung beim IJP Portal!</p>
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+                    <p style="margin: 0; font-weight: bold; color: #92400e;">⏳ Warten auf Freischaltung</p>
+                    <p style="margin: 10px 0 0 0; color: #92400e;">
+                        Ihr Unternehmenskonto wird derzeit von unserem Team geprüft. 
+                        Sie erhalten eine E-Mail, sobald Ihr Konto freigeschaltet wurde.
+                    </p>
+                </div>
+                <p>Dieser Prozess dauert in der Regel 1-2 Werktage.</p>
+                <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return self.send_email(to_email, subject, html_content)
+    
+    def send_company_activated(
+        self,
+        to_email: str,
+        company_name: str,
+        frontend_url: str = "https://ijp-portal.vercel.app"
+    ) -> bool:
+        """Benachrichtigt die Firma, dass ihr Konto aktiviert wurde"""
+        subject = "IJP Portal - Ihr Konto wurde freigeschaltet! 🎉"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h1 style="color: #22c55e;">✅ Konto freigeschaltet!</h1>
+                <p>Hallo {company_name},</p>
+                <p><strong>Gute Nachrichten!</strong> Ihr Unternehmenskonto beim IJP Portal wurde erfolgreich freigeschaltet.</p>
+                <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; margin: 20px 0;">
+                    <p style="margin: 0; font-weight: bold; color: #166534;">Sie können jetzt loslegen!</p>
+                </div>
+                <p><strong>Nächste Schritte:</strong></p>
+                <ol>
+                    <li><a href="{frontend_url}/login" style="color: #2563eb;">Melden Sie sich an</a></li>
+                    <li>Vervollständigen Sie Ihr Firmenprofil</li>
+                    <li>Erstellen Sie Ihre ersten Stellenangebote</li>
+                    <li>Erreichen Sie qualifizierte Bewerber aus aller Welt</li>
+                </ol>
+                <p style="margin-top: 20px;">
+                    <a href="{frontend_url}/login" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                        Jetzt anmelden
+                    </a>
+                </p>
+                <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return self.send_email(to_email, subject, html_content)
+    
     def send_application_status_update(
         self,
         to_email: str,
