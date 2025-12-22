@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = '/api/v1';
+// In Produktion: VITE_API_URL aus Environment Variable
+// In Entwicklung: /api/v1 (wird durch Vite Proxy gehandhabt)
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,
