@@ -30,7 +30,7 @@ class DocumentService:
     def is_allowed_file(filename: str) -> bool:
         """Prüft ob die Dateiendung erlaubt ist"""
         ext = DocumentService.get_file_extension(filename)
-        return ext in settings.ALLOWED_EXTENSIONS
+        return ext in settings.allowed_extensions_list
     
     @staticmethod
     def is_valid_pdf(file_content: bytes) -> bool:

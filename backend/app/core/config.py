@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
+from pydantic import field_validator
+from typing import Optional, List, Union
 
 
 class Settings(BaseSettings):
@@ -19,10 +20,11 @@ class Settings(BaseSettings):
     # File Upload
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
-    ALLOWED_EXTENSIONS: list = ["pdf"]  # Nur PDF-Dokumente erlaubt
+    ALLOWED_EXTENSIONS: str = "pdf"  # Kommasepariert für mehrere: "pdf,doc,docx"
     
-    # CORS
-    CORS_ORIGINS: list = ["http://localhost:5173", "http://localhost:3000"]
+    # CORS - Kann als kommaseparierter String oder JSON-Array angegeben werden
+    # Beispiel: "https://example.com,https://app.example.com" oder '["https://example.com"]'
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
     
     # Frontend URL (für E-Mail Links)
     FRONTEND_URL: str = "http://localhost:5173"
@@ -34,6 +36,21 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     FROM_EMAIL: str = "noreply@ijp-portal.de"
     FROM_NAME: str = "IJP Portal"
+    
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Gibt CORS_ORIGINS als Liste zurück"""
+        if not self.CORS_ORIGINS:
+            return ["http://localhost:5173"]
+        # Kommaseparierte Werte in Liste umwandeln
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+    
+    @property
+    def allowed_extensions_list(self) -> List[str]:
+        """Gibt ALLOWED_EXTENSIONS als Liste zurück"""
+        if not self.ALLOWED_EXTENSIONS:
+            return ["pdf"]
+        return [ext.strip().lower() for ext in self.ALLOWED_EXTENSIONS.split(",") if ext.strip()]
     
     class Config:
         env_file = ".env"
