@@ -1,6 +1,14 @@
 """
 Seed-Daten für Entwicklung
 Erstellt automatisch Admin, Bewerber und Firma beim Start
+
+WARNUNG: Diese Datei enthält Test-Passwörter und sollte NUR in der Entwicklung
+verwendet werden. In Produktion wird diese Funktion NICHT aufgerufen (DEBUG=False).
+
+WICHTIG für Produktion:
+1. Erstellen Sie den Admin-User manuell oder über ein sicheres Script
+2. Verwenden Sie sichere, einzigartige Passwörter
+3. Ändern Sie die Standard-Admin-Credentials sofort nach dem ersten Login
 """
 from datetime import date, datetime
 from sqlalchemy.orm import Session

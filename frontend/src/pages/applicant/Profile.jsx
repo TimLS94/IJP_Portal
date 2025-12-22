@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { applicantAPI, documentsAPI, downloadBlob } from '../../lib/api';
@@ -9,21 +10,22 @@ import {
   CheckCircle, Clock, ChevronDown, X, ClipboardList, ArrowRight
 } from 'lucide-react';
 
-const positionTypes = [
-  { value: 'studentenferienjob', label: 'Studentenferienjob', color: 'blue' },
-  { value: 'saisonjob', label: 'Saisonjob (8 Monate)', color: 'orange' },
-  { value: 'fachkraft', label: 'Fachkraft', color: 'purple' },
-  { value: 'ausbildung', label: 'Ausbildung', color: 'green' }
+// Diese werden in der Komponente mit t() übersetzt
+const positionTypeKeys = [
+  { value: 'studentenferienjob', labelKey: 'positionTypes.studentenferienjob', color: 'blue' },
+  { value: 'saisonjob', labelKey: 'positionTypes.saisonjob', color: 'orange' },
+  { value: 'fachkraft', labelKey: 'positionTypes.fachkraft', color: 'purple' },
+  { value: 'ausbildung', labelKey: 'positionTypes.ausbildung', color: 'green' }
 ];
 
-const languageLevels = [
-  { value: 'keine', label: 'Keine Kenntnisse' },
-  { value: 'A1', label: 'A1 - Anfänger' },
-  { value: 'A2', label: 'A2 - Grundlegend' },
-  { value: 'B1', label: 'B1 - Fortgeschritten' },
-  { value: 'B2', label: 'B2 - Selbständig' },
-  { value: 'C1', label: 'C1 - Fachkundig' },
-  { value: 'C2', label: 'C2 - Muttersprachlich' }
+const languageLevelKeys = [
+  { value: 'keine', labelKey: 'languageLevels.none' },
+  { value: 'A1', labelKey: 'languageLevels.a1' },
+  { value: 'A2', labelKey: 'languageLevels.a2' },
+  { value: 'B1', labelKey: 'languageLevels.b1' },
+  { value: 'B2', labelKey: 'languageLevels.b2' },
+  { value: 'C1', labelKey: 'languageLevels.c1' },
+  { value: 'C2', labelKey: 'languageLevels.c2' }
 ];
 
 const commonLanguages = [
@@ -70,6 +72,7 @@ function CustomSelect({ value, onChange, options, placeholder, className = '' })
 
 function ApplicantProfile() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(null);
@@ -473,7 +476,7 @@ function ApplicantProfile() {
 
       <div className="flex items-center gap-3 mb-8">
         <User className="h-8 w-8 text-primary-600" />
-        <h1 className="text-3xl font-bold text-gray-900">Mein Bewerberprofil</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('applicant.profileTitle')}</h1>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -482,13 +485,13 @@ function ApplicantProfile() {
         <div className="card border-2 border-primary-200 bg-gradient-to-r from-primary-50 to-white">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary-600" />
-            Gewünschte Stellenart
+            {t('applicant.desiredPosition')}
           </h2>
           <p className="text-gray-600 mb-4">
-            Wählen Sie die Stellenart, für die Sie sich bewerben möchten.
+            {t('profile.selectPositionType')}
           </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {positionTypes.map((type) => (
+            {positionTypeKeys.map((type) => (
               <label
                 key={type.value}
                 className={`relative flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all ${
@@ -501,12 +504,12 @@ function ApplicantProfile() {
                   type="radio"
                   value={type.value}
                   className="sr-only"
-                  {...register('position_type', { required: 'Bitte wählen Sie eine Stellenart' })}
+                  {...register('position_type', { required: t('profile.errors.positionRequired') })}
                 />
                 <span className={`font-semibold text-center ${
                   selectedPositionType === type.value ? 'text-primary-700' : 'text-gray-700'
                 }`}>
-                  {type.label}
+                  {t(type.labelKey)}
                 </span>
                 {selectedPositionType === type.value && (
                   <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary-600" />
@@ -521,65 +524,65 @@ function ApplicantProfile() {
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <User className="h-5 w-5 text-primary-600" />
-            Persönliche Daten
+            {t('applicant.personalData')}
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="label">Vorname *</label>
+              <label className="label">{t('profile.firstName')} *</label>
               <input
                 type="text"
                 className="input-styled"
                 placeholder="Max"
-                {...register('first_name', { required: 'Vorname ist erforderlich' })}
+                {...register('first_name', { required: t('profile.errors.firstNameRequired') })}
               />
               {errors.first_name && <p className="text-red-500 text-sm mt-1">{errors.first_name.message}</p>}
             </div>
             <div>
-              <label className="label">Nachname *</label>
+              <label className="label">{t('profile.lastName')} *</label>
               <input
                 type="text"
                 className="input-styled"
                 placeholder="Mustermann"
-                {...register('last_name', { required: 'Nachname ist erforderlich' })}
+                {...register('last_name', { required: t('profile.errors.lastNameRequired') })}
               />
               {errors.last_name && <p className="text-red-500 text-sm mt-1">{errors.last_name.message}</p>}
             </div>
             <div>
-              <label className="label">Geburtsdatum *</label>
+              <label className="label">{t('applicant.dateOfBirth')} *</label>
               <input
                 type="date"
                 className="input-styled"
-                {...register('date_of_birth', { required: 'Geburtsdatum ist erforderlich' })}
+                {...register('date_of_birth', { required: t('profile.errors.dateOfBirthRequired') })}
               />
               {errors.date_of_birth && <p className="text-red-500 text-sm mt-1">{errors.date_of_birth.message}</p>}
             </div>
             <div>
-              <label className="label">Geburtsort *</label>
+              <label className="label">{t('applicant.placeOfBirth')} *</label>
               <input
                 type="text"
                 className="input-styled"
-                placeholder="z.B. Moskau, Russland"
-                {...register('place_of_birth', { required: 'Geburtsort ist erforderlich' })}
+                placeholder={t('profile.placeholders.placeOfBirth')}
+                {...register('place_of_birth', { required: t('profile.errors.placeOfBirthRequired') })}
               />
               {errors.place_of_birth && <p className="text-red-500 text-sm mt-1">{errors.place_of_birth.message}</p>}
             </div>
             <div>
-              <label className="label">Nationalität *</label>
+              <label className="label">{t('applicant.nationality')} *</label>
               <input
                 type="text"
                 className="input-styled"
-                placeholder="z.B. Russisch"
-                {...register('nationality', { required: 'Nationalität ist erforderlich' })}
+                placeholder={t('profile.placeholders.nationality')}
+                {...register('nationality', { required: t('profile.errors.nationalityRequired') })}
               />
               {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality.message}</p>}
             </div>
             <div>
-              <label className="label">Telefon *</label>
+              <label className="label">{t('applicant.phone')} *</label>
               <input
                 type="tel"
                 className="input-styled"
                 placeholder="+7 123 456789"
-                {...register('phone', { required: 'Telefonnummer ist erforderlich' })}
+                {...register('phone', { required: t('profile.errors.phoneRequired') })}
               />
               {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
             </div>
@@ -590,30 +593,30 @@ function ApplicantProfile() {
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary-600" />
-            Heimatadresse
+            {t('profile.homeAddress')}
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="md:col-span-2 grid grid-cols-4 gap-4">
               <div className="col-span-3">
-                <label className="label">Straße</label>
-                <input type="text" className="input-styled" placeholder="Musterstraße" {...register('street')} />
+                <label className="label">{t('applicant.street')}</label>
+                <input type="text" className="input-styled" placeholder={t('profile.placeholders.street')} {...register('street')} />
               </div>
               <div>
-                <label className="label">Hausnr.</label>
+                <label className="label">{t('applicant.houseNumber')}</label>
                 <input type="text" className="input-styled" placeholder="123" {...register('house_number')} />
               </div>
             </div>
             <div>
-              <label className="label">PLZ</label>
+              <label className="label">{t('applicant.postalCode')}</label>
               <input type="text" className="input-styled" placeholder="12345" {...register('postal_code')} />
             </div>
             <div>
-              <label className="label">Stadt</label>
-              <input type="text" className="input-styled" placeholder="Moskau" {...register('city')} />
+              <label className="label">{t('applicant.city')}</label>
+              <input type="text" className="input-styled" placeholder={t('profile.placeholders.city')} {...register('city')} />
             </div>
             <div className="md:col-span-2">
-              <label className="label">Land</label>
-              <input type="text" className="input-styled" placeholder="Russland" {...register('country')} />
+              <label className="label">{t('applicant.country')}</label>
+              <input type="text" className="input-styled" placeholder={t('profile.placeholders.country')} {...register('country')} />
             </div>
           </div>
         </div>
@@ -622,25 +625,25 @@ function ApplicantProfile() {
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <Languages className="h-5 w-5 text-primary-600" />
-            Sprachkenntnisse
+            {t('applicant.languages')}
           </h2>
           
           {/* Deutsch & Englisch */}
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="label">Deutschkenntnisse *</label>
+              <label className="label">{t('applicant.germanLevel')} *</label>
               <CustomSelect
                 value={watch('german_level') || 'keine'}
                 onChange={(e) => setValue('german_level', e.target.value)}
-                options={languageLevels}
+                options={languageLevelKeys.map(l => ({ value: l.value, label: t(l.labelKey) }))}
               />
             </div>
             <div>
-              <label className="label">Englischkenntnisse</label>
+              <label className="label">{t('applicant.englishLevel')}</label>
               <CustomSelect
                 value={watch('english_level') || 'keine'}
                 onChange={(e) => setValue('english_level', e.target.value)}
-                options={languageLevels}
+                options={languageLevelKeys.map(l => ({ value: l.value, label: t(l.labelKey) }))}
               />
             </div>
           </div>
@@ -648,7 +651,7 @@ function ApplicantProfile() {
           {/* Weitere Sprachen */}
           <div className="border-t pt-6">
             <div className="flex items-center justify-between mb-4">
-              <label className="label mb-0">Weitere Sprachkenntnisse</label>
+              <label className="label mb-0">{t('applicant.otherLanguages')}</label>
               <button
                 type="button"
                 onClick={addLanguage}
@@ -656,13 +659,13 @@ function ApplicantProfile() {
                          bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
               >
                 <Plus className="h-4 w-4" />
-                Sprache hinzufügen
+                {t('applicant.addLanguage')}
               </button>
             </div>
             
             {otherLanguages.length === 0 ? (
               <p className="text-gray-500 text-sm italic">
-                Keine weiteren Sprachen angegeben. Klicken Sie auf "Sprache hinzufügen".
+                {t('profile.noOtherLanguages')}
               </p>
             ) : (
               <div className="space-y-3">
@@ -673,21 +676,21 @@ function ApplicantProfile() {
                         value={lang.language}
                         onChange={(e) => updateLanguage(index, 'language', e.target.value)}
                         options={commonLanguages.map(l => ({ value: l, label: l }))}
-                        placeholder="Sprache wählen..."
+                        placeholder={t('profile.selectLanguage')}
                       />
                     </div>
                     <div className="flex-1">
                       <CustomSelect
                         value={lang.level}
                         onChange={(e) => updateLanguage(index, 'level', e.target.value)}
-                        options={languageLevels}
+                        options={languageLevelKeys.map(l => ({ value: l.value, label: t(l.labelKey) }))}
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => removeLanguage(index)}
                       className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Sprache entfernen"
+                      title={t('applicant.removeLanguage')}
                     >
                       <Minus className="h-5 w-5" />
                     </button>
@@ -702,12 +705,12 @@ function ApplicantProfile() {
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary-600" />
-            Berufserfahrung & Deutschland
+            {t('profile.workAndGermany')}
           </h2>
           <div className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Jahre Berufserfahrung</label>
+                <label className="label">{t('applicant.workExperienceYears')}</label>
                 <input
                   type="number"
                   min="0"
@@ -730,29 +733,29 @@ function ApplicantProfile() {
                                 after:bg-white after:border-gray-300 after:border after:rounded-full 
                                 after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                   <span className="ml-3 text-gray-700 font-medium">
-                    Ich war schon einmal in Deutschland
+                    {t('applicant.beenToGermany')}
                   </span>
                 </label>
               </div>
             </div>
             
             <div>
-              <label className="label">Berufserfahrung (Beschreibung)</label>
+              <label className="label">{t('applicant.workExperience')}</label>
               <textarea
                 className="input-styled"
                 rows={3}
-                placeholder="Beschreiben Sie Ihre bisherige Berufserfahrung..."
+                placeholder={t('applicant.workExperiencePlaceholder')}
                 {...register('work_experience')}
               />
             </div>
             
             {beenToGermany && (
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                <label className="label text-blue-800">Details zu Ihrem Deutschland-Aufenthalt</label>
+                <label className="label text-blue-800">{t('applicant.germanyDetails')}</label>
                 <textarea
                   className="input-styled"
                   rows={2}
-                  placeholder="Wann waren Sie in Deutschland? Wie lange? Aus welchem Grund?"
+                  placeholder={t('profile.placeholders.germanyDetails')}
                   {...register('germany_details')}
                 />
               </div>
@@ -765,40 +768,40 @@ function ApplicantProfile() {
           <div className="card border-l-4 border-l-blue-500">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-blue-600" />
-              Studieninformationen
+              {t('profile.studyInfo')}
             </h2>
             
             {/* Universität */}
             <div className="mb-6">
               <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
-                Universität
+                {t('applicant.university')}
               </h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="label">Name der Universität *</label>
-                  <input type="text" className="input-styled" placeholder="z.B. Staatliche Universität Moskau" {...register('university_name')} />
+                  <label className="label">{t('applicant.universityName')} *</label>
+                  <input type="text" className="input-styled" placeholder={t('profile.placeholders.universityName')} {...register('university_name')} />
                 </div>
                 <div className="md:col-span-2 grid grid-cols-4 gap-4">
                   <div className="col-span-3">
-                    <label className="label">Straße</label>
+                    <label className="label">{t('applicant.street')}</label>
                     <input type="text" className="input-styled" {...register('university_street')} />
                   </div>
                   <div>
-                    <label className="label">Hausnr.</label>
+                    <label className="label">{t('applicant.houseNumber')}</label>
                     <input type="text" className="input-styled" {...register('university_house_number')} />
                   </div>
                 </div>
                 <div>
-                  <label className="label">PLZ</label>
+                  <label className="label">{t('applicant.postalCode')}</label>
                   <input type="text" className="input-styled" {...register('university_postal_code')} />
                 </div>
                 <div>
-                  <label className="label">Stadt</label>
+                  <label className="label">{t('applicant.city')}</label>
                   <input type="text" className="input-styled" {...register('university_city')} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="label">Land</label>
+                  <label className="label">{t('applicant.country')}</label>
                   <input type="text" className="input-styled" {...register('university_country')} />
                 </div>
               </div>
@@ -806,29 +809,29 @@ function ApplicantProfile() {
             
             {/* Studium */}
             <div className="mb-6">
-              <h3 className="font-semibold text-gray-700 mb-3">Studium</h3>
+              <h3 className="font-semibold text-gray-700 mb-3">{t('profile.studies')}</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Studienfach *</label>
-                  <input type="text" className="input-styled" placeholder="z.B. Informatik, BWL" {...register('field_of_study')} />
+                  <label className="label">{t('applicant.fieldOfStudy')} *</label>
+                  <input type="text" className="input-styled" placeholder={t('profile.placeholders.fieldOfStudy')} {...register('field_of_study')} />
                 </div>
                 <div>
-                  <label className="label">Aktuelles Fachsemester *</label>
-                  <input type="number" min="1" className="input-styled" placeholder="z.B. 4" {...register('current_semester')} />
+                  <label className="label">{t('applicant.currentSemester')} *</label>
+                  <input type="number" min="1" className="input-styled" placeholder="4" {...register('current_semester')} />
                 </div>
               </div>
             </div>
             
             {/* Semesterferien */}
             <div>
-              <h3 className="font-semibold text-gray-700 mb-3">Semesterferien</h3>
+              <h3 className="font-semibold text-gray-700 mb-3">{t('applicant.semesterBreak')}</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Semesterferien von *</label>
+                  <label className="label">{t('applicant.semesterBreakStart')} *</label>
                   <input type="date" className="input-styled" {...register('semester_break_start')} />
                 </div>
                 <div>
-                  <label className="label">Semesterferien bis *</label>
+                  <label className="label">{t('applicant.semesterBreakEnd')} *</label>
                   <input type="date" className="input-styled" {...register('semester_break_end')} />
                 </div>
                 <div className="md:col-span-2">
@@ -840,7 +843,7 @@ function ApplicantProfile() {
                                   after:bg-white after:border after:rounded-full after:h-5 after:w-5 
                                   after:transition-all peer-checked:bg-blue-600"></div>
                     <span className="ml-3 text-gray-700 font-medium">
-                      Ich werde nach den Semesterferien weiterhin studieren
+                      {t('applicant.continueStudying')}
                     </span>
                   </label>
                 </div>
@@ -854,16 +857,16 @@ function ApplicantProfile() {
           <div className="card border-l-4 border-l-green-500">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-green-600" />
-              Ausbildungswunsch
+              {t('profile.apprenticeshipInfo')}
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Gewünschter Ausbildungsberuf *</label>
-                <input type="text" className="input-styled" placeholder="z.B. Mechatroniker" {...register('desired_profession')} />
+                <label className="label">{t('profile.desiredProfession')} *</label>
+                <input type="text" className="input-styled" placeholder={t('profile.placeholders.desiredProfession')} {...register('desired_profession')} />
               </div>
               <div>
-                <label className="label">Schulabschluss *</label>
-                <input type="text" className="input-styled" placeholder="z.B. Mittlere Reife" {...register('school_degree')} />
+                <label className="label">{t('profile.schoolDegree')} *</label>
+                <input type="text" className="input-styled" placeholder={t('profile.placeholders.schoolDegree')} {...register('school_degree')} />
               </div>
             </div>
           </div>
@@ -874,20 +877,20 @@ function ApplicantProfile() {
           <div className="card border-l-4 border-l-purple-500">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <Building2 className="h-5 w-5 text-purple-600" />
-              Qualifikation als Fachkraft
+              {t('profile.skilledWorkerInfo')}
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Beruf / Fachrichtung *</label>
-                <input type="text" className="input-styled" placeholder="z.B. Software-Entwickler" {...register('profession')} />
+                <label className="label">{t('profile.professionField')} *</label>
+                <input type="text" className="input-styled" placeholder={t('profile.placeholders.profession')} {...register('profession')} />
               </div>
               <div>
-                <label className="label">Abschluss *</label>
-                <input type="text" className="input-styled" placeholder="z.B. Bachelor, Master" {...register('degree')} />
+                <label className="label">{t('profile.degree')} *</label>
+                <input type="text" className="input-styled" placeholder={t('profile.placeholders.degree')} {...register('degree')} />
               </div>
               <div>
-                <label className="label">Abschlussjahr</label>
-                <input type="number" min="1950" max="2030" className="input-styled" placeholder="z.B. 2020" {...register('degree_year')} />
+                <label className="label">{t('profile.degreeYear')}</label>
+                <input type="number" min="1950" max="2030" className="input-styled" placeholder="2020" {...register('degree_year')} />
               </div>
             </div>
           </div>
@@ -898,20 +901,20 @@ function ApplicantProfile() {
           <div className="card border-l-4 border-l-orange-500">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-orange-600" />
-              Verfügbarkeit für Saisonjob
+              {t('profile.seasonalJobInfo')}
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Verfügbar ab *</label>
+                <label className="label">{t('profile.availableFrom')} *</label>
                 <input type="date" className="input-styled" {...register('available_from')} />
               </div>
               <div>
-                <label className="label">Verfügbar bis *</label>
+                <label className="label">{t('profile.availableUntil')} *</label>
                 <input type="date" className="input-styled" {...register('available_until')} />
               </div>
               <div className="md:col-span-2">
-                <label className="label">Bevorzugter Arbeitsbereich</label>
-                <input type="text" className="input-styled" placeholder="z.B. Landwirtschaft, Gastronomie" {...register('preferred_work_area')} />
+                <label className="label">{t('profile.preferredWorkArea')}</label>
+                <input type="text" className="input-styled" placeholder={t('profile.placeholders.preferredWorkArea')} {...register('preferred_work_area')} />
               </div>
             </div>
           </div>
@@ -932,7 +935,7 @@ function ApplicantProfile() {
             ) : (
               <Save className="h-5 w-5" />
             )}
-            Profil speichern
+            {t('profile.saveProfile')}
           </button>
         </div>
       </form>

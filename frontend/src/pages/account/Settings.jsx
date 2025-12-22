@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +13,7 @@ import {
 function Settings() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [accountInfo, setAccountInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -140,20 +142,20 @@ function Settings() {
       <div className="flex items-center gap-3 mb-8">
         <SettingsIcon className="h-8 w-8 text-primary-600" />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Account-Einstellungen</h1>
-          <p className="text-gray-600">Verwalten Sie Ihr Konto und Ihre Sicherheitseinstellungen</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('settings.title')}</h1>
+          <p className="text-gray-600">{t('settings.subtitle')}</p>
         </div>
       </div>
 
       {/* Account Info */}
       <div className="card mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Account-Informationen</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">{t('settings.accountInfo')}</h2>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
             <div className="flex items-center gap-3">
               <Mail className="h-5 w-5 text-gray-500" />
               <div>
-                <p className="text-sm text-gray-500">E-Mail-Adresse</p>
+                <p className="text-sm text-gray-500">{t('settings.emailLabel')}</p>
                 <p className="font-medium text-gray-900">{accountInfo?.email}</p>
               </div>
             </div>
@@ -169,7 +171,7 @@ function Settings() {
             <div className="flex items-center gap-3">
               <RoleIcon className="h-5 w-5 text-gray-500" />
               <div>
-                <p className="text-sm text-gray-500">Kontotyp</p>
+                <p className="text-sm text-gray-500">{t('settings.accountType')}</p>
                 <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${roleInfo.color}`}>
                   {roleInfo.text}
                 </span>

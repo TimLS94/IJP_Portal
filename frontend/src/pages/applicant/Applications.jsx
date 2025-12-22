@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { applicationsAPI, generatorAPI, downloadBlob } from '../../lib/api';
 import toast from 'react-hot-toast';
@@ -14,6 +15,7 @@ const statusLabels = {
 };
 
 function ApplicantApplications() {
+  const { t } = useTranslation();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(null);
@@ -80,20 +82,20 @@ function ApplicantApplications() {
     <div>
       <div className="flex items-center gap-3 mb-8">
         <FileText className="h-8 w-8 text-primary-600" />
-        <h1 className="text-3xl font-bold text-gray-900">Meine Bewerbungen</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('applicant.applicationsTitle')}</h1>
       </div>
 
       {applications.length === 0 ? (
-        <div className="card text-center py-12">
-          <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Noch keine Bewerbungen</h2>
-          <p className="text-gray-600 mb-4">
-            Stöbern Sie in unseren Stellenangeboten und bewerben Sie sich mit einem Klick!
-          </p>
-          <Link to="/jobs" className="btn-primary inline-block">
-            Stellenangebote durchsuchen
-          </Link>
-        </div>
+          <div className="card text-center py-12">
+            <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('applicant.noApplications')}</h2>
+            <p className="text-gray-600 mb-4">
+              {t('applicant.noApplicationsText')}
+            </p>
+            <Link to="/jobs" className="btn-primary inline-block">
+              {t('applicant.browseJobs')}
+            </Link>
+          </div>
       ) : (
         <div className="space-y-4">
           {applications.map((app) => (

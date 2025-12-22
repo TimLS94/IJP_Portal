@@ -5,15 +5,14 @@ from typing import Optional
 class Settings(BaseSettings):
     # App Configuration
     APP_NAME: str = "IJP Portal API"
-    DEBUG: bool = True
+    DEBUG: bool = False  # WICHTIG: In Produktion immer False!
     API_V1_PREFIX: str = "/api/v1"
     
-    # Database (SQLite für Entwicklung, MySQL für Produktion)
+    # Database (SQLite für Entwicklung, PostgreSQL/MySQL für Produktion)
     DATABASE_URL: str = "sqlite:///./ijp_portal.db"
-    # Für MySQL: DATABASE_URL: str = "mysql+pymysql://root:password@localhost:3306/ijp_portal"
     
-    # JWT
-    SECRET_KEY: str = "your-secret-key-change-in-production"
+    # JWT - WICHTIG: SECRET_KEY muss in Produktion über Environment Variable gesetzt werden!
+    SECRET_KEY: str = "CHANGE-THIS-IN-PRODUCTION-USE-ENV-VAR"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     

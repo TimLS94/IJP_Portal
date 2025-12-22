@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { documentsAPI, applicantAPI, generatorAPI, downloadBlob } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
@@ -22,22 +23,23 @@ const documentTypeIcons = {
   other: File
 };
 
-// Alle verfügbaren Dokumenttypen
-const allDocumentTypes = [
-  { value: 'passport', label: 'Reisepass' },
-  { value: 'cv', label: 'Lebenslauf' },
-  { value: 'photo', label: 'Bewerbungsfoto' },
-  { value: 'enrollment_cert', label: 'Immatrikulationsbescheinigung' },
-  { value: 'enrollment_trans', label: 'Immatrikulation (Übersetzung)' },
-  { value: 'ba_declaration', label: 'BA-Erklärung' },
-  { value: 'language_cert', label: 'Sprachzertifikat' },
-  { value: 'diploma', label: 'Studienzeugnis/Abschluss' },
-  { value: 'school_cert', label: 'Schulzeugnis' },
-  { value: 'work_reference', label: 'Arbeitszeugnis' },
-  { value: 'other', label: 'Sonstiges' },
+// Alle verfügbaren Dokumenttypen mit Übersetzungskeys
+const documentTypeKeys = [
+  { value: 'passport', labelKey: 'documentTypes.passport' },
+  { value: 'cv', labelKey: 'documentTypes.cv' },
+  { value: 'photo', labelKey: 'documentTypes.photo' },
+  { value: 'enrollment_cert', labelKey: 'documentTypes.enrollmentCert' },
+  { value: 'enrollment_trans', labelKey: 'documentTypes.enrollmentTrans' },
+  { value: 'ba_declaration', labelKey: 'documentTypes.baDeclaration' },
+  { value: 'language_cert', labelKey: 'documentTypes.languageCert' },
+  { value: 'diploma', labelKey: 'documentTypes.diploma' },
+  { value: 'school_cert', labelKey: 'documentTypes.schoolCert' },
+  { value: 'work_reference', labelKey: 'documentTypes.workReference' },
+  { value: 'other', labelKey: 'documentTypes.other' },
 ];
 
 function ApplicantDocuments() {
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState([]);
   const [documentStatus, setDocumentStatus] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -204,8 +206,8 @@ function ApplicantDocuments() {
         <div className="flex items-center gap-3">
           <FolderOpen className="h-8 w-8 text-primary-600" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Meine Dokumente</h1>
-            <p className="text-gray-600">Übersicht aller hochgeladenen Dokumente</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('applicant.documentsTitle')}</h1>
+            <p className="text-gray-600">{t('applicant.documentsSubtitle')}</p>
           </div>
         </div>
         <button
@@ -213,7 +215,7 @@ function ApplicantDocuments() {
           className="btn-primary flex items-center gap-2"
         >
           <Upload className="h-5 w-5" />
-          Dokument hochladen
+          {t('applicant.documentsUploadButton')}
         </button>
       </div>
 
@@ -231,16 +233,19 @@ function ApplicantDocuments() {
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900 text-lg">
                 {documentStatus.complete 
-                  ? '✓ Alle Pflichtdokumente hochgeladen!' 
-                  : `${documentStatus.uploaded_required} von ${documentStatus.total_required} Pflichtdokumenten`
+                  ? t('applicant.documentsStatusComplete') 
+                  : t('applicant.documentsStatusProgress', {
+                      uploaded: documentStatus.uploaded_required,
+                      total: documentStatus.total_required
+                    })
                 }
               </h3>
               <p className="text-gray-600">
-                Für: {documentStatus.position_label}
+                {t('applicant.documentsForPosition', { position: documentStatus.position_label })}
               </p>
               {!documentStatus.complete && documentStatus.missing_required?.length > 0 && (
                 <div className="mt-2">
-                  <span className="text-sm text-yellow-800">Fehlend: </span>
+                  <span className="text-sm text-yellow-800">{t('applicant.documentsMissingLabel')}</span>
                   <span className="text-sm font-medium text-yellow-900">
                     {documentStatus.missing_required.map(d => d.type_label).join(', ')}
                   </span>
@@ -251,7 +256,7 @@ function ApplicantDocuments() {
               href="/applicant/profile" 
               className="btn-primary text-sm flex items-center gap-2"
             >
-              Zum Profil
+              {t('applicant.documentsGoToProfile')}
             </a>
           </div>
         </div>
@@ -264,14 +269,14 @@ function ApplicantDocuments() {
             <AlertCircle className="h-8 w-8 text-blue-600 flex-shrink-0" />
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900">
-                Stellenart noch nicht gewählt
+                {t('documents.noPositionType')}
               </h3>
               <p className="text-gray-600 text-sm">
-                Wählen Sie in Ihrem Profil eine Stellenart, um die benötigten Dokumente zu sehen.
+                {t('documents.noPositionTypeDesc')}
               </p>
             </div>
             <a href="/applicant/profile" className="btn-primary text-sm">
-              Profil bearbeiten
+              {t('documents.editProfile')}
             </a>
           </div>
         </div>
@@ -281,10 +286,10 @@ function ApplicantDocuments() {
       <div className="card mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
           <FilePlus className="h-5 w-5 text-primary-600" />
-          Dokumente generieren
+          {t('documents.generate')}
         </h2>
         <p className="text-gray-600 mb-4 text-sm">
-          Erstellen Sie automatisch Dokumente basierend auf Ihren Profildaten.
+          {t('documents.generateDesc')}
         </p>
         <div className="flex flex-wrap gap-3">
           <button
@@ -297,7 +302,7 @@ function ApplicantDocuments() {
             ) : (
               <FilePlus className="h-5 w-5" />
             )}
-            Antrag auf Arbeitserlaubnis
+            {t('documents.workPermit')}
           </button>
           <button
             onClick={generateLebenslauf}
@@ -309,7 +314,7 @@ function ApplicantDocuments() {
             ) : (
               <FileText className="h-5 w-5" />
             )}
-            Lebenslauf (PDF)
+            {t('documents.generateCV')}
           </button>
         </div>
       </div>
@@ -318,24 +323,24 @@ function ApplicantDocuments() {
       <div className="card">
         <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary-600" />
-          Hochgeladene Dokumente ({documents.length})
+          {t('documents.uploaded')} ({documents.length})
         </h2>
         
         {documents.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-xl">
             <FolderOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg mb-2">
-              Noch keine Dokumente hochgeladen
+              {t('documents.noDocuments')}
             </p>
             <p className="text-gray-400 text-sm mb-4">
-              Laden Sie Ihre Dokumente über das Profil oder hier hoch
+              {t('documents.noDocumentsHint')}
             </p>
             <button
               onClick={() => setShowUploadModal(true)}
               className="btn-primary inline-flex items-center gap-2"
             >
               <Upload className="h-5 w-5" />
-              Erstes Dokument hochladen
+              {t('documents.uploadFirst')}
             </button>
           </div>
         ) : (
@@ -362,7 +367,7 @@ function ApplicantDocuments() {
                         {doc.is_verified && (
                           <span className="text-green-600 flex items-center gap-1">
                             <CheckCircle className="h-4 w-4" />
-                            Geprüft
+                            {t('documents.verified')}
                           </span>
                         )}
                       </div>
@@ -372,14 +377,14 @@ function ApplicantDocuments() {
                     <button
                       onClick={() => handleDownload(doc)}
                       className="p-2 text-gray-500 hover:text-primary-600 hover:bg-white rounded-lg transition-all"
-                      title="Herunterladen"
+                      title={t('common.download')}
                     >
                       <Download className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleDelete(doc.id)}
                       className="p-2 text-gray-500 hover:text-red-600 hover:bg-white rounded-lg transition-all"
-                      title="Löschen"
+                      title={t('common.delete')}
                     >
                       <Trash2 className="h-5 w-5" />
                     </button>
@@ -397,12 +402,12 @@ function ApplicantDocuments() {
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Upload className="h-5 w-5 text-primary-600" />
-              Dokument hochladen
+              {t('documents.upload')}
             </h3>
             
             <div className="space-y-4">
               <div>
-                <label className="label">Dokumenttyp</label>
+                <label className="label">{t('documents.docType')}</label>
                 <div className="relative">
                   <select
                     className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
@@ -411,9 +416,9 @@ function ApplicantDocuments() {
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
                   >
-                    {allDocumentTypes.map((type) => (
+                    {documentTypeKeys.map((type) => (
                       <option key={type.value} value={type.value}>
-                        {type.label}
+                        {t(type.labelKey)}
                       </option>
                     ))}
                   </select>
@@ -422,18 +427,18 @@ function ApplicantDocuments() {
               </div>
               
               <div>
-                <label className="label">Beschreibung (optional)</label>
+                <label className="label">{t('documents.description')}</label>
                 <input
                   type="text"
                   className="input-styled"
-                  placeholder="z.B. Seite 1-5 des Reisepasses"
+                  placeholder={t('documents.descriptionPlaceholder')}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
               
               <div>
-                <label className="label">Datei auswählen</label>
+                <label className="label">{t('documents.selectFile')}</label>
                 <div className="relative">
                   <input
                     ref={fileInputRef}
@@ -449,7 +454,7 @@ function ApplicantDocuments() {
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-2">
-                  Nur PDF-Dateien • Max. 10 MB
+                  {t('documents.allowedFormats')}
                 </p>
               </div>
             </div>
@@ -463,12 +468,12 @@ function ApplicantDocuments() {
                 className="btn-secondary"
                 disabled={uploading}
               >
-                Abbrechen
+                {t('common.cancel')}
               </button>
               {uploading && (
                 <div className="flex items-center gap-2 text-primary-600">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Wird hochgeladen...</span>
+                  <span>{t('documents.uploading')}</span>
                 </div>
               )}
             </div>
