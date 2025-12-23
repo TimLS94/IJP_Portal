@@ -13,6 +13,7 @@ from app.models.company import Company
 from app.models.job_posting import JobPosting
 from app.models.application import Application, ApplicationStatus, APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS
 from app.models.document import Document
+from app.models.password_reset import PasswordResetToken
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -665,6 +666,9 @@ async def delete_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Sie können sich nicht selbst löschen"
         )
+    
+    # Password Reset Tokens löschen (falls vorhanden)
+    db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user_id).delete()
     
     # Zugehörige Daten löschen
     if user.role == UserRole.APPLICANT:
