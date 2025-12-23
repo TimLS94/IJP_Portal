@@ -7,19 +7,34 @@ from app.models.applicant import PositionType
 
 
 class RequiredLanguageLevel(str, enum.Enum):
-    """Sprachanforderungen für Stellenangebote - vereinfachte Stufen"""
-    NOT_REQUIRED = "not_required"      # Nicht erforderlich
-    BASIC = "basic"                    # Grundkenntnisse (A1-A2)
-    GOOD = "good"                      # Gute Kenntnisse (B1-B2)
-    FLUENT = "fluent"                  # Fließend (C1-C2)
+    """Sprachanforderungen für Stellenangebote - detaillierte GER-Stufen"""
+    NOT_REQUIRED = "not_required"  # Nicht erforderlich
+    # Neue detaillierte Stufen
+    A1 = "a1"                      # A1 - Grundkenntnisse
+    A2 = "a2"                      # A2 - Grundkenntnisse
+    B1 = "b1"                      # B1 - Gute Kenntnisse
+    B2 = "b2"                      # B2 - Sehr gute Kenntnisse
+    C1 = "c1"                      # C1 - Fließend
+    C2 = "c2"                      # C2 - Fließend
+    # Alte Werte für Rückwärtskompatibilität (bestehende Daten in DB)
+    BASIC = "basic"                # Legacy: wird als A2 angezeigt
+    GOOD = "good"                  # Legacy: wird als B1 angezeigt
+    FLUENT = "fluent"              # Legacy: wird als C1 angezeigt
 
 
 # Labels für die Sprachniveaus (für API-Responses)
 LANGUAGE_LEVEL_LABELS = {
     RequiredLanguageLevel.NOT_REQUIRED: "Nicht erforderlich",
-    RequiredLanguageLevel.BASIC: "Grundkenntnisse (A1-A2)",
-    RequiredLanguageLevel.GOOD: "Gute Kenntnisse (B1-B2)",
-    RequiredLanguageLevel.FLUENT: "Fließend (C1-C2)",
+    RequiredLanguageLevel.A1: "A1 - Grundkenntnisse",
+    RequiredLanguageLevel.A2: "A2 - Grundkenntnisse",
+    RequiredLanguageLevel.B1: "B1 - Gute Kenntnisse",
+    RequiredLanguageLevel.B2: "B2 - Sehr gute Kenntnisse",
+    RequiredLanguageLevel.C1: "C1 - Fließend",
+    RequiredLanguageLevel.C2: "C2 - Fließend",
+    # Legacy-Werte (für bestehende Daten)
+    RequiredLanguageLevel.BASIC: "A2 - Grundkenntnisse",
+    RequiredLanguageLevel.GOOD: "B1 - Gute Kenntnisse",
+    RequiredLanguageLevel.FLUENT: "C1 - Fließend",
 }
 
 

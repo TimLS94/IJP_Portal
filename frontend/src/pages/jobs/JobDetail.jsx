@@ -18,6 +18,14 @@ const positionTypeColors = {
 
 const languageLevelColors = {
   not_required: 'bg-gray-100 text-gray-600',
+  // Neue Werte
+  a1: 'bg-yellow-100 text-yellow-800',
+  a2: 'bg-yellow-100 text-yellow-800',
+  b1: 'bg-blue-100 text-blue-800',
+  b2: 'bg-blue-200 text-blue-900',
+  c1: 'bg-green-100 text-green-800',
+  c2: 'bg-green-200 text-green-900',
+  // Legacy-Werte
   basic: 'bg-yellow-100 text-yellow-800',
   good: 'bg-blue-100 text-blue-800',
   fluent: 'bg-green-100 text-green-800'
@@ -35,9 +43,17 @@ function JobDetail() {
 
   const languageLevelLabels = {
     not_required: t('languageLevels.none'),
-    basic: t('languageLevels.a2'),
-    good: t('languageLevels.b1'),
-    fluent: t('languageLevels.c1')
+    // Neue Werte
+    a1: 'A1 - Grundkenntnisse',
+    a2: 'A2 - Grundkenntnisse',
+    b1: 'B1 - Gute Kenntnisse',
+    b2: 'B2 - Sehr gute Kenntnisse',
+    c1: 'C1 - Fließend',
+    c2: 'C2 - Fließend',
+    // Legacy-Werte
+    basic: 'A2 - Grundkenntnisse',
+    good: 'B1 - Gute Kenntnisse',
+    fluent: 'C1 - Fließend'
   };
   const { id } = useParams();
   const navigate = useNavigate();

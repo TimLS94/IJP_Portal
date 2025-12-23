@@ -12,6 +12,14 @@ const positionTypeColors = {
 };
 
 const languageLevelColors = {
+  // Neue Werte
+  a1: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  a2: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  b1: 'bg-blue-50 text-blue-700 border-blue-200',
+  b2: 'bg-blue-100 text-blue-800 border-blue-300',
+  c1: 'bg-green-50 text-green-700 border-green-200',
+  c2: 'bg-green-100 text-green-800 border-green-300',
+  // Legacy-Werte (für bestehende Daten)
   basic: 'bg-yellow-50 text-yellow-700 border-yellow-200',
   good: 'bg-blue-50 text-blue-700 border-blue-200',
   fluent: 'bg-green-50 text-green-700 border-green-200'
@@ -30,17 +38,28 @@ function Jobs() {
 
   const languageLevelLabels = {
     not_required: null,
-    basic: t('languageLevels.a2'),
-    good: t('languageLevels.b1'),
-    fluent: t('languageLevels.c1')
+    // Neue Werte
+    a1: 'A1 - Grundkenntnisse',
+    a2: 'A2 - Grundkenntnisse',
+    b1: 'B1 - Gute Kenntnisse',
+    b2: 'B2 - Sehr gute Kenntnisse',
+    c1: 'C1 - Fließend',
+    c2: 'C2 - Fließend',
+    // Legacy-Werte (für bestehende Daten)
+    basic: 'A2 - Grundkenntnisse',
+    good: 'B1 - Gute Kenntnisse',
+    fluent: 'C1 - Fließend'
   };
 
   const germanLevelFilter = [
     { value: '', label: t('jobs.allTypes') },
     { value: 'not_required', label: t('languageLevels.none') },
-    { value: 'basic', label: t('languageLevels.a2') },
-    { value: 'good', label: t('languageLevels.b1') },
-    { value: 'fluent', label: t('languageLevels.c1') }
+    { value: 'a1', label: 'A1 - Grundkenntnisse' },
+    { value: 'a2', label: 'A2 - Grundkenntnisse' },
+    { value: 'b1', label: 'B1 - Gute Kenntnisse' },
+    { value: 'b2', label: 'B2 - Sehr gute Kenntnisse' },
+    { value: 'c1', label: 'C1 - Fließend' },
+    { value: 'c2', label: 'C2 - Fließend' }
   ];
   const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState([]);

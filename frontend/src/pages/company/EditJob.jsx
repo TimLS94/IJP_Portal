@@ -23,9 +23,12 @@ const salaryTypes = [
 
 const languageLevels = [
   { value: 'not_required', label: 'Nicht erforderlich' },
-  { value: 'basic', label: 'Grundkenntnisse (A1-A2)' },
-  { value: 'good', label: 'Gute Kenntnisse (B1-B2)' },
-  { value: 'fluent', label: 'Fließend (C1-C2)' }
+  { value: 'a1', label: 'A1 - Grundkenntnisse' },
+  { value: 'a2', label: 'A2 - Grundkenntnisse' },
+  { value: 'b1', label: 'B1 - Gute Kenntnisse' },
+  { value: 'b2', label: 'B2 - Sehr gute Kenntnisse' },
+  { value: 'c1', label: 'C1 - Fließend' },
+  { value: 'c2', label: 'C2 - Fließend' }
 ];
 
 const commonLanguages = [
