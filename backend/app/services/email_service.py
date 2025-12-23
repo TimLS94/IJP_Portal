@@ -191,6 +191,33 @@ class EmailService:
         </body></html>
         """
         return self.send_email(to_email, subject, html_content)
+    
+    @_safe_email_call
+    async def send_password_reset_email(self, to_email: str, reset_token: str, user_name: str = None) -> bool:
+        """Sendet Passwort-Reset-Link (async Kompatibilität für account.py)"""
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+        except:
+            frontend_url = 'https://ijp-portal.vercel.app'
+        
+        reset_link = f"{frontend_url}/reset-password?token={reset_token}"
+        greeting = f"Hallo {user_name}," if user_name else "Hallo,"
+        
+        subject = "IJP Portal - Passwort zurücksetzen"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif;">
+            <h1 style="color: #2563eb;">Passwort zurücksetzen</h1>
+            <p>{greeting}</p>
+            <p>Sie haben eine Anfrage zum Zurücksetzen Ihres Passworts gestellt.</p>
+            <p><a href="{reset_link}" style="background:#2563eb;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;">Passwort zurücksetzen</a></p>
+            <p style="margin-top:20px;padding:10px;background:#fef3c7;border-radius:6px;">
+                ⚠️ Dieser Link ist nur <strong>1 Stunde</strong> gültig.
+            </p>
+            <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
 
 
 # Singleton - CRASH-SAFE initialisiert

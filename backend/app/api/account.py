@@ -8,7 +8,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.security import get_current_user, get_password_hash, verify_password
-from app.core.email import email_service
+from app.services.email_service import email_service
 from app.models.user import User, UserRole
 from app.models.password_reset import PasswordResetToken
 from app.models.applicant import Applicant
