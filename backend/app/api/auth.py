@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant
 from app.models.company import Company
-from app.schemas.user import UserCreate, UserResponse, UserLogin, Token
+from app.schemas.user import UserCreate, UserRegister, UserResponse, UserLogin, Token
 from app.services.email_service import email_service
 
 router = APIRouter(prefix="/auth", tags=["Authentifizierung"])
@@ -92,7 +92,7 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 @router.post("/register/applicant", response_model=Token)
 async def register_applicant(
-    user_data: UserCreate,
+    user_data: UserRegister,
     first_name: str,
     last_name: str,
     db: Session = Depends(get_db)
@@ -147,7 +147,7 @@ async def register_applicant(
 
 @router.post("/register/company")
 async def register_company(
-    user_data: UserCreate,
+    user_data: UserRegister,
     company_name: str,
     db: Session = Depends(get_db)
 ):

@@ -13,6 +13,11 @@ class UserCreate(UserBase):
     role: UserRole
 
 
+class UserRegister(UserBase):
+    """Schema für Registrierung ohne Role (Role wird vom Endpoint gesetzt)"""
+    password: str
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
