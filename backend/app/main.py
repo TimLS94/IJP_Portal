@@ -2,16 +2,34 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
+import logging
+
+# Logging konfigurieren
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info("=== APP STARTUP: Importing modules ===")
 
 from app.core.config import settings
+logger.info("Config loaded")
+
 from app.core.database import engine, Base, SessionLocal
+logger.info("Database module loaded")
+
 from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests
+logger.info("API routers loaded")
+
 # Import Models für create_all
 from app.models import user, applicant, company, job_posting, application, document, blog as blog_model, password_reset, job_request
+logger.info("Models loaded")
+
 from app.core.seed_data import seed_database
+logger.info("Seed data module loaded")
 
 # Datenbank-Tabellen erstellen
+logger.info("Creating database tables...")
 Base.metadata.create_all(bind=engine)
+logger.info("Database tables created")
 
 # Testdaten einfügen (nur in Entwicklung)
 if settings.DEBUG:
@@ -71,3 +89,5 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+logger.info("=== APP STARTUP COMPLETE ===")
