@@ -51,11 +51,14 @@ class EmailService:
                 logger.info(f"[DEBUG] Inhalt: {html_content[:200]}...")
                 return True
             
-            # Produktiv: E-Mail senden
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+            # Produktiv: E-Mail senden (nur wenn SMTP konfiguriert)
+            if not self.smtp_user or not self.smtp_password:
+                logger.warning(f"SMTP nicht konfiguriert - E-Mail an {to_email} wird übersprungen")
+                return True  # Nicht blockieren wenn SMTP nicht eingerichtet
+            
+            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
                 server.starttls()
-                if self.smtp_user and self.smtp_password:
-                    server.login(self.smtp_user, self.smtp_password)
+                server.login(self.smtp_user, self.smtp_password)
                 server.sendmail(self.from_email, to_email, msg.as_string())
             
             logger.info(f"E-Mail gesendet an: {to_email}")
