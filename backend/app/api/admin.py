@@ -670,6 +670,9 @@ async def delete_user(
     if user.role == UserRole.APPLICANT:
         applicant = db.query(Applicant).filter(Applicant.user_id == user_id).first()
         if applicant:
+            # Zuerst Dokumente löschen (Fremdschlüssel auf applicant_id)
+            db.query(Document).filter(Document.applicant_id == applicant.id).delete()
+            # Dann Bewerbungen löschen
             db.query(Application).filter(Application.applicant_id == applicant.id).delete()
             db.delete(applicant)
     elif user.role == UserRole.COMPANY:
