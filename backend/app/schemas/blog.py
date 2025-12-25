@@ -77,6 +77,7 @@ class BlogPostListResponse(BaseModel):
     category: BlogCategory
     category_label: str
     featured_image: Optional[str] = None
+    is_published: bool = False  # Hinzugefügt für Admin-Übersicht
     is_featured: bool
     view_count: int
     published_at: Optional[datetime] = None
