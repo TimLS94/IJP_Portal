@@ -1,8 +1,8 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import Optional
+"""
+E-Mail Service mit SendGrid HTTP API - CRASH-SAFE
+"""
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,32 +19,27 @@ def _safe_email_call(func):
 
 
 class EmailService:
-    """Service zum Versenden von E-Mails - CRASH-SAFE"""
+    """Service zum Versenden von E-Mails über SendGrid HTTP API - CRASH-SAFE"""
     
     def __init__(self):
         try:
             from app.core.config import settings
-            self.smtp_host = getattr(settings, 'SMTP_HOST', '')
-            self.smtp_port = getattr(settings, 'SMTP_PORT', 587)
-            self.smtp_user = getattr(settings, 'SMTP_USER', '')
-            self.smtp_password = getattr(settings, 'SMTP_PASSWORD', '')
-            self.from_email = getattr(settings, 'FROM_EMAIL', 'noreply@ijp-portal.de')
-            self.from_name = getattr(settings, 'FROM_NAME', 'IJP Portal')
+            # SendGrid API Key (wird über SMTP_PASSWORD gesetzt)
+            self.api_key = getattr(settings, 'SMTP_PASSWORD', '')
+            self.from_email = getattr(settings, 'FROM_EMAIL', 'noreply@internationaljobplacement.com')
+            self.from_name = getattr(settings, 'FROM_NAME', 'International Job Placement')
             self.debug = getattr(settings, 'DEBUG', False)
-            self.enabled = bool(self.smtp_user and self.smtp_password and self.smtp_host)
+            self.enabled = bool(self.api_key and self.api_key.startswith('SG.'))
             
-            if not self.enabled:
-                logger.info("E-Mail-Service DEAKTIVIERT (SMTP nicht konfiguriert)")
+            if self.enabled:
+                logger.info(f"E-Mail-Service AKTIVIERT (SendGrid API) - From: {self.from_email}")
+            else:
+                logger.info("E-Mail-Service DEAKTIVIERT (Kein gültiger SendGrid API Key)")
         except Exception as e:
             logger.error(f"E-Mail-Service Init-Fehler: {e}")
             self.enabled = False
             self.debug = False
-    
-    def _is_ready(self) -> bool:
-        """Prüft ob E-Mail-Versand möglich ist"""
-        if self.debug:
-            return True  # Im Debug-Modus nur loggen
-        return self.enabled
+            self.api_key = ''
     
     @_safe_email_call
     def send_email(
@@ -54,47 +49,57 @@ class EmailService:
         html_content: str,
         text_content: Optional[str] = None
     ) -> bool:
-        """Sendet eine E-Mail - CRASH-SAFE"""
+        """Sendet eine E-Mail über SendGrid HTTP API - CRASH-SAFE"""
         
         # Debug-Modus: Nur loggen
         if self.debug:
             logger.info(f"[DEBUG-EMAIL] An: {to_email} | Betreff: {subject}")
             return True
         
-        # SMTP nicht konfiguriert: Still überspringen
+        # SendGrid nicht konfiguriert
         if not self.enabled:
-            logger.debug(f"E-Mail übersprungen (SMTP deaktiviert): {to_email}")
+            logger.warning(f"E-Mail übersprungen (SendGrid nicht konfiguriert): {to_email}")
             return True
         
-        # E-Mail zusammenbauen
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = f"{self.from_name} <{self.from_email}>"
-        msg['To'] = to_email
+        # SendGrid API verwenden
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail, Email, To, Content
+        
+        message = Mail(
+            from_email=Email(self.from_email, self.from_name),
+            to_emails=To(to_email),
+            subject=subject,
+            html_content=Content("text/html", html_content)
+        )
         
         if text_content:
-            msg.attach(MIMEText(text_content, 'plain', 'utf-8'))
-        msg.attach(MIMEText(html_content, 'html', 'utf-8'))
+            message.add_content(Content("text/plain", text_content))
         
-        # E-Mail senden mit kurzem Timeout
-        with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=5) as server:
-            server.starttls()
-            server.login(self.smtp_user, self.smtp_password)
-            server.sendmail(self.from_email, to_email, msg.as_string())
+        sg = SendGridAPIClient(self.api_key)
+        response = sg.send(message)
         
-        logger.info(f"E-Mail gesendet: {to_email}")
-        return True
+        if response.status_code in [200, 201, 202]:
+            logger.info(f"✅ E-Mail gesendet an {to_email} (Status: {response.status_code})")
+            return True
+        else:
+            logger.error(f"❌ E-Mail fehlgeschlagen: {response.status_code} - {response.body}")
+            return False
     
     @_safe_email_call
     def send_welcome_email(self, to_email: str, name: str, role: str) -> bool:
         """Sendet eine Willkommens-E-Mail nach der Registrierung"""
         subject = "Willkommen beim IJP Portal!"
         html_content = f"""
-        <html><body style="font-family: Arial, sans-serif;">
-            <h1 style="color: #2563eb;">Willkommen beim IJP Portal!</h1>
-            <p>Hallo {name},</p>
-            <p>vielen Dank für Ihre Registrierung!</p>
-            <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>Willkommen beim IJP Portal!</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {name},</p>
+                <p>vielen Dank für Ihre Registrierung bei <strong>International Job Placement</strong>!</p>
+                <p>Wir freuen uns, Sie bei der Suche nach Ihrem Traumjob zu unterstützen.</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            </div>
         </body></html>
         """
         return self.send_email(to_email, subject, html_content)
@@ -106,11 +111,16 @@ class EmailService:
         """Benachrichtigt den Bewerber über den Eingang der Bewerbung"""
         subject = f"Bewerbung eingegangen: {job_title}"
         html_content = f"""
-        <html><body style="font-family: Arial, sans-serif;">
-            <h1 style="color: #2563eb;">Bewerbung erfolgreich!</h1>
-            <p>Hallo {applicant_name},</p>
-            <p>Ihre Bewerbung für <strong>{job_title}</strong> bei <strong>{company_name}</strong> wurde eingereicht.</p>
-            <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #22c55e; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>✅ Bewerbung erfolgreich!</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {applicant_name},</p>
+                <p>Ihre Bewerbung für <strong>{job_title}</strong> bei <strong>{company_name}</strong> wurde erfolgreich eingereicht.</p>
+                <p>Wir drücken Ihnen die Daumen!</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            </div>
         </body></html>
         """
         return self.send_email(to_email, subject, html_content)
@@ -122,11 +132,16 @@ class EmailService:
         """Benachrichtigt die Firma über eine neue Bewerbung"""
         subject = f"Neue Bewerbung: {job_title}"
         html_content = f"""
-        <html><body style="font-family: Arial, sans-serif;">
-            <h1 style="color: #2563eb;">Neue Bewerbung!</h1>
-            <p>Hallo {company_name},</p>
-            <p><strong>{applicant_name}</strong> hat sich auf <strong>{job_title}</strong> beworben.</p>
-            <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>📩 Neue Bewerbung!</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {company_name},</p>
+                <p><strong>{applicant_name}</strong> hat sich auf die Stelle <strong>{job_title}</strong> beworben.</p>
+                <p>Loggen Sie sich ein, um die Bewerbung zu sehen.</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            </div>
         </body></html>
         """
         return self.send_email(to_email, subject, html_content)
@@ -136,11 +151,17 @@ class EmailService:
         """Benachrichtigt die Firma über ausstehende Aktivierung"""
         subject = "IJP Portal - Registrierung eingegangen"
         html_content = f"""
-        <html><body style="font-family: Arial, sans-serif;">
-            <h1 style="color: #2563eb;">Registrierung eingegangen</h1>
-            <p>Hallo {company_name},</p>
-            <p>Ihre Registrierung wird geprüft. Sie erhalten eine E-Mail nach der Freischaltung.</p>
-            <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>⏳ Registrierung eingegangen</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {company_name},</p>
+                <p>Vielen Dank für Ihre Registrierung!</p>
+                <p>Ihr Konto wird derzeit von unserem Team geprüft. Sie erhalten eine E-Mail, sobald es freigeschaltet wurde.</p>
+                <p>Dies dauert in der Regel 1-2 Werktage.</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            </div>
         </body></html>
         """
         return self.send_email(to_email, subject, html_content)
@@ -152,11 +173,18 @@ class EmailService:
         """Benachrichtigt die Firma über Aktivierung"""
         subject = "IJP Portal - Konto freigeschaltet! 🎉"
         html_content = f"""
-        <html><body style="font-family: Arial, sans-serif;">
-            <h1 style="color: #22c55e;">✅ Konto freigeschaltet!</h1>
-            <p>Hallo {company_name},</p>
-            <p>Ihr Konto wurde aktiviert. <a href="{frontend_url}/login">Jetzt anmelden</a></p>
-            <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #22c55e; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>✅ Konto freigeschaltet!</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {company_name},</p>
+                <p><strong>Gute Nachrichten!</strong> Ihr Unternehmenskonto wurde aktiviert.</p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/login" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Jetzt anmelden</a>
+                </p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            </div>
         </body></html>
         """
         return self.send_email(to_email, subject, html_content)
@@ -168,11 +196,18 @@ class EmailService:
         """Benachrichtigt den Bewerber über Statusänderung"""
         subject = f"Bewerbungsstatus aktualisiert: {job_title}"
         html_content = f"""
-        <html><body style="font-family: Arial, sans-serif;">
-            <h1 style="color: #2563eb;">Status aktualisiert</h1>
-            <p>Hallo {applicant_name},</p>
-            <p>Der Status Ihrer Bewerbung bei {company_name} für {job_title}: <strong>{new_status}</strong></p>
-            <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>📋 Status aktualisiert</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {applicant_name},</p>
+                <p>Der Status Ihrer Bewerbung bei <strong>{company_name}</strong> für <strong>{job_title}</strong> wurde aktualisiert:</p>
+                <p style="text-align: center; font-size: 24px; font-weight: bold; color: #2563eb; padding: 20px; background: white; border-radius: 8px; margin: 20px 0;">
+                    {new_status}
+                </p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            </div>
         </body></html>
         """
         return self.send_email(to_email, subject, html_content)
@@ -182,19 +217,27 @@ class EmailService:
         """Sendet Passwort-Reset-Link"""
         subject = "IJP Portal - Passwort zurücksetzen"
         html_content = f"""
-        <html><body style="font-family: Arial, sans-serif;">
-            <h1 style="color: #2563eb;">Passwort zurücksetzen</h1>
-            <p>Klicken Sie hier um Ihr Passwort zurückzusetzen:</p>
-            <p><a href="{reset_link}" style="background:#2563eb;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;">Passwort zurücksetzen</a></p>
-            <p>Link gültig für 1 Stunde.</p>
-            <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>🔐 Passwort zurücksetzen</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Sie haben eine Anfrage zum Zurücksetzen Ihres Passworts gestellt.</p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{reset_link}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Passwort zurücksetzen</a>
+                </p>
+                <p style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    ⚠️ Dieser Link ist nur <strong>1 Stunde</strong> gültig.
+                </p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            </div>
         </body></html>
         """
         return self.send_email(to_email, subject, html_content)
     
     @_safe_email_call
     async def send_password_reset_email(self, to_email: str, reset_token: str, user_name: str = None) -> bool:
-        """Sendet Passwort-Reset-Link (async Kompatibilität für account.py)"""
+        """Sendet Passwort-Reset-Link (async für account.py)"""
         try:
             from app.core.config import settings
             frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
@@ -206,15 +249,21 @@ class EmailService:
         
         subject = "IJP Portal - Passwort zurücksetzen"
         html_content = f"""
-        <html><body style="font-family: Arial, sans-serif;">
-            <h1 style="color: #2563eb;">Passwort zurücksetzen</h1>
-            <p>{greeting}</p>
-            <p>Sie haben eine Anfrage zum Zurücksetzen Ihres Passworts gestellt.</p>
-            <p><a href="{reset_link}" style="background:#2563eb;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;">Passwort zurücksetzen</a></p>
-            <p style="margin-top:20px;padding:10px;background:#fef3c7;border-radius:6px;">
-                ⚠️ Dieser Link ist nur <strong>1 Stunde</strong> gültig.
-            </p>
-            <p>Mit freundlichen Grüßen,<br>Ihr IJP Portal Team</p>
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>🔐 Passwort zurücksetzen</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>{greeting}</p>
+                <p>Sie haben eine Anfrage zum Zurücksetzen Ihres Passworts gestellt.</p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{reset_link}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Passwort zurücksetzen</a>
+                </p>
+                <p style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    ⚠️ Dieser Link ist nur <strong>1 Stunde</strong> gültig.
+                </p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            </div>
         </body></html>
         """
         return self.send_email(to_email, subject, html_content)
