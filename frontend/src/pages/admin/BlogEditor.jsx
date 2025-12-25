@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { blogAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
-  BookOpen, Save, ArrowLeft, Eye, Tag, Image, FileText,
+  BookOpen, Save, ArrowLeft, Eye, EyeOff, Tag, Image, FileText,
   Globe, ChevronDown, Loader2, Star, StarOff, Info
 } from 'lucide-react';
 
@@ -249,25 +249,38 @@ function BlogEditor() {
                 Veröffentlichung
               </h3>
               
+              {/* Aktueller Status Badge */}
+              <div className={`mb-4 p-3 rounded-lg text-center font-semibold ${
+                watchIsPublished 
+                  ? 'bg-green-100 text-green-700 border-2 border-green-300' 
+                  : 'bg-gray-100 text-gray-600 border-2 border-gray-300'
+              }`}>
+                {watchIsPublished ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Eye className="h-5 w-5" />
+                    🟢 LIVE - Öffentlich sichtbar
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <EyeOff className="h-5 w-5" />
+                    ⚪ ENTWURF - Nicht sichtbar
+                  </span>
+                )}
+              </div>
+              
               <div className="space-y-4">
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 transition-colors">
                   <input
                     type="checkbox"
-                    className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
                     {...register('is_published')}
                   />
                   <span className="font-medium text-gray-700">
-                    {watchIsPublished ? (
-                      <span className="text-green-600 flex items-center gap-1">
-                        <Eye className="h-4 w-4" /> Veröffentlicht
-                      </span>
-                    ) : (
-                      'Veröffentlichen'
-                    )}
+                    Artikel veröffentlichen
                   </span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 transition-colors">
                   <input
                     type="checkbox"
                     className="w-5 h-5 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500"
