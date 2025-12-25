@@ -29,13 +29,13 @@ class Settings(BaseSettings):
     # Frontend URL (für E-Mail Links)
     FRONTEND_URL: str = "http://localhost:5173"
     
-    # Email Settings
-    SMTP_HOST: str = "localhost"
+    # Email Settings (SendGrid)
+    SMTP_HOST: str = "smtp.sendgrid.net"
     SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    FROM_EMAIL: str = "noreply@ijp-portal.de"
-    FROM_NAME: str = "IJP Portal"
+    SMTP_USER: str = ""  # Muss "apikey" sein für SendGrid
+    SMTP_PASSWORD: str = ""  # SendGrid API Key
+    FROM_EMAIL: str = "noreply@internationaljobplacement.com"
+    FROM_NAME: str = "International Job Placement"
     
     @property
     def cors_origins_list(self) -> List[str]:
