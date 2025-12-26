@@ -6,6 +6,7 @@ import re
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.sanitizer import sanitize_html, sanitize_plain_text
 from app.models.user import User, UserRole
 from app.models.blog import BlogPost, BlogCategory, BLOG_CATEGORY_LABELS
 from app.schemas.blog import (
@@ -262,15 +263,19 @@ async def create_blog_post(
         # Suffix hinzufügen
         slug = f"{slug}-{int(datetime.utcnow().timestamp())}"
     
+    # HTML-Content sanitisieren gegen XSS
+    sanitized_content = sanitize_html(post_data.content) if post_data.content else None
+    sanitized_excerpt = sanitize_plain_text(post_data.excerpt) if post_data.excerpt else None
+    
     post = BlogPost(
-        title=post_data.title,
+        title=sanitize_plain_text(post_data.title),
         slug=slug,
-        excerpt=post_data.excerpt,
-        content=post_data.content,
+        excerpt=sanitized_excerpt,
+        content=sanitized_content,
         category=post_data.category,
         tags=post_data.tags,
-        meta_title=post_data.meta_title or post_data.title,
-        meta_description=post_data.meta_description or post_data.excerpt,
+        meta_title=sanitize_plain_text(post_data.meta_title or post_data.title),
+        meta_description=sanitize_plain_text(post_data.meta_description or post_data.excerpt),
         meta_keywords=post_data.meta_keywords,
         featured_image=post_data.featured_image,
         is_published=post_data.is_published,
@@ -309,6 +314,18 @@ async def update_blog_post(
         )
     
     update_data = post_data.dict(exclude_unset=True)
+    
+    # HTML-Content sanitisieren gegen XSS
+    if 'content' in update_data and update_data['content']:
+        update_data['content'] = sanitize_html(update_data['content'])
+    if 'title' in update_data and update_data['title']:
+        update_data['title'] = sanitize_plain_text(update_data['title'])
+    if 'excerpt' in update_data and update_data['excerpt']:
+        update_data['excerpt'] = sanitize_plain_text(update_data['excerpt'])
+    if 'meta_title' in update_data and update_data['meta_title']:
+        update_data['meta_title'] = sanitize_plain_text(update_data['meta_title'])
+    if 'meta_description' in update_data and update_data['meta_description']:
+        update_data['meta_description'] = sanitize_plain_text(update_data['meta_description'])
     
     # Wenn veröffentlicht wird und noch kein published_at
     if update_data.get('is_published') and not post.published_at:

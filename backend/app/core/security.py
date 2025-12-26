@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Tuple
 from jose import JWTError, jwt
 import bcrypt
+import re
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -9,6 +10,41 @@ from app.core.config import settings
 from app.core.database import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
+
+
+def validate_password(password: str) -> Tuple[bool, str]:
+    """
+    Validiert ein Passwort gegen die Security Policy.
+    Returns: (is_valid, error_message)
+    """
+    errors = []
+    
+    # Mindestlänge
+    if len(password) < settings.MIN_PASSWORD_LENGTH:
+        errors.append(f"mindestens {settings.MIN_PASSWORD_LENGTH} Zeichen")
+    
+    # Zahl erforderlich
+    if settings.REQUIRE_PASSWORD_NUMBER and not re.search(r'\d', password):
+        errors.append("mindestens eine Zahl")
+    
+    # Sonderzeichen erforderlich (optional)
+    if settings.REQUIRE_PASSWORD_SPECIAL and not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        errors.append("mindestens ein Sonderzeichen")
+    
+    if errors:
+        return False, f"Passwort muss {', '.join(errors)} enthalten"
+    
+    return True, ""
+
+
+def check_password_strength(password: str) -> None:
+    """Wirft HTTPException wenn Passwort nicht den Anforderungen entspricht"""
+    is_valid, error_msg = validate_password(password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg
+        )
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

@@ -1,6 +1,13 @@
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 from typing import Optional, List, Union
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Default Secret Key - NUR für lokale Entwicklung!
+_DEFAULT_SECRET_KEY = "CHANGE-THIS-IN-PRODUCTION-USE-ENV-VAR"
 
 
 class Settings(BaseSettings):
@@ -13,9 +20,14 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./ijp_portal.db"
     
     # JWT - WICHTIG: SECRET_KEY muss in Produktion über Environment Variable gesetzt werden!
-    SECRET_KEY: str = "CHANGE-THIS-IN-PRODUCTION-USE-ENV-VAR"
+    SECRET_KEY: str = _DEFAULT_SECRET_KEY
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+    
+    # Password Policy
+    MIN_PASSWORD_LENGTH: int = 8
+    REQUIRE_PASSWORD_NUMBER: bool = True
+    REQUIRE_PASSWORD_SPECIAL: bool = False  # Optional: Sonderzeichen
     
     # File Upload
     UPLOAD_DIR: str = "uploads"
@@ -55,6 +67,35 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+    
+    def validate_security(self) -> None:
+        """Validiert kritische Sicherheitseinstellungen beim Startup"""
+        warnings = []
+        errors = []
+        
+        # SECRET_KEY Prüfung
+        if self.SECRET_KEY == _DEFAULT_SECRET_KEY:
+            if self.DEBUG:
+                warnings.append("⚠️  SECRET_KEY ist auf Default gesetzt - OK für Entwicklung")
+            else:
+                errors.append("🔴 KRITISCH: SECRET_KEY muss in Produktion geändert werden! Setze SECRET_KEY Environment Variable.")
+        
+        # DEBUG in Produktion
+        if self.DEBUG and "render.com" in self.DATABASE_URL:
+            warnings.append("⚠️  DEBUG ist aktiviert aber DATABASE_URL deutet auf Produktion hin")
+        
+        # Logging
+        for warning in warnings:
+            logger.warning(warning)
+        
+        for error in errors:
+            logger.error(error)
+            # In Produktion mit Default-Key nicht starten
+            if not self.DEBUG and self.SECRET_KEY == _DEFAULT_SECRET_KEY:
+                raise ValueError("Anwendung kann nicht mit Default SECRET_KEY in Produktion gestartet werden!")
 
 
 settings = Settings()
+
+# Sicherheitsvalidierung beim Import
+settings.validate_security()

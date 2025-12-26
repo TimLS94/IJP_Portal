@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -8,9 +8,11 @@ from app.core.security import (
     get_password_hash, 
     verify_password, 
     create_access_token,
-    get_current_user
+    get_current_user,
+    check_password_strength
 )
 from app.core.config import settings
+from app.core.rate_limiter import rate_limit_login, rate_limit_registration
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant
 from app.models.company import Company
@@ -23,6 +25,9 @@ router = APIRouter(prefix="/auth", tags=["Authentifizierung"])
 @router.post("/register", response_model=Token)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """Registriert einen neuen Benutzer"""
+    
+    # Passwort-Policy prüfen
+    check_password_strength(user_data.password)
     
     # Prüfen ob E-Mail bereits existiert
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -55,8 +60,14 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    db: Session = Depends(get_db)
+):
     """Login mit E-Mail und Passwort"""
+    # Rate Limiting: 5 Versuche pro Minute
+    await rate_limit_login(request)
     
     user = db.query(User).filter(User.email == form_data.username).first()
     
@@ -92,12 +103,18 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 @router.post("/register/applicant", response_model=Token)
 async def register_applicant(
+    request: Request,
     user_data: UserRegister,
     first_name: str,
     last_name: str,
     db: Session = Depends(get_db)
 ):
     """Registriert einen neuen Bewerber"""
+    # Rate Limiting: 3 Registrierungen pro Stunde pro IP
+    await rate_limit_registration(request)
+    
+    # Passwort-Policy prüfen
+    check_password_strength(user_data.password)
     
     # Prüfen ob E-Mail bereits existiert
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -147,6 +164,7 @@ async def register_applicant(
 
 @router.post("/register/company")
 async def register_company(
+    request: Request,
     user_data: UserRegister,
     company_name: str,
     db: Session = Depends(get_db)
@@ -156,6 +174,11 @@ async def register_company(
     WICHTIG: Firmen sind nach der Registrierung DEAKTIVIERT und müssen erst 
     von einem Admin freigeschaltet werden.
     """
+    # Rate Limiting: 3 Registrierungen pro Stunde pro IP
+    await rate_limit_registration(request)
+    
+    # Passwort-Policy prüfen
+    check_password_strength(user_data.password)
     
     # Prüfen ob E-Mail bereits existiert
     existing_user = db.query(User).filter(User.email == user_data.email).first()

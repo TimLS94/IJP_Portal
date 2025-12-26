@@ -1,13 +1,14 @@
 """
 Account Management API - Passwort Reset, Änderungen, Account löschen
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
 from app.core.database import get_db
-from app.core.security import get_current_user, get_password_hash, verify_password
+from app.core.security import get_current_user, get_password_hash, verify_password, check_password_strength
+from app.core.rate_limiter import rate_limit_password_reset
 from app.services.email_service import email_service
 from app.models.user import User, UserRole
 from app.models.password_reset import PasswordResetToken
@@ -50,6 +51,7 @@ class DeleteAccountRequest(BaseModel):
 
 @router.post("/forgot-password")
 async def forgot_password(
+    request: Request,
     data: ForgotPasswordRequest,
     db: Session = Depends(get_db)
 ):
@@ -57,6 +59,9 @@ async def forgot_password(
     Sendet einen Passwort-Reset Link an die E-Mail.
     Gibt immer eine Erfolgsmeldung zurück (Sicherheit).
     """
+    # Rate Limiting: 3 Versuche pro 5 Minuten
+    await rate_limit_password_reset(request)
+    
     user = db.query(User).filter(User.email == data.email).first()
     
     # Immer gleiche Antwort (verhindert E-Mail-Enumeration)
@@ -121,12 +126,8 @@ async def reset_password(
             detail="Ungültiger oder abgelaufener Token. Bitte fordern Sie einen neuen Link an."
         )
     
-    # Passwort validieren
-    if len(data.new_password) < 6:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Passwort muss mindestens 6 Zeichen haben"
-        )
+    # Passwort-Policy prüfen
+    check_password_strength(data.new_password)
     
     # User finden und Passwort aktualisieren
     user = db.query(User).filter(User.id == reset_token.user_id).first()
@@ -179,12 +180,8 @@ async def change_password(
             detail="Aktuelles Passwort ist falsch"
         )
     
-    # Neues Passwort validieren
-    if len(data.new_password) < 6:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Neues Passwort muss mindestens 6 Zeichen haben"
-        )
+    # Passwort-Policy prüfen
+    check_password_strength(data.new_password)
     
     if data.current_password == data.new_password:
         raise HTTPException(
