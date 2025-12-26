@@ -18,7 +18,9 @@ function BlogEditor() {
   const [categories, setCategories] = useState([]);
   const [previewMode, setPreviewMode] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [imageMode, setImageMode] = useState('url'); // 'url' oder 'upload'
+  const [imageMode, setImageMode] = useState('upload'); // 'url' oder 'upload' - Default: upload
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const fileInputRef = useRef(null);
   
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
@@ -136,12 +138,15 @@ function BlogEditor() {
     }
     
     setUploading(true);
+    setImageError(false);
+    setImageLoaded(false);
     try {
       const response = await blogAPI.uploadImage(file);
       if (response.data.success) {
         // Data-URL direkt verwenden (Base64)
         setValue('featured_image', response.data.url);
-        toast.success('Bild hochgeladen!');
+        setImageLoaded(true);
+        toast.success(`✅ Bild "${file.name}" erfolgreich hochgeladen!`);
       }
     } catch (error) {
       console.error('Upload-Fehler:', error);
@@ -153,6 +158,13 @@ function BlogEditor() {
         fileInputRef.current.value = '';
       }
     }
+  };
+
+  // Bild löschen Handler
+  const handleRemoveImage = () => {
+    setValue('featured_image', '');
+    setImageError(false);
+    setImageLoaded(false);
   };
 
   // Einfacher Markdown Preview
@@ -409,37 +421,56 @@ function BlogEditor() {
               
               {/* Bild-Vorschau */}
               <div className="mb-4 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50">
-                {watch('featured_image') ? (
+                {watch('featured_image') && !imageError ? (
                   <div className="relative group">
                     <img 
                       src={watch('featured_image')} 
                       alt="Vorschau"
                       className="w-full h-48 object-cover"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = '';
-                        e.target.parentElement.innerHTML = `
-                          <div class="h-48 flex flex-col items-center justify-center text-red-500 bg-red-50">
-                            <svg class="h-12 w-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                            </svg>
-                            <p class="font-medium">Bild konnte nicht geladen werden</p>
-                            <p class="text-sm">Prüfen Sie die URL</p>
-                          </div>
-                        `;
+                      onLoad={() => {
+                        setImageLoaded(true);
+                        setImageError(false);
+                      }}
+                      onError={() => {
+                        setImageError(true);
+                        setImageLoaded(false);
                       }}
                     />
+                    {/* Erfolgs-Badge */}
+                    {imageLoaded && (
+                      <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs font-medium rounded-lg flex items-center gap-1">
+                        ✓ Bild geladen
+                      </div>
+                    )}
+                    {/* Hover Overlay mit Entfernen-Button */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <button
                         type="button"
-                        onClick={() => setValue('featured_image', '')}
+                        onClick={handleRemoveImage}
                         className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700"
                       >
                         Bild entfernen
                       </button>
                     </div>
                   </div>
+                ) : watch('featured_image') && imageError ? (
+                  // Fehler-Anzeige
+                  <div className="h-48 flex flex-col items-center justify-center text-red-500 bg-red-50">
+                    <svg className="h-12 w-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <p className="font-medium">Bild konnte nicht geladen werden</p>
+                    <p className="text-sm mb-3">Prüfen Sie die URL oder laden Sie ein neues Bild hoch</p>
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 text-sm"
+                    >
+                      URL entfernen
+                    </button>
+                  </div>
                 ) : (
+                  // Kein Bild
                   <div className="h-48 flex flex-col items-center justify-center text-gray-400">
                     <Image className="h-12 w-12 mb-2" />
                     <p className="font-medium">Kein Bild ausgewählt</p>
@@ -500,13 +531,24 @@ function BlogEditor() {
                     ) : (
                       <>
                         <Upload className="h-5 w-5" />
-                        Bild auswählen
+                        {watch('featured_image') ? 'Anderes Bild wählen' : 'Bild auswählen'}
                       </>
                     )}
                   </button>
                   <p className="text-xs text-gray-500 text-center">
                     JPG, PNG, GIF oder WebP • Max. 5 MB
                   </p>
+                  
+                  {/* Aktuelles Bild entfernen Button */}
+                  {watch('featured_image') && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-red-100 text-red-700 rounded-xl font-medium hover:bg-red-200 transition-colors text-sm"
+                    >
+                      ✕ Bild entfernen
+                    </button>
+                  )}
                 </div>
               )}
               
@@ -519,12 +561,17 @@ function BlogEditor() {
                       className="input-styled pr-10"
                       placeholder="https://images.unsplash.com/photo-..."
                       {...register('featured_image')}
+                      onChange={(e) => {
+                        setValue('featured_image', e.target.value);
+                        setImageError(false);
+                        setImageLoaded(false);
+                      }}
                     />
                     {watch('featured_image') && (
                       <button
                         type="button"
-                        onClick={() => setValue('featured_image', '')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                        onClick={handleRemoveImage}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 p-1"
                       >
                         ✕
                       </button>
@@ -557,7 +604,11 @@ function BlogEditor() {
                         <button
                           key={img.label}
                           type="button"
-                          onClick={() => setValue('featured_image', img.url)}
+                          onClick={() => {
+                            setValue('featured_image', img.url);
+                            setImageError(false);
+                            setImageLoaded(false);
+                          }}
                           className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
                         >
                           {img.label}
