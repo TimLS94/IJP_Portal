@@ -127,20 +127,93 @@ class EmailService:
     
     @_safe_email_call
     def send_new_application_notification(
-        self, to_email: str, company_name: str, applicant_name: str, job_title: str
+        self, 
+        to_email: str, 
+        company_name: str, 
+        applicant_name: str, 
+        job_title: str,
+        applicant_email: str = None,
+        applicant_phone: str = None,
+        position_type: str = None,
+        applied_at: str = None
     ) -> bool:
         """Benachrichtigt die Firma über eine neue Bewerbung"""
-        subject = f"Neue Bewerbung: {job_title}"
-        html_content = f"""
-        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1>📩 Neue Bewerbung!</h1>
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+        except:
+            frontend_url = 'https://ijp-portal.vercel.app'
+        
+        # Position Type Label
+        position_labels = {
+            'studentenferienjob': 'Studentenferienjob',
+            'saisonjob': 'Saisonjob',
+            'fachkraft': 'Fachkraft',
+            'ausbildung': 'Ausbildung'
+        }
+        position_label = position_labels.get(position_type, position_type) if position_type else ''
+        
+        # Datum formatieren
+        date_str = ''
+        if applied_at:
+            try:
+                from datetime import datetime
+                dt = applied_at if isinstance(applied_at, datetime) else datetime.fromisoformat(str(applied_at).replace('Z', '+00:00'))
+                date_str = dt.strftime('%d.%m.%Y um %H:%M Uhr')
+            except:
+                date_str = str(applied_at)
+        
+        # Kontaktdaten Section
+        contact_section = ""
+        if applicant_email or applicant_phone:
+            contact_section = f"""
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="margin: 0 0 10px 0; font-weight: bold; color: #374151;">📇 Kontaktdaten:</p>
+                {'<p style="margin: 5px 0;">📧 ' + applicant_email + '</p>' if applicant_email else ''}
+                {'<p style="margin: 5px 0;">📱 ' + applicant_phone + '</p>' if applicant_phone else ''}
             </div>
-            <div style="padding: 30px; background: #f9fafb;">
-                <p>Hallo {company_name},</p>
-                <p><strong>{applicant_name}</strong> hat sich auf die Stelle <strong>{job_title}</strong> beworben.</p>
-                <p>Loggen Sie sich ein, um die Bewerbung zu sehen.</p>
-                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            """
+        
+        subject = f"🆕 Neue Bewerbung für: {job_title}"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0; font-size: 24px;">📩 Neue Bewerbung eingegangen!</h1>
+            </div>
+            <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <p style="font-size: 16px; color: #374151;">Hallo <strong>{company_name}</strong>,</p>
+                
+                <div style="background: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+                    <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #1e40af;">
+                        {applicant_name}
+                    </p>
+                    <p style="margin: 0; color: #1e40af;">
+                        hat sich auf <strong>{job_title}</strong> beworben
+                    </p>
+                    {f'<p style="margin: 10px 0 0 0; color: #3b82f6;">📋 Stellenart: {position_label}</p>' if position_label else ''}
+                    {f'<p style="margin: 5px 0 0 0; color: #6b7280; font-size: 14px;">🕐 {date_str}</p>' if date_str else ''}
+                </div>
+                
+                {contact_section}
+                
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/company/applications" 
+                       style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        Bewerbung ansehen →
+                    </a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+                
+                <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                    Mit freundlichen Grüßen,<br>
+                    <strong>Ihr IJP Team</strong>
+                </p>
+                
+                <p style="color: #9ca3af; font-size: 12px; margin: 20px 0 0 0;">
+                    IJP International Job Placement UG (haftungsbeschränkt)<br>
+                    Husemannstr. 9, 10435 Berlin
+                </p>
             </div>
         </body></html>
         """

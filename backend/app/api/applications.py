@@ -191,13 +191,17 @@ async def create_application(
         company_name=company.company_name if company else "Unbekannt"
     )
     
-    # E-Mail an Firma
+    # E-Mail an Firma über neue Bewerbung
     if company_user:
         email_service.send_new_application_notification(
             to_email=company_user.email,
             company_name=company.company_name,
             applicant_name=f"{applicant.first_name} {applicant.last_name}",
-            job_title=job.title
+            job_title=job.title,
+            applicant_email=user.email,
+            applicant_phone=applicant.phone,
+            position_type=job.position_type.value if job.position_type else None,
+            applied_at=application.applied_at
         )
     
     return application
