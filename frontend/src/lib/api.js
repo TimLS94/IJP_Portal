@@ -142,7 +142,7 @@ export const blogAPI = {
   getPosts: (params) => api.get('/blog/posts', { params }),
   getPost: (slug) => api.get(`/blog/posts/${slug}`),
   getFeaturedPosts: (limit = 3) => api.get('/blog/featured', { params: { limit } }),
-  
+
   // Admin
   adminGetPosts: (params) => api.get('/blog/admin/posts', { params }),
   adminGetPost: (id) => api.get(`/blog/admin/posts/${id}`),
@@ -150,6 +150,15 @@ export const blogAPI = {
   adminUpdatePost: (id, data) => api.put(`/blog/admin/posts/${id}`, data),
   adminDeletePost: (id) => api.delete(`/blog/admin/posts/${id}`),
   adminTogglePublish: (id) => api.post(`/blog/admin/posts/${id}/toggle-publish`),
+  
+  // Bild-Upload
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/blog/admin/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
 };
 
 // Account API

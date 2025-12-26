@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 import re
+import os
+import uuid
+import aiofiles
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -13,6 +17,11 @@ from app.schemas.blog import (
     BlogPostCreate, BlogPostUpdate, BlogPostResponse, 
     BlogPostListResponse, BlogCategoryOption, BlogCategoriesResponse
 )
+
+# Upload-Verzeichnis für Blog-Bilder
+BLOG_IMAGES_DIR = "uploads/blog"
+ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 router = APIRouter(prefix="/blog", tags=["Blog"])
 
@@ -403,3 +412,69 @@ async def toggle_publish_post(
         "message": "Veröffentlicht" if post.is_published else "Versteckt",
         "is_published": post.is_published
     }
+
+
+@router.post("/admin/upload-image")
+async def upload_blog_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Admin: Lädt ein Bild für Blog-Posts hoch.
+    Gibt die URL zum hochgeladenen Bild zurück.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Admins können Bilder hochladen"
+        )
+    
+    # Dateityp prüfen
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Ungültiger Dateityp. Erlaubt: JPG, PNG, GIF, WebP"
+        )
+    
+    # Dateigröße prüfen
+    contents = await file.read()
+    if len(contents) > MAX_IMAGE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Datei zu groß. Maximum: 5 MB"
+        )
+    
+    # Verzeichnis erstellen falls nicht vorhanden
+    os.makedirs(BLOG_IMAGES_DIR, exist_ok=True)
+    
+    # Eindeutigen Dateinamen generieren
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if not file_ext:
+        file_ext = ".jpg"  # Default
+    unique_filename = f"{uuid.uuid4().hex}{file_ext}"
+    file_path = os.path.join(BLOG_IMAGES_DIR, unique_filename)
+    
+    # Datei speichern
+    async with aiofiles.open(file_path, 'wb') as out_file:
+        await out_file.write(contents)
+    
+    # URL zurückgeben
+    return {
+        "success": True,
+        "url": f"/api/v1/blog/images/{unique_filename}",
+        "filename": unique_filename
+    }
+
+
+@router.get("/images/{filename}")
+async def get_blog_image(filename: str):
+    """Gibt ein Blog-Bild zurück"""
+    file_path = os.path.join(BLOG_IMAGES_DIR, filename)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Bild nicht gefunden"
+        )
+    
+    return FileResponse(file_path)

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { blogAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   BookOpen, Save, ArrowLeft, Eye, EyeOff, Tag, Image, FileText,
-  Globe, ChevronDown, Loader2, Star, StarOff, Info
+  Globe, ChevronDown, Loader2, Star, StarOff, Info, Upload, Link as LinkIcon
 } from 'lucide-react';
 
 function BlogEditor() {
@@ -17,6 +17,9 @@ function BlogEditor() {
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState([]);
   const [previewMode, setPreviewMode] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imageMode, setImageMode] = useState('url'); // 'url' oder 'upload'
+  const fileInputRef = useRef(null);
   
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
     defaultValues: {
@@ -112,6 +115,45 @@ function BlogEditor() {
       toast.error(error.response?.data?.detail || 'Fehler beim Speichern');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Bild-Upload Handler
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Validierung
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Nur JPG, PNG, GIF und WebP erlaubt');
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Maximale Dateigröße: 5 MB');
+      return;
+    }
+    
+    setUploading(true);
+    try {
+      const response = await blogAPI.uploadImage(file);
+      if (response.data.success) {
+        // Vollständige URL erstellen
+        const baseUrl = import.meta.env.VITE_API_URL || '';
+        const imageUrl = baseUrl + response.data.url;
+        setValue('featured_image', imageUrl);
+        toast.success('Bild hochgeladen!');
+      }
+    } catch (error) {
+      console.error('Upload-Fehler:', error);
+      toast.error(error.response?.data?.detail || 'Fehler beim Hochladen');
+    } finally {
+      setUploading(false);
+      // Input zurücksetzen
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -403,67 +445,130 @@ function BlogEditor() {
                   <div className="h-48 flex flex-col items-center justify-center text-gray-400">
                     <Image className="h-12 w-12 mb-2" />
                     <p className="font-medium">Kein Bild ausgewählt</p>
-                    <p className="text-sm">Fügen Sie eine Bild-URL ein</p>
+                    <p className="text-sm">Laden Sie ein Bild hoch oder fügen Sie eine URL ein</p>
                   </div>
                 )}
               </div>
               
-              {/* URL Input */}
-              <div className="relative">
-                <input
-                  type="text"
-                  className="input-styled pr-10"
-                  placeholder="https://images.unsplash.com/photo-..."
-                  {...register('featured_image')}
-                />
-                {watch('featured_image') && (
+              {/* Tabs: Upload / URL */}
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setImageMode('upload')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-medium text-sm transition-colors ${
+                    imageMode === 'upload'
+                      ? 'bg-primary-100 text-primary-700 border-2 border-primary-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent'
+                  }`}
+                >
+                  <Upload className="h-4 w-4" />
+                  Hochladen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageMode('url')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-medium text-sm transition-colors ${
+                    imageMode === 'url'
+                      ? 'bg-primary-100 text-primary-700 border-2 border-primary-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent'
+                  }`}
+                >
+                  <LinkIcon className="h-4 w-4" />
+                  URL
+                </button>
+              </div>
+              
+              {/* Upload-Modus */}
+              {imageMode === 'upload' && (
+                <div className="space-y-3">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
                   <button
                     type="button"
-                    onClick={() => setValue('featured_image', '')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    ✕
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Wird hochgeladen...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-5 w-5" />
+                        Bild auswählen
+                      </>
+                    )}
                   </button>
-                )}
-              </div>
-              
-              {/* Tipps */}
-              <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
-                <p className="font-medium mb-1">💡 Tipp: Kostenlose Bilder</p>
-                <a 
-                  href="https://unsplash.com/s/photos/business-work" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  → Unsplash.com durchsuchen
-                </a>
-                <p className="text-xs text-blue-600 mt-1">
-                  Rechtsklick → "Bildadresse kopieren"
-                </p>
-              </div>
-              
-              {/* Beliebte Kategorien */}
-              <div className="mt-3">
-                <p className="text-xs text-gray-500 mb-2">Schnellauswahl (Unsplash):</p>
-                <div className="flex flex-wrap gap-1">
-                  {[
-                    { label: '💼 Business', url: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800' },
-                    { label: '🎓 Bildung', url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800' },
-                    { label: '🏭 Industrie', url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800' },
-                    { label: '✈️ Reise', url: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800' },
-                  ].map((img) => (
-                    <button
-                      key={img.label}
-                      type="button"
-                      onClick={() => setValue('featured_image', img.url)}
-                      className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-                    >
-                      {img.label}
-                    </button>
-                  ))}
+                  <p className="text-xs text-gray-500 text-center">
+                    JPG, PNG, GIF oder WebP • Max. 5 MB
+                  </p>
                 </div>
-              </div>
+              )}
+              
+              {/* URL-Modus */}
+              {imageMode === 'url' && (
+                <>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="input-styled pr-10"
+                      placeholder="https://images.unsplash.com/photo-..."
+                      {...register('featured_image')}
+                    />
+                    {watch('featured_image') && (
+                      <button
+                        type="button"
+                        onClick={() => setValue('featured_image', '')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Tipps */}
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+                    <p className="font-medium mb-1">💡 Tipp: Kostenlose Bilder</p>
+                    <a 
+                      href="https://unsplash.com/s/photos/business-work" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      → Unsplash.com durchsuchen
+                    </a>
+                  </div>
+                  
+                  {/* Schnellauswahl */}
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500 mb-2">Schnellauswahl:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {[
+                        { label: '💼 Business', url: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800' },
+                        { label: '🎓 Bildung', url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800' },
+                        { label: '🏭 Industrie', url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800' },
+                        { label: '✈️ Reise', url: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800' },
+                      ].map((img) => (
+                        <button
+                          key={img.label}
+                          type="button"
+                          onClick={() => setValue('featured_image', img.url)}
+                          className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                        >
+                          {img.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* SEO */}
