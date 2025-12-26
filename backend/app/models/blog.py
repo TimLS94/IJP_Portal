@@ -51,7 +51,7 @@ class BlogPost(Base):
     meta_keywords = Column(String(500))  # SEO Keywords
     
     # Medien
-    featured_image = Column(String(500))  # Hauptbild URL
+    featured_image = Column(Text)  # Hauptbild URL oder Base64 Data-URL
     
     # Status
     is_published = Column(Boolean, default=False)
