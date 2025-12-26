@@ -367,26 +367,103 @@ function BlogEditor() {
                 Featured Image
               </h3>
               
-              <input
-                type="text"
-                className="input-styled"
-                placeholder="https://example.com/bild.jpg"
-                {...register('featured_image')}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                URL zu einem Bild (z.B. von Unsplash)
-              </p>
+              {/* Bild-Vorschau */}
+              <div className="mb-4 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50">
+                {watch('featured_image') ? (
+                  <div className="relative group">
+                    <img 
+                      src={watch('featured_image')} 
+                      alt="Vorschau"
+                      className="w-full h-48 object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '';
+                        e.target.parentElement.innerHTML = `
+                          <div class="h-48 flex flex-col items-center justify-center text-red-500 bg-red-50">
+                            <svg class="h-12 w-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <p class="font-medium">Bild konnte nicht geladen werden</p>
+                            <p class="text-sm">Prüfen Sie die URL</p>
+                          </div>
+                        `;
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setValue('featured_image', '')}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700"
+                      >
+                        Bild entfernen
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-48 flex flex-col items-center justify-center text-gray-400">
+                    <Image className="h-12 w-12 mb-2" />
+                    <p className="font-medium">Kein Bild ausgewählt</p>
+                    <p className="text-sm">Fügen Sie eine Bild-URL ein</p>
+                  </div>
+                )}
+              </div>
               
-              {watch('featured_image') && (
-                <div className="mt-4 rounded-lg overflow-hidden">
-                  <img 
-                    src={watch('featured_image')} 
-                    alt="Vorschau"
-                    className="w-full h-32 object-cover"
-                    onError={(e) => e.target.style.display = 'none'}
-                  />
+              {/* URL Input */}
+              <div className="relative">
+                <input
+                  type="text"
+                  className="input-styled pr-10"
+                  placeholder="https://images.unsplash.com/photo-..."
+                  {...register('featured_image')}
+                />
+                {watch('featured_image') && (
+                  <button
+                    type="button"
+                    onClick={() => setValue('featured_image', '')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              
+              {/* Tipps */}
+              <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+                <p className="font-medium mb-1">💡 Tipp: Kostenlose Bilder</p>
+                <a 
+                  href="https://unsplash.com/s/photos/business-work" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  → Unsplash.com durchsuchen
+                </a>
+                <p className="text-xs text-blue-600 mt-1">
+                  Rechtsklick → "Bildadresse kopieren"
+                </p>
+              </div>
+              
+              {/* Beliebte Kategorien */}
+              <div className="mt-3">
+                <p className="text-xs text-gray-500 mb-2">Schnellauswahl (Unsplash):</p>
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    { label: '💼 Business', url: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800' },
+                    { label: '🎓 Bildung', url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800' },
+                    { label: '🏭 Industrie', url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800' },
+                    { label: '✈️ Reise', url: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800' },
+                  ].map((img) => (
+                    <button
+                      key={img.label}
+                      type="button"
+                      onClick={() => setValue('featured_image', img.url)}
+                      className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                    >
+                      {img.label}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* SEO */}
