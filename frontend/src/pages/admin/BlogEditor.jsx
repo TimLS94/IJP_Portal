@@ -139,10 +139,8 @@ function BlogEditor() {
     try {
       const response = await blogAPI.uploadImage(file);
       if (response.data.success) {
-        // Vollständige URL erstellen
-        const baseUrl = import.meta.env.VITE_API_URL || '';
-        const imageUrl = baseUrl + response.data.url;
-        setValue('featured_image', imageUrl);
+        // Data-URL direkt verwenden (Base64)
+        setValue('featured_image', response.data.url);
         toast.success('Bild hochgeladen!');
       }
     } catch (error) {

@@ -421,7 +421,7 @@ async def upload_blog_image(
 ):
     """
     Admin: Lädt ein Bild für Blog-Posts hoch.
-    Gibt die URL zum hochgeladenen Bild zurück.
+    Konvertiert zu Base64 Data-URL (funktioniert auf Render ohne persistenten Speicher).
     """
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
@@ -444,37 +444,13 @@ async def upload_blog_image(
             detail=f"Datei zu groß. Maximum: 5 MB"
         )
     
-    # Verzeichnis erstellen falls nicht vorhanden
-    os.makedirs(BLOG_IMAGES_DIR, exist_ok=True)
+    # Zu Base64 konvertieren - funktioniert ohne Dateisystem!
+    import base64
+    base64_data = base64.b64encode(contents).decode('utf-8')
+    data_url = f"data:{file.content_type};base64,{base64_data}"
     
-    # Eindeutigen Dateinamen generieren
-    file_ext = os.path.splitext(file.filename)[1].lower()
-    if not file_ext:
-        file_ext = ".jpg"  # Default
-    unique_filename = f"{uuid.uuid4().hex}{file_ext}"
-    file_path = os.path.join(BLOG_IMAGES_DIR, unique_filename)
-    
-    # Datei speichern
-    async with aiofiles.open(file_path, 'wb') as out_file:
-        await out_file.write(contents)
-    
-    # URL zurückgeben
     return {
         "success": True,
-        "url": f"/api/v1/blog/images/{unique_filename}",
-        "filename": unique_filename
+        "url": data_url,
+        "filename": file.filename
     }
-
-
-@router.get("/images/{filename}")
-async def get_blog_image(filename: str):
-    """Gibt ein Blog-Bild zurück"""
-    file_path = os.path.join(BLOG_IMAGES_DIR, filename)
-    
-    if not os.path.exists(file_path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Bild nicht gefunden"
-        )
-    
-    return FileResponse(file_path)
