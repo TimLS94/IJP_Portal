@@ -61,7 +61,8 @@ class Applicant(Base):
     germany_details = Column(Text)  # Wann, wie lange, warum
     
     # ========== POSITIONSTYP ==========
-    position_type = Column(Enum(PositionType))
+    position_type = Column(Enum(PositionType))  # Legacy: Einzelauswahl
+    position_types = Column(JSON, default=[])   # NEU: Mehrfachauswahl als Liste ["studentenferienjob", "fachkraft"]
     
     # ========== STUDENTENFERIENJOB-SPEZIFISCH ==========
     # Universität

@@ -26,6 +26,7 @@ import CompanyJobs from './pages/company/Jobs';
 import CompanyApplications from './pages/company/Applications';
 import CreateJob from './pages/company/CreateJob';
 import EditJob from './pages/company/EditJob';
+import TeamMembers from './pages/company/TeamMembers';
 
 // Admin-Seiten
 import AdminDashboard from './pages/admin/Dashboard';
@@ -47,6 +48,8 @@ import AccountSettings from './pages/account/Settings';
 
 // Statische Seiten
 import About from './pages/About';
+import Contact from './pages/Contact';
+import FAQ from './pages/FAQ';
 import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
 import AGB from './pages/AGB';
@@ -80,6 +83,8 @@ function App() {
           
           {/* Statische Seiten */}
           <Route path="about" element={<About />} />
+          <Route path="contact" element={<Contact />} />
+          <Route path="faq" element={<FAQ />} />
           <Route path="impressum" element={<Impressum />} />
           <Route path="datenschutz" element={<Datenschutz />} />
           <Route path="agb" element={<AGB />} />
@@ -101,6 +106,7 @@ function App() {
             <Route path="jobs/new" element={<CreateJob />} />
             <Route path="jobs/:id/edit" element={<EditJob />} />
             <Route path="applications" element={<CompanyApplications />} />
+            <Route path="team" element={<TeamMembers />} />
             <Route path="settings" element={<AccountSettings />} />
           </Route>
           

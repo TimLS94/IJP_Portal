@@ -39,24 +39,37 @@ def check_application_requirements(applicant: Applicant, job: JobPosting, db: Se
         if not getattr(applicant, field, None):
             errors.append(f"Pflichtfeld fehlt: {label}")
     
-    # Position Type muss übereinstimmen oder gesetzt sein
-    if not applicant.position_type:
-        errors.append("Bitte wählen Sie eine Stellenart in Ihrem Profil")
-    elif job.position_type and applicant.position_type != job.position_type:
-        warnings.append(f"Ihre Stellenart ({applicant.position_type.value}) unterscheidet sich von der Stelle ({job.position_type.value})")
+    # Position Type prüfen (nur Warnung, kein harter Fehler)
+    applicant_position = getattr(applicant, 'position_type', None)
+    job_position = getattr(job, 'position_type', None)
     
-    # Pflichtdokumente prüfen
-    if applicant.position_type:
-        requirements = DOCUMENT_REQUIREMENTS.get(applicant.position_type, {})
-        required_docs = requirements.get('required', [])
-        
-        # Hochgeladene Dokumente holen
-        uploaded_docs = db.query(Document).filter(Document.applicant_id == applicant.id).all()
-        uploaded_types = [doc.document_type for doc in uploaded_docs]
-        
-        for req in required_docs:
-            if req['type'] not in uploaded_types:
-                errors.append(f"Pflichtdokument fehlt: {req['name']}")
+    if not applicant_position:
+        warnings.append("Bitte wählen Sie eine Stellenart in Ihrem Profil für eine bessere Zuordnung")
+    elif job_position and applicant_position != job_position:
+        # Nur eine Warnung, kein Fehler - Bewerbung trotzdem möglich
+        try:
+            applicant_value = applicant_position.value if hasattr(applicant_position, 'value') else str(applicant_position)
+            job_value = job_position.value if hasattr(job_position, 'value') else str(job_position)
+            warnings.append(f"Ihre Stellenart ({applicant_value}) unterscheidet sich von der Stelle ({job_value})")
+        except Exception:
+            pass  # Ignoriere Fehler beim Formatieren der Warnung
+    
+    # Pflichtdokumente prüfen (optional - nur wenn Stellenart gesetzt)
+    if applicant_position:
+        try:
+            requirements = DOCUMENT_REQUIREMENTS.get(applicant_position, {})
+            required_docs = requirements.get('required', [])
+            
+            # Hochgeladene Dokumente holen
+            uploaded_docs = db.query(Document).filter(Document.applicant_id == applicant.id).all()
+            uploaded_types = [doc.document_type for doc in uploaded_docs]
+            
+            for req in required_docs:
+                if req.get('type') not in uploaded_types:
+                    # Als Warnung, nicht als Fehler - damit Bewerbung trotzdem möglich ist
+                    warnings.append(f"Empfohlenes Dokument fehlt: {req.get('name', 'Unbekannt')}")
+        except Exception:
+            pass  # Bei Fehlern einfach ignorieren
     
     return {
         'can_apply': len(errors) == 0,

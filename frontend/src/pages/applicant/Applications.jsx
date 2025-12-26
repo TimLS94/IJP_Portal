@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { applicationsAPI, generatorAPI, downloadBlob } from '../../lib/api';
+import { applicationsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { FileText, Building2, Calendar, Clock, XCircle, Download, Loader2 } from 'lucide-react';
+import { FileText, Building2, Calendar, Clock, XCircle, ExternalLink } from 'lucide-react';
 
 const statusLabels = {
   pending: { label: 'Eingereicht', color: 'bg-yellow-100 text-yellow-800' },
   reviewing: { label: 'In Prüfung', color: 'bg-blue-100 text-blue-800' },
+  company_review: { label: 'In Prüfung', color: 'bg-blue-100 text-blue-800' },
   interview: { label: 'Vorstellungsgespräch', color: 'bg-purple-100 text-purple-800' },
+  interview_scheduled: { label: 'Vorstellungsgespräch', color: 'bg-purple-100 text-purple-800' },
   accepted: { label: 'Angenommen', color: 'bg-green-100 text-green-800' },
   rejected: { label: 'Abgelehnt', color: 'bg-red-100 text-red-800' },
   withdrawn: { label: 'Zurückgezogen', color: 'bg-gray-100 text-gray-800' }
@@ -18,7 +20,6 @@ function ApplicantApplications() {
   const { t } = useTranslation();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(null);
 
   useEffect(() => {
     loadApplications();
@@ -44,19 +45,6 @@ function ApplicantApplications() {
       loadApplications();
     } catch (error) {
       toast.error('Fehler beim Zurückziehen der Bewerbung');
-    }
-  };
-
-  const handleGeneratePDF = async (appId, jobTitle) => {
-    setGenerating(appId);
-    try {
-      const response = await generatorAPI.stellenbescheinigung(appId);
-      downloadBlob(response.data, `Stellenbescheinigung_${jobTitle || 'Bewerbung'}.pdf`);
-      toast.success('PDF wurde generiert!');
-    } catch (error) {
-      toast.error('PDF-Generierung fehlgeschlagen');
-    } finally {
-      setGenerating(null);
     }
   };
 
@@ -109,8 +97,8 @@ function ApplicantApplications() {
                     >
                       {app.job_title || 'Stellenangebot'}
                     </Link>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusLabels[app.status]?.color}`}>
-                      {statusLabels[app.status]?.label}
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusLabels[app.status]?.color || 'bg-gray-100 text-gray-800'}`}>
+                      {statusLabels[app.status]?.label || app.status}
                     </span>
                   </div>
                   
@@ -139,23 +127,11 @@ function ApplicantApplications() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleGeneratePDF(app.id, app.job_title)}
-                    disabled={generating === app.id}
-                    className="btn-secondary text-sm flex items-center gap-1"
-                    title="Stellenbescheinigung herunterladen"
-                  >
-                    {generating === app.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
-                    PDF
-                  </button>
                   <Link 
                     to={`/jobs/${app.job_posting_id}`}
-                    className="btn-secondary text-sm"
+                    className="btn-secondary text-sm flex items-center gap-1"
                   >
+                    <ExternalLink className="h-4 w-4" />
                     Details
                   </Link>
                   {app.status === 'pending' && (

@@ -5,7 +5,7 @@ import { jobRequestsAPI, applicantAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   ClipboardList, CheckCircle, AlertTriangle, FileText, Loader2,
-  MapPin, Calendar, X, Shield, Clock, ExternalLink
+  MapPin, Calendar, X, Shield, Clock, ExternalLink, Briefcase, Building2
 } from 'lucide-react';
 
 const statusColors = {
@@ -19,11 +19,17 @@ const statusColors = {
   gray: 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
+const positionTypeColors = {
+  studentenferienjob: 'bg-blue-500',
+  saisonjob: 'bg-orange-500',
+  fachkraft: 'bg-purple-500',
+  ausbildung: 'bg-green-500',
+};
+
 function ApplicantJobRequest() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
-  const [hasRequest, setHasRequest] = useState(false);
-  const [request, setRequest] = useState(null);
+  const [requests, setRequests] = useState([]);
   const [profile, setProfile] = useState(null);
   
   // Modal für neuen Auftrag
@@ -35,7 +41,7 @@ function ApplicantJobRequest() {
   const [submitting, setSubmitting] = useState(false);
   
   // Stornieren
-  const [cancelling, setCancelling] = useState(false);
+  const [cancellingId, setCancellingId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -44,13 +50,12 @@ function ApplicantJobRequest() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [requestRes, profileRes] = await Promise.all([
-        jobRequestsAPI.getMyRequest(),
+      const [requestsRes, profileRes] = await Promise.all([
+        jobRequestsAPI.getMyRequests(),
         applicantAPI.getProfile()
       ]);
       
-      setHasRequest(requestRes.data.has_request);
-      setRequest(requestRes.data.request);
+      setRequests(requestsRes.data.requests || []);
       setProfile(profileRes.data);
     } catch (error) {
       console.error('Fehler beim Laden:', error);
@@ -77,13 +82,16 @@ function ApplicantJobRequest() {
 
     setSubmitting(true);
     try {
-      await jobRequestsAPI.createRequest({
+      const res = await jobRequestsAPI.createRequests({
         privacy_consent: true,
         preferred_location: preferredLocation || null,
         notes: notes || null
       });
-      toast.success('IJP-Auftrag erfolgreich erstellt!');
+      toast.success(res.data.message || 'IJP-Aufträge erfolgreich erstellt!');
       setShowModal(false);
+      setPrivacyAccepted(false);
+      setPreferredLocation('');
+      setNotes('');
       loadData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Fehler beim Erstellen');
@@ -92,18 +100,18 @@ function ApplicantJobRequest() {
     }
   };
 
-  const handleCancel = async () => {
-    if (!confirm('Möchten Sie den IJP-Auftrag wirklich stornieren?')) return;
+  const handleCancel = async (requestId) => {
+    if (!confirm('Möchten Sie diesen IJP-Auftrag wirklich zurückziehen?')) return;
     
-    setCancelling(true);
+    setCancellingId(requestId);
     try {
-      await jobRequestsAPI.cancelRequest();
-      toast.success('Auftrag storniert');
+      await jobRequestsAPI.cancelRequest(requestId);
+      toast.success('Auftrag zurückgezogen');
       loadData();
     } catch (error) {
       toast.error('Fehler beim Stornieren');
     } finally {
-      setCancelling(false);
+      setCancellingId(null);
     }
   };
 
@@ -118,8 +126,20 @@ function ApplicantJobRequest() {
     });
   };
 
+  // Stellenarten die noch keinen Auftrag haben
+  const getAvailablePositionTypes = () => {
+    const allTypes = profile?.position_types || (profile?.position_type ? [profile.position_type] : []);
+    const existingTypes = requests.map(r => r.position_type);
+    return allTypes.filter(t => !existingTypes.includes(t));
+  };
+
   // Prüfen ob Profil vollständig genug ist
-  const isProfileComplete = profile && profile.first_name && profile.last_name && profile.phone && profile.position_type;
+  const hasPositionType = profile && (
+    profile.position_type || 
+    (profile.position_types && profile.position_types.length > 0)
+  );
+  const isProfileComplete = profile && profile.first_name && profile.last_name && profile.phone && hasPositionType;
+  const canCreateMore = isProfileComplete && getAvailablePositionTypes().length > 0;
 
   if (loading) {
     return (
@@ -140,113 +160,104 @@ function ApplicantJobRequest() {
         </div>
       </div>
 
-      {hasRequest && request ? (
-        // Bestehender Auftrag
-        <div className="space-y-6">
-          {/* Status Card */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Ihr IJP-Auftrag #{request.id}</h2>
-              <span className={`px-4 py-2 rounded-full font-semibold ${statusColors[request.status_color] || statusColors.gray}`}>
-                {request.status_label}
-              </span>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-500">Erstellt am</p>
-                    <p className="font-medium">{formatDate(request.created_at)}</p>
+      {/* Bestehende Aufträge */}
+      {requests.length > 0 && (
+        <div className="space-y-4 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Briefcase className="h-5 w-5 text-primary-600" />
+            Ihre aktiven Aufträge ({requests.length})
+          </h2>
+          
+          {requests.map((request) => (
+            <div key={request.id} className="card border-l-4" style={{ borderLeftColor: positionTypeColors[request.position_type]?.replace('bg-', '#') || '#6b7280' }}>
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <div className="flex-1">
+                  {/* Stellenart Badge */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${positionTypeColors[request.position_type] || 'bg-gray-500'}`}>
+                      {request.position_type_label || 'Allgemein'}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[request.status_color] || statusColors.gray}`}>
+                      {request.status_label}
+                    </span>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-500">Zuletzt aktualisiert</p>
-                    <p className="font-medium">{formatDate(request.updated_at)}</p>
-                  </div>
-                </div>
-                {request.preferred_location && (
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-500">Bevorzugte Region</p>
-                      <p className="font-medium">{request.preferred_location}</p>
+                  
+                  {/* Details */}
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      <span>Erstellt am {formatDate(request.created_at)}</span>
                     </div>
+                    {request.preferred_location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        <span>Bevorzugt: {request.preferred_location}</span>
+                      </div>
+                    )}
+                    {request.matched_company_name && (
+                      <div className="flex items-center gap-2 text-green-700 font-medium">
+                        <Building2 className="h-4 w-4" />
+                        <span>Vermittelt an: {request.matched_company_name}</span>
+                        {request.matched_job_title && <span>- {request.matched_job_title}</span>}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-
-              <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                <div className="flex items-center gap-2 text-green-800 mb-2">
-                  <Shield className="h-5 w-5" />
-                  <span className="font-semibold">Datenschutz-Zustimmung</span>
+                  
+                  {request.notes && (
+                    <p className="mt-3 text-sm text-gray-500 italic">"{request.notes}"</p>
+                  )}
                 </div>
-                <p className="text-sm text-green-700">
-                  Erteilt am {formatDate(request.privacy_consent_date)}
-                </p>
+                
+                {/* Stornieren Button */}
+                <button
+                  onClick={() => handleCancel(request.id)}
+                  disabled={cancellingId === request.id}
+                  className="btn-secondary text-sm flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  {cancellingId === request.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <X className="h-4 w-4" />
+                  )}
+                  Zurückziehen
+                </button>
               </div>
             </div>
-
-            {request.notes && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-                <p className="text-sm text-gray-500 mb-1">Ihre Notizen</p>
-                <p className="text-gray-700">{request.notes}</p>
-              </div>
-            )}
-
-            <div className="mt-6 pt-6 border-t flex justify-between items-center">
-              <p className="text-sm text-gray-500">
-                Wir melden uns bei Ihnen, sobald wir passende Stellen gefunden haben.
-              </p>
-              <button
-                onClick={handleCancel}
-                disabled={cancelling}
-                className="btn-danger text-sm flex items-center gap-2"
-              >
-                {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
-                Auftrag stornieren
-              </button>
-            </div>
-          </div>
-
-          {/* Nächste Schritte */}
-          <div className="card bg-primary-50 border-2 border-primary-200">
-            <h3 className="font-bold text-gray-900 mb-3">Was passiert jetzt?</h3>
-            <div className="space-y-3 text-sm text-gray-700">
-              <div className="flex items-start gap-3">
-                <span className="bg-primary-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0">1</span>
-                <p>Wir prüfen Ihre Unterlagen und Ihr Profil</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="bg-primary-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0">2</span>
-                <p>Wir suchen passende Stellen bei unseren Partnerunternehmen</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="bg-primary-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0">3</span>
-                <p>Wir kontaktieren Sie mit konkreten Vorschlägen</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="bg-primary-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0">4</span>
-                <p>Wir koordinieren Vorstellungsgespräche und unterstützen Sie im gesamten Prozess</p>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
-      ) : (
-        // Kein aktiver Auftrag
-        <div className="space-y-6">
-          {/* Info Box */}
-          <div className="card bg-gradient-to-br from-primary-50 to-blue-50 border-2 border-primary-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Lassen Sie uns Ihren Traumjob finden!
-            </h2>
-            <p className="text-gray-700 mb-6">
-              Mit einem IJP-Auftrag beauftragen Sie uns, aktiv nach passenden Stellen für Sie zu suchen.
-              Wir nutzen unser Netzwerk aus Partnerunternehmen in Deutschland, um für Sie die beste Stelle zu finden.
-            </p>
+      )}
+
+      {/* Neue Aufträge erstellen oder Info */}
+      {canCreateMore ? (
+        <div className="card bg-gradient-to-br from-primary-50 to-blue-50 border-2 border-primary-200">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            {requests.length > 0 ? 'Weitere Stellenarten beauftragen' : 'Lassen Sie uns Ihren Traumjob finden!'}
+          </h2>
+          <p className="text-gray-700 mb-4">
+            {requests.length > 0 
+              ? `Sie können noch für ${getAvailablePositionTypes().length} weitere Stellenart(en) IJP beauftragen.`
+              : 'Mit einem IJP-Auftrag beauftragen Sie uns, aktiv nach passenden Stellen für Sie zu suchen.'
+            }
+          </p>
+          
+          {/* Verfügbare Stellenarten anzeigen */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            {getAvailablePositionTypes().map((type) => {
+              const labels = {
+                studentenferienjob: 'Studentenferienjob',
+                saisonjob: 'Saisonjob',
+                fachkraft: 'Fachkraft',
+                ausbildung: 'Ausbildung'
+              };
+              return (
+                <span key={type} className={`px-3 py-1 rounded-full text-white text-sm font-medium ${positionTypeColors[type] || 'bg-gray-500'}`}>
+                  {labels[type] || type}
+                </span>
+              );
+            })}
+          </div>
+          
+          {requests.length === 0 && (
             <div className="grid md:grid-cols-3 gap-4 mb-6">
               <div className="bg-white p-4 rounded-xl">
                 <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
@@ -264,49 +275,58 @@ function ApplicantJobRequest() {
                 <p className="text-sm text-gray-600">Keine Kosten für Bewerber</p>
               </div>
             </div>
+          )}
 
-            {!isProfileComplete ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
-                <div className="flex items-start gap-2 text-yellow-800">
-                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold">Profil unvollständig</p>
-                    <p className="text-sm mt-1">
-                      Bitte vervollständigen Sie zuerst Ihr Profil mit allen Pflichtangaben,
-                      bevor Sie einen IJP-Auftrag erstellen können.
-                    </p>
-                    <Link to="/applicant/profile" className="inline-flex items-center gap-1 mt-2 text-yellow-700 font-medium hover:underline">
-                      Profil vervollständigen <ExternalLink className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <button onClick={openModal} className="btn-primary text-lg py-3 px-8">
-                <ClipboardList className="h-5 w-5 mr-2 inline" />
-                Jetzt IJP beauftragen
-              </button>
-            )}
+          <button onClick={openModal} className="btn-primary text-lg py-3 px-8">
+            <ClipboardList className="h-5 w-5 mr-2 inline" />
+            {requests.length > 0 ? 'Weitere Aufträge erstellen' : 'Jetzt IJP beauftragen'}
+          </button>
+        </div>
+      ) : !isProfileComplete ? (
+        <div className="card bg-yellow-50 border border-yellow-200">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-6 w-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-gray-900">Profil unvollständig</h3>
+              <p className="text-gray-600 mt-1">
+                Bitte vervollständigen Sie zuerst Ihr Profil mit allen Pflichtangaben und wählen Sie mindestens eine Stellenart aus.
+              </p>
+              <Link to="/applicant/profile" className="btn-primary mt-4 inline-flex items-center gap-2">
+                Profil vervollständigen <ExternalLink className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
+        </div>
+      ) : requests.length > 0 ? (
+        <div className="card bg-green-50 border border-green-200">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+            <div>
+              <h3 className="font-bold text-gray-900">Alle Stellenarten beauftragt</h3>
+              <p className="text-gray-600">Sie haben für alle ausgewählten Stellenarten bereits Aufträge erstellt.</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
-          {/* Hinweise */}
-          <div className="card">
-            <h3 className="font-bold text-gray-900 mb-4">Wichtige Hinweise</h3>
-            <ul className="space-y-2 text-gray-600">
-              <li className="flex items-start gap-2">
-                <FileText className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                <span>Stellen Sie sicher, dass alle erforderlichen Dokumente hochgeladen sind</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Shield className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                <span>Mit der Beauftragung stimmen Sie der Weitergabe Ihrer Daten an Partnerunternehmen zu</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Clock className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                <span>Der Vermittlungsprozess kann je nach Verfügbarkeit einige Wochen dauern</span>
-              </li>
-            </ul>
-          </div>
+      {/* Hinweise */}
+      {requests.length === 0 && isProfileComplete && (
+        <div className="card mt-6">
+          <h3 className="font-bold text-gray-900 mb-4">Wichtige Hinweise</h3>
+          <ul className="space-y-2 text-gray-600">
+            <li className="flex items-start gap-2">
+              <FileText className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
+              <span>Stellen Sie sicher, dass alle erforderlichen Dokumente hochgeladen sind</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Shield className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
+              <span>Mit der Beauftragung stimmen Sie der Weitergabe Ihrer Daten an Partnerunternehmen zu</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Clock className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
+              <span>Der Vermittlungsprozess kann je nach Verfügbarkeit einige Wochen dauern</span>
+            </li>
+          </ul>
         </div>
       )}
 
@@ -316,10 +336,30 @@ function ApplicantJobRequest() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">IJP-Auftrag erstellen</h2>
+                <h2 className="text-2xl font-bold text-gray-900">IJP-Aufträge erstellen</h2>
                 <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                   <X className="h-6 w-6" />
                 </button>
+              </div>
+              
+              {/* Stellenarten die beauftragt werden */}
+              <div className="mt-4">
+                <p className="text-sm text-gray-600 mb-2">Aufträge werden erstellt für:</p>
+                <div className="flex flex-wrap gap-2">
+                  {getAvailablePositionTypes().map((type) => {
+                    const labels = {
+                      studentenferienjob: 'Studentenferienjob',
+                      saisonjob: 'Saisonjob',
+                      fachkraft: 'Fachkraft',
+                      ausbildung: 'Ausbildung'
+                    };
+                    return (
+                      <span key={type} className={`px-3 py-1 rounded-full text-white text-sm font-medium ${positionTypeColors[type] || 'bg-gray-500'}`}>
+                        {labels[type] || type}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -381,7 +421,7 @@ function ApplicantJobRequest() {
                 className="btn-primary flex items-center gap-2 disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle className="h-5 w-5" />}
-                IJP-Auftrag erstellen
+                {getAvailablePositionTypes().length} Auftrag(e) erstellen
               </button>
             </div>
           </div>

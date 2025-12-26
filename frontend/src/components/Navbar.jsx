@@ -52,6 +52,7 @@ function Navbar() {
         { to: '/company/profile', icon: Building2, label: t('nav.companyProfile') },
         { to: '/company/jobs', icon: Briefcase, label: t('nav.jobs') },
         { to: '/company/applications', icon: FileText, label: t('nav.companyApplications') },
+        { to: '/company/team', icon: Users, label: 'Team' },
         { divider: true },
         { to: '/company/settings', icon: Settings, label: t('nav.settings') },
       ];

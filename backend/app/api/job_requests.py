@@ -87,42 +87,56 @@ def require_admin(current_user: User = Depends(get_current_user)):
 
 # ========== BEWERBER ENDPOINTS ==========
 
+POSITION_TYPE_LABELS = {
+    PositionType.STUDENTENFERIENJOB: "Studentenferienjob",
+    PositionType.SAISONJOB: "Saisonjob",
+    PositionType.FACHKRAFT: "Fachkraft",
+    PositionType.AUSBILDUNG: "Ausbildung",
+}
+
 @router.get("/my")
-async def get_my_job_request(
+async def get_my_job_requests(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Holt den aktuellen IJP-Auftrag des Bewerbers"""
+    """Holt alle aktiven IJP-Aufträge des Bewerbers (einer pro Stellenart)"""
     if current_user.role != UserRole.APPLICANT:
         raise HTTPException(status_code=403, detail="Nur für Bewerber")
     
     applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
     if not applicant:
-        return {"has_request": False, "request": None}
+        return {"has_requests": False, "requests": []}
     
-    job_request = db.query(JobRequest).filter(
+    job_requests = db.query(JobRequest).filter(
         JobRequest.applicant_id == applicant.id,
-        JobRequest.status.notin_([JobRequestStatus.CANCELLED, JobRequestStatus.COMPLETED])
-    ).first()
+        JobRequest.status.notin_([JobRequestStatus.CANCELLED, JobRequestStatus.COMPLETED, JobRequestStatus.WITHDRAWN])
+    ).order_by(JobRequest.created_at.desc()).all()
     
-    if not job_request:
-        return {"has_request": False, "request": None}
+    if not job_requests:
+        return {"has_requests": False, "requests": []}
     
     return {
-        "has_request": True,
-        "request": {
-            "id": job_request.id,
-            "status": job_request.status.value,
-            "status_label": JOB_REQUEST_STATUS_LABELS.get(job_request.status),
-            "status_color": JOB_REQUEST_STATUS_COLORS.get(job_request.status),
-            "privacy_consent": job_request.privacy_consent,
-            "privacy_consent_date": job_request.privacy_consent_date,
-            "preferred_location": job_request.preferred_location,
-            "preferred_start_date": job_request.preferred_start_date,
-            "notes": job_request.notes,
-            "created_at": job_request.created_at,
-            "updated_at": job_request.updated_at,
-        }
+        "has_requests": True,
+        "requests": [
+            {
+                "id": req.id,
+                "position_type": req.position_type.value if req.position_type else None,
+                "position_type_label": POSITION_TYPE_LABELS.get(req.position_type, "Allgemein") if req.position_type else "Allgemein",
+                "status": req.status.value,
+                "status_label": JOB_REQUEST_STATUS_LABELS.get(req.status),
+                "status_color": JOB_REQUEST_STATUS_COLORS.get(req.status),
+                "privacy_consent": req.privacy_consent,
+                "privacy_consent_date": req.privacy_consent_date,
+                "preferred_location": req.preferred_location,
+                "preferred_start_date": req.preferred_start_date,
+                "notes": req.notes,
+                "matched_company_name": req.matched_company_name,
+                "matched_job_title": req.matched_job_title,
+                "created_at": req.created_at,
+                "updated_at": req.updated_at,
+            }
+            for req in job_requests
+        ]
     }
 
 
@@ -135,12 +149,12 @@ async def get_privacy_text():
 
 
 @router.post("")
-async def create_job_request(
+async def create_job_requests(
     data: CreateJobRequestSchema,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Erstellt einen neuen IJP-Auftrag (Bewerber beauftragt IJP)"""
+    """Erstellt IJP-Aufträge für alle gewählten Stellenarten (Bewerber beauftragt IJP)"""
     if current_user.role != UserRole.APPLICANT:
         raise HTTPException(status_code=403, detail="Nur für Bewerber")
     
@@ -154,17 +168,8 @@ async def create_job_request(
     if not applicant:
         raise HTTPException(status_code=400, detail="Bitte vervollständigen Sie zuerst Ihr Profil")
     
-    # Prüfen ob bereits ein aktiver Auftrag existiert
-    existing = db.query(JobRequest).filter(
-        JobRequest.applicant_id == applicant.id,
-        JobRequest.status.notin_([JobRequestStatus.CANCELLED, JobRequestStatus.COMPLETED])
-    ).first()
-    
-    if existing:
-        raise HTTPException(status_code=400, detail="Sie haben bereits einen aktiven IJP-Auftrag")
-    
     # Prüfen ob Profil vollständig
-    required_fields = ['first_name', 'last_name', 'phone', 'position_type']
+    required_fields = ['first_name', 'last_name', 'phone']
     for field in required_fields:
         if not getattr(applicant, field, None):
             raise HTTPException(
@@ -172,37 +177,77 @@ async def create_job_request(
                 detail=f"Bitte vervollständigen Sie Ihr Profil (fehlt: {field})"
             )
     
-    job_request = JobRequest(
-        applicant_id=applicant.id,
-        privacy_consent=True,
-        privacy_consent_date=datetime.utcnow(),
-        privacy_consent_text=PRIVACY_CONSENT_TEXT.format(date=datetime.now().strftime("%d.%m.%Y um %H:%M Uhr")),
-        preferred_location=data.preferred_location,
-        preferred_start_date=data.preferred_start_date,
-        notes=data.notes,
-        status=JobRequestStatus.PENDING
-    )
+    # Stellenarten sammeln (aus position_types Array oder fallback auf position_type)
+    position_types = []
+    if getattr(applicant, 'position_types', None) and len(applicant.position_types) > 0:
+        # position_types ist ein JSON-Array mit Strings
+        for pt in applicant.position_types:
+            try:
+                position_types.append(PositionType(pt))
+            except ValueError:
+                pass
+    elif getattr(applicant, 'position_type', None):
+        position_types.append(applicant.position_type)
     
-    db.add(job_request)
+    if not position_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Bitte wählen Sie mindestens eine Stellenart in Ihrem Profil"
+        )
+    
+    # Prüfen welche Stellenarten bereits aktive Aufträge haben
+    existing_requests = db.query(JobRequest).filter(
+        JobRequest.applicant_id == applicant.id,
+        JobRequest.status.notin_([JobRequestStatus.CANCELLED, JobRequestStatus.COMPLETED, JobRequestStatus.WITHDRAWN])
+    ).all()
+    
+    existing_position_types = {req.position_type for req in existing_requests if req.position_type}
+    
+    # Nur für neue Stellenarten Aufträge erstellen
+    new_position_types = [pt for pt in position_types if pt not in existing_position_types]
+    
+    if not new_position_types:
+        raise HTTPException(
+            status_code=400, 
+            detail="Für alle ausgewählten Stellenarten haben Sie bereits aktive Aufträge"
+        )
+    
+    created_requests = []
+    privacy_text = PRIVACY_CONSENT_TEXT.format(date=datetime.now().strftime("%d.%m.%Y um %H:%M Uhr"))
+    
+    for position_type in new_position_types:
+        job_request = JobRequest(
+            applicant_id=applicant.id,
+            position_type=position_type,
+            privacy_consent=True,
+            privacy_consent_date=datetime.utcnow(),
+            privacy_consent_text=privacy_text,
+            preferred_location=data.preferred_location,
+            preferred_start_date=data.preferred_start_date,
+            notes=data.notes,
+            status=JobRequestStatus.PENDING
+        )
+        db.add(job_request)
+        created_requests.append(job_request)
+    
     db.commit()
-    db.refresh(job_request)
     
     # E-Mail an Bewerber
+    position_labels = [POSITION_TYPE_LABELS.get(pt, pt.value) for pt in new_position_types]
     email_service.send_email(
         to_email=current_user.email,
-        subject="IJP-Auftrag erfolgreich erstellt",
+        subject="IJP-Aufträge erfolgreich erstellt",
         html_content=f"""
         <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
             <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h1 style="color: #2563eb;">IJP-Auftrag erstellt!</h1>
+                <h1 style="color: #2563eb;">IJP-Aufträge erstellt!</h1>
                 <p>Hallo {applicant.first_name},</p>
-                <p>Ihr IJP-Auftrag wurde erfolgreich erstellt.</p>
+                <p>Ihre IJP-Aufträge wurden erfolgreich erstellt für:</p>
+                <ul style="background: #f3f4f6; padding: 15px 15px 15px 35px; border-radius: 8px; margin: 20px 0;">
+                    {"".join(f"<li><strong>{label}</strong></li>" for label in position_labels)}
+                </ul>
                 <p>Wir werden Ihre Unterlagen prüfen und uns bei passenden Stellen bei Ihnen melden.</p>
-                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    <p><strong>Auftragsnummer:</strong> #{job_request.id}</p>
-                    <p><strong>Status:</strong> {JOB_REQUEST_STATUS_LABELS.get(job_request.status)}</p>
-                </div>
                 <p>Mit freundlichen Grüßen,<br>Ihr IJP-Team</p>
             </div>
         </body>
@@ -211,17 +256,19 @@ async def create_job_request(
     )
     
     return {
-        "message": "IJP-Auftrag erfolgreich erstellt",
-        "request_id": job_request.id
+        "message": f"{len(created_requests)} IJP-Auftrag(e) erfolgreich erstellt",
+        "created_count": len(created_requests),
+        "position_types": [pt.value for pt in new_position_types]
     }
 
 
-@router.delete("/my")
+@router.delete("/my/{request_id}")
 async def cancel_my_job_request(
+    request_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Storniert den aktuellen IJP-Auftrag"""
+    """Storniert einen einzelnen IJP-Auftrag"""
     if current_user.role != UserRole.APPLICANT:
         raise HTTPException(status_code=403, detail="Nur für Bewerber")
     
@@ -230,17 +277,18 @@ async def cancel_my_job_request(
         raise HTTPException(status_code=404, detail="Profil nicht gefunden")
     
     job_request = db.query(JobRequest).filter(
+        JobRequest.id == request_id,
         JobRequest.applicant_id == applicant.id,
-        JobRequest.status.notin_([JobRequestStatus.CANCELLED, JobRequestStatus.COMPLETED])
+        JobRequest.status.notin_([JobRequestStatus.CANCELLED, JobRequestStatus.COMPLETED, JobRequestStatus.WITHDRAWN])
     ).first()
     
     if not job_request:
-        raise HTTPException(status_code=404, detail="Kein aktiver Auftrag gefunden")
+        raise HTTPException(status_code=404, detail="Auftrag nicht gefunden")
     
-    job_request.status = JobRequestStatus.CANCELLED
+    job_request.status = JobRequestStatus.WITHDRAWN
     db.commit()
     
-    return {"message": "Auftrag storniert"}
+    return {"message": "Auftrag zurückgezogen"}
 
 
 # ========== ADMIN ENDPOINTS ==========

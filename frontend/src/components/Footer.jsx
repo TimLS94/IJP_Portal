@@ -27,7 +27,6 @@ function Footer() {
                 <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary-400" />
                 <span>
                   IJP International Job Placement UG<br />
-                  c/o Schäfer<br />
                   Husemannstr. 9<br />
                   10435 Berlin
                 </span>
@@ -50,8 +49,8 @@ function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/blog" className="hover:text-primary-400 transition-colors">
-                  {t('nav.blog')}
+                <Link to="/faq" className="hover:text-primary-400 transition-colors">
+                  FAQ
                 </Link>
               </li>
               <li>
@@ -72,22 +71,27 @@ function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-primary-400 transition-colors">
-                  {t('nav.about')}
+                <Link to="/faq" className="hover:text-primary-400 transition-colors">
+                  FAQ
                 </Link>
               </li>
               <li>
-                <Link to="/blog" className="hover:text-primary-400 transition-colors">
-                  {t('nav.blog')}
+                <Link to="/about" className="hover:text-primary-400 transition-colors">
+                  {t('nav.about')}
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Rechtliches */}
+          {/* Rechtliches & Kontakt */}
           <div>
             <h3 className="text-white font-semibold mb-4">{t('footer.legal')}</h3>
             <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/contact" className="hover:text-primary-400 transition-colors">
+                  Kontakt
+                </Link>
+              </li>
               <li>
                 <Link to="/impressum" className="hover:text-primary-400 transition-colors">
                   {t('impressum.title')}

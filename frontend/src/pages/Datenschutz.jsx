@@ -29,12 +29,11 @@ function Datenschutz() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">2. {t('datenschutz.responsible.title')}</h2>
               <div className="text-gray-700 space-y-2">
                 <p className="font-semibold">IJP International Job Placement UG (haftungsbeschränkt)</p>
-                <p>c/o Schäfer</p>
                 <p>Husemannstr. 9</p>
                 <p>10435 Berlin</p>
                 <p className="mt-4 flex items-center gap-2">
                   <Mail className="h-4 w-4" />
-                  E-Mail: datenschutz@ijp-portal.de
+                  E-Mail: service@internationaljobplacement.com
                 </p>
                 <p className="mt-4">{t('datenschutz.responsible.text')}</p>
               </div>

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { documentsAPI, applicantAPI, generatorAPI, downloadBlob } from '../../lib/api';
+import { documentsAPI, applicantAPI, downloadBlob } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   FileText, Upload, Download, Trash2, File, 
-  FileImage, FilePlus, Loader2, AlertCircle,
-  CheckCircle, Clock, Shield, ChevronDown, Eye, FolderOpen
+  FileImage, Loader2, AlertCircle,
+  CheckCircle, Clock, Shield, ChevronDown, FolderOpen
 } from 'lucide-react';
 
 // Dokumenttypen mit Icons
@@ -45,7 +45,6 @@ function ApplicantDocuments() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [generating, setGenerating] = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedType, setSelectedType] = useState('other');
   const [description, setDescription] = useState('');
@@ -141,32 +140,6 @@ function ApplicantDocuments() {
     }
   };
 
-  const generateArbeitserlaubnis = async () => {
-    setGenerating('arbeitserlaubnis');
-    try {
-      const response = await generatorAPI.arbeitserlaubnis();
-      downloadBlob(response.data, 'Arbeitserlaubnis_Antrag.pdf');
-      toast.success('PDF wurde generiert!');
-    } catch (error) {
-      toast.error('Generierung fehlgeschlagen - Bitte Profil vollständig ausfüllen');
-    } finally {
-      setGenerating(null);
-    }
-  };
-
-  const generateLebenslauf = async () => {
-    setGenerating('lebenslauf');
-    try {
-      const response = await generatorAPI.lebenslauf();
-      downloadBlob(response.data, 'Lebenslauf.pdf');
-      toast.success('PDF wurde generiert!');
-    } catch (error) {
-      toast.error('Generierung fehlgeschlagen - Bitte Profil vollständig ausfüllen');
-    } finally {
-      setGenerating(null);
-    }
-  };
-
   const formatFileSize = (bytes) => {
     if (!bytes) return '0 B';
     if (bytes < 1024) return `${bytes} B`;
@@ -183,14 +156,6 @@ function ApplicantDocuments() {
       minute: '2-digit'
     });
   };
-
-  // Dokumente nach Typ gruppieren
-  const groupedDocuments = documents.reduce((acc, doc) => {
-    const type = doc.document_type;
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(doc);
-    return acc;
-  }, {});
 
   if (loading) {
     return (
@@ -263,7 +228,7 @@ function ApplicantDocuments() {
       )}
 
       {/* Hinweis wenn kein Positionstyp */}
-      {!profile?.position_type && (
+      {!profile?.position_type && !profile?.position_types?.length && (
         <div className="card mb-6 border-l-4 border-l-blue-500 bg-blue-50">
           <div className="flex items-center gap-4">
             <AlertCircle className="h-8 w-8 text-blue-600 flex-shrink-0" />
@@ -281,43 +246,6 @@ function ApplicantDocuments() {
           </div>
         </div>
       )}
-
-      {/* PDF-Generierung */}
-      <div className="card mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
-          <FilePlus className="h-5 w-5 text-primary-600" />
-          {t('documents.generate')}
-        </h2>
-        <p className="text-gray-600 mb-4 text-sm">
-          {t('documents.generateDesc')}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={generateArbeitserlaubnis}
-            disabled={generating === 'arbeitserlaubnis'}
-            className="btn-primary flex items-center gap-2"
-          >
-            {generating === 'arbeitserlaubnis' ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <FilePlus className="h-5 w-5" />
-            )}
-            {t('documents.workPermit')}
-          </button>
-          <button
-            onClick={generateLebenslauf}
-            disabled={generating === 'lebenslauf'}
-            className="btn-secondary flex items-center gap-2"
-          >
-            {generating === 'lebenslauf' ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <FileText className="h-5 w-5" />
-            )}
-            {t('documents.generateCV')}
-          </button>
-        </div>
-      </div>
 
       {/* Dokumentenliste */}
       <div className="card">

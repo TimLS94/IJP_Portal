@@ -41,7 +41,8 @@ class ApplicantBase(BaseModel):
     germany_details: Optional[str] = None
     
     # ========== POSITIONSTYP ==========
-    position_type: Optional[PositionType] = None
+    position_type: Optional[PositionType] = None  # Legacy: Einzelauswahl
+    position_types: Optional[List[PositionType]] = []  # NEU: Mehrfachauswahl
     
     # ========== STUDENTENFERIENJOB-SPEZIFISCH ==========
     university_name: Optional[str] = None
@@ -102,6 +103,7 @@ class ApplicantUpdate(BaseModel):
     germany_details: Optional[str] = None
     
     position_type: Optional[PositionType] = None
+    position_types: Optional[List[PositionType]] = None
     
     # Studentenferienjob
     university_name: Optional[str] = None

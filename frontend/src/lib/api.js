@@ -27,7 +27,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Bei 401 nur umleiten wenn es NICHT der Login-Endpoint ist
+    // (Login-Fehler sollen als Toast angezeigt werden, nicht umleiten)
+    const isLoginRequest = error.config?.url?.includes('/auth/login');
+    
+    if (error.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -68,6 +72,12 @@ export const companyAPI = {
   createProfile: (data) => api.post('/companies/me', data),
   updateProfile: (data) => api.put('/companies/me', data),
   getCompany: (id) => api.get(`/companies/${id}`),
+  // Mitglieder-Verwaltung
+  getMembers: () => api.get('/company/members'),
+  addMember: (data) => api.post('/company/members', data),
+  updateMember: (id, data) => api.put(`/company/members/${id}`, data),
+  removeMember: (id) => api.delete(`/company/members/${id}`),
+  getMemberRoles: () => api.get('/company/members/roles'),
 };
 
 // Jobs API
@@ -111,17 +121,6 @@ export const documentsAPI = {
   getRequirements: (positionType) => api.get(`/documents/requirements/${positionType}`),
   getAllRequirements: () => api.get('/documents/requirements'),
   getStatus: () => api.get('/documents/status'),
-};
-
-// Generator API (PDF-Generierung)
-export const generatorAPI = {
-  arbeitserlaubnis: (applicationId) => {
-    const params = applicationId ? `?application_id=${applicationId}` : '';
-    return api.get(`/generate/arbeitserlaubnis${params}`, { responseType: 'blob' });
-  },
-  lebenslauf: () => api.get('/generate/lebenslauf', { responseType: 'blob' }),
-  stellenbescheinigung: (applicationId) => 
-    api.get(`/generate/stellenbescheinigung/${applicationId}`, { responseType: 'blob' }),
 };
 
 // Helper zum Downloaden von Blobs
@@ -168,10 +167,10 @@ export const accountAPI = {
 // IJP-Aufträge API
 export const jobRequestsAPI = {
   // Bewerber
-  getMyRequest: () => api.get('/job-requests/my'),
+  getMyRequests: () => api.get('/job-requests/my'),
   getPrivacyText: () => api.get('/job-requests/privacy-text'),
-  createRequest: (data) => api.post('/job-requests', data),
-  cancelRequest: () => api.delete('/job-requests/my'),
+  createRequests: (data) => api.post('/job-requests', data),
+  cancelRequest: (id) => api.delete(`/job-requests/my/${id}`),
   // Admin
   getStatusOptions: () => api.get('/job-requests/admin/status-options'),
   listRequests: (params) => api.get('/job-requests/admin', { params }),

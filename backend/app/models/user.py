@@ -25,3 +25,4 @@ class User(Base):
     # Relationships
     applicant = relationship("Applicant", back_populates="user", uselist=False)
     company = relationship("Company", back_populates="user", uselist=False)
+    company_memberships = relationship("CompanyMember", foreign_keys="CompanyMember.user_id", back_populates="user")

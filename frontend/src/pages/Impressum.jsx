@@ -19,7 +19,6 @@ function Impressum() {
               </h2>
               <div className="text-gray-700 space-y-1">
                 <p className="font-semibold">IJP International Job Placement UG (haftungsbeschränkt)</p>
-                <p>c/o Schäfer</p>
                 <p>Husemannstr. 9</p>
                 <p>10435 Berlin</p>
                 <p>Deutschland</p>
@@ -32,7 +31,7 @@ function Impressum() {
               <div className="text-gray-700 space-y-2">
                 <p className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-gray-400" />
-                  E-Mail: info@ijp-portal.de
+                  E-Mail: service@internationaljobplacement.com
                 </p>
               </div>
             </section>
@@ -42,7 +41,7 @@ function Impressum() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('impressum.register')}</h2>
               <div className="text-gray-700 space-y-1">
                 <p>{t('impressum.registerCourt')}: Amtsgericht Berlin-Charlottenburg</p>
-                <p>{t('impressum.registerNumber')}: [wird nach Eintragung ergänzt]</p>
+                <p>{t('impressum.registerNumber')}: HRB 207656 B</p>
               </div>
             </section>
 
@@ -57,7 +56,7 @@ function Impressum() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('impressum.vatId')}</h2>
               <p className="text-gray-700">
                 {t('impressum.vatIdDesc')}:<br />
-                [wird nach Erteilung ergänzt]
+                DE324792764
               </p>
             </section>
 

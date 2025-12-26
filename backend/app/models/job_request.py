@@ -9,6 +9,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 from app.core.database import Base
+from app.models.applicant import PositionType
 
 
 class JobRequestStatus(str, enum.Enum):
@@ -108,6 +109,9 @@ class JobRequest(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False)
+    
+    # Stellenart für diesen Auftrag (z.B. "studentenferienjob", "fachkraft")
+    position_type = Column(Enum(PositionType), nullable=True)
     
     # Status
     status = Column(Enum(JobRequestStatus), default=JobRequestStatus.PENDING)

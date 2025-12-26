@@ -84,17 +84,25 @@ function ApplicantProfile() {
   const fileInputRefs = useRef({});
   
   const selectedPositionType = watch('position_type');
+  const selectedPositionTypes = watch('position_types') || [];
   const beenToGermany = watch('been_to_germany');
+  
+  // Prüfen ob ein Positionstyp ausgewählt ist (neu: über position_types Array)
+  const hasPositionType = (type) => {
+    return selectedPositionTypes.includes(type) || selectedPositionType === type;
+  };
 
   useEffect(() => {
     loadProfile();
   }, []);
 
   useEffect(() => {
-    if (selectedPositionType) {
-      loadRequirements(selectedPositionType);
+    // Dokument-Anforderungen für ersten ausgewählten Typ laden
+    const firstType = selectedPositionTypes?.[0] || selectedPositionType;
+    if (firstType) {
+      loadRequirements(firstType);
     }
-  }, [selectedPositionType]);
+  }, [selectedPositionTypes, selectedPositionType]);
 
   const loadProfile = async () => {
     try {
@@ -102,17 +110,30 @@ function ApplicantProfile() {
         applicantAPI.getProfile(),
         documentsAPI.list()
       ]);
-      reset(profileRes.data);
+      
+      const profileData = profileRes.data;
+      
+      // position_types initialisieren falls nicht vorhanden (Rückwärtskompatibilität)
+      if (!profileData.position_types || profileData.position_types.length === 0) {
+        if (profileData.position_type) {
+          profileData.position_types = [profileData.position_type];
+        } else {
+          profileData.position_types = [];
+        }
+      }
+      
+      reset(profileData);
       setDocuments(docsRes.data);
       
       // Andere Sprachen laden
-      if (profileRes.data.other_languages && Array.isArray(profileRes.data.other_languages)) {
-        setOtherLanguages(profileRes.data.other_languages);
+      if (profileData.other_languages && Array.isArray(profileData.other_languages)) {
+        setOtherLanguages(profileData.other_languages);
       }
       
-      // Anforderungen laden wenn Positionstyp vorhanden
-      if (profileRes.data.position_type) {
-        loadRequirements(profileRes.data.position_type);
+      // Anforderungen laden für ersten Positionstyp
+      const firstType = profileData.position_types?.[0] || profileData.position_type;
+      if (firstType) {
+        loadRequirements(firstType);
       }
     } catch (error) {
       if (error.response?.status !== 404) {
@@ -252,7 +273,8 @@ function ApplicantProfile() {
 
   // Dokumente für aktuellen Positionstyp rendern
   const renderDocuments = () => {
-    if (!requirements || !selectedPositionType) return null;
+    const hasAnyPosition = selectedPositionTypes?.length > 0 || selectedPositionType;
+    if (!requirements || !hasAnyPosition) return null;
 
     return (
       <div className="card border-l-4 border-l-primary-500 bg-gradient-to-r from-primary-50 to-white">
@@ -481,43 +503,66 @@ function ApplicantProfile() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         
-        {/* ========== STELLENART WÄHLEN ========== */}
+        {/* ========== STELLENART WÄHLEN (Mehrfachauswahl) ========== */}
         <div className="card border-2 border-primary-200 bg-gradient-to-r from-primary-50 to-white">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary-600" />
             {t('applicant.desiredPosition')}
           </h2>
           <p className="text-gray-600 mb-4">
-            {t('profile.selectPositionType')}
+            Wählen Sie alle Stellenarten, für die Sie sich interessieren (Mehrfachauswahl möglich).
           </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {positionTypeKeys.map((type) => (
-              <label
-                key={type.value}
-                className={`relative flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                  selectedPositionType === type.value
-                    ? `border-${type.color}-500 bg-${type.color}-50 shadow-lg ring-2 ring-${type.color}-200`
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
-                }`}
-              >
-                <input
-                  type="radio"
-                  value={type.value}
-                  className="sr-only"
-                  {...register('position_type', { required: t('profile.errors.positionRequired') })}
-                />
-                <span className={`font-semibold text-center ${
-                  selectedPositionType === type.value ? 'text-primary-700' : 'text-gray-700'
-                }`}>
-                  {t(type.labelKey)}
-                </span>
-                {selectedPositionType === type.value && (
-                  <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary-600" />
-                )}
-              </label>
-            ))}
+            {positionTypeKeys.map((type) => {
+              const isSelected = selectedPositionTypes.includes(type.value);
+              return (
+                <label
+                  key={type.value}
+                  className={`relative flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                    isSelected
+                      ? 'border-primary-500 bg-primary-50 shadow-lg ring-2 ring-primary-200'
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    value={type.value}
+                    className="sr-only"
+                    checked={isSelected}
+                    onChange={(e) => {
+                      const current = selectedPositionTypes || [];
+                      if (e.target.checked) {
+                        setValue('position_types', [...current, type.value]);
+                        // Auch position_type setzen (erstes ausgewähltes für Rückwärtskompatibilität)
+                        if (current.length === 0) {
+                          setValue('position_type', type.value);
+                        }
+                      } else {
+                        const newTypes = current.filter(t => t !== type.value);
+                        setValue('position_types', newTypes);
+                        // position_type auf erstes verbleibendes setzen oder null
+                        setValue('position_type', newTypes[0] || null);
+                      }
+                    }}
+                  />
+                  <span className={`font-semibold text-center ${
+                    isSelected ? 'text-primary-700' : 'text-gray-700'
+                  }`}>
+                    {t(type.labelKey)}
+                  </span>
+                  {isSelected && (
+                    <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary-600" />
+                  )}
+                </label>
+              );
+            })}
           </div>
-          {errors.position_type && <p className="text-red-500 text-sm mt-2">{errors.position_type.message}</p>}
+          {selectedPositionTypes.length === 0 && (
+            <p className="text-amber-600 text-sm mt-2 flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              Bitte wählen Sie mindestens eine Stellenart
+            </p>
+          )}
         </div>
 
         {/* ========== PERSÖNLICHE DATEN ========== */}
@@ -764,7 +809,7 @@ function ApplicantProfile() {
         </div>
 
         {/* ========== STUDENTENFERIENJOB-SPEZIFISCH ========== */}
-        {selectedPositionType === 'studentenferienjob' && (
+        {hasPositionType('studentenferienjob') && (
           <div className="card border-l-4 border-l-blue-500">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-blue-600" />
@@ -853,7 +898,7 @@ function ApplicantProfile() {
         )}
 
         {/* ========== AUSBILDUNG-SPEZIFISCH ========== */}
-        {selectedPositionType === 'ausbildung' && (
+        {hasPositionType('ausbildung') && (
           <div className="card border-l-4 border-l-green-500">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-green-600" />
@@ -873,7 +918,7 @@ function ApplicantProfile() {
         )}
 
         {/* ========== FACHKRAFT-SPEZIFISCH ========== */}
-        {selectedPositionType === 'fachkraft' && (
+        {hasPositionType('fachkraft') && (
           <div className="card border-l-4 border-l-purple-500">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <Building2 className="h-5 w-5 text-purple-600" />
@@ -897,7 +942,7 @@ function ApplicantProfile() {
         )}
 
         {/* ========== SAISONJOB-SPEZIFISCH ========== */}
-        {selectedPositionType === 'saisonjob' && (
+        {hasPositionType('saisonjob') && (
           <div className="card border-l-4 border-l-orange-500">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-orange-600" />

@@ -207,10 +207,9 @@ function About() {
             </p>
             <div className="bg-gray-800 rounded-xl p-6 text-left">
               <p className="font-semibold mb-2">IJP International Job Placement UG</p>
-              <p className="text-gray-400">c/o Schäfer</p>
               <p className="text-gray-400">Husemannstr. 9</p>
               <p className="text-gray-400">10435 Berlin</p>
-              <p className="text-gray-400 mt-4">E-Mail: info@ijp-portal.de</p>
+              <p className="text-gray-400 mt-4">E-Mail: service@internationaljobplacement.com</p>
             </div>
           </div>
         </div>
