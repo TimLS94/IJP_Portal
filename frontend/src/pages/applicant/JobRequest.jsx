@@ -203,6 +203,58 @@ function ApplicantJobRequest() {
                     )}
                   </div>
                   
+                  {/* Interview-Details Box */}
+                  {(request.interview_date || request.interview_link) && (
+                    <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                      <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
+                        <Calendar className="h-5 w-5" />
+                        Vorstellungsgespräch
+                      </h4>
+                      <div className="space-y-2">
+                        {request.interview_date && (
+                          <p className="text-amber-900 font-medium">
+                            📅 Termin: {new Date(request.interview_date).toLocaleDateString('de-DE', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        )}
+                        {request.interview_link && (
+                          <a 
+                            href={request.interview_link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Am Interview teilnehmen
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vertragsdatum */}
+                  {request.contract_date && (
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+                      <h4 className="font-bold text-green-800 flex items-center gap-2 mb-2">
+                        <FileText className="h-5 w-5" />
+                        Vertrag
+                      </h4>
+                      <p className="text-green-900 font-medium">
+                        📄 Vertragsdatum: {new Date(request.contract_date).toLocaleDateString('de-DE', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  )}
+                  
                   {request.notes && (
                     <p className="mt-3 text-sm text-gray-500 italic">"{request.notes}"</p>
                   )}

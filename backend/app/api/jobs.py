@@ -130,6 +130,8 @@ async def delete_job(
     db: Session = Depends(get_db)
 ):
     """Löscht ein Stellenangebot (nur eigene)"""
+    from app.models.application import Application
+    
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -148,9 +150,17 @@ async def delete_job(
             detail="Stellenangebot nicht gefunden oder keine Berechtigung"
         )
     
+    # Zuerst alle zugehörigen Bewerbungen löschen
+    applications_count = db.query(Application).filter(Application.job_posting_id == job_id).count()
+    db.query(Application).filter(Application.job_posting_id == job_id).delete()
+    
     db.delete(job)
     db.commit()
-    return {"message": "Stellenangebot gelöscht"}
+    
+    return {
+        "message": "Stellenangebot gelöscht",
+        "deleted_applications": applications_count
+    }
 
 
 @router.get("/my/jobs", response_model=List[JobPostingResponse])

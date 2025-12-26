@@ -39,6 +39,7 @@ class UpdateJobRequestStatusSchema(BaseModel):
     matched_company_name: Optional[str] = None
     matched_job_title: Optional[str] = None
     interview_date: Optional[str] = None  # ISO format date string
+    interview_link: Optional[str] = None  # Zoom/Teams/Meet Link
     contract_date: Optional[str] = None   # ISO format date string
 
 
@@ -132,6 +133,9 @@ async def get_my_job_requests(
                 "notes": req.notes,
                 "matched_company_name": req.matched_company_name,
                 "matched_job_title": req.matched_job_title,
+                "interview_date": req.interview_date,
+                "interview_link": req.interview_link,
+                "contract_date": req.contract_date,
                 "created_at": req.created_at,
                 "updated_at": req.updated_at,
             }
@@ -399,6 +403,7 @@ async def get_job_request_details(
             "matched_company_name": req.matched_company_name,
             "matched_job_title": req.matched_job_title,
             "interview_date": req.interview_date,
+            "interview_link": req.interview_link,
             "contract_date": req.contract_date,
             "created_at": req.created_at,
             "updated_at": req.updated_at,
@@ -463,6 +468,8 @@ async def update_job_request_status(
         req.matched_company_name = data.matched_company_name
     if data.matched_job_title is not None:
         req.matched_job_title = data.matched_job_title
+    if data.interview_link is not None:
+        req.interview_link = data.interview_link if data.interview_link else None
     if data.interview_date:
         from datetime import datetime
         try:
@@ -485,21 +492,86 @@ async def update_job_request_status(
         user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
         
         if user:
+            # Position Type Label
+            position_label = POSITION_TYPE_LABELS.get(req.position_type, "Allgemein") if req.position_type else "Allgemein"
+            
+            # Interview-Details für E-Mail
+            interview_section = ""
+            if req.interview_date or req.interview_link:
+                interview_section = """
+                <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+                    <h3 style="color: #92400e; margin: 0 0 10px 0;">📅 Interview-Details</h3>
+                """
+                if req.interview_date:
+                    interview_date_str = req.interview_date.strftime("%d.%m.%Y um %H:%M Uhr")
+                    interview_section += f'<p style="margin: 5px 0;"><strong>Termin:</strong> {interview_date_str}</p>'
+                if req.interview_link:
+                    interview_section += f'<p style="margin: 5px 0;"><strong>Link:</strong> <a href="{req.interview_link}" style="color: #2563eb;">{req.interview_link}</a></p>'
+                interview_section += "</div>"
+            
+            # Firma-Details für E-Mail
+            company_section = ""
+            if req.matched_company_name or req.matched_job_title:
+                company_section = """
+                <div style="background: #ede9fe; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #8b5cf6;">
+                    <h3 style="color: #5b21b6; margin: 0 0 10px 0;">🏢 Vermittlung an</h3>
+                """
+                if req.matched_company_name:
+                    company_section += f'<p style="margin: 5px 0;"><strong>Firma:</strong> {req.matched_company_name}</p>'
+                if req.matched_job_title:
+                    company_section += f'<p style="margin: 5px 0;"><strong>Position:</strong> {req.matched_job_title}</p>'
+                company_section += "</div>"
+            
+            # Frontend URL aus Settings oder Fallback
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+            
             email_service.send_email(
                 to_email=user.email,
-                subject=f"IJP-Auftrag Status Update: {JOB_REQUEST_STATUS_LABELS.get(data.status)}",
+                subject=f"IJP Update: {JOB_REQUEST_STATUS_LABELS.get(data.status)} - {position_label}",
                 html_content=f"""
                 <html>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
                     <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                        <h1 style="color: #2563eb;">Status-Update zu Ihrem IJP-Auftrag</h1>
-                        <p>Hallo {applicant.first_name},</p>
-                        <p>Der Status Ihres IJP-Auftrags wurde aktualisiert:</p>
-                        <div style="background: #dbeafe; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                            <strong style="font-size: 18px; color: #1d4ed8;">{JOB_REQUEST_STATUS_LABELS.get(data.status)}</strong>
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h1 style="color: #2563eb; margin: 0;">IJP - International Job Placement</h1>
+                            <p style="color: #6b7280; margin: 5px 0;">Status-Update zu Ihrem Vermittlungsauftrag</p>
                         </div>
-                        <p><a href="http://localhost:5173/applicant/ijp-auftrag" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Details ansehen</a></p>
-                        <p>Mit freundlichen Grüßen,<br>Ihr IJP-Team</p>
+                        
+                        <p>Hallo {applicant.first_name},</p>
+                        
+                        <p>wir freuen uns, Ihnen mitzuteilen, dass sich der Status Ihres IJP-Auftrags für <strong>{position_label}</strong> geändert hat:</p>
+                        
+                        <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 20px; border-radius: 12px; margin: 25px 0; text-align: center; border: 1px solid #93c5fd;">
+                            <p style="margin: 0 0 5px 0; color: #6b7280; font-size: 14px;">Neuer Status:</p>
+                            <strong style="font-size: 22px; color: #1d4ed8;">{JOB_REQUEST_STATUS_LABELS.get(data.status)}</strong>
+                        </div>
+                        
+                        {company_section}
+                        {interview_section}
+                        
+                        <p>Loggen Sie sich in Ihr Konto ein, um alle Details zu sehen und auf dem Laufenden zu bleiben:</p>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="{frontend_url}/applicant/ijp-auftrag" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);">
+                                Jetzt ansehen →
+                            </a>
+                        </div>
+                        
+                        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                        
+                        <p style="color: #6b7280; font-size: 14px;">
+                            Bei Fragen stehen wir Ihnen gerne zur Verfügung unter 
+                            <a href="mailto:service@internationaljobplacement.com" style="color: #2563eb;">service@internationaljobplacement.com</a>
+                        </p>
+                        
+                        <p>Mit freundlichen Grüßen,<br><strong>Ihr IJP-Team</strong></p>
+                        
+                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+                            <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                                IJP International Job Placement UG (haftungsbeschränkt)<br>
+                                Oranienburger Straße 173, 13437 Berlin
+                            </p>
+                        </div>
                     </div>
                 </body>
                 </html>

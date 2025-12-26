@@ -130,6 +130,7 @@ class JobRequest(Base):
     matched_company_name = Column(String(255))  # Name des Unternehmens
     matched_job_title = Column(String(255))     # Stellentitel
     interview_date = Column(DateTime)            # Interviewtermin
+    interview_link = Column(String(500))         # Zoom/Teams/Meet Link für Interview
     contract_date = Column(DateTime)             # Vertragsdatum
     
     # Admin-Notizen (intern)

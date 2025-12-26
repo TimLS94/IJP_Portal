@@ -50,6 +50,7 @@ function AdminJobRequests() {
   const [matchedCompanyName, setMatchedCompanyName] = useState('');
   const [matchedJobTitle, setMatchedJobTitle] = useState('');
   const [interviewDate, setInterviewDate] = useState('');
+  const [interviewLink, setInterviewLink] = useState('');
   const [contractDate, setContractDate] = useState('');
 
   useEffect(() => {
@@ -106,6 +107,7 @@ function AdminJobRequests() {
       setMatchedCompanyName(response.data.request.matched_company_name || '');
       setMatchedJobTitle(response.data.request.matched_job_title || '');
       setInterviewDate(response.data.request.interview_date ? response.data.request.interview_date.split('T')[0] : '');
+      setInterviewLink(response.data.request.interview_link || '');
       setContractDate(response.data.request.contract_date ? response.data.request.contract_date.split('T')[0] : '');
     } catch (error) {
       toast.error('Fehler beim Laden der Details');
@@ -126,9 +128,10 @@ function AdminJobRequests() {
         matched_company_name: matchedCompanyName || null,
         matched_job_title: matchedJobTitle || null,
         interview_date: interviewDate || null,
+        interview_link: interviewLink || null,
         contract_date: contractDate || null
       });
-      toast.success('Status aktualisiert');
+      toast.success('Status aktualisiert - E-Mail wurde gesendet');
       loadRequests();
       loadRequestDetails(selectedRequest);
     } catch (error) {
@@ -635,7 +638,18 @@ function AdminJobRequests() {
                             />
                           </div>
                         </div>
-                        {(requestDetails.request.matched_company_name || requestDetails.request.matched_job_title) && (
+                        <div>
+                          <label className="label text-sm">Interview-Link (Zoom/Teams/Meet)</label>
+                          <input
+                            type="url"
+                            className="input-styled"
+                            placeholder="https://zoom.us/j/... oder https://teams.microsoft.com/..."
+                            value={interviewLink}
+                            onChange={(e) => setInterviewLink(e.target.value)}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Der Bewerber sieht diesen Link in seiner Übersicht</p>
+                        </div>
+                        {(requestDetails.request.matched_company_name || requestDetails.request.matched_job_title || requestDetails.request.interview_link) && (
                           <div className="p-2 bg-white rounded text-sm">
                             <p className="text-gray-500 text-xs mb-1">Gespeicherte Daten:</p>
                             {requestDetails.request.matched_company_name && (
@@ -646,6 +660,9 @@ function AdminJobRequests() {
                             )}
                             {requestDetails.request.interview_date && (
                               <p>📅 Interview: {formatDate(requestDetails.request.interview_date)}</p>
+                            )}
+                            {requestDetails.request.interview_link && (
+                              <p>🔗 <a href={requestDetails.request.interview_link} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Interview-Link</a></p>
                             )}
                             {requestDetails.request.contract_date && (
                               <p>📄 Vertrag: {formatDate(requestDetails.request.contract_date)}</p>
