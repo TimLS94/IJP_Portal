@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { applicationsAPI } from '../../lib/api';
+import { applicationsAPI, documentsAPI, downloadBlob } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   Users, User, Briefcase, Calendar, MessageSquare, Check, X, 
@@ -133,6 +133,17 @@ function CompanyApplications() {
       }
     } catch (error) {
       toast.error('Fehler beim Aktualisieren');
+    }
+  };
+
+  const handleDocumentDownload = async (documentId, filename) => {
+    try {
+      const response = await documentsAPI.download(documentId);
+      downloadBlob(response.data, filename);
+      toast.success('Download gestartet');
+    } catch (error) {
+      console.error('Download-Fehler:', error);
+      toast.error('Fehler beim Herunterladen des Dokuments');
     }
   };
 
@@ -613,6 +624,19 @@ function CompanyApplications() {
                     </div>
                   </div>
 
+                  {/* Nachricht des Bewerbers */}
+                  {applicantDetails.application.applicant_message && (
+                    <div className="md:col-span-2 bg-blue-50 rounded-xl p-5 border border-blue-200">
+                      <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5 text-blue-600" />
+                        Nachricht des Bewerbers
+                      </h3>
+                      <p className="text-gray-700 whitespace-pre-line">
+                        {applicantDetails.application.applicant_message}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Dokumente */}
                   <div className="md:col-span-2 bg-gray-50 rounded-xl p-5">
                     <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -624,12 +648,10 @@ function CompanyApplications() {
                     ) : (
                       <div className="grid md:grid-cols-2 gap-3">
                         {applicantDetails.documents.map((doc) => (
-                          <a
+                          <button
                             key={doc.id}
-                            href={`/uploads/${doc.file_path.split('/').pop()}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-primary-50 transition-colors group"
+                            onClick={() => handleDocumentDownload(doc.id, doc.original_name)}
+                            className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-primary-50 transition-colors group text-left w-full"
                           >
                             <div className="flex items-center gap-3">
                               <FileText className="h-5 w-5 text-gray-400 group-hover:text-primary-600" />
@@ -639,7 +661,7 @@ function CompanyApplications() {
                               </div>
                             </div>
                             <Download className="h-4 w-4 text-gray-400 group-hover:text-primary-600" />
-                          </a>
+                          </button>
                         ))}
                       </div>
                     )}

@@ -467,6 +467,11 @@ function AdminJobRequests() {
                     <p className="text-gray-500">
                       {requestDetails.applicant.first_name} {requestDetails.applicant.last_name}
                     </p>
+                    {requestDetails.request.position_type && (
+                      <span className="inline-block mt-2 px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm font-medium">
+                        📋 {positionTypeLabels[requestDetails.request.position_type] || requestDetails.request.position_type}
+                      </span>
+                    )}
                   </div>
                   <button 
                     onClick={() => { setSelectedRequest(null); setRequestDetails(null); }}
@@ -514,7 +519,17 @@ function AdminJobRequests() {
                         Qualifikationen
                       </h3>
                       <div className="space-y-2 text-sm">
-                        <p><strong>Stellenart:</strong> {positionTypeLabels[requestDetails.applicant.position_type] || '-'}</p>
+                        <p>
+                          <strong>Auftrags-Stellenart:</strong>{' '}
+                          <span className="px-2 py-0.5 bg-primary-100 text-primary-800 rounded text-xs font-medium">
+                            {positionTypeLabels[requestDetails.request.position_type] || '-'}
+                          </span>
+                        </p>
+                        {requestDetails.applicant.position_type && requestDetails.applicant.position_type !== requestDetails.request.position_type && (
+                          <p className="text-gray-500 text-xs">
+                            (Profil-Stellenart: {positionTypeLabels[requestDetails.applicant.position_type]})
+                          </p>
+                        )}
                         <p><strong>Deutsch:</strong> {requestDetails.applicant.german_level || '-'}</p>
                         <p><strong>Englisch:</strong> {requestDetails.applicant.english_level || '-'}</p>
                         <p><strong>Berufserfahrung:</strong> {requestDetails.applicant.work_experience_years || 0} Jahre</p>

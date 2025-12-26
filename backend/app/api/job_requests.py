@@ -325,7 +325,8 @@ async def list_job_requests(
         query = query.filter(JobRequest.status == status_filter)
     
     if position_type:
-        query = query.filter(Applicant.position_type == position_type)
+        # Filtern nach der Stellenart des Auftrags, nicht des Profils!
+        query = query.filter(JobRequest.position_type == position_type)
     
     if search:
         search_term = f"%{search}%"
@@ -349,7 +350,8 @@ async def list_job_requests(
             "applicant_name": f"{applicant.first_name} {applicant.last_name}" if applicant else "Unbekannt",
             "applicant_email": user.email if user else None,
             "applicant_phone": applicant.phone if applicant else None,
-            "position_type": applicant.position_type.value if applicant and applicant.position_type else None,
+            # WICHTIG: position_type vom JobRequest nehmen, nicht vom Applicant!
+            "position_type": req.position_type.value if req.position_type else None,
             "status": req.status.value,
             "status_label": JOB_REQUEST_STATUS_LABELS.get(req.status),
             "status_color": JOB_REQUEST_STATUS_COLORS.get(req.status),
@@ -400,6 +402,8 @@ async def get_job_request_details(
             "contract_date": req.contract_date,
             "created_at": req.created_at,
             "updated_at": req.updated_at,
+            # Position Type vom Auftrag!
+            "position_type": req.position_type.value if req.position_type else None,
         },
         "applicant": {
             "id": applicant.id if applicant else None,
@@ -409,6 +413,7 @@ async def get_job_request_details(
             "phone": applicant.phone if applicant else None,
             "date_of_birth": applicant.date_of_birth if applicant else None,
             "nationality": applicant.nationality if applicant else None,
+            # Profil-Stellenart (kann von Auftrags-Stellenart abweichen)
             "position_type": applicant.position_type.value if applicant and applicant.position_type else None,
             "address": {
                 "street": applicant.street if applicant else None,

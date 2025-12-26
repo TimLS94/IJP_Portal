@@ -221,7 +221,9 @@ async def download_document(
     db: Session = Depends(get_db)
 ):
     """Lädt ein Dokument herunter"""
-    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    from app.models.company import Company
+    from app.models.application import Application
+    from app.models.job_posting import JobPosting
     
     document = db.query(Document).filter(Document.id == document_id).first()
     
@@ -233,11 +235,36 @@ async def download_document(
     
     # Prüfen ob Benutzer berechtigt ist
     if current_user.role == UserRole.APPLICANT:
+        # Bewerber darf nur eigene Dokumente herunterladen
+        applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
         if not applicant or document.applicant_id != applicant.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Keine Berechtigung"
             )
+    elif current_user.role == UserRole.COMPANY:
+        # Firma darf Dokumente herunterladen, wenn sie eine Bewerbung von diesem Bewerber hat
+        company = db.query(Company).filter(Company.user_id == current_user.id).first()
+        if not company:
+            raise HTTPException(status_code=403, detail="Firmenprofil nicht gefunden")
+        
+        # Prüfe ob es eine Bewerbung gibt, die zu dieser Firma gehört
+        has_application = db.query(Application).join(JobPosting).filter(
+            Application.applicant_id == document.applicant_id,
+            JobPosting.company_id == company.id
+        ).first()
+        
+        if not has_application:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Keine Berechtigung - Bewerber hat sich nicht bei Ihrer Firma beworben"
+            )
+    elif current_user.role != UserRole.ADMIN:
+        # Nur Admins haben sonst Zugriff
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Keine Berechtigung"
+        )
     
     if not os.path.exists(document.file_path):
         raise HTTPException(
