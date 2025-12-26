@@ -33,7 +33,14 @@ function AdminApplications() {
   const [positionTypeFilter, setPositionTypeFilter] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const limit = 50;
+  const [limit, setLimit] = useState(50);
+  
+  // Sortierung
+  const [sortBy, setSortBy] = useState('applied_at');
+  const [sortOrder, setSortOrder] = useState('desc'); // desc = neueste zuerst
+  
+  // Limit-Optionen
+  const limitOptions = [50, 100, 200];
 
   // Status-Optionen vom Backend
   const [statusOptions, setStatusOptions] = useState([]);
@@ -54,7 +61,7 @@ function AdminApplications() {
 
   useEffect(() => {
     loadApplications();
-  }, [statusFilter, positionTypeFilter, page]);
+  }, [statusFilter, positionTypeFilter, page, limit]);
 
   const loadStatusOptions = async () => {
     try {
@@ -187,6 +194,54 @@ function AdminApplications() {
     });
   };
 
+  // Sortier-Handler
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
+
+  // Sortierte Bewerbungen
+  const sortedApplications = [...applications].sort((a, b) => {
+    let aVal, bVal;
+    
+    switch (sortBy) {
+      case 'applied_at':
+        aVal = new Date(a.applied_at || 0);
+        bVal = new Date(b.applied_at || 0);
+        break;
+      case 'applicant_name':
+        aVal = a.applicant_name?.toLowerCase() || '';
+        bVal = b.applicant_name?.toLowerCase() || '';
+        break;
+      case 'job_title':
+        aVal = a.job_title?.toLowerCase() || '';
+        bVal = b.job_title?.toLowerCase() || '';
+        break;
+      case 'status':
+        aVal = a.status_label?.toLowerCase() || '';
+        bVal = b.status_label?.toLowerCase() || '';
+        break;
+      default:
+        return 0;
+    }
+    
+    if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // Sortier-Icon Komponente
+  const SortIcon = ({ field }) => {
+    if (sortBy !== field) return <ChevronDown className="h-4 w-4 text-gray-300" />;
+    return sortOrder === 'asc' 
+      ? <ChevronDown className="h-4 w-4 text-primary-600 rotate-180" />
+      : <ChevronDown className="h-4 w-4 text-primary-600" />;
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
@@ -197,6 +252,10 @@ function AdminApplications() {
             <h1 className="text-3xl font-bold text-gray-900">Bewerbungsverwaltung</h1>
             <p className="text-gray-600">IJP Vermittler-Dashboard</p>
           </div>
+          {/* Gesamtanzahl Badge */}
+          <span className="ml-4 px-4 py-2 bg-primary-100 text-primary-800 rounded-full font-bold text-lg">
+            {total} Bewerbungen
+          </span>
         </div>
         <button onClick={handleExportCSV} className="btn-primary flex items-center gap-2">
           <Download className="h-5 w-5" />
@@ -325,18 +384,46 @@ function AdminApplications() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Bewerber</th>
+                    <th 
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('applicant_name')}
+                    >
+                      <span className="flex items-center gap-1">
+                        Bewerber <SortIcon field="applicant_name" />
+                      </span>
+                    </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Kontakt</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Stellenart</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Stelle</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Datum</th>
+                    <th 
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('job_title')}
+                    >
+                      <span className="flex items-center gap-1">
+                        Stelle <SortIcon field="job_title" />
+                      </span>
+                    </th>
+                    <th 
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('status')}
+                    >
+                      <span className="flex items-center gap-1">
+                        Status <SortIcon field="status" />
+                      </span>
+                    </th>
+                    <th 
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('applied_at')}
+                    >
+                      <span className="flex items-center gap-1">
+                        Eingereicht <SortIcon field="applied_at" />
+                      </span>
+                    </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Dok.</th>
                     <th className="px-4 py-3 text-right text-sm font-semibold text-gray-900">Aktionen</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {applications.map((app) => (
+                  {sortedApplications.map((app) => (
                     <tr key={app.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">{app.applicant_name}</div>
@@ -371,8 +458,13 @@ function AdminApplications() {
                           {app.status_label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-sm">
-                        {formatDate(app.applied_at)}
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">{formatDate(app.applied_at)}</span>
+                          <span className="text-xs text-gray-500">
+                            {app.applied_at ? new Date(app.applied_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' : ''}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-1 bg-gray-100 rounded text-sm">
@@ -406,24 +498,68 @@ function AdminApplications() {
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between px-4 py-3 border-t">
+            <div className="flex flex-col md:flex-row items-center justify-between px-4 py-4 border-t gap-4">
+              {/* Links: Anzahl pro Seite */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600">Anzeigen:</span>
+                <div className="flex gap-1">
+                  {limitOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => { setLimit(option); setPage(0); }}
+                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                        limit === option 
+                          ? 'bg-primary-600 text-white' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Mitte: Info */}
               <p className="text-sm text-gray-600">
-                Zeige {page * limit + 1}-{Math.min((page + 1) * limit, total)} von {total}
+                <span className="font-semibold">{page * limit + 1}-{Math.min((page + 1) * limit, total)}</span> von <span className="font-semibold">{total}</span> Bewerbungen
+                {total > limit && (
+                  <span className="text-gray-400 ml-2">
+                    (Seite {page + 1} von {Math.ceil(total / limit)})
+                  </span>
+                )}
               </p>
-              <div className="flex gap-2">
+              
+              {/* Rechts: Navigation */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage(0)}
+                  disabled={page === 0}
+                  className="px-3 py-1.5 rounded text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Erste Seite"
+                >
+                  ««
+                </button>
                 <button
                   onClick={() => setPage(p => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="btn-secondary text-sm disabled:opacity-50"
+                  className="px-3 py-1.5 rounded text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Zurück
+                  « Zurück
                 </button>
                 <button
                   onClick={() => setPage(p => p + 1)}
                   disabled={(page + 1) * limit >= total}
-                  className="btn-secondary text-sm disabled:opacity-50"
+                  className="px-3 py-1.5 rounded text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Weiter
+                  Weiter »
+                </button>
+                <button
+                  onClick={() => setPage(Math.ceil(total / limit) - 1)}
+                  disabled={(page + 1) * limit >= total}
+                  className="px-3 py-1.5 rounded text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Letzte Seite"
+                >
+                  »»
                 </button>
               </div>
             </div>
