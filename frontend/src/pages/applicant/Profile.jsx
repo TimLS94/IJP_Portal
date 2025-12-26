@@ -512,13 +512,13 @@ function ApplicantProfile() {
           <p className="text-gray-600 mb-4">
             Wählen Sie alle Stellenarten, für die Sie sich interessieren (Mehrfachauswahl möglich).
           </p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {positionTypeKeys.map((type) => {
               const isSelected = selectedPositionTypes.includes(type.value);
               return (
                 <label
                   key={type.value}
-                  className={`relative flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                  className={`relative flex items-center justify-center p-3 md:p-4 border-2 rounded-xl cursor-pointer transition-all min-h-[60px] ${
                     isSelected
                       ? 'border-primary-500 bg-primary-50 shadow-lg ring-2 ring-primary-200'
                       : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
@@ -545,13 +545,13 @@ function ApplicantProfile() {
                       }
                     }}
                   />
-                  <span className={`font-semibold text-center ${
+                  <span className={`font-semibold text-center text-sm md:text-base leading-tight ${
                     isSelected ? 'text-primary-700' : 'text-gray-700'
                   }`}>
                     {t(type.labelKey)}
                   </span>
                   {isSelected && (
-                    <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary-600" />
+                    <CheckCircle className="absolute top-1 right-1 md:top-2 md:right-2 h-4 w-4 md:h-5 md:w-5 text-primary-600" />
                   )}
                 </label>
               );

@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext';
 // Layout
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 
 // Öffentliche Seiten
 import Home from './pages/Home';
@@ -67,6 +68,7 @@ function App() {
 
   return (
     <>
+      <ScrollToTop />
       <Toaster position="top-right" />
       <Routes>
         {/* Öffentliche Routen */}

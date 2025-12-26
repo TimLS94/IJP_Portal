@@ -113,14 +113,14 @@ function Home() {
       <section className="mb-16">
         <h2 className="text-3xl font-bold text-gray-900 mb-2 text-center">{t('home.jobTypes')}</h2>
         <p className="text-gray-600 text-center mb-8">Wählen Sie Ihre gewünschte Stellenart</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {positionTypes.map((type) => (
             <Link
               key={type.id}
               to={`/jobs?type=${type.id}`}
-              className={`${type.color} p-6 rounded-xl text-center border-2 transition-all hover:shadow-lg hover:scale-105`}
+              className={`${type.color} p-4 md:p-6 rounded-xl text-center border-2 transition-all hover:shadow-lg hover:scale-105 min-h-[80px] md:min-h-[100px] flex items-center justify-center`}
             >
-              <span className="font-bold text-lg">{type.name}</span>
+              <span className="font-bold text-sm md:text-lg break-words hyphens-auto leading-tight">{type.name}</span>
             </Link>
           ))}
         </div>
