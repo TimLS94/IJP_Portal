@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { 
   GraduationCap, Search, CheckCircle, XCircle, AlertTriangle, 
   HelpCircle, Loader2, ExternalLink, RefreshCw, Save, ChevronDown,
-  MapPin, Flag, BookOpen, User
+  MapPin, Flag, BookOpen, User, Copy, Link2
 } from 'lucide-react';
 
 // Status-Konfiguration
@@ -21,9 +21,17 @@ function AnabinVerification() {
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [searchResult, setSearchResult] = useState(null);
-  const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Manuelle Verifizierungsfelder
+  const [manualData, setManualData] = useState({
+    anabin_verified: 'verified',
+    anabin_match_score: 100,
+    anabin_institution_name: '',
+    anabin_institution_id: '',
+    anabin_status: 'H+',
+    anabin_notes: '',
+  });
   
   // Filter
   const [statusFilter, setStatusFilter] = useState('');
@@ -52,57 +60,48 @@ function AnabinVerification() {
     }
   };
 
-  const handleSearch = async (student) => {
+  const openVerifyModal = (student) => {
     setSelectedStudent(student);
-    setSearching(true);
-    setSearchResult(null);
+    // Vorausfüllen mit vorhandenen Daten
+    setManualData({
+      anabin_verified: student.anabin_verified || 'verified',
+      anabin_match_score: student.anabin_match_score || 100,
+      anabin_institution_name: student.anabin_institution_name || student.university_name || '',
+      anabin_institution_id: student.anabin_institution_id || '',
+      anabin_status: student.anabin_status || 'H+',
+      anabin_notes: student.anabin_notes || '',
+    });
+  };
+
+  const handleSaveVerification = async () => {
+    if (!selectedStudent) return;
     
-    try {
-      const response = await adminAPI.searchAnabin(student.id);
-      setSearchResult(response.data);
-    } catch (error) {
-      console.error('Fehler:', error);
-      toast.error('Fehler bei der Anabin-Suche');
-      setSearchResult({
-        success: false,
-        message: 'Suche fehlgeschlagen',
-        result: { status: 'error', message: error.message }
-      });
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const handleAutoVerify = async (studentId) => {
-    setSearching(true);
-    try {
-      const response = await adminAPI.autoVerifyAnabin(studentId);
-      toast.success(response.data.message);
-      loadStudents();
-      setSearchResult(response.data);
-    } catch (error) {
-      toast.error('Auto-Verifizierung fehlgeschlagen');
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const handleManualVerify = async (studentId, data) => {
     setSaving(true);
     try {
       await adminAPI.verifyAnabin({
-        applicant_id: studentId,
-        ...data
+        applicant_id: selectedStudent.id,
+        ...manualData
       });
-      toast.success('Verifizierung gespeichert');
+      toast.success('Verifizierung gespeichert!');
       loadStudents();
       setSelectedStudent(null);
-      setSearchResult(null);
     } catch (error) {
       toast.error('Fehler beim Speichern');
     } finally {
       setSaving(false);
     }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    toast.success('In Zwischenablage kopiert!');
+  };
+
+  // Anabin-Such-URL generieren
+  const getAnabinSearchUrl = (universityName, country) => {
+    // Direkte Suche auf anabin
+    const baseUrl = 'https://anabin.kmk.org/no_cache/filter/institutionen.html';
+    return baseUrl;
   };
 
   const filteredStudents = statusFilter 
@@ -132,13 +131,24 @@ function AnabinVerification() {
         <GraduationCap className="h-8 w-8 text-primary-600" />
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Anabin Uni-Verifizierung</h1>
-          <p className="text-gray-600">Universitäten in anabin.kmk.org prüfen</p>
+          <p className="text-gray-600">Universitäten manuell in anabin.kmk.org prüfen</p>
         </div>
+      </div>
+
+      {/* Anleitung */}
+      <div className="card mb-6 bg-blue-50 border-blue-200">
+        <h3 className="font-bold text-blue-900 mb-2">📋 So funktioniert's:</h3>
+        <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
+          <li>Klicken Sie auf "Prüfen" bei einem Studenten</li>
+          <li>Kopieren Sie den Universitätsnamen und öffnen Sie anabin</li>
+          <li>Suchen Sie die Universität auf anabin (Land: Usbekistan/Kirgisistan)</li>
+          <li>Tragen Sie die gefundenen Daten ein und speichern Sie</li>
+        </ol>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div className="card py-4 text-center">
+        <div className="card py-4 text-center cursor-pointer hover:bg-gray-50" onClick={() => setStatusFilter('')}>
           <p className="text-3xl font-bold text-gray-900">{stats.total || 0}</p>
           <p className="text-sm text-gray-500">Gesamt</p>
         </div>
@@ -148,15 +158,15 @@ function AnabinVerification() {
         </div>
         <div className="card py-4 text-center cursor-pointer hover:bg-green-50" onClick={() => setStatusFilter('verified')}>
           <p className="text-3xl font-bold text-green-600">{stats.verified || 0}</p>
-          <p className="text-sm text-gray-500">Verifiziert</p>
+          <p className="text-sm text-green-500">Verifiziert</p>
         </div>
         <div className="card py-4 text-center cursor-pointer hover:bg-yellow-50" onClick={() => setStatusFilter('uncertain')}>
           <p className="text-3xl font-bold text-yellow-600">{stats.uncertain || 0}</p>
-          <p className="text-sm text-gray-500">Unsicher</p>
+          <p className="text-sm text-yellow-500">Unsicher</p>
         </div>
         <div className="card py-4 text-center cursor-pointer hover:bg-red-50" onClick={() => setStatusFilter('not_found')}>
           <p className="text-3xl font-bold text-red-600">{stats.not_found || 0}</p>
-          <p className="text-sm text-gray-500">Nicht gefunden</p>
+          <p className="text-sm text-red-500">Nicht gefunden</p>
         </div>
       </div>
 
@@ -224,7 +234,9 @@ function AnabinVerification() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <GraduationCap className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm">{student.university_name || '-'}</span>
+                        <span className="text-sm max-w-[250px] truncate" title={student.university_name}>
+                          {student.university_name || '-'}
+                        </span>
                       </div>
                       {student.field_of_study && (
                         <div className="text-xs text-gray-500 ml-6">
@@ -249,7 +261,7 @@ function AnabinVerification() {
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={student.anabin_verified} />
-                      {student.anabin_institution_name && (
+                      {student.anabin_institution_name && student.anabin_institution_name !== student.university_name && (
                         <div className="text-xs text-gray-500 mt-1 max-w-[200px] truncate" title={student.anabin_institution_name}>
                           → {student.anabin_institution_name}
                         </div>
@@ -271,18 +283,11 @@ function AnabinVerification() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => handleSearch(student)}
-                          className="px-3 py-1 text-sm bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 flex items-center gap-1"
+                          onClick={() => openVerifyModal(student)}
+                          className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1"
                         >
                           <Search className="h-3 w-3" />
-                          Suchen
-                        </button>
-                        <button
-                          onClick={() => handleAutoVerify(student.id)}
-                          className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 flex items-center gap-1"
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                          Auto
+                          Prüfen
                         </button>
                       </div>
                     </td>
@@ -294,134 +299,174 @@ function AnabinVerification() {
         )}
       </div>
 
-      {/* Such-Modal */}
+      {/* Verifizierungs-Modal */}
       {selectedStudent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">Anabin-Suche: {selectedStudent.name}</h2>
-                <button onClick={() => { setSelectedStudent(null); setSearchResult(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
+                <h2 className="text-xl font-bold">Uni-Verifizierung: {selectedStudent.name}</h2>
+                <button onClick={() => setSelectedStudent(null)} className="p-2 hover:bg-gray-100 rounded-lg">
                   ✕
                 </button>
-              </div>
-              <div className="mt-2 text-sm text-gray-600">
-                <p><strong>Universität:</strong> {selectedStudent.university_name}</p>
-                <p><strong>Land:</strong> {selectedStudent.university_country || selectedStudent.nationality}</p>
-                <p><strong>Stadt:</strong> {selectedStudent.university_city || '-'}</p>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-6">
-              {searching ? (
-                <div className="flex flex-col items-center py-12">
-                  <Loader2 className="h-12 w-12 text-primary-600 animate-spin mb-4" />
-                  <p className="text-gray-600">Suche in anabin.kmk.org...</p>
+            <div className="p-6 space-y-6">
+              {/* Schritt 1: Universität kopieren */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h3 className="font-bold mb-3 flex items-center gap-2">
+                  <span className="bg-primary-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span>
+                  Universität des Studenten
+                </h3>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={selectedStudent.university_name || 'Keine Universität hinterlegt'}
+                    className="input-styled flex-1 bg-white"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(selectedStudent.university_name)}
+                    className="btn-secondary flex items-center gap-1"
+                    disabled={!selectedStudent.university_name}
+                  >
+                    <Copy className="h-4 w-4" />
+                    Kopieren
+                  </button>
                 </div>
-              ) : searchResult ? (
-                <div className="space-y-6">
-                  {/* Ergebnis-Status */}
-                  <div className={`p-4 rounded-xl ${
-                    searchResult.result?.status === 'verified' ? 'bg-green-50 border border-green-200' :
-                    searchResult.result?.status === 'uncertain' ? 'bg-yellow-50 border border-yellow-200' :
-                    'bg-red-50 border border-red-200'
-                  }`}>
-                    <p className="font-medium">{searchResult.result?.message || 'Kein Ergebnis'}</p>
+                <div className="mt-2 text-sm text-gray-600">
+                  <p><strong>Land:</strong> {selectedStudent.university_country || selectedStudent.nationality || '-'}</p>
+                  <p><strong>Stadt:</strong> {selectedStudent.university_city || '-'}</p>
+                </div>
+              </div>
+
+              {/* Schritt 2: Anabin öffnen */}
+              <div className="bg-blue-50 rounded-xl p-4">
+                <h3 className="font-bold mb-3 flex items-center gap-2">
+                  <span className="bg-primary-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span>
+                  In Anabin suchen
+                </h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Öffnen Sie anabin und suchen Sie nach der Universität. Wählen Sie das Land 
+                  <strong> {selectedStudent.university_country || 'Usbekistan/Kirgisistan'}</strong>.
+                </p>
+                <a
+                  href="https://anabin.kmk.org/no_cache/filter/institutionen.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary inline-flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Anabin öffnen
+                </a>
+              </div>
+
+              {/* Schritt 3: Daten eintragen */}
+              <div className="bg-green-50 rounded-xl p-4">
+                <h3 className="font-bold mb-3 flex items-center gap-2">
+                  <span className="bg-primary-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">3</span>
+                  Ergebnis eintragen
+                </h3>
+                
+                <div className="space-y-4">
+                  {/* Status */}
+                  <div>
+                    <label className="label">Verifizierungsstatus</label>
+                    <select
+                      className="input-styled"
+                      value={manualData.anabin_verified}
+                      onChange={(e) => setManualData({...manualData, anabin_verified: e.target.value})}
+                    >
+                      <option value="verified">✅ Verifiziert - Uni gefunden</option>
+                      <option value="uncertain">⚠️ Unsicher - Ähnliche Uni gefunden</option>
+                      <option value="not_found">❌ Nicht gefunden</option>
+                    </select>
                   </div>
 
-                  {/* Beste Übereinstimmung */}
-                  {searchResult.result?.best_match && (
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <h3 className="font-bold mb-3">Beste Übereinstimmung</h3>
-                      <div className="space-y-2 text-sm">
-                        <p><strong>Name:</strong> {searchResult.result.best_match.name}</p>
-                        {searchResult.result.best_match.german_name && (
-                          <p><strong>Deutscher Name:</strong> {searchResult.result.best_match.german_name}</p>
-                        )}
-                        <p><strong>Stadt:</strong> {searchResult.result.best_match.city}</p>
-                        <p><strong>Land:</strong> {searchResult.result.best_match.country}</p>
-                        <p><strong>Typ:</strong> {searchResult.result.best_match.type}</p>
-                        <p><strong>Status:</strong> {searchResult.result.best_match.status || '-'}</p>
-                        <p className="text-lg font-bold text-primary-600">
-                          Übereinstimmung: {searchResult.result.best_match.match_score}%
+                  {manualData.anabin_verified !== 'not_found' && (
+                    <>
+                      {/* Gefundener Name */}
+                      <div>
+                        <label className="label">Name in Anabin (deutsche Übersetzung)</label>
+                        <input
+                          type="text"
+                          className="input-styled"
+                          placeholder="z.B. Staatliche Technische Universität Taschkent"
+                          value={manualData.anabin_institution_name}
+                          onChange={(e) => setManualData({...manualData, anabin_institution_name: e.target.value})}
+                        />
+                      </div>
+
+                      {/* Match Score */}
+                      <div>
+                        <label className="label">Übereinstimmung (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          className="input-styled"
+                          value={manualData.anabin_match_score}
+                          onChange={(e) => setManualData({...manualData, anabin_match_score: parseInt(e.target.value) || 0})}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          100% = Exakt gleicher Name, 80-99% = Leicht abweichend, &lt;80% = Unsicher
                         </p>
                       </div>
-                    </div>
-                  )}
 
-                  {/* Weitere Treffer */}
-                  {searchResult.result?.all_matches?.length > 1 && (
-                    <div>
-                      <h3 className="font-bold mb-2">Weitere Treffer</h3>
-                      <div className="space-y-2">
-                        {searchResult.result.all_matches.slice(1).map((match, idx) => (
-                          <div key={idx} className="p-3 bg-gray-50 rounded-lg text-sm">
-                            <span className="font-medium">{match.name}</span>
-                            <span className="text-gray-500 ml-2">({match.city}, {match.country})</span>
-                            <span className="ml-2 text-primary-600 font-bold">{match.match_score}%</span>
-                          </div>
-                        ))}
+                      {/* Anabin Status */}
+                      <div>
+                        <label className="label">Anabin Bewertung</label>
+                        <select
+                          className="input-styled"
+                          value={manualData.anabin_status}
+                          onChange={(e) => setManualData({...manualData, anabin_status: e.target.value})}
+                        >
+                          <option value="H+">H+ (Hochschule, anerkannt)</option>
+                          <option value="H+/-">H+/- (Eingeschränkt anerkannt)</option>
+                          <option value="H-">H- (Nicht anerkannt)</option>
+                          <option value="">Unbekannt</option>
+                        </select>
                       </div>
-                    </div>
+                    </>
                   )}
 
-                  {/* Manuelle Verifizierung */}
-                  <div className="border-t pt-6">
-                    <h3 className="font-bold mb-4">Manuell verifizieren</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <button
-                        onClick={() => handleManualVerify(selectedStudent.id, {
-                          anabin_verified: 'verified',
-                          anabin_match_score: searchResult.result?.best_match?.match_score,
-                          anabin_institution_name: searchResult.result?.best_match?.name,
-                          anabin_institution_id: searchResult.result?.best_match?.anabin_id,
-                          anabin_status: searchResult.result?.best_match?.status,
-                        })}
-                        disabled={saving}
-                        className="flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 disabled:opacity-50"
-                      >
-                        <CheckCircle className="h-5 w-5" />
-                        Als verifiziert markieren
-                      </button>
-                      <button
-                        onClick={() => handleManualVerify(selectedStudent.id, {
-                          anabin_verified: 'not_found',
-                          anabin_notes: 'Manuell als nicht gefunden markiert',
-                        })}
-                        disabled={saving}
-                        className="flex items-center justify-center gap-2 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:opacity-50"
-                      >
-                        <XCircle className="h-5 w-5" />
-                        Nicht gefunden
-                      </button>
-                    </div>
+                  {/* Notizen */}
+                  <div>
+                    <label className="label">Notizen (optional)</label>
+                    <textarea
+                      className="input-styled"
+                      rows={2}
+                      placeholder="z.B. 'Filiale in Taschkent gefunden' oder 'Mehrere ähnliche Unis'"
+                      value={manualData.anabin_notes}
+                      onChange={(e) => setManualData({...manualData, anabin_notes: e.target.value})}
+                    />
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  Klicken Sie auf "Suchen" um die Anabin-Datenbank zu durchsuchen.
-                </div>
-              )}
+              </div>
             </div>
 
             {/* Footer */}
             <div className="p-4 border-t bg-gray-50 flex justify-between">
-              <a
-                href="https://anabin.kmk.org/db/institutionen"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary-600 hover:underline flex items-center gap-1"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Anabin manuell öffnen
-              </a>
               <button
-                onClick={() => { setSelectedStudent(null); setSearchResult(null); }}
+                onClick={() => setSelectedStudent(null)}
                 className="btn-secondary"
               >
-                Schließen
+                Abbrechen
+              </button>
+              <button
+                onClick={handleSaveVerification}
+                disabled={saving}
+                className="btn-primary flex items-center gap-2"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Speichern
               </button>
             </div>
           </div>
