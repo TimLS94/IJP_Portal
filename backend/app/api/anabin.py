@@ -4,17 +4,28 @@ Anabin University Verification API
 Endpoints für die Verifizierung von Universitäten über anabin.kmk.org
 Nur für Admins zugänglich.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import date
 from pydantic import BaseModel
+import logging
 
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant, PositionType
 from app.services.anabin_service import anabin_service, VerificationStatus
+from app.services.anabin_pdf_service import (
+    fetch_anabin_pdf,
+    is_pdf_cached,
+    get_cached_pdf,
+    list_cached_pdfs,
+    get_cached_pdf_path
+)
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/anabin", tags=["Anabin Verifizierung"])
 
@@ -256,3 +267,216 @@ async def auto_verify_university(
         },
         "result": result
     }
+
+
+# ============================================================
+# PDF-Abruf Endpoints
+# ============================================================
+
+@router.get("/pdf/{applicant_id}")
+async def get_anabin_pdf(
+    applicant_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Holt das Anabin-PDF für einen Bewerber.
+    Wenn gecacht, wird es sofort zurückgegeben.
+    Wenn nicht, wird es von Anabin geholt (dauert ~5-10 Sekunden).
+    
+    Nur für Admins.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Admins können auf diese Funktion zugreifen"
+        )
+    
+    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+    if not applicant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Bewerber nicht gefunden"
+        )
+    
+    # Bestimme welchen Namen wir für die Suche verwenden
+    # Priorität: anabin_institution_name (verifiziert) > university_name (eingegeben)
+    search_name = applicant.anabin_institution_name or applicant.university_name
+    
+    if not search_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Kein Universitätsname hinterlegt"
+        )
+    
+    # Bestimme Land
+    country = "Usbekistan"  # Default
+    if applicant.university_country:
+        if "kirgis" in applicant.university_country.lower():
+            country = "Kirgisistan"
+    elif applicant.nationality:
+        if "kirgis" in applicant.nationality.lower():
+            country = "Kirgisistan"
+    
+    # Prüfe ob PDF gecacht ist
+    if is_pdf_cached(search_name):
+        logger.info(f"PDF aus Cache: {search_name}")
+        pdf_bytes = get_cached_pdf(search_name)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'inline; filename="anabin_{applicant_id}.pdf"',
+                "X-PDF-Source": "cache"
+            }
+        )
+    
+    # Hole PDF von Anabin
+    logger.info(f"Hole PDF von Anabin: {search_name} ({country})")
+    
+    try:
+        success, pdf_bytes, message = await fetch_anabin_pdf(
+            university_name=search_name,
+            country=country,
+            headless=True  # Im Hintergrund laufen lassen
+        )
+        
+        if success and pdf_bytes:
+            return Response(
+                content=pdf_bytes,
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f'inline; filename="anabin_{applicant_id}.pdf"',
+                    "X-PDF-Source": "live"
+                }
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"PDF konnte nicht erstellt werden: {message}"
+            )
+            
+    except Exception as e:
+        logger.error(f"PDF-Abruf fehlgeschlagen: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Fehler beim PDF-Abruf: {str(e)}"
+        )
+
+
+@router.get("/pdf-status/{applicant_id}")
+async def check_pdf_status(
+    applicant_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Prüft ob ein PDF für den Bewerber bereits gecacht ist.
+    Nur für Admins.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Admins können auf diese Funktion zugreifen"
+        )
+    
+    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+    if not applicant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Bewerber nicht gefunden"
+        )
+    
+    search_name = applicant.anabin_institution_name or applicant.university_name
+    
+    if not search_name:
+        return {
+            "cached": False,
+            "available": False,
+            "message": "Kein Universitätsname hinterlegt"
+        }
+    
+    cached = is_pdf_cached(search_name)
+    
+    return {
+        "cached": cached,
+        "available": True,
+        "university_name": search_name,
+        "message": "PDF ist gecacht" if cached else "PDF muss von Anabin geladen werden (~5-10 Sekunden)"
+    }
+
+
+@router.get("/cached-pdfs")
+async def get_cached_pdfs_list(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Listet alle gecachten Anabin-PDFs auf.
+    Nur für Admins.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Admins können auf diese Funktion zugreifen"
+        )
+    
+    pdfs = list_cached_pdfs()
+    
+    return {
+        "count": len(pdfs),
+        "pdfs": pdfs
+    }
+
+
+@router.post("/fetch-pdf")
+async def fetch_pdf_for_university(
+    university_name: str,
+    country: str = "Usbekistan",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Holt ein PDF für eine beliebige Universität (direkte Suche).
+    Nützlich zum Testen oder manuellen Abruf.
+    Nur für Admins.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Admins können auf diese Funktion zugreifen"
+        )
+    
+    if not university_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Universitätsname erforderlich"
+        )
+    
+    logger.info(f"Manueller PDF-Abruf: {university_name} ({country})")
+    
+    try:
+        success, pdf_bytes, message = await fetch_anabin_pdf(
+            university_name=university_name,
+            country=country,
+            headless=True
+        )
+        
+        if success and pdf_bytes:
+            return Response(
+                content=pdf_bytes,
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f'attachment; filename="anabin_{university_name[:30]}.pdf"'
+                }
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"PDF konnte nicht erstellt werden: {message}"
+            )
+            
+    except Exception as e:
+        logger.error(f"PDF-Abruf fehlgeschlagen: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Fehler beim PDF-Abruf: {str(e)}"
+        )
