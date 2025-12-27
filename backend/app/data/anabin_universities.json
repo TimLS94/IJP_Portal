@@ -1,0 +1,496 @@
+{
+  "last_updated": "2024-12-27",
+  "source": "anabin.kmk.org - Usbekistan & Kirgisistan",
+  "total_count": 355,
+  "note": "Seite 1 von 4 - weitere Seiten können manuell hinzugefügt werden",
+  "universities": [
+    {
+      "name_original": "Central Asian Medical University xalqaro tibbiyot universiteti",
+      "name_german": "",
+      "city": "Ferghana",
+      "type": "Private Hochschule",
+      "status": "H -",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Mirzo Ulug'bek informatika kasb-hunar kolleji",
+      "name_german": "Mirzo-Ulug'bek-Fachberufskolleg für Informatik",
+      "city": "Taschkent",
+      "type": "Einrichtung ohne Hochschulrang",
+      "status": "H -",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Ipak yo'li turizm va madaniy meros xalqaro universiteti",
+      "name_german": "Internationale Universität für Tourismus und Kulturerbe Seidenstraße",
+      "city": "Samarkand",
+      "type": "Akkreditierte Privathochschule",
+      "status": "H +/-",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "MEI milliy tadqiqot universitetining Toshkent filiali",
+      "name_german": "Filiale der Nationalen Forschungsuniversität MEI in Taschkent",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Tashkent International University of Education",
+      "name_german": "",
+      "city": "Taschkent",
+      "type": "Private Hochschule",
+      "status": "H -",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Toshkent irrigatsiya va qishloq xo'jaligini mexanizatsiyalash muhandislari instituti milliy tadqiqot universitetining Buxoro tabiiy resurslarni boshqarish instituti",
+      "name_german": "Institut für das Management natürlicher Ressourcen Buchara der nationalen Forschungsuniversität Institut der Ingenieure für Bewässerung und Mechanisierung der Landwirtschaft Taschkent",
+      "city": "Buchara",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Toshkent irrigatsiya va qishloq xo'jaligini mexanizatsiyalash muhandislari instituti milliy tadqiqot universitetining Qarshi irrigatsiya va agrotexnologiyalar instituti",
+      "name_german": "Institut für Bewässerung und Agrartechnologien Qarshi der nationalen Forschungsuniversität Institut der Ingenieure für Bewässerung und Mechanisierung der Landwirtschaft Taschkent",
+      "city": "Karschi",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Toshkent irrigatsiya va qishloq xo'jaligini mexanizatsiyalash muxandislari instituti milliy tadqiqot universiteti",
+      "name_german": "Nationale Forschungsuniversität Institut der Ingenieure für Bewässerung und Mechanisierung der Landwirtschaft Taschkent",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "A. Z. Myrsabekov atyndagy Os mamlekettik pedagogikalyk universiteti",
+      "name_german": "Staatliche Pädagogische A.-Myrzabekow-Universität Osch",
+      "city": "Osch",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "A.Avloniy nomidagi pedagoglarni kasbiy rivojlantirish va yangi metodikalarga o'rgatish milliy-tadqiqot instituti",
+      "name_german": "Nationales A.-Avloniy-Forschungsinstitut für die berufliche Entwicklung und Schulung von Lehrkräften in neuen Lehrmethoden",
+      "city": "Taschkent",
+      "type": "Forschungsinstitut",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "A.I.Gersen nomidagi Rossiya davlat pedagogika universitetining Toshkent shahridagi filiali",
+      "name_german": "Filiale der Russischen Staatlichen Pädagogischen A.-I.-Herzen-Universität in Taschkent",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Abdulla Qodiriy nomidagi Toshkent davlat madaniyat instituti",
+      "name_german": "Staatliche Abdulla-Qodiriy-Hochschule für Kultur Taschkent",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Abu Ali ibn Sino nomidagi Buxoro davlat tibbiyot instituti",
+      "name_german": "Staatliches Medizinisches Abu-Ali-ibn-Sino-Institut Buchara",
+      "city": "Buchara",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Abu Rayhon Beruniy nomidagi Urganch davlat universiteti",
+      "name_german": "Staatliche Abu-Rayhon-Beruniy-Universität Urgentsch",
+      "city": "Urgentsch",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Adam universiteti / Biskek finansy-ekonomikalyk akademijasy",
+      "name_german": "Universität Adam / Akademie für Wirtschaft und Finanzwesen Bischkek",
+      "city": "Bischkek",
+      "type": "Akkreditierte Privathochschule",
+      "status": "H +/-",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "Ajiniyoz nomidagi Nukus Davlat Pedagogika Instituti",
+      "name_german": "Staatliches Pädagogisches Aschinijaz-Institut Nukus",
+      "city": "Nukus",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Akademik K. Karasaev atyndagy Biskek mamlekettik universiteti",
+      "name_german": "Staatliche Akademiemitglied-K.-Karassajew-Universität Bischkek",
+      "city": "Bischkek",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "Akademik M. M. Adysev atyndagy Os technologijalyk universiteti",
+      "name_german": "Technologische Akademiemitglied-M.-M.-Adyschew-Universität Osch",
+      "city": "Osch",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "Ala-Too El aralyk universiteti",
+      "name_german": "Internationale Ala-Too-Universität",
+      "city": "Bischkek",
+      "type": "Akkreditierte Privathochschule",
+      "status": "H +/-",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "Alfraganus universiteti",
+      "name_german": "Universität Alfraganus",
+      "city": "Taschkent",
+      "type": "Private Hochschule",
+      "status": "H -",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Alisher Navoiy nomidagi Toshkent davlat o'zbek tili va adabiyoti universiteti",
+      "name_german": "Staatliche Alischer-Nawai-Universität für usbekische Sprache und Literatur Taschkent",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Amerika texnologiyalar universiteti",
+      "name_german": "Amerikanische Universität für Technologie",
+      "city": "Taschkent",
+      "type": "Private Hochschule",
+      "status": "H -",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Andijon davlat chet tillari instituti",
+      "name_german": "Staatliches Institut für Fremdsprachen Andijon",
+      "city": "Andijon",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Andijon davlat pedagogika instituti",
+      "name_german": "Staatliches Pädagogisches Institut Andijon",
+      "city": "Andijon",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Andijon davlat texnika instituti",
+      "name_german": "Staatliches Technisches Institut Andijon",
+      "city": "Andijon",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Andijon davlat tibbiyot instituti",
+      "name_german": "Staatliches Medizinisches Institut Andijon",
+      "city": "Andijon",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Andijon davlat tillar pedagogika instituti",
+      "name_german": "Staatliches Pädagogisches Institut für Sprachen Andijon",
+      "city": "Andijon",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Andijon iqtisodiyot va qurilish instituti",
+      "name_german": "Institut für Wirtschaft und Bauwesen Andijon",
+      "city": "Andijon",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Andijon mashinasozlik instituti",
+      "name_german": "Institut für Maschinenbau Andischan",
+      "city": "Andijon",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Andijon qishloq xo'jaligi va agrotexnologiyalar instituti",
+      "name_german": "Institut für Landwirtschaft und Agrartechnik Andijon",
+      "city": "Andijon",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Angren universiteti",
+      "name_german": "Universität Angren",
+      "city": "Angren",
+      "type": "Private Hochschule",
+      "status": "H -",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Aniq va ijtimoiy fanlar universiteti",
+      "name_german": "Universität für Exakt- und Sozialwissenschaften",
+      "city": "Taschkent",
+      "type": "Private Hochschule",
+      "status": "H -",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Astraxan davlat texnika universiteti Toshkent viloyati filiali",
+      "name_german": "Filiale der Staatlichen Technischen Universität Astrachan in der Region Taschkent",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Axborot Texnologiyalari va menejment universiteti",
+      "name_german": "",
+      "city": "Karschi",
+      "type": "Private Hochschule",
+      "status": "H -",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "B. Bejsenalieva atyndagy kyrgyz mamlekettik madanijat zana iskusstvo universiteti",
+      "name_german": "Kirgisische Staatliche B.-Beischenaliewa-Universität für Kultur und Kunst",
+      "city": "Bischkek",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "B. Osmonov atyndagy Zalal-Abad mamlekettik universiteti",
+      "name_german": "B.-Osmonow-Staatsuniversität Dschalal-Abad",
+      "city": "Dschalal-Abad",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "Batken mamlekettik universitetiti",
+      "name_german": "Staatliche Universität Batken",
+      "city": "Batken",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "Batyraly Sadykov atyndagy Kyrgyz-Ozbek el aralyk universtiteti",
+      "name_german": "Internationale Kirgisisch-Usbekische Batyraly-Sadykov-Universität",
+      "city": "Osch",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "Belarus-O'zbekiston qo'shma tarmoqlararo amaliy texnik kvalifikatsiyalar instituti",
+      "name_german": "Gemeinsames Belarussisch-Usbekisches Branchenübergreifendes Institut für Angewandte Technische Qualifikationen",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Berdaq nomidagi Qoraqalpoq davlat universiteti",
+      "name_german": "Karakalpakische Staatliche Berdaq-Universität",
+      "city": "Nukus",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Borborduk Azijadagy Amerika universiteti",
+      "name_german": "Amerikanische Universität in Zentralasien",
+      "city": "Bischkek",
+      "type": "Akkreditierte Privathochschule",
+      "status": "H +/-",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "Borborduk Azijadagy Universiteti",
+      "name_german": "Universität Zentralasiens",
+      "city": "Naryn",
+      "type": "Privathochschule mit akkreditierten Studiengängen",
+      "status": "H +/-",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "Buxoro davlat pedagogika instituti",
+      "name_german": "Staatliches Pädagogisches Institut Buchara",
+      "city": "Buchara",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Buxoro davlat texnika universiteti",
+      "name_german": "Staatliche Technische Universität Buchara",
+      "city": "Buchara",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Buxoro davlat universiteti",
+      "name_german": "Staatliche Universität Buchara",
+      "city": "Buchara",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Central Asian University / AKFA universiteti",
+      "name_german": "Universität Zentralasiens / Universität AKFA",
+      "city": "Taschkent",
+      "type": "Akkreditierte Privathochschule",
+      "status": "H +/-",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Chirchiq davlat pedagogika universiteti",
+      "name_german": "Staatliche Pädagogische Universität Chirchiq",
+      "city": "Chirchiq",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "D.I. Mendeleyev nomidagi Rossiya kimyo-texnologiya universitetining Toshkent filiali",
+      "name_german": "Filiale der Russischen D.-I.-Mendelejew-Universität für Chemie und Technologie in Taschkent",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "El aralyk zogorku medicinalyk mektebi",
+      "name_german": "Internationale Hochschule für Medicine",
+      "city": "Bischkek",
+      "type": "Akkreditierte Privathochschule",
+      "status": "H +/-",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "Farg'ona davlat texnika universiteti",
+      "name_german": "Staatliche Technische Universität Ferghana",
+      "city": "Ferghana",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Farg'ona davlat universiteti",
+      "name_german": "Staatliche Universität Ferghana",
+      "city": "Ferghana",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Farg'ona jamoat salomatligi tibbiyot instituti",
+      "name_german": "Medizinisches Institut für öffentliche Gesundheit Ferghana",
+      "city": "Ferghana",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "G.V. Plexanov nomli Rossiya iqtisodiyot universiteti Toshkent filiali",
+      "name_german": "Filiale Taschkent der Russischen G.-W.-Plechanow-Universität für Wirtschaft",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Geologiya fanlari universiteti",
+      "name_german": "Universität für Geologische Wissenschaften",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Guliston davlat pedagogika instituti",
+      "name_german": "Staatliches Pädagogisches Institut Guliston",
+      "city": "Guliston",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Guliston davlat universiteti",
+      "name_german": "Staatliche Universität Guliston",
+      "city": "Guliston",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "I. Abdraimov atyndagy Kyrgyz aviacijalyk institutu",
+      "name_german": "Kirgisisches I.-Abdraimow-Institut für Luftfahrt",
+      "city": "Bischkek",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "I. Arabaev atyndagy Kyrgyz mamlekettik universiteti",
+      "name_german": "Kirgisische Staatliche I.-Arabajew-Universität",
+      "city": "Bischkek",
+      "type": "Staatliche Hochschule mit Sonderstatus",
+      "status": "H +/-",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "I. K. Achunbaev atyndagy Kyrgyz mamlekettik medicinalyk akademijasy",
+      "name_german": "Kirgisische Staatliche Medizinische I.-K-Achunbajew-Akademie",
+      "city": "Bischkek",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Kirgisistan"
+    },
+    {
+      "name_original": "I.M.Gubkin nomidagi Rossiya davlat neft va gaz universitetining Toshkentdagi filiali",
+      "name_german": "Filiale Taschkent der Russischen Staatlichen I.-M.-Gubkin-Universität für Erdöl und Erdgas",
+      "city": "Taschkent",
+      "type": "Staatliche Hochschule",
+      "status": "H+",
+      "country": "Usbekistan"
+    },
+    {
+      "name_original": "Ilg'or texnologiyalar markazi",
+      "name_german": "Zentrum für Innovationstechnologien",
+      "city": "Taschkent",
+      "type": "Forschungsinstitut",
+      "status": "H+",
+      "country": "Usbekistan"
+    }
+  ]
+}
