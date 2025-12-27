@@ -111,7 +111,7 @@ class Applicant(Base):
     anabin_checked_by = Column(Integer, ForeignKey("users.id"))  # Wer hat geprüft
     
     # Relationships
-    user = relationship("User", back_populates="applicant")
+    user = relationship("User", back_populates="applicant", foreign_keys=[user_id])
     applications = relationship("Application", back_populates="applicant")
     documents = relationship("Document", back_populates="applicant")
     job_requests = relationship("JobRequest", back_populates="applicant")

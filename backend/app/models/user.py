@@ -23,6 +23,7 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    applicant = relationship("Applicant", back_populates="user", uselist=False)
+    # foreign_keys als String, da Applicant.user_id noch nicht importiert ist
+    applicant = relationship("Applicant", back_populates="user", uselist=False, primaryjoin="User.id==Applicant.user_id")
     company = relationship("Company", back_populates="user", uselist=False)
     company_memberships = relationship("CompanyMember", foreign_keys="CompanyMember.user_id", back_populates="user")
