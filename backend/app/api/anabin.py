@@ -45,18 +45,19 @@ async def get_students_to_verify(
             detail="Nur Admins können auf diese Funktion zugreifen"
         )
     
-    # Alle Bewerber mit position_type = studentenferienjob oder in position_types
-    applicants = db.query(Applicant).filter(
-        (Applicant.position_type == PositionType.STUDENTENFERIENJOB) |
-        (Applicant.position_types.contains(["studentenferienjob"]))
-    ).all()
+    # Alle Bewerber mit Universitätsname (= potenzielle Studenten)
+    # Einfachere Abfrage, die sowohl position_type als auch university_name berücksichtigt
+    from sqlalchemy import or_, and_, cast, String
     
-    # Alternativ: Alle mit university_name
-    if not applicants:
-        applicants = db.query(Applicant).filter(
-            Applicant.university_name != None,
-            Applicant.university_name != ""
-        ).all()
+    applicants = db.query(Applicant).filter(
+        or_(
+            Applicant.position_type == PositionType.STUDENTENFERIENJOB,
+            and_(
+                Applicant.university_name != None,
+                Applicant.university_name != ""
+            )
+        )
+    ).all()
     
     result = []
     for app in applicants:
