@@ -206,6 +206,12 @@ export const adminAPI = {
   listApplicants: (params) => api.get('/admin/applicants', { params }),
   getApplicantDocuments: (id) => api.get(`/admin/applicants/${id}/documents`),
   downloadAllDocuments: (id) => api.get(`/admin/applicants/${id}/documents/download-all`, { responseType: 'blob' }),
+  
+  // Anabin Uni-Verifizierung
+  getAnabinStudents: () => api.get('/anabin/students-to-verify'),
+  searchAnabin: (applicantId) => api.get(`/anabin/search/${applicantId}`),
+  autoVerifyAnabin: (applicantId) => api.post(`/anabin/auto-verify/${applicantId}`),
+  verifyAnabin: (data) => api.post('/anabin/verify', data),
 };
 
 export default api;

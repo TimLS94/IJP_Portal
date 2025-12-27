@@ -44,3 +44,9 @@ alembic==1.13.1
 
 # Security - HTML Sanitization
 bleach==6.1.0
+
+# Anabin University Verification
+beautifulsoup4==4.12.3
+rapidfuzz==3.6.1
+requests==2.31.0
+lxml==5.1.0

@@ -37,6 +37,7 @@ import AdminApplications from './pages/admin/Applications';
 import AdminJobRequests from './pages/admin/JobRequests';
 import BlogManager from './pages/admin/BlogManager';
 import BlogEditor from './pages/admin/BlogEditor';
+import AnabinVerification from './pages/admin/AnabinVerification';
 
 // Blog
 import BlogList from './pages/blog/BlogList';
@@ -119,6 +120,7 @@ function App() {
             <Route path="jobs" element={<AdminJobs />} />
             <Route path="applications" element={<AdminApplications />} />
             <Route path="job-requests" element={<AdminJobRequests />} />
+            <Route path="anabin" element={<AnabinVerification />} />
             <Route path="blog" element={<BlogManager />} />
             <Route path="blog/new" element={<BlogEditor />} />
             <Route path="blog/edit/:id" element={<BlogEditor />} />

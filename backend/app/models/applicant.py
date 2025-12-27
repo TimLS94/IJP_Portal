@@ -100,6 +100,16 @@ class Applicant(Base):
     additional_info = Column(Text)  # Sonstige Informationen
     profile_image = Column(String(255))
     
+    # ========== ANABIN UNI-VERIFIZIERUNG ==========
+    anabin_verified = Column(String(50), default="not_checked")  # not_checked, verified, not_found, uncertain, error
+    anabin_match_score = Column(Integer)  # 0-100
+    anabin_institution_name = Column(String(500))  # Gefundener Name in anabin
+    anabin_institution_id = Column(String(100))  # Anabin-ID
+    anabin_status = Column(String(50))  # H+, H+/-, H-
+    anabin_notes = Column(Text)  # Admin-Notizen zur Verifizierung
+    anabin_checked_at = Column(Date)  # Wann geprüft
+    anabin_checked_by = Column(Integer, ForeignKey("users.id"))  # Wer hat geprüft
+    
     # Relationships
     user = relationship("User", back_populates="applicant")
     applications = relationship("Application", back_populates="applicant")

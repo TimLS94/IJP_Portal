@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Briefcase, User, Building2, LogOut, Menu, X, FileText, Shield, 
   BookOpen, Settings, ClipboardList, Users, ChevronDown, Home,
-  LayoutDashboard, FolderOpen
+  LayoutDashboard, FolderOpen, GraduationCap
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -61,6 +61,7 @@ function Navbar() {
       return [
         { to: '/admin/dashboard', icon: LayoutDashboard, label: t('nav.adminDashboard') },
         { to: '/admin/job-requests', icon: ClipboardList, label: t('nav.adminJobRequests') },
+        { to: '/admin/anabin', icon: GraduationCap, label: 'Anabin Prüfung' },
         { to: '/admin/applications', icon: FileText, label: t('nav.adminApplications') },
         { to: '/admin/users', icon: Users, label: t('nav.adminUsers') },
         { to: '/admin/jobs', icon: Briefcase, label: t('nav.adminJobs') },
