@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
     ALLOWED_EXTENSIONS: str = "pdf"  # Kommasepariert für mehrere: "pdf,doc,docx"
     
+    # Cloudflare R2 Storage (optional - Fallback auf lokales Filesystem)
+    R2_ACCOUNT_ID: str = ""
+    R2_ACCESS_KEY_ID: str = ""
+    R2_SECRET_ACCESS_KEY: str = ""
+    R2_BUCKET_NAME: str = "jobon-documents"
+    
     # CORS - Kann als kommaseparierter String oder JSON-Array angegeben werden
     # Beispiel: "https://example.com,https://app.example.com" oder '["https://example.com"]'
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"

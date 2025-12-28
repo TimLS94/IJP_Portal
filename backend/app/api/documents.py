@@ -224,6 +224,7 @@ async def download_document(
     from app.models.company import Company
     from app.models.application import Application
     from app.models.job_posting import JobPosting
+    from fastapi.responses import Response
     
     document = db.query(Document).filter(Document.id == document_id).first()
     
@@ -266,16 +267,21 @@ async def download_document(
             detail="Keine Berechtigung"
         )
     
-    if not os.path.exists(document.file_path):
+    # Datei über DocumentService laden (unterstützt R2 und lokal)
+    file_content = await DocumentService.get_file_content(document)
+    
+    if file_content is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Datei nicht gefunden"
         )
     
-    return FileResponse(
-        path=document.file_path,
-        filename=document.original_name,
-        media_type=document.mime_type
+    return Response(
+        content=file_content,
+        media_type=document.mime_type or 'application/pdf',
+        headers={
+            "Content-Disposition": f'attachment; filename="{document.original_name}"'
+        }
     )
 
 

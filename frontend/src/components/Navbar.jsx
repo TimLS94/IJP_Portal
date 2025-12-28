@@ -99,7 +99,7 @@ function Navbar() {
             <img 
               src="/logo.png" 
               alt="JobOn - Internationale Jobvermittlung" 
-              className="h-10 w-auto"
+              className="h-16 w-auto"
             />
           </Link>
 

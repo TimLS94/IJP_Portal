@@ -1,13 +1,18 @@
+"""
+Document Service - Verarbeitet Dokument-Uploads
+
+Verwendet StorageService für persistenten Cloud-Storage (Cloudflare R2)
+oder lokales Filesystem als Fallback.
+"""
 import os
 import uuid
-import aiofiles
 from fastapi import UploadFile, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.core.config import settings
 from app.models.document import Document, DocumentType
-from app.models.applicant import Applicant
+from app.services.storage_service import storage_service
 
 
 class DocumentService:
@@ -87,16 +92,19 @@ class DocumentService:
         ext = DocumentService.get_file_extension(file.filename)
         unique_filename = f"{uuid.uuid4()}.{ext}"
         
-        # Verzeichnis für Bewerber erstellen
-        applicant_dir = os.path.join(settings.UPLOAD_DIR, str(applicant_id))
-        os.makedirs(applicant_dir, exist_ok=True)
+        # Datei über StorageService speichern (R2 oder lokal)
+        success, file_path, error = await storage_service.upload_file(
+            file_content=file_content,
+            applicant_id=applicant_id,
+            filename=unique_filename,
+            content_type=file.content_type or 'application/pdf'
+        )
         
-        # Dateipfad
-        file_path = os.path.join(applicant_dir, unique_filename)
-        
-        # Datei speichern
-        async with aiofiles.open(file_path, "wb") as out_file:
-            await out_file.write(file_content)
+        if not success:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Fehler beim Speichern der Datei: {error}"
+            )
         
         # Datenbank-Eintrag erstellen
         document = Document(
@@ -104,7 +112,7 @@ class DocumentService:
             document_type=document_type,
             file_name=unique_filename,
             original_name=file.filename,
-            file_path=file_path,
+            file_path=file_path,  # Bei R2: Key, bei lokal: Pfad
             file_size=len(file_content),
             mime_type=file.content_type,
             description=description
@@ -116,18 +124,31 @@ class DocumentService:
         return document
     
     @staticmethod
-    def delete_file(document: Document, db: Session) -> bool:
+    async def get_file_content(document: Document) -> Optional[bytes]:
+        """Holt den Inhalt einer Datei"""
+        success, content, error = await storage_service.download_file(document.file_path)
+        if success:
+            return content
+        return None
+    
+    @staticmethod
+    async def delete_file(document: Document, db: Session) -> bool:
         """Löscht eine Datei und den Datenbank-Eintrag"""
         
-        # Datei vom Filesystem löschen
-        if os.path.exists(document.file_path):
-            os.remove(document.file_path)
+        # Datei über StorageService löschen
+        await storage_service.delete_file(document.file_path)
         
         # Datenbank-Eintrag löschen
         db.delete(document)
         db.commit()
         
         return True
+    
+    @staticmethod
+    def delete_file_sync(document: Document, db: Session) -> bool:
+        """Synchrone Version für Kompatibilität"""
+        import asyncio
+        return asyncio.run(DocumentService.delete_file(document, db))
     
     @staticmethod
     def get_documents_by_applicant(applicant_id: int, db: Session) -> List[Document]:
