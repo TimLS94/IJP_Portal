@@ -37,12 +37,18 @@ class StorageService:
     def __init__(self):
         self.use_r2 = False
         self.s3_client = None
-        self.bucket_name = os.getenv('R2_BUCKET_NAME', 'jobon-documents')
         
-        # Prüfe ob R2 konfiguriert ist
-        r2_account_id = os.getenv('R2_ACCOUNT_ID')
-        r2_access_key = os.getenv('R2_ACCESS_KEY_ID')
-        r2_secret_key = os.getenv('R2_SECRET_ACCESS_KEY')
+        # Lade Config aus settings (die lädt aus Environment Variables)
+        from app.core.config import settings
+        
+        self.bucket_name = settings.R2_BUCKET_NAME or 'jobon-documents'
+        r2_account_id = settings.R2_ACCOUNT_ID
+        r2_access_key = settings.R2_ACCESS_KEY_ID
+        r2_secret_key = settings.R2_SECRET_ACCESS_KEY
+        
+        logger.info(f"Storage Init - R2_ACCOUNT_ID: {'✓' if r2_account_id else '✗'}")
+        logger.info(f"Storage Init - R2_ACCESS_KEY_ID: {'✓' if r2_access_key else '✗'}")
+        logger.info(f"Storage Init - R2_SECRET_ACCESS_KEY: {'✓' if r2_secret_key else '✗'}")
         
         if BOTO3_AVAILABLE and r2_account_id and r2_access_key and r2_secret_key:
             try:

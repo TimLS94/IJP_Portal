@@ -311,6 +311,6 @@ async def delete_document(
             detail="Dokument nicht gefunden"
         )
     
-    DocumentService.delete_file(document, db)
+    await DocumentService.delete_file(document, db)
     
     return {"message": "Dokument gelöscht"}
