@@ -89,13 +89,13 @@ def seed_database(db: Session):
             been_to_germany=True,
             germany_details="2022 für 3 Monate als Tourist in Berlin und München",
             
-            # Studenten-Daten
-            university_name="Staatliche Universität Moskau",
-            university_street="Leninskie Gory",
-            university_house_number="1",
-            university_postal_code="119991",
-            university_city="Moskau",
-            university_country="Russland",
+            # Studenten-Daten (Usbekische Uni für Anabin-Test)
+            university_name="Filiale der Staatlichen Technischen Universität Taschkent in Almalyk",
+            university_street="Amir Temur Straße",
+            university_house_number="15",
+            university_postal_code="110100",
+            university_city="Almalyk",
+            university_country="Usbekistan",
             field_of_study="Informatik",
             current_semester=6,
             semester_break_start=date(2025, 6, 15),

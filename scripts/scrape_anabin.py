@@ -226,3 +226,4 @@ if __name__ == "__main__":
     print("   ANABIN UNIVERSITY SCRAPER")
     print("=" * 60)
     scrape_anabin()
+

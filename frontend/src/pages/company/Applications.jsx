@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { applicationsAPI, documentsAPI, downloadBlob } from '../../lib/api';
+import { applicationsAPI, documentsAPI, interviewAPI, downloadBlob } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   Users, User, Briefcase, Calendar, MessageSquare, Check, X, 
   Eye, Mail, Phone, MapPin, FileText, Download, GraduationCap,
   Globe, Loader2, ChevronDown, ChevronUp, Search, Filter, 
-  ArrowUpDown, SlidersHorizontal, LayoutGrid, List
+  ArrowUpDown, SlidersHorizontal, LayoutGrid, List, CalendarPlus,
+  Clock, Video, MapPinned, CheckCircle, XCircle, AlertTriangle
 } from 'lucide-react';
 
 const statusOptions = [
@@ -39,6 +40,26 @@ function CompanyApplications() {
   const [selectedApp, setSelectedApp] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [applicantDetails, setApplicantDetails] = useState(null);
+  const [pendingStatus, setPendingStatus] = useState(null); // Lokaler Status vor dem Speichern
+  const [pendingInterview, setPendingInterview] = useState(null); // Lokale Interview-Daten vor dem Speichern
+  const [savingStatus, setSavingStatus] = useState(false);
+  
+  // Interview Modal
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [interviewData, setInterviewData] = useState({
+    proposed_date_1: '',
+    proposed_time_1: '',
+    proposed_date_2: '',
+    proposed_time_2: '',
+    location: '',
+    meeting_link: '',
+    notes: '',
+  });
+  const [submittingInterview, setSubmittingInterview] = useState(false);
+  const [interviews, setInterviews] = useState([]);
+  const [cancellingInterview, setCancellingInterview] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   useEffect(() => {
     loadApplications();
@@ -112,9 +133,14 @@ function CompanyApplications() {
   const loadApplicantDetails = async (appId) => {
     setSelectedApp(appId);
     setDetailsLoading(true);
+    setPendingStatus(null); // Reset pending status
+    setPendingInterview(null); // Reset pending interview
     try {
       const response = await applicationsAPI.getApplicantDetails(appId);
       setApplicantDetails(response.data);
+      setPendingStatus(response.data.application.status); // Setze initialen Status
+      // Lade auch Interview-Daten
+      loadInterviews(appId);
     } catch (error) {
       toast.error('Fehler beim Laden der Details');
       setSelectedApp(null);
@@ -123,17 +149,198 @@ function CompanyApplications() {
     }
   };
 
-  const updateStatus = async (id, status) => {
+  const loadInterviews = async (appId) => {
+    try {
+      const response = await interviewAPI.getForApplication(appId);
+      setInterviews(response.data);
+    } catch (error) {
+      console.error('Interview-Fehler:', error);
+    }
+  };
+
+  const cancelInterview = async (interviewId) => {
+    setCancellingInterview(interviewId);
+    try {
+      await interviewAPI.cancel(interviewId, cancelReason);
+      toast.success('Termin abgesagt - Bewerber wurde benachrichtigt');
+      setShowCancelModal(null);
+      setCancelReason('');
+      loadApplications();
+      if (selectedApp) {
+        loadInterviews(selectedApp);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Fehler beim Absagen');
+    } finally {
+      setCancellingInterview(null);
+    }
+  };
+
+  const openInterviewModal = () => {
+    setInterviewData({
+      proposed_date_1: '',
+      proposed_time_1: '10:00',
+      proposed_date_2: '',
+      proposed_time_2: '14:00',
+      location: '',
+      meeting_link: '',
+      notes: '',
+    });
+    setShowInterviewModal(true);
+  };
+
+  const submitInterviewProposal = () => {
+    if (!interviewData.proposed_date_1 || !interviewData.proposed_time_1) {
+      toast.error('Bitte mindestens einen Termin angeben');
+      return;
+    }
+
+    // Kombiniere Datum und Uhrzeit
+    const date1 = new Date(`${interviewData.proposed_date_1}T${interviewData.proposed_time_1}`);
+    let date2 = null;
+    if (interviewData.proposed_date_2 && interviewData.proposed_time_2) {
+      date2 = new Date(`${interviewData.proposed_date_2}T${interviewData.proposed_time_2}`);
+    }
+
+    // Speichere nur lokal - wird erst beim "Speichern" gesendet
+    setPendingInterview({
+      application_id: selectedApp,
+      proposed_date_1: date1.toISOString(),
+      proposed_date_2: date2 ? date2.toISOString() : null,
+      location: interviewData.location || null,
+      meeting_link: interviewData.meeting_link || null,
+      notes: interviewData.notes || null,
+      // Für Anzeige
+      display_date_1: date1,
+      display_date_2: date2,
+    });
+
+    // Status auf "Vorstellungsgespräch" setzen
+    setPendingStatus('interview_scheduled');
+
+    toast.success('Termine vorgemerkt - bitte unten "Speichern" klicken!');
+    setShowInterviewModal(false);
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Für Inline-Dropdown in der Tabelle (sofort speichern)
+  const updateStatusInline = async (id, status) => {
     try {
       await applicationsAPI.update(id, { status });
       toast.success('Status aktualisiert');
       loadApplications();
-      if (applicantDetails) {
-        loadApplicantDetails(id);
-      }
     } catch (error) {
       toast.error('Fehler beim Aktualisieren');
     }
+  };
+
+  // Im Modal: Status nur lokal ändern
+  const setLocalStatus = (status) => {
+    setPendingStatus(status);
+  };
+
+  // Im Modal: Alles speichern (Status + Interview) + 1 kombinierte Email
+  const saveStatus = async () => {
+    if (!selectedApp) return;
+    
+    const statusChanged = pendingStatus && applicantDetails && pendingStatus !== applicantDetails.application.status;
+    const hasNewInterview = pendingInterview !== null;
+    
+    if (!statusChanged && !hasNewInterview) {
+      toast.success('Keine Änderungen zum Speichern');
+      return;
+    }
+    
+    setSavingStatus(true);
+    try {
+      // 1. Interview-Vorschlag speichern OHNE Email (send_email=false)
+      if (hasNewInterview) {
+        await interviewAPI.propose(pendingInterview, false); // Keine separate Email!
+      }
+      
+      // 2. Status aktualisieren (falls geändert)
+      if (statusChanged) {
+        await applicationsAPI.update(selectedApp, { status: pendingStatus });
+      }
+      
+      // 3. EINE kombinierte Email senden
+      const emailData = {
+        application_id: selectedApp,
+      };
+      
+      if (statusChanged) {
+        emailData.new_status = pendingStatus;
+      }
+      
+      if (hasNewInterview) {
+        const dates = [
+          new Date(pendingInterview.proposed_date_1).toLocaleString('de-DE', {
+            weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          })
+        ];
+        if (pendingInterview.proposed_date_2) {
+          dates.push(new Date(pendingInterview.proposed_date_2).toLocaleString('de-DE', {
+            weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          }));
+        }
+        emailData.interview_dates = dates;
+        emailData.interview_location = pendingInterview.location;
+        emailData.interview_link = pendingInterview.meeting_link;
+        emailData.interview_notes = pendingInterview.notes;
+      }
+      
+      await interviewAPI.sendUpdateEmail(emailData);
+      
+      toast.success('Gespeichert! Bewerber wurde per E-Mail informiert.');
+      
+      // Aktualisiere alles
+      loadApplications();
+      loadInterviews(selectedApp);
+      setPendingInterview(null);
+      
+      // Aktualisiere die lokalen Details
+      setApplicantDetails(prev => ({
+        ...prev,
+        application: { ...prev.application, status: pendingStatus }
+      }));
+    } catch (error) {
+      console.error('Fehler:', error);
+      toast.error(error.response?.data?.detail || 'Fehler beim Speichern');
+    } finally {
+      setSavingStatus(false);
+    }
+  };
+
+  // Prüfen ob es ungespeicherte Änderungen gibt
+  const hasUnsavedChanges = () => {
+    const statusChanged = pendingStatus && applicantDetails && pendingStatus !== applicantDetails.application.status;
+    const hasNewInterview = pendingInterview !== null;
+    return statusChanged || hasNewInterview;
+  };
+
+  // Modal schließen (mit Warnung bei ungespeicherten Änderungen)
+  const closeDetailModal = () => {
+    if (hasUnsavedChanges()) {
+      if (!confirm('Sie haben ungespeicherte Änderungen. Wirklich schließen?')) {
+        return;
+      }
+    }
+    setSelectedApp(null);
+    setApplicantDetails(null);
+    setPendingStatus(null);
+    setPendingInterview(null);
   };
 
   const handleDocumentDownload = async (documentId, filename) => {
@@ -183,14 +390,14 @@ function CompanyApplications() {
     );
   };
 
-  // Status Dropdown inline
+  // Status Dropdown inline (in Tabelle - speichert sofort)
   const StatusDropdown = ({ app }) => {
     return (
       <select
         value={app.status}
-        onChange={(e) => updateStatus(app.id, e.target.value)}
-        className="text-xs border rounded-lg px-2 py-1 bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        onChange={(e) => updateStatusInline(app.id, e.target.value)}
         onClick={(e) => e.stopPropagation()}
+        className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
       >
         {statusOptions.map((status) => (
           <option key={status.value} value={status.value}>
@@ -516,7 +723,7 @@ function CompanyApplications() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-8 relative">
             {/* Schließen-Button immer sichtbar */}
             <button 
-              onClick={() => { setSelectedApp(null); setApplicantDetails(null); }}
+              onClick={closeDetailModal}
               className="absolute top-4 right-4 p-2 hover:bg-gray-200 rounded-lg z-10 bg-gray-100 shadow-sm"
             >
               <X className="h-6 w-6 text-gray-700" />
@@ -667,6 +874,143 @@ function CompanyApplications() {
                     )}
                   </div>
 
+                  {/* Interview-Termine */}
+                  <div className="md:col-span-2 bg-purple-50 rounded-xl p-5 border border-purple-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                        <CalendarPlus className="h-5 w-5 text-purple-600" />
+                        Vorstellungsgespräch
+                      </h3>
+                      <button
+                        onClick={openInterviewModal}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center gap-2"
+                      >
+                        <CalendarPlus className="h-4 w-4" />
+                        Termine vorschlagen
+                      </button>
+                    </div>
+                    
+                    {/* Bestehende Interviews anzeigen */}
+                    {interviews.length > 0 ? (
+                      <div className="space-y-3">
+                        {interviews.map((interview) => (
+                          <div key={interview.id} className={`p-4 rounded-lg border ${
+                            interview.status === 'confirmed' ? 'bg-green-50 border-green-200' :
+                            interview.status === 'declined' ? 'bg-red-50 border-red-200' :
+                            'bg-white border-gray-200'
+                          }`}>
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  {interview.status === 'confirmed' && <CheckCircle className="h-5 w-5 text-green-600" />}
+                                  {interview.status === 'declined' && <XCircle className="h-5 w-5 text-red-600" />}
+                                  {interview.status === 'proposed' && <Clock className="h-5 w-5 text-yellow-600" />}
+                                  <span className={`font-medium ${
+                                    interview.status === 'confirmed' ? 'text-green-700' :
+                                    interview.status === 'declined' ? 'text-red-700' :
+                                    'text-yellow-700'
+                                  }`}>
+                                    {interview.status_label}
+                                  </span>
+                                </div>
+                                
+                                {interview.confirmed_date ? (
+                                  <p className="text-sm">
+                                    <strong>Bestätigter Termin:</strong> {formatDateTime(interview.confirmed_date)}
+                                  </p>
+                                ) : (
+                                  <div className="text-sm space-y-1">
+                                    <p><strong>Vorschlag 1:</strong> {formatDateTime(interview.proposed_date_1)}</p>
+                                    {interview.proposed_date_2 && (
+                                      <p><strong>Vorschlag 2:</strong> {formatDateTime(interview.proposed_date_2)}</p>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {interview.location && (
+                                  <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
+                                    <MapPinned className="h-4 w-4" />
+                                    {interview.location}
+                                  </p>
+                                )}
+                                {interview.meeting_link && (
+                                  <p className="text-sm text-gray-600 flex items-center gap-1">
+                                    <Video className="h-4 w-4" />
+                                    <a href={interview.meeting_link} target="_blank" rel="noopener noreferrer" 
+                                       className="text-primary-600 hover:underline">
+                                      Meeting-Link
+                                    </a>
+                                  </p>
+                                )}
+                                
+                                {interview.notes_applicant && interview.status === 'declined' && (
+                                  <div className="mt-2 p-2 bg-red-100 rounded text-sm text-red-700">
+                                    <strong>Absagegrund:</strong> {interview.notes_applicant}
+                                  </div>
+                                )}
+                                
+                                {/* Absagen-Button für bestätigte oder vorgeschlagene Termine */}
+                                {(interview.status === 'confirmed' || interview.status === 'proposed') && (
+                                  <button
+                                    onClick={() => setShowCancelModal(interview.id)}
+                                    className="mt-3 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg flex items-center gap-1"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                    Termin absagen
+                                  </button>
+                                )}
+                                
+                                {interview.status === 'cancelled' && (
+                                  <div className="mt-2 p-3 bg-gray-100 rounded-lg text-sm border border-gray-200">
+                                    <p className="font-medium text-gray-700 flex items-center gap-1">
+                                      <XCircle className="h-4 w-4" />
+                                      Termin wurde abgesagt
+                                    </p>
+                                    {interview.notes_company && (
+                                      <p className="mt-2 text-gray-600">
+                                        <strong>Ihr Grund:</strong> {interview.notes_company}
+                                      </p>
+                                    )}
+                                    {interview.notes_applicant && (
+                                      <p className="mt-2 p-2 bg-amber-50 rounded border border-amber-200 text-amber-800">
+                                        <strong>Grund vom Bewerber:</strong> {interview.notes_applicant}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : pendingInterview ? (
+                      /* Vorgemerkte Termine (noch nicht gespeichert) */
+                      <div className="p-4 rounded-lg border-2 border-dashed border-amber-400 bg-amber-50">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                          <div>
+                            <p className="font-medium text-amber-800">Termine vorgemerkt (noch nicht gespeichert)</p>
+                            <div className="text-sm text-amber-700 mt-2 space-y-1">
+                              <p><strong>Vorschlag 1:</strong> {formatDateTime(pendingInterview.display_date_1)}</p>
+                              {pendingInterview.display_date_2 && (
+                                <p><strong>Vorschlag 2:</strong> {formatDateTime(pendingInterview.display_date_2)}</p>
+                              )}
+                              {pendingInterview.location && <p><strong>Ort:</strong> {pendingInterview.location}</p>}
+                            </div>
+                            <p className="text-xs text-amber-600 mt-2">
+                              Klicken Sie unten auf "Speichern", um die Termine zu senden.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm">
+                        Noch keine Termine vorgeschlagen. Klicken Sie auf "Termine vorschlagen", um dem Bewerber 
+                        Terminoptionen zu senden.
+                      </p>
+                    )}
+                  </div>
+
                   {/* Status ändern */}
                   <div className="md:col-span-2 bg-primary-50 rounded-xl p-5 border-2 border-primary-200">
                     <h3 className="font-bold text-gray-900 mb-4">Bewerbungsstatus ändern</h3>
@@ -674,9 +1018,9 @@ function CompanyApplications() {
                       {statusOptions.map((status) => (
                         <button
                           key={status.value}
-                          onClick={() => updateStatus(selectedApp, status.value)}
+                          onClick={() => setLocalStatus(status.value)}
                           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                            applicantDetails.application.status === status.value
+                            pendingStatus === status.value
                               ? 'ring-2 ring-primary-500 ' + status.color
                               : 'bg-white hover:bg-gray-50 text-gray-700'
                           }`}
@@ -685,10 +1029,258 @@ function CompanyApplications() {
                         </button>
                       ))}
                     </div>
+                    {hasUnsavedChanges() && (
+                      <p className="text-sm text-amber-600 mt-3 flex items-center gap-1">
+                        <AlertTriangle className="h-4 w-4" />
+                        Ungespeicherte Änderungen - bitte speichern!
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer mit Speichern und Schließen */}
+                <div className="p-4 border-t bg-gray-50 flex justify-between items-center sticky bottom-0">
+                  <div>
+                    {hasUnsavedChanges() && (
+                      <span className="text-sm text-amber-600 flex items-center gap-1">
+                        <AlertTriangle className="h-4 w-4" />
+                        Änderungen nicht gespeichert
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={closeDetailModal}
+                      className="btn-secondary flex items-center gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      Schließen
+                    </button>
+                    <button
+                      onClick={saveStatus}
+                      disabled={savingStatus || !hasUnsavedChanges()}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                        hasUnsavedChanges()
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {savingStatus ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                      Speichern
+                    </button>
                   </div>
                 </div>
               </>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Interview-Vorschlag Modal */}
+      {showInterviewModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-[60] p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg my-8 relative">
+            {/* Schließen-Button */}
+            <button
+              onClick={() => setShowInterviewModal(false)}
+              className="absolute top-3 right-3 p-2 hover:bg-gray-100 rounded-full z-10"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+            
+            <div className="p-6 border-b pr-12">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <CalendarPlus className="h-6 w-6 text-purple-600" />
+                Interviewtermine vorschlagen
+              </h2>
+              <p className="text-gray-600 text-sm mt-1">
+                Schlagen Sie dem Bewerber 2 Terminoptionen vor. Die E-Mail wird erst nach dem Speichern gesendet.
+              </p>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Termin 1 (Pflicht) */}
+              <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                <h3 className="font-semibold text-purple-900 mb-2 flex items-center gap-2 text-sm">
+                  <span className="bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">1</span>
+                  Terminvorschlag 1 *
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-gray-600">Datum</label>
+                    <input
+                      type="date"
+                      className="input-styled w-full text-sm py-1.5"
+                      value={interviewData.proposed_date_1}
+                      onChange={(e) => setInterviewData({...interviewData, proposed_date_1: e.target.value})}
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600">Uhrzeit</label>
+                    <input
+                      type="time"
+                      className="input-styled w-full text-sm py-1.5"
+                      value={interviewData.proposed_time_1}
+                      onChange={(e) => setInterviewData({...interviewData, proposed_time_1: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Termin 2 (Optional) */}
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <h3 className="font-semibold text-gray-700 mb-2 flex items-center gap-2 text-sm">
+                  <span className="bg-gray-400 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">2</span>
+                  Terminvorschlag 2 (optional)
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-gray-600">Datum</label>
+                    <input
+                      type="date"
+                      className="input-styled w-full text-sm py-1.5"
+                      value={interviewData.proposed_date_2}
+                      onChange={(e) => setInterviewData({...interviewData, proposed_date_2: e.target.value})}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600">Uhrzeit</label>
+                    <input
+                      type="time"
+                      className="input-styled w-full text-sm py-1.5"
+                      value={interviewData.proposed_time_2}
+                      onChange={(e) => setInterviewData({...interviewData, proposed_time_2: e.target.value})}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Ort & Link */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-600 flex items-center gap-1">
+                    <MapPinned className="h-3 w-3" />
+                    Ort / Adresse
+                  </label>
+                  <input
+                    type="text"
+                    className="input-styled text-sm py-1.5"
+                    placeholder="z.B. Online oder Adresse"
+                    value={interviewData.location}
+                    onChange={(e) => setInterviewData({...interviewData, location: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600 flex items-center gap-1">
+                    <Video className="h-3 w-3" />
+                    Meeting-Link
+                  </label>
+                  <input
+                    type="url"
+                    className="input-styled text-sm py-1.5"
+                    placeholder="https://..."
+                    value={interviewData.meeting_link}
+                    onChange={(e) => setInterviewData({...interviewData, meeting_link: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {/* Notizen */}
+              <div>
+                <label className="text-xs text-gray-600">Zusätzliche Informationen</label>
+                <textarea
+                  className="input-styled text-sm"
+                  rows={2}
+                  placeholder="z.B. Bitte bringen Sie Ihre Unterlagen mit..."
+                  value={interviewData.notes}
+                  onChange={(e) => setInterviewData({...interviewData, notes: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="p-3 border-t bg-gray-50 flex justify-end gap-2 rounded-b-2xl">
+              <button
+                onClick={() => setShowInterviewModal(false)}
+                className="btn-secondary text-sm py-2 px-4"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={submitInterviewProposal}
+                disabled={submittingInterview}
+                className="btn-primary text-sm py-2 px-4 flex items-center gap-2"
+              >
+                {submittingInterview ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CalendarPlus className="h-4 w-4" />
+                )}
+                Termine vormerken
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Absage-Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-red-700">
+                <XCircle className="h-6 w-6" />
+                Termin absagen
+              </h2>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-600 mb-4">
+                Möchten Sie diesen Termin wirklich absagen? Der Bewerber wird per E-Mail benachrichtigt.
+              </p>
+              
+              <div>
+                <label className="label">Grund (optional)</label>
+                <textarea
+                  className="input-styled"
+                  rows={3}
+                  placeholder="z.B. Terminkonflikt, wird verschoben..."
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+              <button
+                onClick={() => {
+                  setShowCancelModal(null);
+                  setCancelReason('');
+                }}
+                className="btn-secondary"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={() => cancelInterview(showCancelModal)}
+                disabled={cancellingInterview === showCancelModal}
+                className="btn-danger flex items-center gap-2"
+              >
+                {cancellingInterview === showCancelModal ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <XCircle className="h-4 w-4" />
+                )}
+                Termin absagen
+              </button>
+            </div>
           </div>
         </div>
       )}

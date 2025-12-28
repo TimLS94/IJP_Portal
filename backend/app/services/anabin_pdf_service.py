@@ -23,10 +23,8 @@ ANABIN_BASE_URL = "https://anabin.kmk.org/no_cache/filter/institutionen.html"
 
 def sanitize_filename(name: str) -> str:
     """Erstellt einen sicheren Dateinamen aus dem Uni-Namen"""
-    # Entferne ungültige Zeichen
     name = re.sub(r'[<>:"/\\|?*]', '', name)
     name = re.sub(r'\s+', '_', name)
-    # Hash für Eindeutigkeit bei langen Namen
     name_hash = hashlib.md5(name.encode()).hexdigest()[:8]
     return f"{name[:80]}_{name_hash}"
 
@@ -54,13 +52,22 @@ async def fetch_anabin_pdf(
     university_name: str,
     country: str = "Usbekistan",
     headless: bool = True,
-    timeout: int = 30000
+    timeout: int = 60000
 ) -> Tuple[bool, Optional[bytes], str]:
     """
     Holt ein PDF von Anabin für eine bestimmte Universität.
     
+    Ablauf:
+    1. Öffne Anabin Institutionen-Seite
+    2. Wähle Land aus (Usbekistan/Kirgisistan)
+    3. Suche nach der Universität
+    4. Klicke auf die Zeile → Modal öffnet sich
+    5. Alle Accordion-Panels aufklappen
+    6. CSS injizieren um nur Modal-Inhalt zu zeigen
+    7. PDF erstellen
+    
     Args:
-        university_name: Name der Universität (Original oder Deutsch)
+        university_name: Name der Universität
         country: Land (Usbekistan oder Kirgisistan)
         headless: Browser unsichtbar laufen lassen
         timeout: Timeout in Millisekunden
@@ -94,132 +101,170 @@ async def fetch_anabin_pdf(
                 locale='de-DE'
             )
             page = await context.new_page()
+            page.set_default_timeout(timeout)
             
             logger.info(f"Öffne Anabin für: {university_name}")
             
-            # Gehe zur Institutionen-Seite
+            # 1. Gehe zur Institutionen-Seite
             await page.goto(ANABIN_BASE_URL, timeout=timeout)
             await page.wait_for_load_state('networkidle', timeout=timeout)
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             
-            # Cookie-Banner akzeptieren falls vorhanden
-            try:
-                accept_btn = await page.query_selector('#acceptAll, .cookie-accept, [data-action="accept"]')
-                if accept_btn:
-                    await accept_btn.click()
-                    await asyncio.sleep(0.5)
-            except:
-                pass
-            
-            # Land-Filter setzen
+            # 2. Land auswählen über das Suchfeld
             logger.info(f"Setze Land-Filter: {country}")
             try:
-                # Finde das Land-Dropdown
-                land_select = await page.query_selector('select[name="country"], #country, [aria-label="Land"]')
-                if land_select:
-                    await land_select.select_option(label=country)
-                else:
-                    # Versuche Text-Klick
-                    await page.click(f'text={country}')
-                
-                await asyncio.sleep(1)
+                country_input = await page.query_selector('#searchCountriesInput')
+                if country_input:
+                    await country_input.click()
+                    await asyncio.sleep(0.5)
+                    await country_input.fill(country)
+                    await asyncio.sleep(1.5)
+                    
+                    # Klicke auf das Land im Dropdown
+                    country_option = await page.query_selector(f'text={country}')
+                    if country_option:
+                        is_visible = await country_option.is_visible()
+                        if is_visible:
+                            await country_option.click()
+                            await asyncio.sleep(2)
+                            logger.info(f"Land '{country}' ausgewählt")
             except Exception as e:
-                logger.warning(f"Land-Filter Fehler: {e}")
+                logger.warning(f"Land-Filter Warnung: {e}")
             
-            # Suche nach der Universität
+            # 3. Suche nach der Universität
             logger.info(f"Suche nach: {university_name}")
-            
-            # Finde Suchfeld
-            search_input = await page.query_selector('input[type="search"], input[name="search"], #searchInput, input[placeholder*="Suche"]')
+            search_input = await page.query_selector('#tableSearchInput')
             if search_input:
-                await search_input.fill(university_name[:50])  # Nur erste 50 Zeichen
-                await page.keyboard.press('Enter')
+                # Suchbegriff: Erste 40 Zeichen für bessere Ergebnisse
+                search_term = university_name[:40]
+                await search_input.fill(search_term)
                 await asyncio.sleep(2)
             
-            # Warte auf Ergebnisse
-            await page.wait_for_selector('tr.pointer', timeout=timeout)
-            
-            # Finde die passende Zeile (erste oder beste Übereinstimmung)
-            rows = await page.query_selector_all('tr.pointer')
+            # 4. Warte auf Tabellen-Ergebnisse und klicke auf erste Zeile
+            rows = await page.query_selector_all('table tbody tr')
+            logger.info(f"Gefundene Zeilen: {len(rows)}")
             
             if not rows:
                 return False, None, f"Keine Ergebnisse für '{university_name}' gefunden"
             
-            # Suche nach bester Übereinstimmung
-            target_row = None
-            uni_name_lower = university_name.lower()
+            # Klicke auf die erste Zeile → Modal öffnet sich
+            logger.info("Öffne Detail-Modal...")
+            await rows[0].click()
+            await asyncio.sleep(3)
             
-            for row in rows:
-                cell = await row.query_selector('td[aria-label="Institution"]')
-                if cell:
-                    cell_text = (await cell.inner_text()).lower()
-                    if uni_name_lower[:30] in cell_text or cell_text[:30] in uni_name_lower:
-                        target_row = row
-                        break
+            # 5. Warte auf Modal
+            logger.info("Warte auf Modal...")
+            modal = await page.wait_for_selector('.p-modal', state='visible', timeout=10000)
+            if not modal:
+                return False, None, "Modal konnte nicht geöffnet werden"
             
-            # Falls keine genaue Übereinstimmung, nimm die erste
-            if not target_row:
-                target_row = rows[0]
-                logger.warning(f"Keine exakte Übereinstimmung, verwende erstes Ergebnis")
+            # 6. Alle Accordion-Panels aufklappen (falls zugeklappt)
+            logger.info("Klappe alle Accordion-Panels auf...")
+            accordion_buttons = await page.query_selector_all('.p-accordion__tab--with-title')
+            for btn in accordion_buttons:
+                try:
+                    aria_expanded = await btn.get_attribute('aria-expanded')
+                    if aria_expanded == 'false':
+                        await btn.click()
+                        await asyncio.sleep(0.3)
+                except:
+                    pass
             
-            # Klicke auf die Zeile um Modal zu öffnen
-            logger.info("Öffne Modal...")
-            await target_row.click()
+            await asyncio.sleep(1)
             
-            # Warte auf Modal
-            await page.wait_for_selector('.openInstitutionModal', state='visible', timeout=timeout)
-            await asyncio.sleep(1.5)  # Warte bis Inhalt vollständig geladen
-            
-            # Expandiere alle Accordion-Panels
-            accordions = await page.query_selector_all('.p-accordion__tab--with-title')
-            for acc in accordions:
-                expanded = await acc.get_attribute('aria-expanded')
-                if expanded != 'true':
-                    await acc.click()
-                    await asyncio.sleep(0.2)
-            
-            # Erstelle PDF vom Modal
-            logger.info("Erstelle PDF...")
-            
-            # Verstecke alles außer dem Modal für sauberen PDF-Export
-            await page.evaluate('''() => {
-                // Verstecke Header-Buttons (Drucken, Schließen, etc.)
-                document.querySelectorAll('.modal-header-buttons button').forEach(btn => {
-                    btn.style.display = 'none';
-                });
-                // Verstecke Hintergrund
-                document.querySelectorAll('body > *:not(#modalDrawer)').forEach(el => {
-                    if (el.id !== 'modalDrawer') {
-                        el.style.visibility = 'hidden';
+            # 7. Modal für Druck vorbereiten - Buttons ausblenden
+            logger.info("Bereite Modal für Druck vor...")
+            await page.evaluate("""
+                () => {
+                    // Buttons im Modal-Header ausblenden
+                    const buttons = document.querySelectorAll('.modal-header-buttons, .u-no-print, .draggable, #printModalButton, #minimizeModalButton, #maximizeModalButton, #removeModalButton');
+                    buttons.forEach(el => el.style.display = 'none');
+                    
+                    // Modal maximieren für besseren Druck
+                    const modal = document.querySelector('.p-modal');
+                    if (modal) {
+                        modal.style.position = 'static';
+                        modal.style.width = '100%';
+                        modal.style.maxWidth = 'none';
+                        modal.style.height = 'auto';
+                        modal.style.top = '0';
+                        modal.style.left = '0';
                     }
-                });
-                // Modal auf volle Breite
-                const modal = document.querySelector('.openInstitutionModal');
-                if (modal) {
-                    modal.style.position = 'relative';
-                    modal.style.top = '0';
-                    modal.style.left = '0';
-                    modal.style.width = '100%';
-                    modal.style.maxWidth = '100%';
-                    modal.style.boxShadow = 'none';
+                    
+                    // Dialog scrollbar entfernen
+                    const dialog = document.querySelector('.p-modal__dialog');
+                    if (dialog) {
+                        dialog.style.maxHeight = 'none';
+                        dialog.style.overflow = 'visible';
+                    }
                 }
-                const drawer = document.querySelector('#modalDrawer');
-                if (drawer) {
-                    drawer.style.position = 'relative';
-                }
-            }''')
+            """)
             
-            # PDF generieren
-            pdf_bytes = await page.pdf(
+            await asyncio.sleep(0.5)
+            
+            # 8. Screenshot vom Modal als PNG machen
+            logger.info("Erstelle Screenshot vom Modal...")
+            modal_element = await page.query_selector('.p-modal')
+            if not modal_element:
+                return False, None, "Modal nicht gefunden"
+            
+            screenshot_bytes = await modal_element.screenshot(type='png')
+            
+            # 9. PNG in PDF umwandeln
+            logger.info("Konvertiere Screenshot zu PDF...")
+            from io import BytesIO
+            
+            # Neue Seite mit dem Screenshot-Bild erstellen
+            clean_page = await context.new_page()
+            
+            # Screenshot als base64 für inline-Bild
+            import base64
+            img_base64 = base64.b64encode(screenshot_bytes).decode('utf-8')
+            
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Anabin - Institutionsbericht</title>
+                <style>
+                    @page {{
+                        size: A4;
+                        margin: 10mm;
+                    }}
+                    body {{
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        justify-content: center;
+                    }}
+                    img {{
+                        max-width: 100%;
+                        height: auto;
+                    }}
+                </style>
+            </head>
+            <body>
+                <img src="data:image/png;base64,{img_base64}" />
+            </body>
+            </html>
+            """
+            
+            await clean_page.set_content(html_content)
+            await asyncio.sleep(0.3)
+            
+            pdf_bytes = await clean_page.pdf(
                 format='A4',
                 print_background=True,
-                margin={'top': '15mm', 'bottom': '15mm', 'left': '15mm', 'right': '15mm'}
+                margin={'top': '10mm', 'bottom': '10mm', 'left': '10mm', 'right': '10mm'}
             )
+            
+            await clean_page.close()
             
             # PDF im Cache speichern
             cache_path = get_cached_pdf_path(university_name)
             cache_path.write_bytes(pdf_bytes)
-            logger.info(f"PDF gespeichert: {cache_path}")
+            logger.info(f"PDF gespeichert: {cache_path} ({len(pdf_bytes)} bytes)")
             
             message = f"PDF erfolgreich erstellt ({len(pdf_bytes)} bytes)"
             return True, pdf_bytes, message
@@ -244,14 +289,10 @@ def fetch_anabin_pdf_sync(
     country: str = "Usbekistan",
     headless: bool = True
 ) -> Tuple[bool, Optional[bytes], str]:
-    """
-    Synchrone Wrapper-Funktion für fetch_anabin_pdf.
-    Für Verwendung in nicht-async Kontexten.
-    """
+    """Synchrone Wrapper-Funktion für fetch_anabin_pdf."""
     return asyncio.run(fetch_anabin_pdf(university_name, country, headless))
 
 
-# Hilfsfunktion zum Auflisten gecachter PDFs
 def list_cached_pdfs() -> list:
     """Listet alle gecachten PDFs auf"""
     if not PDF_CACHE_DIR.exists():

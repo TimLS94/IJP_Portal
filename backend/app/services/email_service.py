@@ -309,6 +309,365 @@ class EmailService:
         return self.send_email(to_email, subject, html_content)
     
     @_safe_email_call
+    def send_interview_proposed(
+        self, 
+        to_email: str, 
+        applicant_name: str, 
+        job_title: str, 
+        company_name: str,
+        date_1: str,
+        date_2: str = None,
+        location: str = None,
+        meeting_link: str = None,
+        notes: str = None
+    ) -> bool:
+        """Benachrichtigt den Bewerber über Terminvorschläge"""
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+        except:
+            frontend_url = 'https://ijp-portal.vercel.app'
+        
+        date_options = f"""
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #8b5cf6;">
+                <strong>Option 1:</strong> {date_1}
+            </div>
+        """
+        if date_2:
+            date_options += f"""
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #8b5cf6;">
+                <strong>Option 2:</strong> {date_2}
+            </div>
+            """
+        
+        location_info = ""
+        if location:
+            location_info += f"<p><strong>📍 Ort:</strong> {location}</p>"
+        if meeting_link:
+            location_info += f'<p><strong>🔗 Meeting:</strong> <a href="{meeting_link}">Link zum Meeting</a></p>'
+        if notes:
+            location_info += f"<p><strong>📝 Hinweis:</strong> {notes}</p>"
+        
+        subject = f"📅 Terminvorschläge für Ihr Vorstellungsgespräch - {job_title}"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0;">📅 Vorstellungsgespräch</h1>
+            </div>
+            <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px;">
+                <p>Hallo {applicant_name},</p>
+                <p><strong>{company_name}</strong> möchte Sie zum Vorstellungsgespräch für die Stelle <strong>{job_title}</strong> einladen!</p>
+                
+                <p style="font-weight: bold; margin-top: 20px;">Terminvorschläge:</p>
+                {date_options}
+                
+                {location_info if location_info else ''}
+                
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/applicant/applications" 
+                       style="background: #8b5cf6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        Termin bestätigen oder ablehnen →
+                    </a>
+                </p>
+                
+                <p style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    ⏰ Bitte antworten Sie zeitnah auf diese Einladung!
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+                <p style="color: #6b7280; font-size: 14px;">Mit freundlichen Grüßen,<br><strong>Ihr JobOn Team</strong></p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
+    
+    @_safe_email_call
+    def send_interview_confirmed(
+        self, 
+        to_email: str, 
+        company_name: str, 
+        applicant_name: str, 
+        job_title: str,
+        confirmed_date: str,
+        location: str = None,
+        meeting_link: str = None
+    ) -> bool:
+        """Benachrichtigt die Firma über die Terminbestätigung"""
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+        except:
+            frontend_url = 'https://ijp-portal.vercel.app'
+        
+        location_info = ""
+        if location:
+            location_info += f"<p><strong>📍 Ort:</strong> {location}</p>"
+        if meeting_link:
+            location_info += f'<p><strong>🔗 Meeting:</strong> <a href="{meeting_link}">Link zum Meeting</a></p>'
+        
+        subject = f"✅ Termin bestätigt: {applicant_name} - {job_title}"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0;">✅ Termin bestätigt!</h1>
+            </div>
+            <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px;">
+                <p>Hallo {company_name},</p>
+                <p><strong>{applicant_name}</strong> hat den Termin für das Vorstellungsgespräch bestätigt:</p>
+                
+                <div style="background: #dcfce7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #22c55e;">
+                    <p style="margin: 0; font-size: 18px; font-weight: bold; color: #166534;">
+                        📅 {confirmed_date}
+                    </p>
+                    <p style="margin: 10px 0 0 0; color: #166534;">
+                        für <strong>{job_title}</strong>
+                    </p>
+                </div>
+                
+                {location_info if location_info else ''}
+                
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/company/applications" 
+                       style="background: #22c55e; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        Bewerbung ansehen →
+                    </a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+                <p style="color: #6b7280; font-size: 14px;">Mit freundlichen Grüßen,<br><strong>Ihr JobOn Team</strong></p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
+    
+    @_safe_email_call
+    def send_application_update(
+        self,
+        to_email: str,
+        applicant_name: str,
+        job_title: str,
+        company_name: str,
+        new_status: str = None,
+        interview_dates: list = None,
+        interview_location: str = None,
+        interview_link: str = None,
+        interview_notes: str = None,
+    ) -> bool:
+        """
+        Kombinierte Email für Bewerbungsupdates.
+        Enthält Status-Änderung UND/ODER Interview-Termine in einer Email.
+        """
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+        except:
+            frontend_url = 'https://ijp-portal.vercel.app'
+        
+        # Status-Sektion
+        status_section = ""
+        if new_status:
+            status_labels = {
+                'pending': 'Eingereicht',
+                'company_review': 'In Prüfung',
+                'interview_scheduled': 'Vorstellungsgespräch geplant',
+                'accepted': 'Angenommen',
+                'rejected': 'Abgelehnt',
+            }
+            status_label = status_labels.get(new_status, new_status)
+            status_section = f"""
+            <div style="background: #dbeafe; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2563eb;">
+                <p style="margin: 0; font-weight: bold; color: #1e40af;">📋 Status aktualisiert:</p>
+                <p style="margin: 5px 0 0 0; font-size: 18px; color: #1e40af;">{status_label}</p>
+            </div>
+            """
+        
+        # Interview-Sektion
+        interview_section = ""
+        if interview_dates:
+            dates_html = ""
+            for i, date in enumerate(interview_dates, 1):
+                if date:
+                    dates_html += f"""
+                    <div style="background: white; padding: 12px; border-radius: 8px; margin: 8px 0; border-left: 4px solid #8b5cf6;">
+                        <strong>Option {i}:</strong> {date}
+                    </div>
+                    """
+            
+            location_html = f"<p style='margin: 10px 0;'><strong>📍 Ort:</strong> {interview_location}</p>" if interview_location else ""
+            link_html = f"<p style='margin: 10px 0;'><strong>🔗 Meeting:</strong> <a href='{interview_link}'>Link zum Online-Meeting</a></p>" if interview_link else ""
+            notes_html = f"<p style='margin: 10px 0;'><strong>📝 Hinweis:</strong> {interview_notes}</p>" if interview_notes else ""
+            
+            interview_section = f"""
+            <div style="background: #f3e8ff; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #8b5cf6;">
+                <p style="margin: 0 0 15px 0; font-weight: bold; color: #6b21a8; font-size: 16px;">
+                    📅 Terminvorschläge für Ihr Vorstellungsgespräch:
+                </p>
+                {dates_html}
+                {location_html}
+                {link_html}
+                {notes_html}
+                <p style="margin: 15px 0 0 0; padding: 10px; background: #fef3c7; border-radius: 6px; font-size: 14px; color: #92400e;">
+                    ⏰ Bitte bestätigen Sie einen der Termine oder fordern Sie neue Termine an!
+                </p>
+            </div>
+            """
+        
+        subject = f"📬 Update zu Ihrer Bewerbung - {job_title}"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0; font-size: 22px;">📬 Neuigkeiten zu Ihrer Bewerbung</h1>
+            </div>
+            <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px;">
+                <p style="font-size: 16px;">Hallo {applicant_name},</p>
+                <p>es gibt Neuigkeiten zu Ihrer Bewerbung für <strong>{job_title}</strong> bei <strong>{company_name}</strong>:</p>
+                
+                {status_section}
+                {interview_section}
+                
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/applicant/applications" 
+                       style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        Bewerbung ansehen →
+                    </a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+                <p style="color: #6b7280; font-size: 14px;">Mit freundlichen Grüßen,<br><strong>Ihr JobOn Team</strong></p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
+
+    @_safe_email_call
+    def send_interview_declined(
+        self, 
+        to_email: str, 
+        company_name: str, 
+        applicant_name: str, 
+        job_title: str,
+        reason: str = None
+    ) -> bool:
+        """Benachrichtigt die Firma, dass der Bewerber die Termine abgelehnt hat"""
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+        except:
+            frontend_url = 'https://ijp-portal.vercel.app'
+        
+        reason_section = ""
+        if reason:
+            reason_section = f"""
+            <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ef4444;">
+                <strong>Grund:</strong> {reason}
+            </div>
+            """
+        
+        subject = f"⚠️ Terminabsage: {applicant_name} - Bitte neue Termine vorschlagen"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0;">⚠️ Terminabsage</h1>
+            </div>
+            <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px;">
+                <p>Hallo {company_name},</p>
+                <p><strong>{applicant_name}</strong> konnte die vorgeschlagenen Termine für das Vorstellungsgespräch (<strong>{job_title}</strong>) leider nicht wahrnehmen.</p>
+                
+                {reason_section}
+                
+                <p style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    📅 Bitte schlagen Sie <strong>neue Termine</strong> vor!
+                </p>
+                
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/company/applications" 
+                       style="background: #f59e0b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        Neue Termine vorschlagen →
+                    </a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+                <p style="color: #6b7280; font-size: 14px;">Mit freundlichen Grüßen,<br><strong>Ihr JobOn Team</strong></p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
+
+    @_safe_email_call
+    def send_interview_cancelled(
+        self,
+        to_email: str,
+        recipient_name: str,
+        other_party_name: str,
+        job_title: str,
+        cancelled_date: str,
+        reason: str = None,
+        cancelled_by: str = "company"  # "company" oder "applicant"
+    ) -> bool:
+        """Benachrichtigt über eine Terminabsage"""
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+        except:
+            frontend_url = 'https://ijp-portal.vercel.app'
+        
+        if cancelled_by == "company":
+            who_cancelled = "Das Unternehmen"
+            action_url = f"{frontend_url}/applicant/applications"
+            action_text = "Bewerbung ansehen"
+        else:
+            who_cancelled = "Der Bewerber"
+            action_url = f"{frontend_url}/company/applications"
+            action_text = "Bewerbungen ansehen"
+        
+        reason_section = ""
+        if reason:
+            reason_section = f"""
+            <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ef4444;">
+                <strong>Grund:</strong> {reason}
+            </div>
+            """
+        
+        subject = f"❌ Termin abgesagt - {job_title}"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0;">❌ Termin abgesagt</h1>
+            </div>
+            <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px;">
+                <p>Hallo {recipient_name},</p>
+                <p><strong>{who_cancelled}</strong> hat den Termin für das Vorstellungsgespräch abgesagt:</p>
+                
+                <div style="background: #fee2e2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ef4444;">
+                    <p style="margin: 0; text-decoration: line-through; color: #991b1b;">
+                        📅 {cancelled_date}
+                    </p>
+                    <p style="margin: 10px 0 0 0; color: #991b1b;">
+                        für <strong>{job_title}</strong>
+                    </p>
+                </div>
+                
+                {reason_section}
+                
+                <p style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    💡 Sie können gerne neue Termine vereinbaren.
+                </p>
+                
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{action_url}" 
+                       style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        {action_text} →
+                    </a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+                <p style="color: #6b7280; font-size: 14px;">Mit freundlichen Grüßen,<br><strong>Ihr JobOn Team</strong></p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
+
+    @_safe_email_call
     async def send_password_reset_email(self, to_email: str, reset_token: str, user_name: str = None) -> bool:
         """Sendet Passwort-Reset-Link (async für account.py)"""
         try:

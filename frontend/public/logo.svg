@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 45" width="160" height="45">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700&amp;display=swap');
+      .logo-text { 
+        font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif; 
+        font-weight: 700;
+        font-size: 32px;
+        fill: #3B7CB8;
+      }
+    </style>
+  </defs>
+  
+  <!-- J -->
+  <text x="0" y="34" class="logo-text">J</text>
+  
+  <!-- o (erstes kleines o) -->
+  <text x="22" y="34" class="logo-text">o</text>
+  
+  <!-- b -->
+  <text x="42" y="34" class="logo-text">b</text>
+  
+  <!-- O mit Power-Symbol -->
+  <g transform="translate(68, 8)">
+    <!-- Hauptkreis -->
+    <circle cx="15" cy="18" r="14" fill="none" stroke="#3B7CB8" stroke-width="4.5"/>
+    <!-- Power-Linie (vertikal) -->
+    <line x1="15" y1="4" x2="15" y2="16" stroke="#3B7CB8" stroke-width="4" stroke-linecap="round"/>
+    <!-- Lücke oben im Kreis durch weißen Hintergrund -->
+    <rect x="8" y="2" width="14" height="10" fill="white"/>
+    <!-- Bogen links und rechts -->
+    <path d="M 5 12 A 14 14 0 1 0 25 12" fill="none" stroke="#3B7CB8" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+  
+  <!-- n -->
+  <text x="105" y="34" class="logo-text">n</text>
+</svg>

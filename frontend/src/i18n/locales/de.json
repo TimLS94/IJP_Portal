@@ -573,19 +573,19 @@
     }
   },
   "footer": {
-    "copyright": "IJP International Job Placement UG. Alle Rechte vorbehalten.",
-    "description": "Ihre Brücke zu internationalen Karrieremöglichkeiten in Deutschland.",
+    "copyright": "JobOn - Ein Service der IJP International Job Placement UG. Alle Rechte vorbehalten.",
+    "description": "JobOn - Ihre Brücke zu internationalen Karrieremöglichkeiten in Deutschland.",
     "forApplicants": "Für Bewerber",
     "forCompanies": "Für Unternehmen",
     "legal": "Rechtliches",
     "contact": "Kontakt"
   },
   "about": {
-    "title": "Über IJP",
+    "title": "Über JobOn",
     "subtitle": "Wir verbinden internationale Talente mit deutschen Unternehmen – für eine erfolgreiche Zusammenarbeit über Grenzen hinweg.",
     "mission": {
       "title": "Unsere Mission",
-      "text1": "IJP – International Job Placement wurde gegründet, um internationalen Fachkräften und Studenten den Weg nach Deutschland zu ebnen und gleichzeitig deutschen Unternehmen Zugang zu motivierten und qualifizierten Arbeitskräften zu ermöglichen.",
+      "text1": "JobOn wurde von IJP – International Job Placement entwickelt, um internationalen Fachkräften und Studenten den Weg nach Deutschland zu ebnen und gleichzeitig deutschen Unternehmen Zugang zu motivierten und qualifizierten Arbeitskräften zu ermöglichen.",
       "text2": "Wir verstehen die Herausforderungen auf beiden Seiten und bieten eine Plattform, die den gesamten Vermittlungsprozess transparent, effizient und persönlich gestaltet."
     },
     "values": {

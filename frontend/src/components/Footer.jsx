@@ -16,13 +16,14 @@ function Footer() {
           <div>
             <img 
               src="/logo.png" 
-              alt="IJP Logo" 
+              alt="JobOn Logo" 
               className="h-10 w-auto mb-4 brightness-0 invert"
             />
             <p className="text-sm text-gray-400 mb-4">
               {t('footer.description')}
             </p>
             <div className="space-y-2 text-sm">
+              <p className="text-xs text-gray-500 mb-2">Ein Service von:</p>
               <p className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary-400" />
                 <span>

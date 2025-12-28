@@ -52,3 +52,4 @@ class CompanyMember(Base):
     user = relationship("User", foreign_keys=[user_id], back_populates="company_memberships")
     company = relationship("Company", back_populates="members")
     invited_by = relationship("User", foreign_keys=[invited_by_id])
+

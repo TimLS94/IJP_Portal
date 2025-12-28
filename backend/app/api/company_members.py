@@ -355,3 +355,4 @@ async def get_available_roles(
         roles.append({"value": "admin", "label": "Administrator", "description": "Kann zusätzlich Benutzer verwalten"})
     
     return roles
+

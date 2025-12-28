@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { 
   GraduationCap, Search, CheckCircle, XCircle, AlertTriangle, 
   HelpCircle, Loader2, ExternalLink, RefreshCw, Save, ChevronDown,
-  MapPin, Flag, BookOpen, User, Copy, Sparkles, Database
+  MapPin, Flag, BookOpen, User, Sparkles, Database, FileDown
 } from 'lucide-react';
 
 // Status-Konfiguration
@@ -24,6 +24,7 @@ function AnabinVerification() {
   const [searchResult, setSearchResult] = useState(null);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingPdf, setLoadingPdf] = useState(null);
   
   // Manuelle Verifizierungsfelder
   const [manualData, setManualData] = useState({
@@ -36,6 +37,7 @@ function AnabinVerification() {
   
   // Filter
   const [statusFilter, setStatusFilter] = useState('');
+  const [nameFilter, setNameFilter] = useState('');
 
   useEffect(() => {
     loadStudents();
@@ -141,9 +143,30 @@ function AnabinVerification() {
     }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast.success('In Zwischenablage kopiert!');
+  const handleDownloadPdf = async (student) => {
+    if (!student.university_name && !student.anabin_institution_name) {
+      toast.error('Keine Universität hinterlegt');
+      return;
+    }
+    
+    setLoadingPdf(student.id);
+    const toastId = toast.loading('Lade PDF von Anabin... (kann 5-10 Sekunden dauern)');
+    
+    try {
+      const response = await adminAPI.getAnabinPdf(student.id);
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      toast.success('PDF geladen!', { id: toastId });
+    } catch (error) {
+      console.error('PDF-Fehler:', error);
+      const errorMsg = error.response?.data?.detail || 'PDF konnte nicht geladen werden';
+      toast.error(errorMsg, { id: toastId });
+    } finally {
+      setLoadingPdf(null);
+    }
   };
 
   const selectMatch = (match) => {
@@ -157,9 +180,21 @@ function AnabinVerification() {
     toast.success('Daten übernommen!');
   };
 
-  const filteredStudents = statusFilter 
-    ? students.filter(s => s.anabin_verified === statusFilter)
-    : students;
+  const filteredStudents = students.filter(s => {
+    // Status-Filter
+    if (statusFilter && s.anabin_verified !== statusFilter) return false;
+    
+    // Namen-Filter (Student oder Universität)
+    if (nameFilter) {
+      const search = nameFilter.toLowerCase();
+      const matchesName = s.name?.toLowerCase().includes(search);
+      const matchesUni = s.university_name?.toLowerCase().includes(search);
+      const matchesAnabinName = s.anabin_institution_name?.toLowerCase().includes(search);
+      if (!matchesName && !matchesUni && !matchesAnabinName) return false;
+    }
+    
+    return true;
+  });
 
   const StatusBadge = ({ status }) => {
     const config = statusConfig[status] || statusConfig.not_checked;
@@ -230,16 +265,40 @@ function AnabinVerification() {
 
       {/* Filter */}
       <div className="card mb-6">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <label className="label">Status-Filter</label>
+        <div className="flex flex-col md:flex-row items-end gap-4">
+          {/* Namenssuche */}
+          <div className="flex-1 w-full">
+            <label className="label">Suche nach Name / Universität</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                className="input-styled pl-10"
+                placeholder="Name oder Universität suchen..."
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+              />
+              {nameFilter && (
+                <button 
+                  onClick={() => setNameFilter('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Status-Filter */}
+          <div className="w-full md:w-48">
+            <label className="label">Status</label>
             <div className="relative">
               <select
                 className="input-styled appearance-none pr-10"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
-                <option value="">Alle anzeigen</option>
+                <option value="">Alle Status</option>
                 <option value="not_checked">Nicht geprüft</option>
                 <option value="verified">Verifiziert</option>
                 <option value="uncertain">Unsicher</option>
@@ -248,11 +307,37 @@ function AnabinVerification() {
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             </div>
           </div>
-          <button onClick={loadStudents} className="btn-secondary flex items-center gap-2 mt-6">
+          
+          <button onClick={loadStudents} className="btn-secondary flex items-center gap-2 whitespace-nowrap">
             <RefreshCw className="h-4 w-4" />
             Aktualisieren
           </button>
         </div>
+        
+        {/* Aktive Filter anzeigen */}
+        {(nameFilter || statusFilter) && (
+          <div className="mt-4 pt-4 border-t flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-gray-500">Filter aktiv:</span>
+            {nameFilter && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-700 rounded-full text-sm">
+                "{nameFilter}"
+                <button onClick={() => setNameFilter('')} className="hover:text-primary-900">✕</button>
+              </span>
+            )}
+            {statusFilter && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                {statusConfig[statusFilter]?.label}
+                <button onClick={() => setStatusFilter('')} className="hover:text-gray-900">✕</button>
+              </span>
+            )}
+            <button 
+              onClick={() => { setNameFilter(''); setStatusFilter(''); }}
+              className="text-sm text-red-600 hover:text-red-700 ml-2"
+            >
+              Alle Filter zurücksetzen
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Studenten-Liste */}
@@ -348,6 +433,19 @@ function AnabinVerification() {
                         >
                           <Sparkles className="h-3 w-3" />
                           Auto
+                        </button>
+                        <button
+                          onClick={() => handleDownloadPdf(student)}
+                          disabled={loadingPdf === student.id || (!student.university_name && !student.anabin_institution_name)}
+                          className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Anabin-PDF laden"
+                        >
+                          {loadingPdf === student.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <FileDown className="h-3 w-3" />
+                          )}
+                          PDF
                         </button>
                       </div>
                     </td>
@@ -511,15 +609,17 @@ function AnabinVerification() {
 
             {/* Footer */}
             <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
-              <a
-                href="https://anabin.kmk.org/no_cache/filter/institutionen.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary-600 hover:underline flex items-center gap-1"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Anabin manuell öffnen
-              </a>
+              <div className="flex items-center gap-3">
+                <a
+                  href="https://anabin.kmk.org/no_cache/filter/institutionen.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary-600 hover:underline flex items-center gap-1"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Anabin manuell öffnen
+                </a>
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => { setSelectedStudent(null); setSearchResult(null); }}
@@ -549,3 +649,5 @@ function AnabinVerification() {
 }
 
 export default AnabinVerification;
+
+

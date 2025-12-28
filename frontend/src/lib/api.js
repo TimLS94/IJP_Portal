@@ -189,6 +189,24 @@ export const jobRequestsAPI = {
   downloadDocuments: (id) => api.get(`/job-requests/admin/${id}/documents/download-all`, { responseType: 'blob' }),
 };
 
+// Interview/Termin API
+export const interviewAPI = {
+  // Firma: Termine vorschlagen (send_email=false um keine separate Email zu senden)
+  propose: (data, sendEmail = true) => api.post('/interviews/propose', { ...data, send_email: sendEmail }),
+  // Bewerber: Termin bestätigen
+  confirm: (interviewId, selectedDate) => api.post(`/interviews/${interviewId}/confirm`, { selected_date: selectedDate }),
+  // Bewerber: Termine ablehnen (neue Termine anfordern)
+  decline: (interviewId, reason) => api.post(`/interviews/${interviewId}/decline`, { reason }),
+  // Termin absagen (für Firma UND Bewerber)
+  cancel: (interviewId, reason) => api.post(`/interviews/${interviewId}/cancel`, { reason }),
+  // Interviews für eine Bewerbung abrufen
+  getForApplication: (applicationId) => api.get(`/interviews/application/${applicationId}`),
+  // Offene Interviews abrufen (für Dashboard)
+  getPending: () => api.get('/interviews/pending'),
+  // Kombinierte Update-Email senden
+  sendUpdateEmail: (data) => api.post('/interviews/send-update-email', data),
+};
+
 export const adminAPI = {
   getStats: () => api.get('/admin/stats'),
   listUsers: (params) => api.get('/admin/users', { params }),
@@ -212,6 +230,10 @@ export const adminAPI = {
   searchAnabin: (applicantId) => api.get(`/anabin/search/${applicantId}`),
   autoVerifyAnabin: (applicantId) => api.post(`/anabin/auto-verify/${applicantId}`),
   verifyAnabin: (data) => api.post('/anabin/verify', data),
+  // Anabin PDF-Abruf
+  getAnabinPdfStatus: (applicantId) => api.get(`/anabin/pdf-status/${applicantId}`),
+  getAnabinPdf: (applicantId) => api.get(`/anabin/pdf/${applicantId}`, { responseType: 'blob' }),
+  getCachedPdfs: () => api.get('/anabin/cached-pdfs'),
 };
 
 export default api;

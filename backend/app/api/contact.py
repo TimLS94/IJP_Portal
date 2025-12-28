@@ -128,3 +128,4 @@ async def send_contact_message(request: Request, form: ContactForm):
         # Wir geben trotzdem Erfolg zurück, da die Nachricht zumindest geloggt wurde
     
     return {"message": "Nachricht erfolgreich gesendet", "success": True}
+

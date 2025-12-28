@@ -480,3 +480,4 @@ async def fetch_pdf_for_university(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Fehler beim PDF-Abruf: {str(e)}"
         )
+

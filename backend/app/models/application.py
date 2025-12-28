@@ -92,3 +92,4 @@ class Application(Base):
     # Relationships
     applicant = relationship("Applicant", back_populates="applications")
     job_posting = relationship("JobPosting", back_populates="applications")
+    interviews = relationship("Interview", back_populates="application", order_by="Interview.created_at.desc()")

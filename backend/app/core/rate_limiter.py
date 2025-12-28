@@ -137,3 +137,4 @@ async def rate_limit_registration(request: Request):
 async def rate_limit_contact(request: Request):
     """Rate Limit für Kontaktformular: 5 pro Stunde"""
     await check_rate_limit(request, "contact", max_requests=5, window_seconds=3600)
+

@@ -98,7 +98,7 @@ function Navbar() {
           <Link to="/" className="flex items-center">
             <img 
               src="/logo.png" 
-              alt="IJP - International Job Placement" 
+              alt="JobOn - Internationale Jobvermittlung" 
               className="h-10 w-auto"
             />
           </Link>

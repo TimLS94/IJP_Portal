@@ -334,3 +334,4 @@ class AnabinService:
 
 # Singleton
 anabin_service = AnabinService()
+

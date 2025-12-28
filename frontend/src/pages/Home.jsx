@@ -76,7 +76,7 @@ function Home() {
             <div className="bg-white rounded-2xl p-6 shadow-2xl">
               <img 
                 src="/logo.png" 
-                alt="IJP - International Job Placement" 
+                alt="JobOn - Internationale Jobvermittlung" 
                 className="h-32 w-auto"
               />
             </div>
