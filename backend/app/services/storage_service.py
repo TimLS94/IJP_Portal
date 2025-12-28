@@ -66,8 +66,8 @@ class StorageService:
                     )
                 )
                 
-                # Test-Verbindung
-                self.s3_client.list_buckets()
+                # Test-Verbindung - prüfe nur den spezifischen Bucket (nicht list_buckets!)
+                self.s3_client.head_bucket(Bucket=self.bucket_name)
                 self.use_r2 = True
                 logger.info(f"✅ Cloudflare R2 Storage aktiv (Bucket: {self.bucket_name})")
                 
