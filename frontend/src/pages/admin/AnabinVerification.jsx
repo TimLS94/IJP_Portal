@@ -143,23 +143,27 @@ function AnabinVerification() {
     }
   };
 
-  const handleDownloadPdf = async (student) => {
+  const handleDownloadPdf = async (student, forceRefresh = false) => {
     if (!student.university_name && !student.anabin_institution_name) {
       toast.error('Keine Universität hinterlegt');
       return;
     }
     
     setLoadingPdf(student.id);
-    const toastId = toast.loading('Lade PDF von Anabin... (kann 5-10 Sekunden dauern)');
+    const toastId = toast.loading(
+      forceRefresh 
+        ? 'Lade PDF neu von Anabin... (kann 10-15 Sekunden dauern)' 
+        : 'Lade PDF von Anabin... (kann 5-10 Sekunden dauern)'
+    );
     
     try {
-      const response = await adminAPI.getAnabinPdf(student.id);
+      const response = await adminAPI.getAnabinPdf(student.id, forceRefresh);
       
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
       
-      toast.success('PDF geladen!', { id: toastId });
+      toast.success(forceRefresh ? 'PDF neu geladen!' : 'PDF geladen!', { id: toastId });
     } catch (error) {
       console.error('PDF-Fehler:', error);
       const errorMsg = error.response?.data?.detail || 'PDF konnte nicht geladen werden';
@@ -434,19 +438,29 @@ function AnabinVerification() {
                           <Sparkles className="h-3 w-3" />
                           Auto
                         </button>
-                        <button
-                          onClick={() => handleDownloadPdf(student)}
-                          disabled={loadingPdf === student.id || (!student.university_name && !student.anabin_institution_name)}
-                          className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Anabin-PDF laden"
-                        >
-                          {loadingPdf === student.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <FileDown className="h-3 w-3" />
-                          )}
-                          PDF
-                        </button>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleDownloadPdf(student, false)}
+                            disabled={loadingPdf === student.id || (!student.university_name && !student.anabin_institution_name)}
+                            className="px-2 py-1 text-sm bg-blue-100 text-blue-700 rounded-l-lg hover:bg-blue-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Anabin-PDF laden (aus Cache wenn vorhanden)"
+                          >
+                            {loadingPdf === student.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <FileDown className="h-3 w-3" />
+                            )}
+                            PDF
+                          </button>
+                          <button
+                            onClick={() => handleDownloadPdf(student, true)}
+                            disabled={loadingPdf === student.id || (!student.university_name && !student.anabin_institution_name)}
+                            className="px-2 py-1 text-sm bg-orange-100 text-orange-700 rounded-r-lg hover:bg-orange-200 flex items-center disabled:opacity-50 disabled:cursor-not-allowed border-l border-orange-200"
+                            title="PDF neu von Anabin laden (Cache ignorieren)"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>

@@ -52,7 +52,8 @@ async def fetch_anabin_pdf(
     university_name: str,
     country: str = "Usbekistan",
     headless: bool = True,
-    timeout: int = 60000
+    timeout: int = 60000,
+    force_refresh: bool = False
 ) -> Tuple[bool, Optional[bytes], str]:
     """
     Holt ein PDF von Anabin für eine bestimmte Universität.
@@ -71,6 +72,7 @@ async def fetch_anabin_pdf(
         country: Land (Usbekistan oder Kirgisistan)
         headless: Browser unsichtbar laufen lassen
         timeout: Timeout in Millisekunden
+        force_refresh: Cache ignorieren und PDF neu holen
         
     Returns:
         Tuple[success, pdf_bytes, message]
@@ -80,11 +82,14 @@ async def fetch_anabin_pdf(
     except ImportError:
         return False, None, "Playwright nicht installiert. Bitte 'pip install playwright && playwright install chromium' ausführen."
     
-    # Prüfe Cache zuerst
-    if is_pdf_cached(university_name):
+    # Prüfe Cache (wenn nicht force_refresh)
+    if not force_refresh and is_pdf_cached(university_name):
         logger.info(f"PDF aus Cache geladen: {university_name}")
         pdf_bytes = get_cached_pdf(university_name)
         return True, pdf_bytes, "PDF aus Cache geladen"
+    
+    if force_refresh:
+        logger.info(f"Force Refresh - ignoriere Cache für: {university_name}")
     
     # Erstelle Cache-Verzeichnis
     PDF_CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -131,25 +136,57 @@ async def fetch_anabin_pdf(
             except Exception as e:
                 logger.warning(f"Land-Filter Warnung: {e}")
             
-            # 3. Suche nach der Universität
+            # 3. Suche nach der Universität - verwende charakteristische Wörter
             logger.info(f"Suche nach: {university_name}")
             search_input = await page.query_selector('#tableSearchInput')
+            
+            # Extrahiere die charakteristischsten Wörter aus dem Uni-Namen
+            # Filtere kurze/generische Wörter wie "der", "in", "und", "für"
+            stop_words = {'der', 'die', 'das', 'in', 'und', 'für', 'von', 'zu', 'im', 'am', 'an', 'den', 'des'}
+            words = [w for w in university_name.split() if w.lower() not in stop_words and len(w) > 3]
+            # Nimm die ersten 3-4 charakteristischen Wörter
+            search_term = ' '.join(words[:4]) if len(words) >= 3 else university_name[:50]
+            
+            logger.info(f"Suchbegriff: '{search_term}'")
             if search_input:
-                # Suchbegriff: Erste 40 Zeichen für bessere Ergebnisse
-                search_term = university_name[:40]
                 await search_input.fill(search_term)
                 await asyncio.sleep(2)
             
-            # 4. Warte auf Tabellen-Ergebnisse und klicke auf erste Zeile
+            # 4. Warte auf Tabellen-Ergebnisse und finde die beste Übereinstimmung
             rows = await page.query_selector_all('table tbody tr')
             logger.info(f"Gefundene Zeilen: {len(rows)}")
             
             if not rows:
                 return False, None, f"Keine Ergebnisse für '{university_name}' gefunden"
             
-            # Klicke auf die erste Zeile → Modal öffnet sich
-            logger.info("Öffne Detail-Modal...")
-            await rows[0].click()
+            # Versuche die beste Zeile zu finden (nicht blind die erste nehmen!)
+            best_row = None
+            best_score = 0
+            target_words = set(w.lower() for w in university_name.split() if len(w) > 2)
+            
+            for row in rows[:10]:  # Prüfe nur die ersten 10 Zeilen
+                try:
+                    row_text = await row.inner_text()
+                    row_text_lower = row_text.lower()
+                    
+                    # Zähle wie viele Wörter des Uni-Namens in der Zeile vorkommen
+                    score = sum(1 for word in target_words if word in row_text_lower)
+                    
+                    logger.info(f"Zeile: '{row_text[:60]}...' - Score: {score}")
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_row = row
+                except:
+                    pass
+            
+            if not best_row:
+                best_row = rows[0]  # Fallback auf erste Zeile
+                logger.warning("Keine gute Übereinstimmung gefunden, verwende erste Zeile")
+            
+            # Klicke auf die beste Zeile → Modal öffnet sich
+            logger.info(f"Öffne Detail-Modal (Score: {best_score})...")
+            await best_row.click()
             await asyncio.sleep(3)
             
             # 5. Warte auf Modal
@@ -287,10 +324,11 @@ async def fetch_anabin_pdf(
 def fetch_anabin_pdf_sync(
     university_name: str,
     country: str = "Usbekistan",
-    headless: bool = True
+    headless: bool = True,
+    force_refresh: bool = False
 ) -> Tuple[bool, Optional[bytes], str]:
     """Synchrone Wrapper-Funktion für fetch_anabin_pdf."""
-    return asyncio.run(fetch_anabin_pdf(university_name, country, headless))
+    return asyncio.run(fetch_anabin_pdf(university_name, country, headless, force_refresh=force_refresh))
 
 
 def list_cached_pdfs() -> list:

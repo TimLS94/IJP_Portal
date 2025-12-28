@@ -232,7 +232,7 @@ export const adminAPI = {
   verifyAnabin: (data) => api.post('/anabin/verify', data),
   // Anabin PDF-Abruf
   getAnabinPdfStatus: (applicantId) => api.get(`/anabin/pdf-status/${applicantId}`),
-  getAnabinPdf: (applicantId) => api.get(`/anabin/pdf/${applicantId}`, { responseType: 'blob' }),
+  getAnabinPdf: (applicantId, refresh = false) => api.get(`/anabin/pdf/${applicantId}${refresh ? '?refresh=true' : ''}`, { responseType: 'blob' }),
   getCachedPdfs: () => api.get('/anabin/cached-pdfs'),
 };
 

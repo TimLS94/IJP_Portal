@@ -276,6 +276,7 @@ async def auto_verify_university(
 @router.get("/pdf/{applicant_id}")
 async def get_anabin_pdf(
     applicant_id: int,
+    refresh: bool = False,  # Query-Parameter: ?refresh=true um Cache zu ignorieren
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -283,6 +284,9 @@ async def get_anabin_pdf(
     Holt das Anabin-PDF für einen Bewerber.
     Wenn gecacht, wird es sofort zurückgegeben.
     Wenn nicht, wird es von Anabin geholt (dauert ~5-10 Sekunden).
+    
+    Query-Parameter:
+    - refresh=true: Cache ignorieren und PDF neu von Anabin holen
     
     Nur für Admins.
     """
@@ -318,8 +322,8 @@ async def get_anabin_pdf(
         if "kirgis" in applicant.nationality.lower():
             country = "Kirgisistan"
     
-    # Prüfe ob PDF gecacht ist
-    if is_pdf_cached(search_name):
+    # Prüfe ob PDF gecacht ist (wenn nicht refresh)
+    if not refresh and is_pdf_cached(search_name):
         logger.info(f"PDF aus Cache: {search_name}")
         pdf_bytes = get_cached_pdf(search_name)
         return Response(
@@ -332,13 +336,14 @@ async def get_anabin_pdf(
         )
     
     # Hole PDF von Anabin
-    logger.info(f"Hole PDF von Anabin: {search_name} ({country})")
+    logger.info(f"Hole PDF von Anabin: {search_name} ({country}) - refresh={refresh}")
     
     try:
         success, pdf_bytes, message = await fetch_anabin_pdf(
             university_name=search_name,
             country=country,
-            headless=True  # Im Hintergrund laufen lassen
+            headless=True,
+            force_refresh=refresh  # Cache überschreiben wenn refresh=True
         )
         
         if success and pdf_bytes:
@@ -480,4 +485,5 @@ async def fetch_pdf_for_university(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Fehler beim PDF-Abruf: {str(e)}"
         )
+
 
