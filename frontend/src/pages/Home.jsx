@@ -113,7 +113,12 @@ function Home() {
       {/* Position Types */}
       <section className="mb-16">
         <h2 className="text-3xl font-bold text-gray-900 mb-2 text-center">{t('home.jobTypes')}</h2>
-        <p className="text-gray-600 text-center mb-8">Wählen Sie Ihre gewünschte Stellenart</p>
+        <p className="text-gray-600 text-center mb-2">Wählen Sie Ihre gewünschte Stellenart</p>
+        <p className="text-center mb-8">
+          <Link to="/stellenarten" className="text-primary-600 hover:text-primary-700 font-medium">
+            → Alle Stellenarten im Detail erklärt
+          </Link>
+        </p>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
           {positionTypes.map((type) => (
             <Link

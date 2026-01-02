@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Briefcase, User, Building2, LogOut, Menu, X, FileText, Shield, 
   BookOpen, Settings, ClipboardList, Users, ChevronDown, Home,
-  LayoutDashboard, FolderOpen, GraduationCap
+  LayoutDashboard, FolderOpen, GraduationCap, Info
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -112,6 +112,14 @@ function Navbar() {
             >
               <Briefcase className="h-4 w-4" />
               <span>{t('nav.jobs')}</span>
+            </Link>
+            
+            <Link 
+              to="/stellenarten" 
+              className="flex items-center gap-1.5 px-3 py-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+            >
+              <Info className="h-4 w-4" />
+              <span>Stellenarten</span>
             </Link>
             
             <Link 
@@ -233,6 +241,14 @@ function Navbar() {
               >
                 <Briefcase className="h-5 w-5 text-gray-400" />
                 <span>{t('nav.jobs')}</span>
+              </Link>
+              <Link
+                to="/stellenarten"
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Info className="h-5 w-5 text-gray-400" />
+                <span>Stellenarten</span>
               </Link>
               <Link
                 to="/blog"

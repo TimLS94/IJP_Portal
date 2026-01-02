@@ -13,6 +13,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Jobs from './pages/jobs/Jobs';
 import JobDetail from './pages/jobs/JobDetail';
+import JobCategories from './pages/JobCategories';
 
 // Bewerber-Seiten
 import ApplicantProfile from './pages/applicant/Profile';
@@ -81,6 +82,7 @@ function App() {
           <Route path="reset-password" element={<ResetPassword />} />
           <Route path="jobs" element={<Jobs />} />
           <Route path="jobs/:id" element={<JobDetail />} />
+          <Route path="stellenarten" element={<JobCategories />} />
           <Route path="blog" element={<BlogList />} />
           <Route path="blog/:slug" element={<BlogDetail />} />
           
