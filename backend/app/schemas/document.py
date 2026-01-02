@@ -53,12 +53,14 @@ DOCUMENT_TYPE_LABELS = {
     DocumentType.DIPLOMA: "Studienzeugnis/Abschluss",
     DocumentType.SCHOOL_CERT: "Schulzeugnis",
     DocumentType.WORK_REFERENCE: "Arbeitszeugnis",
+    DocumentType.VISA: "Visum / Aufenthaltstitel",
     DocumentType.OTHER: "Sonstiges",
 }
 
 POSITION_TYPE_LABELS = {
     "studentenferienjob": "Studentenferienjob",
-    "ausbildung": "Ausbildung",
+    "saisonjob": "Saisonjob",
+    "workandholiday": "Work & Holiday",
     "fachkraft": "Fachkraft",
-    "saisonjob": "Saisonjob (8 Monate)",
+    "ausbildung": "Ausbildung",
 }

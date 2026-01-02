@@ -32,10 +32,11 @@ function Home() {
   ];
 
   const positionTypes = [
-    { id: 'studentenferienjob', name: t('positionTypes.studentenferienjob'), color: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200' },
-    { id: 'saisonjob', name: t('positionTypes.saisonjob'), color: 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200' },
-    { id: 'fachkraft', name: t('positionTypes.fachkraft'), color: 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200' },
-    { id: 'ausbildung', name: t('positionTypes.ausbildung'), color: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200' }
+    { id: 'studentenferienjob', name: t('positionTypes.studentenferienjob'), color: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200', icon: '🎓' },
+    { id: 'saisonjob', name: t('positionTypes.saisonjob'), color: 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200', icon: '🌾' },
+    { id: 'workandholiday', name: t('positionTypes.workandholiday'), color: 'bg-teal-100 text-teal-800 border-teal-200 hover:bg-teal-200', icon: '✈️' },
+    { id: 'fachkraft', name: t('positionTypes.fachkraft'), color: 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200', icon: '👔' },
+    { id: 'ausbildung', name: t('positionTypes.ausbildung'), color: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200', icon: '📚' }
   ];
 
   useEffect(() => {
@@ -113,13 +114,15 @@ function Home() {
       <section className="mb-16">
         <h2 className="text-3xl font-bold text-gray-900 mb-2 text-center">{t('home.jobTypes')}</h2>
         <p className="text-gray-600 text-center mb-8">Wählen Sie Ihre gewünschte Stellenart</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
           {positionTypes.map((type) => (
             <Link
               key={type.id}
               to={`/jobs?type=${type.id}`}
-              className={`${type.color} p-4 md:p-6 rounded-xl text-center border-2 transition-all hover:shadow-lg hover:scale-105 min-h-[80px] md:min-h-[100px] flex items-center justify-center`}
+              className={`${type.color} p-4 md:p-6 rounded-xl text-center border-2 transition-all hover:shadow-lg hover:scale-105 flex flex-col items-center justify-center gap-2`}
+              title={t(`positionTypeDescriptions.${type.id}`)}
             >
+              <span className="text-2xl">{type.icon}</span>
               <span className="font-bold text-sm md:text-lg break-words hyphens-auto leading-tight">{type.name}</span>
             </Link>
           ))}

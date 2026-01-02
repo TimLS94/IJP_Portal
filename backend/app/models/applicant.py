@@ -8,6 +8,7 @@ from app.core.database import Base
 class PositionType(str, enum.Enum):
     STUDENTENFERIENJOB = "studentenferienjob"
     SAISONJOB = "saisonjob"
+    WORK_AND_HOLIDAY = "workandholiday"  # Working Holiday Visum (Südamerika)
     FACHKRAFT = "fachkraft"
     AUSBILDUNG = "ausbildung"
 

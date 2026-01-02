@@ -24,6 +24,9 @@ class DocumentType(str, enum.Enum):
     SCHOOL_CERT = "school_cert"                 # Schulzeugnis
     WORK_REFERENCE = "work_reference"           # Arbeitszeugnis
     
+    # Visum
+    VISA = "visa"                               # Visum / Aufenthaltstitel
+    
     # Sonstige
     OTHER = "other"                             # Sonstiges
 
@@ -100,6 +103,26 @@ DOCUMENT_REQUIREMENTS = {
         "descriptions": {
             DocumentType.PASSPORT: "Gültiger Reisepass (alle Seiten mit Stempeln)",
             DocumentType.CV: "Lebenslauf (optional)",
+            DocumentType.WORK_REFERENCE: "Arbeitszeugnisse (optional)",
+            DocumentType.PHOTO: "Bewerbungsfoto (optional)",
+        }
+    },
+    "workandholiday": {
+        "required": [
+            DocumentType.PASSPORT,
+            DocumentType.CV,
+        ],
+        "optional": [
+            DocumentType.VISA,
+            DocumentType.LANGUAGE_CERT,
+            DocumentType.WORK_REFERENCE,
+            DocumentType.PHOTO,
+        ],
+        "descriptions": {
+            DocumentType.PASSPORT: "Gültiger Reisepass aus einem WHV-Partnerland (Argentinien, Chile, Australien, etc.)",
+            DocumentType.CV: "Lebenslauf mit Foto",
+            DocumentType.VISA: "Working Holiday Visum (falls bereits vorhanden)",
+            DocumentType.LANGUAGE_CERT: "Deutschkenntnisse (optional, empfohlen)",
             DocumentType.WORK_REFERENCE: "Arbeitszeugnisse (optional)",
             DocumentType.PHOTO: "Bewerbungsfoto (optional)",
         }

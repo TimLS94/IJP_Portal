@@ -12,10 +12,11 @@ import {
 
 // Diese werden in der Komponente mit t() übersetzt
 const positionTypeKeys = [
-  { value: 'studentenferienjob', labelKey: 'positionTypes.studentenferienjob', color: 'blue' },
-  { value: 'saisonjob', labelKey: 'positionTypes.saisonjob', color: 'orange' },
-  { value: 'fachkraft', labelKey: 'positionTypes.fachkraft', color: 'purple' },
-  { value: 'ausbildung', labelKey: 'positionTypes.ausbildung', color: 'green' }
+  { value: 'studentenferienjob', labelKey: 'positionTypes.studentenferienjob', descKey: 'positionTypeDescriptions.studentenferienjob', color: 'blue', icon: '🎓' },
+  { value: 'saisonjob', labelKey: 'positionTypes.saisonjob', descKey: 'positionTypeDescriptions.saisonjob', color: 'orange', icon: '🌾' },
+  { value: 'workandholiday', labelKey: 'positionTypes.workandholiday', descKey: 'positionTypeDescriptions.workandholiday', color: 'teal', icon: '✈️' },
+  { value: 'fachkraft', labelKey: 'positionTypes.fachkraft', descKey: 'positionTypeDescriptions.fachkraft', color: 'purple', icon: '👔' },
+  { value: 'ausbildung', labelKey: 'positionTypes.ausbildung', descKey: 'positionTypeDescriptions.ausbildung', color: 'green', icon: '📚' }
 ];
 
 const languageLevelKeys = [
@@ -512,17 +513,18 @@ function ApplicantProfile() {
           <p className="text-gray-600 mb-4">
             Wählen Sie alle Stellenarten, für die Sie sich interessieren (Mehrfachauswahl möglich).
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
             {positionTypeKeys.map((type) => {
               const isSelected = selectedPositionTypes.includes(type.value);
               return (
                 <label
                   key={type.value}
-                  className={`relative flex items-center justify-center p-3 md:p-4 border-2 rounded-xl cursor-pointer transition-all min-h-[60px] ${
+                  className={`relative flex flex-col items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${
                     isSelected
                       ? 'border-primary-500 bg-primary-50 shadow-lg ring-2 ring-primary-200'
                       : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
                   }`}
+                  title={t(type.descKey)}
                 >
                   <input
                     type="checkbox"
@@ -545,7 +547,8 @@ function ApplicantProfile() {
                       }
                     }}
                   />
-                  <span className={`font-semibold text-center text-sm md:text-base leading-tight ${
+                  <span className="text-2xl mb-2">{type.icon}</span>
+                  <span className={`font-semibold text-center text-sm leading-tight ${
                     isSelected ? 'text-primary-700' : 'text-gray-700'
                   }`}>
                     {t(type.labelKey)}
