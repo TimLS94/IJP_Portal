@@ -60,10 +60,20 @@ async def get_dashboard_stats(
         "position_types": {}
     }
     
-    # Stellen nach Typ
+    # Stellen nach Typ - robuste Abfrage, die nur existierende DB-Werte zählt
+    position_counts = db.query(
+        JobPosting.position_type,
+        func.count(JobPosting.id)
+    ).group_by(JobPosting.position_type).all()
+    
+    # Initialisiere alle bekannten Positionstypen mit 0
     for pos_type in PositionType:
-        count = db.query(JobPosting).filter(JobPosting.position_type == pos_type).count()
-        stats["position_types"][pos_type.value] = count
+        stats["position_types"][pos_type.value] = 0
+    
+    # Überschreibe mit tatsächlichen Werten aus der DB
+    for pos_type, count in position_counts:
+        if pos_type:
+            stats["position_types"][pos_type.value] = count
     
     return stats
 
