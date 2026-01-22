@@ -29,10 +29,49 @@ const languageLevelKeys = [
   { value: 'C2', labelKey: 'languageLevels.c2' }
 ];
 
-const commonLanguages = [
-  'Russisch', 'Ukrainisch', 'Polnisch', 'Türkisch', 'Arabisch', 
-  'Spanisch', 'Französisch', 'Italienisch', 'Portugiesisch', 'Chinesisch',
-  'Vietnamesisch', 'Rumänisch', 'Bulgarisch', 'Serbisch', 'Kroatisch'
+// Vollständige Liste aller Sprachen der Welt
+const allLanguages = [
+  'Afrikaans', 'Albanisch', 'Amharisch', 'Arabisch', 'Armenisch', 'Aserbaidschanisch',
+  'Baskisch', 'Belarussisch', 'Bengali', 'Bosnisch', 'Bulgarisch', 'Birmanisch',
+  'Chinesisch (Mandarin)', 'Chinesisch (Kantonesisch)', 'Dänisch', 'Dari',
+  'Estnisch', 'Filipino/Tagalog', 'Finnisch', 'Französisch',
+  'Georgisch', 'Griechisch', 'Gujarati',
+  'Hausa', 'Hebräisch', 'Hindi', 'Indonesisch', 'Irisch', 'Isländisch', 'Italienisch',
+  'Japanisch', 'Javanisch', 'Jiddisch',
+  'Kannada', 'Kasachisch', 'Katalanisch', 'Khmer', 'Kirgisisch', 'Koreanisch', 'Kroatisch', 'Kurdisch',
+  'Laotisch', 'Lettisch', 'Litauisch', 'Luxemburgisch',
+  'Madagassisch', 'Malaiisch', 'Malayalam', 'Maltesisch', 'Maori', 'Marathi', 'Mazedonisch', 'Mongolisch',
+  'Nepali', 'Niederländisch', 'Norwegisch',
+  'Odia', 'Paschtu', 'Persisch/Farsi', 'Polnisch', 'Portugiesisch', 'Punjabi',
+  'Rumänisch', 'Russisch',
+  'Schwedisch', 'Serbisch', 'Singhalesisch', 'Slowakisch', 'Slowenisch', 'Somali', 'Spanisch', 'Suaheli', 'Sundanesisch',
+  'Tadschikisch', 'Tamil', 'Telugu', 'Thai', 'Tibetisch', 'Tschechisch', 'Türkisch', 'Turkmenisch',
+  'Uigurisch', 'Ukrainisch', 'Ungarisch', 'Urdu', 'Usbekisch',
+  'Vietnamesisch', 'Walisisch', 'Xhosa', 'Yoruba', 'Zulu'
+];
+
+// Vollständige Liste aller Nationalitäten
+const allNationalities = [
+  'Afghanisch', 'Ägyptisch', 'Albanisch', 'Algerisch', 'Amerikanisch', 'Andorranisch', 'Angolanisch', 'Antiguanisch', 'Äquatorialguineisch', 'Argentinisch', 'Armenisch', 'Aserbaidschanisch', 'Äthiopisch', 'Australisch',
+  'Bahamaisch', 'Bahrainisch', 'Bangladeschisch', 'Barbadisch', 'Belarussisch', 'Belgisch', 'Belizisch', 'Beninisch', 'Bhutanisch', 'Bolivianisch', 'Bosnisch-Herzegowinisch', 'Botsuanisch', 'Brasilianisch', 'Britisch', 'Bruneiisch', 'Bulgarisch', 'Burkinisch', 'Burundisch',
+  'Chilenisch', 'Chinesisch', 'Costa-ricanisch', 'Dänisch', 'Deutsch', 'Dominikanisch', 'Dschibutisch',
+  'Ecuadorianisch', 'Salvadorianisch', 'Eritreisch', 'Estnisch', 'Eswatinisch',
+  'Fidschi', 'Finnisch', 'Französisch',
+  'Gabunisch', 'Gambisch', 'Georgisch', 'Ghanaisch', 'Grenadisch', 'Griechisch', 'Guatemaltekisch', 'Guineisch', 'Guinea-bissauisch', 'Guyanisch',
+  'Haitianisch', 'Honduranisch',
+  'Indisch', 'Indonesisch', 'Irakisch', 'Iranisch', 'Irisch', 'Isländisch', 'Israelisch', 'Italienisch', 'Ivorisch',
+  'Jamaikanisch', 'Japanisch', 'Jemenitisch', 'Jordanisch',
+  'Kambodschanisch', 'Kamerunisch', 'Kanadisch', 'Kapverdisch', 'Kasachisch', 'Katarisch', 'Kenianisch', 'Kirgisisch', 'Kiribatisch', 'Kolumbianisch', 'Komorisch', 'Kongolesisch', 'Kosovarisch', 'Kroatisch', 'Kubanisch', 'Kuwaitisch',
+  'Laotisch', 'Lesothisch', 'Lettisch', 'Libanesisch', 'Liberianisch', 'Libysch', 'Liechtensteinisch', 'Litauisch', 'Luxemburgisch',
+  'Madagassisch', 'Malawisch', 'Malaysisch', 'Maledivisch', 'Malisch', 'Maltesisch', 'Marokkanisch', 'Marshallisch', 'Mauretanisch', 'Mauritisch', 'Mazedonisch', 'Mexikanisch', 'Mikronesisch', 'Moldauisch', 'Monegassisch', 'Mongolisch', 'Montenegrinisch', 'Mosambikanisch', 'Myanmarisch',
+  'Namibisch', 'Nauruisch', 'Nepalesisch', 'Neuseeländisch', 'Nicaraguanisch', 'Niederländisch', 'Nigerianisch', 'Nigrisch', 'Nordkoreanisch', 'Norwegisch',
+  'Omanisch', 'Österreichisch',
+  'Pakistanisch', 'Palauisch', 'Palästinensisch', 'Panamaisch', 'Papua-neuguineisch', 'Paraguayisch', 'Peruanisch', 'Philippinisch', 'Polnisch', 'Portugiesisch',
+  'Ruandisch', 'Rumänisch', 'Russisch',
+  'Salomonisch', 'Sambisch', 'Samoanisch', 'San-marinesisch', 'São-toméisch', 'Saudi-arabisch', 'Schwedisch', 'Schweizerisch', 'Senegalesisch', 'Serbisch', 'Seychellisch', 'Sierra-leonisch', 'Simbabwisch', 'Singapurisch', 'Slowakisch', 'Slowenisch', 'Somalisch', 'Spanisch', 'Sri-lankisch', 'Südafrikanisch', 'Sudanesisch', 'Südkoreanisch', 'Südsudanesisch', 'Surinamisch', 'Syrisch',
+  'Tadschikisch', 'Tansanisch', 'Thailändisch', 'Timoresisch', 'Togoisch', 'Tongaisch', 'Trinidadisch', 'Tschadisch', 'Tschechisch', 'Tunesisch', 'Türkisch', 'Turkmenisch', 'Tuvaluisch',
+  'Ugandisch', 'Ukrainisch', 'Ungarisch', 'Uruguayisch', 'Usbekisch',
+  'Vanuatuisch', 'Vatikanisch', 'Venezolanisch', 'Vietnamesisch', 'Zentralafrikanisch', 'Zyprisch'
 ];
 
 // Dokumenttypen mit Icons
@@ -616,11 +655,11 @@ function ApplicantProfile() {
             </div>
             <div>
               <label className="label">{t('applicant.nationality')} *</label>
-              <input
-                type="text"
-                className="input-styled"
+              <CustomSelect
+                value={watch('nationality') || ''}
+                onChange={(e) => setValue('nationality', e.target.value)}
+                options={allNationalities.map(n => ({ value: n, label: n }))}
                 placeholder={t('profile.placeholders.nationality')}
-                {...register('nationality', { required: t('profile.errors.nationalityRequired') })}
               />
               {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality.message}</p>}
             </div>
@@ -723,7 +762,7 @@ function ApplicantProfile() {
                       <CustomSelect
                         value={lang.language}
                         onChange={(e) => updateLanguage(index, 'language', e.target.value)}
-                        options={commonLanguages.map(l => ({ value: l, label: l }))}
+                        options={allLanguages.map(l => ({ value: l, label: l }))}
                         placeholder={t('profile.selectLanguage')}
                       />
                     </div>

@@ -31,10 +31,25 @@ const languageLevels = [
   { value: 'c2', label: 'C2 - Fließend' }
 ];
 
-const commonLanguages = [
-  'Russisch', 'Ukrainisch', 'Polnisch', 'Türkisch', 'Arabisch',
-  'Spanisch', 'Französisch', 'Italienisch', 'Portugiesisch', 'Rumänisch',
-  'Bulgarisch', 'Serbisch', 'Kroatisch', 'Ungarisch', 'Tschechisch'
+// Vollständige Liste aller Sprachen der Welt
+const allLanguages = [
+  'Afrikaans', 'Albanisch', 'Amharisch', 'Arabisch', 'Armenisch', 'Aserbaidschanisch',
+  'Baskisch', 'Belarussisch', 'Bengali', 'Bosnisch', 'Bulgarisch', 'Birmanisch',
+  'Chinesisch (Mandarin)', 'Chinesisch (Kantonesisch)', 'Dänisch', 'Dari',
+  'Estnisch', 'Filipino/Tagalog', 'Finnisch', 'Französisch',
+  'Georgisch', 'Griechisch', 'Gujarati',
+  'Hausa', 'Hebräisch', 'Hindi', 'Indonesisch', 'Irisch', 'Isländisch', 'Italienisch',
+  'Japanisch', 'Javanisch', 'Jiddisch',
+  'Kannada', 'Kasachisch', 'Katalanisch', 'Khmer', 'Kirgisisch', 'Koreanisch', 'Kroatisch', 'Kurdisch',
+  'Laotisch', 'Lettisch', 'Litauisch', 'Luxemburgisch',
+  'Madagassisch', 'Malaiisch', 'Malayalam', 'Maltesisch', 'Maori', 'Marathi', 'Mazedonisch', 'Mongolisch',
+  'Nepali', 'Niederländisch', 'Norwegisch',
+  'Odia', 'Paschtu', 'Persisch/Farsi', 'Polnisch', 'Portugiesisch', 'Punjabi',
+  'Rumänisch', 'Russisch',
+  'Schwedisch', 'Serbisch', 'Singhalesisch', 'Slowakisch', 'Slowenisch', 'Somali', 'Spanisch', 'Suaheli', 'Sundanesisch',
+  'Tadschikisch', 'Tamil', 'Telugu', 'Thai', 'Tibetisch', 'Tschechisch', 'Türkisch', 'Turkmenisch',
+  'Uigurisch', 'Ukrainisch', 'Ungarisch', 'Urdu', 'Usbekisch',
+  'Vietnamesisch', 'Walisisch', 'Xhosa', 'Yoruba', 'Zulu'
 ];
 
 // Gesetzlicher Mindestlohn in Deutschland
@@ -329,7 +344,7 @@ function EditJob() {
                   <div key={index} className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
                     <div className="flex-1">
                       <StyledSelect
-                        options={commonLanguages.map(l => ({ value: l, label: l }))}
+                        options={allLanguages.map(l => ({ value: l, label: l }))}
                         placeholder="Sprache wählen..."
                         value={lang.language}
                         onChange={(e) => updateOtherLanguage(index, 'language', e.target.value)}

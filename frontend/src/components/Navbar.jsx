@@ -260,6 +260,13 @@ function Navbar() {
               </Link>
             </div>
 
+            {/* Sprachwechsel - immer sichtbar */}
+            <div className="pt-4 border-t border-gray-100">
+              <div className="px-4 py-2">
+                <LanguageSwitcher />
+              </div>
+            </div>
+
             {!isAuthenticated ? (
               <div className="space-y-2 pt-4 border-t border-gray-100">
                 <Link

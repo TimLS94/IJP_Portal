@@ -565,13 +565,13 @@
       "phoneRequired": "Telefonnummer ist erforderlich"
     },
     "placeholders": {
-      "placeOfBirth": "z.B. Moskau, Russland",
-      "nationality": "z.B. Russisch",
+      "placeOfBirth": "z.B. Berlin, Deutschland",
+      "nationality": "Bitte wählen...",
       "street": "Musterstraße",
-      "city": "Moskau",
-      "country": "Russland",
+      "city": "Berlin",
+      "country": "Deutschland",
       "germanyDetails": "Wann waren Sie in Deutschland? Wie lange? Aus welchem Grund?",
-      "universityName": "z.B. Staatliche Universität Moskau",
+      "universityName": "z.B. Technische Universität Berlin",
       "fieldOfStudy": "z.B. Informatik, BWL",
       "desiredProfession": "z.B. Mechatroniker",
       "schoolDegree": "z.B. Mittlere Reife",
