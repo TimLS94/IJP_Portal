@@ -3,9 +3,9 @@ API für Firmen-Aufträge an IJP
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import datetime
-from pydantic import BaseModel
+from typing import List, Optional, Union
+from datetime import datetime, date
+from pydantic import BaseModel, field_validator
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -27,9 +27,9 @@ class CompanyRequestCreate(BaseModel):
     title: str
     description: Optional[str] = None
     positions_needed: int = 1
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    deadline: Optional[datetime] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    deadline: Optional[date] = None
     requirements: Optional[dict] = {}
     salary_range: Optional[str] = None
     budget_note: Optional[str] = None
@@ -38,20 +38,55 @@ class CompanyRequestCreate(BaseModel):
     contact_name: Optional[str] = None
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
+    
+    @field_validator('start_date', 'end_date', 'deadline', mode='before')
+    @classmethod
+    def parse_date(cls, v):
+        if v is None or v == '':
+            return None
+        if isinstance(v, date):
+            return v
+        if isinstance(v, str):
+            # Versuche verschiedene Formate
+            try:
+                return datetime.fromisoformat(v.replace('Z', '+00:00')).date()
+            except:
+                try:
+                    return datetime.strptime(v, '%Y-%m-%d').date()
+                except:
+                    return None
+        return None
 
 
 class CompanyRequestUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     positions_needed: Optional[int] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    deadline: Optional[datetime] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    deadline: Optional[date] = None
     requirements: Optional[dict] = None
     salary_range: Optional[str] = None
     contact_name: Optional[str] = None
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
+    
+    @field_validator('start_date', 'end_date', 'deadline', mode='before')
+    @classmethod
+    def parse_date(cls, v):
+        if v is None or v == '':
+            return None
+        if isinstance(v, date):
+            return v
+        if isinstance(v, str):
+            try:
+                return datetime.fromisoformat(v.replace('Z', '+00:00')).date()
+            except:
+                try:
+                    return datetime.strptime(v, '%Y-%m-%d').date()
+                except:
+                    return None
+        return None
 
 
 class CompanyRequestResponse(BaseModel):
