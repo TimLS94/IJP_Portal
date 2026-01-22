@@ -358,6 +358,22 @@ function ApplicantProfile() {
       const response = await applicantAPI.parseCV(formData);
       const parsedData = response.data;
       
+      // Prüfen ob es ein Parse-Error gab (z.B. gescanntes PDF)
+      if (parsedData.parse_error) {
+        setCvParseResult({
+          success: false,
+          cvSaved: parsedData.cv_saved,
+          message: parsedData.parse_error
+        });
+        if (parsedData.cv_saved) {
+          toast.success('Lebenslauf wurde gespeichert!');
+          // Dokumente neu laden
+          const docsRes = await documentsAPI.list();
+          setDocuments(docsRes.data);
+        }
+        return;
+      }
+      
       // Extrahierte Daten in Formularfelder übernehmen
       if (parsedData.first_name) setValue('first_name', parsedData.first_name);
       if (parsedData.last_name) setValue('last_name', parsedData.last_name);
@@ -393,11 +409,18 @@ function ApplicantProfile() {
       
       setCvParseResult({
         success: true,
-        fieldsExtracted: Object.keys(parsedData).filter(k => parsedData[k]).length,
+        cvSaved: parsedData.cv_saved,
+        fieldsExtracted: Object.keys(parsedData).filter(k => parsedData[k] && !['message', 'cv_saved'].includes(k)).length,
         message: parsedData.message || 'Daten erfolgreich extrahiert!'
       });
       
-      toast.success('Lebenslauf analysiert! Bitte überprüfen Sie die Daten.');
+      // Dokumente neu laden (CV wurde gespeichert)
+      if (parsedData.cv_saved) {
+        const docsRes = await documentsAPI.list();
+        setDocuments(docsRes.data);
+      }
+      
+      toast.success('Lebenslauf analysiert und gespeichert! Bitte überprüfen Sie die Daten.');
       
     } catch (error) {
       console.error('CV Parse Error:', error);
@@ -739,21 +762,25 @@ function ApplicantProfile() {
                     </p>
                     <p className="text-sm text-green-200/80 mt-1">
                       {cvParseResult.fieldsExtracted} Felder wurden erkannt. 
-                      Bitte überprüfen Sie die Daten unten und ergänzen Sie fehlende Informationen.
+                      {cvParseResult.cvSaved && ' ✓ Lebenslauf wurde in Ihren Dokumenten gespeichert.'}
+                      {' '}Bitte überprüfen Sie die Daten unten.
                     </p>
                   </div>
                 </>
               ) : (
                 <>
-                  <AlertCircle className="h-5 w-5 text-red-300 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${cvParseResult.cvSaved ? 'text-yellow-300' : 'text-red-300'}`} />
                   <div>
-                    <p className="font-medium text-red-100">
-                      {cvParseResult.message}
+                    <p className={`font-medium ${cvParseResult.cvSaved ? 'text-yellow-100' : 'text-red-100'}`}>
+                      {cvParseResult.cvSaved ? '✓ Lebenslauf gespeichert' : cvParseResult.message}
                     </p>
-                    <p className="text-sm text-red-200/80 mt-1">
+                    <p className={`text-sm mt-1 ${cvParseResult.cvSaved ? 'text-yellow-200/80' : 'text-red-200/80'}`}>
+                      {cvParseResult.cvSaved && cvParseResult.message && (
+                        <span>{cvParseResult.message} </span>
+                      )}
                       {cvParseResult.isQuotaError 
                         ? 'Die Funktion ist morgen wieder verfügbar. Sie können Ihr Profil auch manuell ausfüllen.'
-                        : 'Bitte füllen Sie die Felder manuell aus oder versuchen Sie es mit einem anderen PDF.'}
+                        : !cvParseResult.cvSaved && 'Bitte füllen Sie die Felder manuell aus oder versuchen Sie es mit einem anderen PDF.'}
                     </p>
                   </div>
                 </>

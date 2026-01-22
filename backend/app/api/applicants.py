@@ -125,9 +125,12 @@ async def parse_cv(
 ):
     """
     Analysiert einen hochgeladenen Lebenslauf (PDF) und extrahiert relevante Daten.
-    Verwendet OpenAI GPT zur Extraktion strukturierter Daten.
+    Der CV wird automatisch auch als Dokument gespeichert.
     """
     import os
+    from app.models.document import Document
+    from app.services.storage_service import storage_service
+    import uuid
     
     if current_user.role != UserRole.APPLICANT:
         raise HTTPException(
@@ -149,6 +152,57 @@ async def parse_cv(
             detail="Datei ist zu groß (max. 10 MB)"
         )
     
+    # ========== CV AUTOMATISCH ALS DOKUMENT SPEICHERN ==========
+    try:
+        # Bewerber-Profil holen
+        applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+        
+        if applicant:
+            # Prüfen ob bereits ein CV existiert
+            existing_cv = db.query(Document).filter(
+                Document.applicant_id == applicant.id,
+                Document.document_type == "cv"
+            ).first()
+            
+            # Wenn ja, altes löschen
+            if existing_cv:
+                try:
+                    storage_service.delete_file(existing_cv.storage_path)
+                except:
+                    pass
+                db.delete(existing_cv)
+                db.commit()
+            
+            # Neues Dokument speichern
+            file_ext = ".pdf"
+            storage_filename = f"{uuid.uuid4()}{file_ext}"
+            storage_path = f"documents/{applicant.id}/{storage_filename}"
+            
+            # In Cloud-Storage hochladen
+            file_url = storage_service.upload_file(
+                file_content=content,
+                storage_path=storage_path,
+                content_type="application/pdf"
+            )
+            
+            # Dokument in DB speichern
+            new_doc = Document(
+                applicant_id=applicant.id,
+                document_type="cv",
+                file_name=file.filename,
+                file_size=len(content),
+                mime_type="application/pdf",
+                storage_path=storage_path,
+                file_url=file_url
+            )
+            db.add(new_doc)
+            db.commit()
+            logger.info(f"CV automatisch als Dokument gespeichert für Bewerber {applicant.id}")
+            
+    except Exception as e:
+        logger.warning(f"CV konnte nicht als Dokument gespeichert werden: {e}")
+        # Kein Fehler werfen - CV-Parsing soll trotzdem funktionieren
+    
     # PDF Text extrahieren
     try:
         import fitz  # PyMuPDF
@@ -159,10 +213,12 @@ async def parse_cv(
         pdf_document.close()
         
         if not text.strip():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Konnte keinen Text aus dem PDF extrahieren. Ist das PDF möglicherweise gescannt?"
-            )
+            # CV wurde trotzdem gespeichert, aber kein Text extrahierbar
+            return {
+                "message": "Ihr Lebenslauf wurde gespeichert, aber die automatische Textanalyse war nicht möglich.",
+                "cv_saved": True,
+                "parse_error": "Das PDF scheint gescannt zu sein (keine Textebene). Bitte füllen Sie Ihr Profil manuell aus oder laden Sie ein digitales PDF hoch."
+            }
             
     except ImportError:
         logger.warning("PyMuPDF nicht installiert, versuche Alternative...")
@@ -228,7 +284,8 @@ Lebenslauf-Text:
 Antworte NUR mit dem JSON-Objekt (ohne ```json oder andere Formatierung):"""
 
         # Versuche verschiedene Modelle (Fallback-Kette)
-        model_names = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-pro', 'gemini-1.0-pro']
+        # Dokumentation: https://ai.google.dev/gemini-api/docs/models/gemini
+        model_names = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
         response = None
         last_error = None
         
@@ -257,6 +314,7 @@ Antworte NUR mit dem JSON-Objekt (ohne ```json oder andere Formatierung):"""
         
         parsed_data = json.loads(response_text)
         parsed_data["message"] = "Daten erfolgreich aus Lebenslauf extrahiert"
+        parsed_data["cv_saved"] = True
         
         return parsed_data
         
