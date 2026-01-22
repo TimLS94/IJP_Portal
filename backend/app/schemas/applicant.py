@@ -9,6 +9,16 @@ class OtherLanguage(BaseModel):
     level: LanguageLevel
 
 
+class WorkExperience(BaseModel):
+    """Strukturierte Berufserfahrung"""
+    company: str  # Firmenname
+    position: str  # Position/Tätigkeit
+    location: Optional[str] = None  # Ort
+    start_date: Optional[str] = None  # Startdatum (YYYY-MM oder YYYY)
+    end_date: Optional[str] = None  # Enddatum (YYYY-MM, YYYY oder "heute")
+    description: Optional[str] = None  # Tätigkeitsbeschreibung
+
+
 class ApplicantBase(BaseModel):
     # ========== ALLGEMEINE PERSONENDATEN ==========
     first_name: str
@@ -28,8 +38,9 @@ class ApplicantBase(BaseModel):
     country: Optional[str] = None
     
     # ========== QUALIFIKATIONEN ==========
-    work_experience: Optional[str] = None
+    work_experience: Optional[str] = None  # Legacy: Freitext
     work_experience_years: Optional[int] = 0
+    work_experiences: Optional[List[WorkExperience]] = []  # NEU: Strukturierte Liste
     
     # Sprachkenntnisse
     german_level: Optional[LanguageLevel] = LanguageLevel.NONE
@@ -96,6 +107,7 @@ class ApplicantUpdate(BaseModel):
     
     work_experience: Optional[str] = None
     work_experience_years: Optional[int] = None
+    work_experiences: Optional[List[WorkExperience]] = None  # NEU: Strukturierte Liste
     german_level: Optional[LanguageLevel] = None
     english_level: Optional[LanguageLevel] = None
     other_languages: Optional[List[OtherLanguage]] = None

@@ -231,7 +231,7 @@ function Navbar() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-100">
+          <div className="md:hidden py-4 border-t border-gray-100 max-h-[calc(100vh-4rem)] overflow-y-auto">
             {/* Hauptlinks */}
             <div className="space-y-1 mb-4">
               <Link

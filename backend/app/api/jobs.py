@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
+from datetime import datetime, timedelta, date
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -9,6 +10,9 @@ from app.models.company import Company
 from app.models.job_posting import JobPosting
 from app.models.applicant import PositionType
 from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPostingResponse, JobPostingListResponse
+
+# Maximale Deadline: 1 Monat
+MAX_DEADLINE_DAYS = 31
 
 router = APIRouter(prefix="/jobs", tags=["Stellenangebote"])
 
@@ -78,9 +82,25 @@ async def create_job(
             detail="Firmen-Profil nicht gefunden"
         )
     
+    job_dict = job_data.model_dump()
+    
+    # Deadline-Validierung: max 1 Monat in der Zukunft
+    if job_dict.get('deadline'):
+        max_deadline = date.today() + timedelta(days=MAX_DEADLINE_DAYS)
+        if job_dict['deadline'] > max_deadline:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Die Deadline darf maximal {MAX_DEADLINE_DAYS} Tage in der Zukunft liegen"
+            )
+        if job_dict['deadline'] < date.today():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Die Deadline darf nicht in der Vergangenheit liegen"
+            )
+    
     job = JobPosting(
         company_id=company.id,
-        **job_data.model_dump()
+        **job_dict
     )
     db.add(job)
     db.commit()
@@ -126,10 +146,12 @@ async def update_job(
 @router.delete("/{job_id}")
 async def delete_job(
     job_id: int,
+    permanent: bool = False,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Löscht ein Stellenangebot (nur eigene)"""
+    """Archiviert oder löscht ein Stellenangebot (nur eigene).
+    Mit permanent=true wird die Stelle endgültig gelöscht, sonst nur archiviert."""
     from app.models.application import Application
     
     if current_user.role != UserRole.COMPANY:
@@ -150,17 +172,114 @@ async def delete_job(
             detail="Stellenangebot nicht gefunden oder keine Berechtigung"
         )
     
-    # Zuerst alle zugehörigen Bewerbungen löschen
-    applications_count = db.query(Application).filter(Application.job_posting_id == job_id).count()
-    db.query(Application).filter(Application.job_posting_id == job_id).delete()
+    if permanent:
+        # Endgültig löschen
+        applications_count = db.query(Application).filter(Application.job_posting_id == job_id).count()
+        db.query(Application).filter(Application.job_posting_id == job_id).delete()
+        db.delete(job)
+        db.commit()
+        return {
+            "message": "Stellenangebot endgültig gelöscht",
+            "deleted_applications": applications_count
+        }
+    else:
+        # Archivieren (soft delete)
+        job.is_active = False
+        job.is_archived = True
+        job.archived_at = datetime.utcnow()
+        db.commit()
+        return {
+            "message": "Stellenangebot archiviert",
+            "can_be_reactivated": True
+        }
+
+
+@router.post("/{job_id}/reactivate", response_model=JobPostingResponse)
+async def reactivate_job(
+    job_id: int,
+    new_deadline: Optional[date] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reaktiviert ein archiviertes Stellenangebot (nur eigene).
+    Optional kann eine neue Deadline gesetzt werden (max 1 Monat)."""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Firmen können Stellenangebote reaktivieren"
+        )
     
-    db.delete(job)
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    job = db.query(JobPosting).filter(
+        JobPosting.id == job_id,
+        JobPosting.company_id == company.id
+    ).first()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stellenangebot nicht gefunden oder keine Berechtigung"
+        )
+    
+    if not job.is_archived:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Diese Stelle ist nicht archiviert"
+        )
+    
+    # Deadline-Validierung
+    if new_deadline:
+        max_deadline = date.today() + timedelta(days=MAX_DEADLINE_DAYS)
+        if new_deadline > max_deadline:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Die Deadline darf maximal {MAX_DEADLINE_DAYS} Tage in der Zukunft liegen"
+            )
+        if new_deadline < date.today():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Die Deadline darf nicht in der Vergangenheit liegen"
+            )
+        job.deadline = new_deadline
+    else:
+        # Standard: 1 Monat ab heute
+        job.deadline = date.today() + timedelta(days=MAX_DEADLINE_DAYS)
+    
+    job.is_active = True
+    job.is_archived = False
+    job.archived_at = None
+    job.updated_at = datetime.utcnow()
+    
     db.commit()
+    db.refresh(job)
+    return job
+
+
+@router.get("/my/archived", response_model=List[JobPostingResponse])
+async def get_archived_jobs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Listet alle archivierten Stellenangebote der Firma"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Firmen können auf diesen Endpunkt zugreifen"
+        )
     
-    return {
-        "message": "Stellenangebot gelöscht",
-        "deleted_applications": applications_count
-    }
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    if not company:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Firmen-Profil nicht gefunden"
+        )
+    
+    jobs = db.query(JobPosting).filter(
+        JobPosting.company_id == company.id,
+        JobPosting.is_archived == True
+    ).order_by(JobPosting.archived_at.desc()).all()
+    
+    return jobs
 
 
 @router.get("/my/jobs", response_model=List[JobPostingResponse])
@@ -183,7 +302,43 @@ async def get_my_jobs(
         )
     
     jobs = db.query(JobPosting).filter(
-        JobPosting.company_id == company.id
+        JobPosting.company_id == company.id,
+        JobPosting.is_archived == False  # Archivierte ausblenden
     ).order_by(JobPosting.created_at.desc()).all()
     
     return jobs
+
+
+@router.get("/{job_id}/match")
+async def get_job_match_score(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Berechnet den Matching-Score zwischen Bewerber und Stelle (nur für eingeloggte Bewerber)"""
+    from app.models.applicant import Applicant
+    from app.services.matching_service import calculate_match_score
+    from app.services.settings_service import is_applicant_matching_enabled
+    
+    # Feature Flag prüfen
+    if not is_applicant_matching_enabled(db):
+        return {"enabled": False, "message": "Matching ist derzeit deaktiviert"}
+    
+    # Nur für Bewerber
+    if current_user.role != UserRole.APPLICANT:
+        return {"enabled": False, "message": "Matching nur für Bewerber verfügbar"}
+    
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        return {"enabled": True, "message": "Profil unvollständig", "total_score": 0}
+    
+    match = calculate_match_score(applicant, job)
+    return {
+        "enabled": True,
+        "job_id": job_id,
+        **match
+    }

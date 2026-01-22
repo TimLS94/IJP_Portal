@@ -9,9 +9,10 @@ from app.models.blog import BlogPost
 from app.models.password_reset import PasswordResetToken
 from app.models.job_request import JobRequest
 from app.models.interview import Interview, InterviewStatus
+from app.models.settings import GlobalSettings
 
 __all__ = [
     "User", "Applicant", "Company", "CompanyMember", "CompanyRole", "JobPosting", 
     "Application", "Document", "BlogPost", "PasswordResetToken", "JobRequest",
-    "Interview", "InterviewStatus"
+    "Interview", "InterviewStatus", "GlobalSettings"
 ]

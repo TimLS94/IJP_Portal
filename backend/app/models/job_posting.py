@@ -72,8 +72,13 @@ class JobPosting(Base):
     
     # Status
     is_active = Column(Boolean, default=True)
+    is_archived = Column(Boolean, default=False)  # Für archivierte Stellen (reaktivierbar)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Deadline (max 1 Monat, dann automatisch deaktiviert)
+    deadline = Column(Date)  # Bewerbungsschluss
+    archived_at = Column(DateTime)  # Wann archiviert
     
     # Relationships
     company = relationship("Company", back_populates="job_postings")

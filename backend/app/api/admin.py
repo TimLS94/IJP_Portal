@@ -702,3 +702,87 @@ async def delete_user(
     db.commit()
     
     return {"message": "Benutzer gelöscht"}
+
+
+# ==================== FEATURE FLAGS / SETTINGS ====================
+
+@router.get("/settings")
+async def get_all_settings(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Holt alle globalen Einstellungen (Admin only)"""
+    from app.services.settings_service import get_all_settings
+    return get_all_settings(db)
+
+
+@router.put("/settings/{key}")
+async def update_setting(
+    key: str,
+    value: bool,  # Für Feature Flags hauptsächlich boolean
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert eine globale Einstellung (Admin only)"""
+    from app.services.settings_service import set_setting
+    
+    setting = set_setting(db, key, value, current_user.id)
+    
+    return {
+        "message": f"Einstellung '{key}' wurde aktualisiert",
+        "key": key,
+        "value": value
+    }
+
+
+@router.get("/settings/feature-flags")
+async def get_feature_flags(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Holt alle Feature Flags (Admin only)"""
+    from app.services.settings_service import get_setting
+    
+    return {
+        "matching_enabled_for_companies": get_setting(db, "matching_enabled_for_companies", True),
+        "matching_enabled_for_applicants": get_setting(db, "matching_enabled_for_applicants", True),
+        "auto_deactivate_expired_jobs": get_setting(db, "auto_deactivate_expired_jobs", True)
+    }
+
+
+# ==================== MATCHING ====================
+
+@router.get("/matching/job/{job_id}")
+async def get_job_matches(
+    job_id: int,
+    limit: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Findet die besten Bewerber-Matches für eine Stelle (Admin only)"""
+    from app.services.matching_service import get_top_matches_for_job
+    from app.services.settings_service import is_company_matching_enabled
+    
+    if not is_company_matching_enabled(db):
+        return {"matches": [], "message": "Matching ist deaktiviert"}
+    
+    matches = get_top_matches_for_job(db, job_id, limit)
+    return {"matches": matches, "total": len(matches)}
+
+
+@router.get("/matching/applicant/{applicant_id}")
+async def get_applicant_matches(
+    applicant_id: int,
+    limit: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Findet die besten Stellen-Matches für einen Bewerber (Admin only)"""
+    from app.services.matching_service import get_top_matches_for_applicant
+    from app.services.settings_service import is_applicant_matching_enabled
+    
+    if not is_applicant_matching_enabled(db):
+        return {"matches": [], "message": "Matching ist deaktiviert"}
+    
+    matches = get_top_matches_for_applicant(db, applicant_id, limit)
+    return {"matches": matches, "total": len(matches)}

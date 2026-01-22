@@ -48,9 +48,13 @@ class Applicant(Base):
     country = Column(String(100))
     
     # ========== QUALIFIKATIONEN (für alle) ==========
-    # Berufserfahrung
+    # Berufserfahrung (Legacy: Freitext)
     work_experience = Column(Text)  # Textbeschreibung der Berufserfahrung
     work_experience_years = Column(Integer, default=0)  # Jahre Berufserfahrung
+    
+    # Berufserfahrung (NEU: Strukturierte Liste)
+    # Format: [{company, position, start_date, end_date, description, location}, ...]
+    work_experiences = Column(JSON, default=[])
     
     # Sprachkenntnisse
     german_level = Column(Enum(LanguageLevel), default=LanguageLevel.NONE)

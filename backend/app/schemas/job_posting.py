@@ -36,6 +36,7 @@ class JobPostingBase(BaseModel):
     other_languages_required: Optional[List[OtherLanguageRequirement]] = []
     
     additional_requirements: Optional[dict] = {}
+    deadline: Optional[date] = None  # Bewerbungsschluss (max 1 Monat)
     
     @field_validator('salary_min')
     @classmethod
@@ -80,6 +81,7 @@ class JobPostingUpdate(BaseModel):
     
     additional_requirements: Optional[dict] = None
     is_active: Optional[bool] = None
+    deadline: Optional[date] = None  # Bewerbungsschluss
     
     @field_validator('salary_min')
     @classmethod
@@ -102,8 +104,10 @@ class JobPostingResponse(JobPostingBase):
     id: int
     company_id: int
     is_active: bool
+    is_archived: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
+    archived_at: Optional[datetime] = None
     company: Optional[CompanyResponse] = None
     
     class Config:

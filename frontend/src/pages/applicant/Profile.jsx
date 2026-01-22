@@ -119,6 +119,7 @@ function ApplicantProfile() {
   const [documents, setDocuments] = useState([]);
   const [requirements, setRequirements] = useState(null);
   const [otherLanguages, setOtherLanguages] = useState([]);
+  const [workExperiences, setWorkExperiences] = useState([]);
   const [showIJPModal, setShowIJPModal] = useState(false);
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
   const fileInputRefs = useRef({});
@@ -170,6 +171,11 @@ function ApplicantProfile() {
         setOtherLanguages(profileData.other_languages);
       }
       
+      // Berufserfahrungen laden
+      if (profileData.work_experiences && Array.isArray(profileData.work_experiences)) {
+        setWorkExperiences(profileData.work_experiences);
+      }
+      
       // Anforderungen laden für ersten Positionstyp
       const firstType = profileData.position_types?.[0] || profileData.position_type;
       if (firstType) {
@@ -196,8 +202,9 @@ function ApplicantProfile() {
   const onSubmit = async (data) => {
     setSaving(true);
     try {
-      // Andere Sprachen hinzufügen
+      // Andere Sprachen und Berufserfahrungen hinzufügen
       data.other_languages = otherLanguages;
+      data.work_experiences = workExperiences;
       await applicantAPI.updateProfile(data);
       toast.success('Profil erfolgreich gespeichert!');
       // Modal anzeigen nach erfolgreichem Speichern
@@ -222,6 +229,28 @@ function ApplicantProfile() {
     const updated = [...otherLanguages];
     updated[index][field] = value;
     setOtherLanguages(updated);
+  };
+
+  // Berufserfahrung-Management
+  const addWorkExperience = () => {
+    setWorkExperiences([...workExperiences, { 
+      company: '', 
+      position: '', 
+      location: '',
+      start_date: '', 
+      end_date: '', 
+      description: '' 
+    }]);
+  };
+
+  const removeWorkExperience = (index) => {
+    setWorkExperiences(workExperiences.filter((_, i) => i !== index));
+  };
+
+  const updateWorkExperience = (index, field, value) => {
+    const updated = [...workExperiences];
+    updated[index][field] = value;
+    setWorkExperiences(updated);
   };
 
   // Dokument-Management
@@ -794,8 +823,113 @@ function ApplicantProfile() {
             <Briefcase className="h-5 w-5 text-primary-600" />
             {t('profile.workAndGermany')}
           </h2>
-          <div className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-6">
+            {/* Strukturierte Berufserfahrung */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <label className="label mb-0">Berufserfahrung (tabellarisch)</label>
+                <button
+                  type="button"
+                  onClick={addWorkExperience}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-primary-600 
+                           bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Position hinzufügen
+                </button>
+              </div>
+              
+              {workExperiences.length === 0 ? (
+                <p className="text-gray-500 text-sm italic p-4 bg-gray-50 rounded-xl">
+                  Noch keine Berufserfahrung eingetragen. Klicken Sie auf "Position hinzufügen".
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {workExperiences.map((exp, index) => (
+                    <div key={index} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="text-sm font-medium text-gray-500">Position {index + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeWorkExperience(index)}
+                          className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Entfernen"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-600 mb-1 block">Unternehmen/Firma *</label>
+                          <input
+                            type="text"
+                            className="input-styled text-sm"
+                            placeholder="z.B. Musterfirma GmbH"
+                            value={exp.company}
+                            onChange={(e) => updateWorkExperience(index, 'company', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600 mb-1 block">Position/Tätigkeit *</label>
+                          <input
+                            type="text"
+                            className="input-styled text-sm"
+                            placeholder="z.B. Softwareentwickler"
+                            value={exp.position}
+                            onChange={(e) => updateWorkExperience(index, 'position', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600 mb-1 block">Ort</label>
+                          <input
+                            type="text"
+                            className="input-styled text-sm"
+                            placeholder="z.B. Berlin, Deutschland"
+                            value={exp.location || ''}
+                            onChange={(e) => updateWorkExperience(index, 'location', e.target.value)}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs text-gray-600 mb-1 block">Von</label>
+                            <input
+                              type="text"
+                              className="input-styled text-sm"
+                              placeholder="MM/JJJJ"
+                              value={exp.start_date || ''}
+                              onChange={(e) => updateWorkExperience(index, 'start_date', e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600 mb-1 block">Bis</label>
+                            <input
+                              type="text"
+                              className="input-styled text-sm"
+                              placeholder="MM/JJJJ oder heute"
+                              value={exp.end_date || ''}
+                              onChange={(e) => updateWorkExperience(index, 'end_date', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="text-xs text-gray-600 mb-1 block">Tätigkeitsbeschreibung</label>
+                          <textarea
+                            className="input-styled text-sm"
+                            rows={2}
+                            placeholder="Beschreiben Sie Ihre Aufgaben und Verantwortlichkeiten..."
+                            value={exp.description || ''}
+                            onChange={(e) => updateWorkExperience(index, 'description', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Zusammenfassung */}
+            <div className="grid md:grid-cols-2 gap-4 pt-4 border-t">
               <div>
                 <label className="label">{t('applicant.workExperienceYears')}</label>
                 <input
@@ -826,12 +960,13 @@ function ApplicantProfile() {
               </div>
             </div>
             
+            {/* Zusätzliche Notizen (Legacy-Feld) */}
             <div>
-              <label className="label">{t('applicant.workExperience')}</label>
+              <label className="label">Zusätzliche Anmerkungen zur Berufserfahrung</label>
               <textarea
                 className="input-styled"
-                rows={3}
-                placeholder={t('applicant.workExperiencePlaceholder')}
+                rows={2}
+                placeholder="Weitere Informationen zu Ihrer Berufserfahrung..."
                 {...register('work_experience')}
               />
             </div>
