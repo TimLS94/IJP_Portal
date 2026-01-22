@@ -186,14 +186,15 @@ async def parse_cv(
             )
             
             if success:
-                # Dokument in DB speichern
+                # Dokument in DB speichern (korrekte Feldnamen!)
                 new_doc = Document(
                     applicant_id=applicant.id,
                     document_type="cv",
-                    file_name=file.filename,
+                    file_name=storage_filename,  # Gespeicherter Dateiname
+                    original_name=file.filename,  # Originaler Dateiname
+                    file_path=storage_path,  # Pfad im Storage
                     file_size=len(content),
-                    mime_type="application/pdf",
-                    storage_path=storage_path
+                    mime_type="application/pdf"
                 )
                 db.add(new_doc)
                 db.commit()
@@ -237,117 +238,13 @@ async def parse_cv(
             detail="Fehler beim Lesen des PDFs"
         )
     
-    # Google Gemini API für Datenextraktion (kostenlos!)
-    google_api_key = os.environ.get("GOOGLE_API_KEY")
-    if not google_api_key:
-        logger.warning("Google API Key nicht konfiguriert - verwende Fallback-Parsing")
-        result = parse_cv_fallback(text)
-        result["cv_saved"] = cv_saved
-        return result
+    # ========== CV PARSING ==========
+    # Verwende verbessertes Regex-basiertes Parsing
+    # (Gemini API temporär deaktiviert wegen 404-Fehlern)
     
-    try:
-        import google.generativeai as genai
-        import json
-        
-        genai.configure(api_key=google_api_key)
-        
-        prompt = f"""Analysiere den folgenden Lebenslauf und extrahiere die relevanten Informationen im JSON-Format.
-        
-WICHTIG: Gib NUR valides JSON zurück, keine Erklärungen oder Markdown-Codeblöcke.
-
-Extrahiere folgende Felder (falls vorhanden, sonst weglassen):
-- first_name: Vorname
-- last_name: Nachname  
-- date_of_birth: Geburtsdatum im Format YYYY-MM-DD
-- place_of_birth: Geburtsort
-- nationality: Nationalität (auf Deutsch, z.B. "Russisch", "Ukrainisch")
-- phone: Telefonnummer
-- street: Straße (ohne Hausnummer)
-- house_number: Hausnummer
-- postal_code: Postleitzahl
-- city: Stadt
-- country: Land
-- german_level: Deutschkenntnisse als GER-Level (A1, A2, B1, B2, C1, C2 oder "keine")
-- english_level: Englischkenntnisse als GER-Level (A1, A2, B1, B2, C1, C2 oder "keine")
-- other_languages: Array von {{"language": "Sprache", "level": "A1-C2"}}
-- university_name: Name der Universität/Hochschule
-- field_of_study: Studienfach
-- profession: Ausgeübter Beruf
-- school_degree: Schulabschluss
-- work_experiences: Array von {{
-    "company": "Firmenname",
-    "position": "Position/Tätigkeit", 
-    "location": "Ort",
-    "start_date": "YYYY-MM-DD",
-    "end_date": "YYYY-MM-DD oder null falls aktuell",
-    "description": "Kurze Beschreibung der Tätigkeiten"
-  }}
-
-Lebenslauf-Text:
-{text[:12000]}
-
-Antworte NUR mit dem JSON-Objekt (ohne ```json oder andere Formatierung):"""
-
-        # Versuche verschiedene Modelle (Fallback-Kette)
-        # Dokumentation: https://ai.google.dev/gemini-api/docs/models/gemini
-        model_names = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
-        response = None
-        last_error = None
-        
-        for model_name in model_names:
-            try:
-                model = genai.GenerativeModel(model_name)
-                response = model.generate_content(prompt)
-                logger.info(f"CV-Parsing erfolgreich mit Modell: {model_name}")
-                break
-            except Exception as e:
-                last_error = e
-                logger.warning(f"Modell {model_name} fehlgeschlagen: {e}")
-                continue
-        
-        if not response:
-            logger.error(f"Alle Gemini Modelle fehlgeschlagen. Letzter Fehler: {last_error}")
-            return parse_cv_fallback(text)
-        
-        response_text = response.text.strip()
-        
-        # JSON aus Antwort extrahieren (falls in Markdown-Codeblock)
-        if "```json" in response_text:
-            response_text = response_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in response_text:
-            response_text = response_text.split("```")[1].split("```")[0].strip()
-        
-        parsed_data = json.loads(response_text)
-        parsed_data["message"] = "Daten erfolgreich aus Lebenslauf extrahiert"
-        parsed_data["cv_saved"] = cv_saved
-        
-        return parsed_data
-        
-    except ImportError:
-        logger.warning("Google Generative AI nicht installiert")
-        result = parse_cv_fallback(text)
-        result["cv_saved"] = cv_saved
-        return result
-    except json.JSONDecodeError as e:
-        logger.error(f"JSON Parse Error: {e}")
-        result = parse_cv_fallback(text)
-        result["cv_saved"] = cv_saved
-        return result
-    except Exception as e:
-        error_msg = str(e).lower()
-        logger.error(f"Google Gemini API Error: {e}")
-        
-        # Rate Limit / Quota Exceeded
-        if "quota" in error_msg or "rate" in error_msg or "limit" in error_msg or "429" in error_msg or "resource_exhausted" in error_msg:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Die automatische Lebenslauf-Analyse ist heute leider ausgelastet. Bitte versuchen Sie es morgen erneut oder füllen Sie Ihr Profil manuell aus."
-            )
-        
-        # Andere Fehler - Fallback
-        result = parse_cv_fallback(text)
-        result["cv_saved"] = cv_saved
-        return result
+    result = parse_cv_fallback(text)
+    result["cv_saved"] = cv_saved
+    return result
 
 
 def parse_cv_fallback(text: str) -> dict:
