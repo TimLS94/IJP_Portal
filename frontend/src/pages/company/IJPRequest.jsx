@@ -84,13 +84,22 @@ function CompanyIJPRequest() {
     
     setSubmitting(true);
     try {
+      // Nur gefüllte Felder senden, leere Strings entfernen
       const data = {
-        ...formData,
+        request_type: formData.request_type,
+        title: formData.title,
         positions_needed: parseInt(formData.positions_needed) || 1,
-        job_posting_id: formData.job_posting_id ? parseInt(formData.job_posting_id) : null,
-        start_date: formData.start_date || null,
-        deadline: formData.deadline || null,
       };
+      
+      // Optionale Felder nur wenn ausgefüllt
+      if (formData.description) data.description = formData.description;
+      if (formData.start_date) data.start_date = formData.start_date;
+      if (formData.deadline) data.deadline = formData.deadline;
+      if (formData.salary_range) data.salary_range = formData.salary_range;
+      if (formData.job_posting_id) data.job_posting_id = parseInt(formData.job_posting_id);
+      if (formData.contact_name) data.contact_name = formData.contact_name;
+      if (formData.contact_email) data.contact_email = formData.contact_email;
+      if (formData.contact_phone) data.contact_phone = formData.contact_phone;
       
       await companyRequestsAPI.create(data);
       toast.success('Auftrag erfolgreich erstellt!');
