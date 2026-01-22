@@ -10,9 +10,11 @@ from app.models.password_reset import PasswordResetToken
 from app.models.job_request import JobRequest
 from app.models.interview import Interview, InterviewStatus
 from app.models.settings import GlobalSettings
+from app.models.company_request import CompanyRequest, CompanyRequestType, CompanyRequestStatus
 
 __all__ = [
     "User", "Applicant", "Company", "CompanyMember", "CompanyRole", "JobPosting", 
     "Application", "Document", "BlogPost", "PasswordResetToken", "JobRequest",
-    "Interview", "InterviewStatus", "GlobalSettings"
+    "Interview", "InterviewStatus", "GlobalSettings", "CompanyRequest", 
+    "CompanyRequestType", "CompanyRequestStatus"
 ]

@@ -19,11 +19,11 @@ logger.info("Config loaded")
 from app.core.database import engine, Base, SessionLocal
 logger.info("Database module loaded")
 
-from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews
+from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests
 logger.info("API routers loaded")
 
 # Import Models für create_all
-from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview
+from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request
 logger.info("Models loaded")
 
 from app.core.seed_data import seed_database
@@ -169,6 +169,7 @@ app.include_router(contact.router, prefix=settings.API_V1_PREFIX)
 app.include_router(company_members.router, prefix=settings.API_V1_PREFIX)
 app.include_router(anabin.router, prefix=settings.API_V1_PREFIX)
 app.include_router(interviews.router, prefix=settings.API_V1_PREFIX)
+app.include_router(company_requests.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

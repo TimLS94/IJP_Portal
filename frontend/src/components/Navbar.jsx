@@ -53,6 +53,7 @@ function Navbar() {
         { to: '/company/jobs', icon: Briefcase, label: t('nav.jobs') },
         { to: '/company/applications', icon: FileText, label: t('nav.companyApplications') },
         { to: '/company/team', icon: Users, label: 'Team' },
+        { to: '/company/ijp-auftrag', icon: Briefcase, label: 'IJP beauftragen' },
         { divider: true },
         { to: '/company/settings', icon: Settings, label: t('nav.settings') },
       ];

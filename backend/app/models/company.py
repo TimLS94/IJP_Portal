@@ -36,3 +36,4 @@ class Company(Base):
     user = relationship("User", back_populates="company")
     job_postings = relationship("JobPosting", back_populates="company")
     members = relationship("CompanyMember", back_populates="company")
+    company_requests = relationship("CompanyRequest", back_populates="company")

@@ -29,6 +29,7 @@ import CompanyApplications from './pages/company/Applications';
 import CreateJob from './pages/company/CreateJob';
 import EditJob from './pages/company/EditJob';
 import TeamMembers from './pages/company/TeamMembers';
+import CompanyIJPRequest from './pages/company/IJPRequest';
 
 // Admin-Seiten
 import AdminDashboard from './pages/admin/Dashboard';
@@ -113,6 +114,7 @@ function App() {
             <Route path="jobs/:id/edit" element={<EditJob />} />
             <Route path="applications" element={<CompanyApplications />} />
             <Route path="team" element={<TeamMembers />} />
+            <Route path="ijp-auftrag" element={<CompanyIJPRequest />} />
             <Route path="settings" element={<AccountSettings />} />
           </Route>
           

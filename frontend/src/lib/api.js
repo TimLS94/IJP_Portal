@@ -196,6 +196,21 @@ export const jobRequestsAPI = {
   downloadDocuments: (id) => api.get(`/job-requests/admin/${id}/documents/download-all`, { responseType: 'blob' }),
 };
 
+// Firmen-Aufträge API
+export const companyRequestsAPI = {
+  getMyRequests: () => api.get('/company-requests/my'),
+  create: (data) => api.post('/company-requests', data),
+  get: (id) => api.get(`/company-requests/${id}`),
+  update: (id, data) => api.put(`/company-requests/${id}`, data),
+  cancel: (id) => api.delete(`/company-requests/${id}`),
+  getTypes: () => api.get('/company-requests/options/types'),
+  getStatuses: () => api.get('/company-requests/options/statuses'),
+  // Admin
+  adminGetAll: (params) => api.get('/company-requests/admin/all', { params }),
+  adminGet: (id) => api.get(`/company-requests/admin/${id}`),
+  adminUpdateStatus: (id, data) => api.put(`/company-requests/admin/${id}/status`, data),
+};
+
 // Interview/Termin API
 export const interviewAPI = {
   // Firma: Termine vorschlagen (send_email=false um keine separate Email zu senden)
