@@ -6,7 +6,8 @@ import {
   Eye, Mail, Phone, MapPin, FileText, Download, GraduationCap,
   Globe, Loader2, ChevronDown, ChevronUp, Search, Filter, 
   ArrowUpDown, SlidersHorizontal, LayoutGrid, List, CalendarPlus,
-  Clock, Video, MapPinned, CheckCircle, XCircle, AlertTriangle
+  Clock, Video, MapPinned, CheckCircle, XCircle, AlertTriangle,
+  Sparkles, TrendingUp, TrendingDown, Minus
 } from 'lucide-react';
 
 const statusOptions = [
@@ -60,6 +61,10 @@ function CompanyApplications() {
   const [cancellingInterview, setCancellingInterview] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
+  
+  // Matching Score
+  const [matchScore, setMatchScore] = useState(null);
+  const [matchLoading, setMatchLoading] = useState(false);
 
   useEffect(() => {
     loadApplications();
@@ -135,17 +140,32 @@ function CompanyApplications() {
     setDetailsLoading(true);
     setPendingStatus(null); // Reset pending status
     setPendingInterview(null); // Reset pending interview
+    setMatchScore(null); // Reset match score
     try {
       const response = await applicationsAPI.getApplicantDetails(appId);
       setApplicantDetails(response.data);
       setPendingStatus(response.data.application.status); // Setze initialen Status
       // Lade auch Interview-Daten
       loadInterviews(appId);
+      // Lade Matching-Score
+      loadMatchScore(appId);
     } catch (error) {
       toast.error('Fehler beim Laden der Details');
       setSelectedApp(null);
     } finally {
       setDetailsLoading(false);
+    }
+  };
+  
+  const loadMatchScore = async (appId) => {
+    setMatchLoading(true);
+    try {
+      const response = await applicationsAPI.getMatchScore(appId);
+      setMatchScore(response.data);
+    } catch (error) {
+      console.error('Fehler beim Laden des Matching-Scores');
+    } finally {
+      setMatchLoading(false);
     }
   };
 
@@ -744,6 +764,115 @@ function CompanyApplications() {
                 </div>
 
                 <div className="p-6 grid md:grid-cols-2 gap-6">
+                  {/* Matching Score Box */}
+                  {matchScore?.enabled && (
+                    <div className={`md:col-span-2 rounded-xl p-5 border-2 ${
+                      matchScore.total_score >= 70 
+                        ? 'border-green-300 bg-gradient-to-r from-green-50 to-emerald-50' 
+                        : matchScore.total_score >= 40 
+                          ? 'border-yellow-300 bg-gradient-to-r from-yellow-50 to-amber-50'
+                          : 'border-red-300 bg-gradient-to-r from-red-50 to-orange-50'
+                    }`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className={`h-6 w-6 ${
+                            matchScore.total_score >= 70 
+                              ? 'text-green-600' 
+                              : matchScore.total_score >= 40 
+                                ? 'text-yellow-600'
+                                : 'text-red-600'
+                          }`} />
+                          <h3 className="text-lg font-bold text-gray-900">Matching-Score</h3>
+                        </div>
+                        {matchScore.total_score >= 70 ? (
+                          <TrendingUp className="h-5 w-5 text-green-600" />
+                        ) : matchScore.total_score >= 40 ? (
+                          <Minus className="h-5 w-5 text-yellow-600" />
+                        ) : (
+                          <TrendingDown className="h-5 w-5 text-red-600" />
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-8">
+                        {/* Score Circle */}
+                        <div className={`w-24 h-24 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          matchScore.total_score >= 70 
+                            ? 'bg-green-100' 
+                            : matchScore.total_score >= 40 
+                              ? 'bg-yellow-100'
+                              : 'bg-red-100'
+                        }`}>
+                          <span className={`text-3xl font-bold ${
+                            matchScore.total_score >= 70 
+                              ? 'text-green-700' 
+                              : matchScore.total_score >= 40 
+                                ? 'text-yellow-700'
+                                : 'text-red-700'
+                          }`}>
+                            {matchScore.total_score}%
+                          </span>
+                        </div>
+                        
+                        <div className="flex-1">
+                          <p className={`font-semibold mb-3 ${
+                            matchScore.total_score >= 70 
+                              ? 'text-green-700' 
+                              : matchScore.total_score >= 40 
+                                ? 'text-yellow-700'
+                                : 'text-red-700'
+                          }`}>
+                            {matchScore.recommendation}
+                          </p>
+                          
+                          {/* Score Breakdown */}
+                          {matchScore.breakdown && (
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                              <div className="bg-white/60 rounded-lg p-2">
+                                <span className="text-gray-600 block text-xs">Position</span>
+                                <span className="font-semibold">{matchScore.breakdown.position_type}/30</span>
+                              </div>
+                              <div className="bg-white/60 rounded-lg p-2">
+                                <span className="text-gray-600 block text-xs">Deutsch</span>
+                                <span className="font-semibold">{matchScore.breakdown.german_level}/25</span>
+                              </div>
+                              <div className="bg-white/60 rounded-lg p-2">
+                                <span className="text-gray-600 block text-xs">Englisch</span>
+                                <span className="font-semibold">{matchScore.breakdown.english_level}/15</span>
+                              </div>
+                              <div className="bg-white/60 rounded-lg p-2">
+                                <span className="text-gray-600 block text-xs">Erfahrung</span>
+                                <span className="font-semibold">{matchScore.breakdown.experience}/20</span>
+                              </div>
+                              <div className="bg-white/60 rounded-lg p-2">
+                                <span className="text-gray-600 block text-xs">Verfügbarkeit</span>
+                                <span className="font-semibold">{matchScore.breakdown.availability}/10</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Details */}
+                      {matchScore.details?.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-200/50">
+                          <ul className="text-sm text-gray-700 grid md:grid-cols-2 gap-1">
+                            {matchScore.details.map((detail, i) => (
+                              <li key={i}>{detail}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Matching Loading */}
+                  {matchLoading && (
+                    <div className="md:col-span-2 flex items-center justify-center gap-2 py-4 bg-gray-50 rounded-xl">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary-600" />
+                      <span className="text-gray-600">Berechne Matching...</span>
+                    </div>
+                  )}
+                  
                   {/* Kontaktdaten */}
                   <div className="bg-gray-50 rounded-xl p-5">
                     <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">

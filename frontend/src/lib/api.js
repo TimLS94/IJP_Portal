@@ -95,6 +95,8 @@ export const jobsAPI = {
   getMyJobs: () => api.get('/jobs/my/jobs'),
   getArchivedJobs: () => api.get('/jobs/my/jobs/archived'), // Archivierte Stellen
   reactivate: (id) => api.post(`/jobs/${id}/reactivate`), // Stelle reaktivieren
+  // Matching Score für eine Stelle (für Bewerber)
+  getMatchScore: (id) => api.get(`/jobs/${id}/match`),
 };
 
 // Applications API
@@ -109,6 +111,8 @@ export const applicationsAPI = {
   getStatusOptions: () => api.get('/applications/status-options'),
   // Firma: Bewerber-Details
   getApplicantDetails: (applicationId) => api.get(`/applications/company/${applicationId}/applicant-details`),
+  // Firma: Matching Score für Bewerbung
+  getMatchScore: (applicationId) => api.get(`/applications/company/${applicationId}/match`),
 };
 
 // Documents API
@@ -231,9 +235,11 @@ export const interviewAPI = {
 
 export const adminAPI = {
   getStats: () => api.get('/admin/stats'),
-  // Feature Flags
+  // Feature Flags & Einstellungen
   getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
-  setFeatureFlag: (key, value) => api.put(`/admin/settings/feature-flags/${key}`, { value }),
+  setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),
+  setFeatureFlag: (key, value) => api.put(`/admin/settings/${key}`, { value }),
+  getArchiveDeletionPreview: (days) => api.get('/admin/settings/archive-deletion-preview', { params: { days } }),
   listUsers: (params) => api.get('/admin/users', { params }),
   toggleUserActive: (id) => api.put(`/admin/users/${id}/toggle-active`),
   createAdmin: (data) => api.post('/admin/users/create-admin', data),

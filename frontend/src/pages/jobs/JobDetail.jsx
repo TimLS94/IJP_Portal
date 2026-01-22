@@ -6,7 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { 
   MapPin, Calendar, Building2, Euro, Clock, Globe, 
-  ArrowLeft, Send, CheckCircle, Languages, AlertTriangle, FileText, Loader2, ClipboardList
+  ArrowLeft, Send, CheckCircle, Languages, AlertTriangle, FileText, Loader2, ClipboardList,
+  Sparkles, TrendingUp, TrendingDown, Minus
 } from 'lucide-react';
 
 const positionTypeColors = {
@@ -67,15 +68,20 @@ function JobDetail() {
   // Bewerbungsvoraussetzungen
   const [requirements, setRequirements] = useState(null);
   const [requirementsLoading, setRequirementsLoading] = useState(false);
+  
+  // Matching Score
+  const [matchScore, setMatchScore] = useState(null);
+  const [matchLoading, setMatchLoading] = useState(false);
 
   useEffect(() => {
     loadJob();
   }, [id]);
   
-  // Voraussetzungen laden wenn Bewerber eingeloggt
+  // Voraussetzungen und Matching laden wenn Bewerber eingeloggt
   useEffect(() => {
     if (isApplicant && id) {
       loadRequirements();
+      loadMatchScore();
     }
   }, [isApplicant, id]);
 
@@ -100,6 +106,18 @@ function JobDetail() {
       console.error('Fehler beim Prüfen der Voraussetzungen');
     } finally {
       setRequirementsLoading(false);
+    }
+  };
+  
+  const loadMatchScore = async () => {
+    setMatchLoading(true);
+    try {
+      const response = await jobsAPI.getMatchScore(id);
+      setMatchScore(response.data);
+    } catch (error) {
+      console.error('Fehler beim Laden des Matching-Scores');
+    } finally {
+      setMatchLoading(false);
     }
   };
 
@@ -249,6 +267,117 @@ function JobDetail() {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Matching Score Box - Nur für eingeloggte Bewerber */}
+          {isApplicant && matchScore?.enabled && (
+            <div className={`card border-2 ${
+              matchScore.total_score >= 70 
+                ? 'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50' 
+                : matchScore.total_score >= 40 
+                  ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50'
+                  : 'border-red-300 bg-gradient-to-br from-red-50 to-orange-50'
+            }`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles className={`h-5 w-5 ${
+                    matchScore.total_score >= 70 
+                      ? 'text-green-600' 
+                      : matchScore.total_score >= 40 
+                        ? 'text-yellow-600'
+                        : 'text-red-600'
+                  }`} />
+                  <h3 className="text-lg font-semibold text-gray-900">Ihr Matching</h3>
+                </div>
+                {matchScore.total_score >= 70 ? (
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                ) : matchScore.total_score >= 40 ? (
+                  <Minus className="h-5 w-5 text-yellow-600" />
+                ) : (
+                  <TrendingDown className="h-5 w-5 text-red-600" />
+                )}
+              </div>
+              
+              {/* Score Circle */}
+              <div className="flex items-center justify-center mb-4">
+                <div className={`relative w-28 h-28 rounded-full flex items-center justify-center ${
+                  matchScore.total_score >= 70 
+                    ? 'bg-green-100' 
+                    : matchScore.total_score >= 40 
+                      ? 'bg-yellow-100'
+                      : 'bg-red-100'
+                }`}>
+                  <div className={`text-4xl font-bold ${
+                    matchScore.total_score >= 70 
+                      ? 'text-green-700' 
+                      : matchScore.total_score >= 40 
+                        ? 'text-yellow-700'
+                        : 'text-red-700'
+                  }`}>
+                    {matchScore.total_score}%
+                  </div>
+                </div>
+              </div>
+              
+              {/* Recommendation */}
+              <p className={`text-center font-medium mb-4 ${
+                matchScore.total_score >= 70 
+                  ? 'text-green-700' 
+                  : matchScore.total_score >= 40 
+                    ? 'text-yellow-700'
+                    : 'text-red-700'
+              }`}>
+                {matchScore.recommendation}
+              </p>
+              
+              {/* Score Breakdown */}
+              {matchScore.breakdown && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Positionstyp</span>
+                    <span className="font-medium">{matchScore.breakdown.position_type}/30</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Deutsch</span>
+                    <span className="font-medium">{matchScore.breakdown.german_level}/25</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Englisch</span>
+                    <span className="font-medium">{matchScore.breakdown.english_level}/15</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Erfahrung</span>
+                    <span className="font-medium">{matchScore.breakdown.experience}/20</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Verfügbarkeit</span>
+                    <span className="font-medium">{matchScore.breakdown.availability}/10</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Details */}
+              {matchScore.details?.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600 font-medium mb-2">Details:</p>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    {matchScore.details.map((detail, i) => (
+                      <li key={i}>{detail}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Matching Loading */}
+          {isApplicant && matchLoading && (
+            <div className="card">
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-primary-600" />
+                <span className="text-gray-600">Berechne Matching...</span>
+              </div>
+            </div>
+          )}
+          
           {/* Bewerbungs-Box */}
           <div className="card">
             {applied ? (

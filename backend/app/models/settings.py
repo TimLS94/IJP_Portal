@@ -29,7 +29,7 @@ DEFAULT_SETTINGS = {
         "value_type": "boolean",
         "description": "Ermöglicht Bewerbern das Matching-Score für Stellen zu sehen"
     },
-    # Weitere Einstellungen
+    # Job-Einstellungen
     "max_job_deadline_days": {
         "value": "31",
         "value_type": "integer",
@@ -39,6 +39,11 @@ DEFAULT_SETTINGS = {
         "value": "true",
         "value_type": "boolean",
         "description": "Automatisch Jobs deaktivieren wenn Deadline erreicht"
+    },
+    "archive_deletion_days": {
+        "value": "90",
+        "value_type": "integer",
+        "description": "Nach wie vielen Tagen archivierte Stellen endgültig gelöscht werden (Standard: 90 Tage = 3 Monate)"
     }
 }
 

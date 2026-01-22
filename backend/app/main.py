@@ -47,15 +47,21 @@ def cleanup_jobs():
     """
     Cleanup-Funktion für Jobs:
     1. Archiviert Stellen, deren Deadline abgelaufen ist
-    2. Löscht Stellen endgültig, die seit mehr als 30 Tagen archiviert sind
+    2. Löscht Stellen endgültig, die seit mehr als X Tagen archiviert sind (konfigurierbar, Standard: 90 Tage)
     """
     db = SessionLocal()
     try:
         from app.models.job_posting import JobPosting
         from app.models.application import Application
+        from app.services.settings_service import get_setting
         
         today = date.today()
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        
+        # Archiv-Löschfrist aus Einstellungen laden (Standard: 90 Tage = 3 Monate)
+        archive_deletion_days = get_setting(db, "archive_deletion_days", 90)
+        deletion_cutoff = datetime.utcnow() - timedelta(days=archive_deletion_days)
+        
+        logger.info(f"Job-Cleanup: Archiv-Löschfrist ist {archive_deletion_days} Tage")
         
         # 1. Abgelaufene Stellen archivieren
         expired_jobs = db.query(JobPosting).filter(
@@ -74,11 +80,11 @@ def cleanup_jobs():
             db.commit()
             logger.info(f"{len(expired_jobs)} Jobs wegen abgelaufener Deadline archiviert")
         
-        # 2. Alte Archive endgültig löschen
+        # 2. Alte Archive endgültig löschen (nach konfigurierbarer Frist)
         old_archived_jobs = db.query(JobPosting).filter(
             JobPosting.is_archived == True,
             JobPosting.archived_at != None,
-            JobPosting.archived_at < thirty_days_ago
+            JobPosting.archived_at < deletion_cutoff
         ).all()
         
         deleted_count = 0
@@ -87,7 +93,7 @@ def cleanup_jobs():
             db.query(Application).filter(Application.job_posting_id == job.id).delete()
             db.delete(job)
             deleted_count += 1
-            logger.info(f"Job {job.id} '{job.title}' endgültig gelöscht (30 Tage im Archiv)")
+            logger.info(f"Job {job.id} '{job.title}' endgültig gelöscht ({archive_deletion_days} Tage im Archiv)")
         
         if deleted_count > 0:
             db.commit()

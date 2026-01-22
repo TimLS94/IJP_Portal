@@ -716,22 +716,28 @@ async def get_all_settings(
     return get_all_settings(db)
 
 
+from pydantic import BaseModel
+from typing import Union
+
+class SettingUpdateRequest(BaseModel):
+    value: Union[bool, int, str]
+
 @router.put("/settings/{key}")
 async def update_setting(
     key: str,
-    value: bool,  # Für Feature Flags hauptsächlich boolean
+    data: SettingUpdateRequest,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """Aktualisiert eine globale Einstellung (Admin only)"""
     from app.services.settings_service import set_setting
     
-    setting = set_setting(db, key, value, current_user.id)
+    setting = set_setting(db, key, data.value, current_user.id)
     
     return {
         "message": f"Einstellung '{key}' wurde aktualisiert",
         "key": key,
-        "value": value
+        "value": data.value
     }
 
 
@@ -740,13 +746,50 @@ async def get_feature_flags(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Holt alle Feature Flags (Admin only)"""
+    """Holt alle Feature Flags und Einstellungen (Admin only)"""
     from app.services.settings_service import get_setting
     
     return {
         "matching_enabled_for_companies": get_setting(db, "matching_enabled_for_companies", True),
         "matching_enabled_for_applicants": get_setting(db, "matching_enabled_for_applicants", True),
-        "auto_deactivate_expired_jobs": get_setting(db, "auto_deactivate_expired_jobs", True)
+        "auto_deactivate_expired_jobs": get_setting(db, "auto_deactivate_expired_jobs", True),
+        "archive_deletion_days": get_setting(db, "archive_deletion_days", 90)
+    }
+
+
+@router.get("/settings/archive-deletion-preview")
+async def get_archive_deletion_preview(
+    days: int = Query(90, ge=1, le=365),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Zeigt an, wie viele archivierte Stellen gelöscht werden würden,
+    wenn die Archiv-Löschfrist auf X Tage gesetzt wird.
+    """
+    from app.models.job_posting import JobPosting
+    
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    
+    affected_jobs = db.query(JobPosting).filter(
+        JobPosting.is_archived == True,
+        JobPosting.archived_at != None,
+        JobPosting.archived_at < cutoff
+    ).all()
+    
+    return {
+        "days": days,
+        "affected_count": len(affected_jobs),
+        "affected_jobs": [
+            {
+                "id": job.id,
+                "title": job.title,
+                "archived_at": job.archived_at.isoformat() if job.archived_at else None,
+                "days_archived": (datetime.utcnow() - job.archived_at).days if job.archived_at else 0
+            }
+            for job in affected_jobs[:20]  # Maximal 20 anzeigen
+        ],
+        "warning": f"Bei einer Änderung auf {days} Tage würden {len(affected_jobs)} archivierte Stellen sofort gelöscht!" if len(affected_jobs) > 0 else None
     }
 
 

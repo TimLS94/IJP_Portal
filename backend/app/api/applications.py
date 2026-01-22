@@ -445,6 +445,54 @@ async def get_applicant_details_for_company(
     }
 
 
+@router.get("/company/{application_id}/match")
+async def get_application_match_score(
+    application_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Berechnet den Matching-Score für eine Bewerbung (nur für Firmen).
+    Zeigt an, wie gut der Bewerber zur Stelle passt.
+    """
+    from app.services.matching_service import calculate_match_score
+    from app.services.settings_service import is_company_matching_enabled
+    
+    # Feature Flag prüfen
+    if not is_company_matching_enabled(db):
+        return {"enabled": False, "message": "Matching ist derzeit deaktiviert"}
+    
+    if current_user.role != UserRole.COMPANY:
+        return {"enabled": False, "message": "Matching nur für Firmen verfügbar"}
+    
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
+    
+    # Bewerbung mit Zugriffsprüfung
+    application = db.query(Application).join(JobPosting).filter(
+        Application.id == application_id,
+        JobPosting.company_id == company.id
+    ).first()
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Bewerbung nicht gefunden")
+    
+    # Bewerber und Job laden
+    applicant = db.query(Applicant).filter(Applicant.id == application.applicant_id).first()
+    job = db.query(JobPosting).filter(JobPosting.id == application.job_posting_id).first()
+    
+    if not applicant or not job:
+        return {"enabled": True, "message": "Daten unvollständig", "total_score": 0}
+    
+    match = calculate_match_score(applicant, job)
+    return {
+        "enabled": True,
+        "application_id": application_id,
+        **match
+    }
+
+
 @router.delete("/{application_id}")
 async def withdraw_application(
     application_id: int,
