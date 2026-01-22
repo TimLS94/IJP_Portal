@@ -5,7 +5,7 @@ import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
-  Languages, Plus, Minus
+  Languages, Plus, Minus, Clock, AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -400,6 +400,45 @@ function CreateJob() {
                 />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Bewerbungsfrist */}
+        <div className="card border-l-4 border-l-orange-500">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-orange-600" />
+            Bewerbungsfrist
+          </h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Legen Sie fest, wie lange Bewerbungen möglich sein sollen.
+          </p>
+          
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+            <p className="text-orange-800 text-sm flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Wichtig:</strong> Die Bewerbungsfrist darf maximal 1 Monat in der Zukunft liegen. 
+                Nach Ablauf wird die Stelle automatisch archiviert. Sie können archivierte Stellen 
+                innerhalb von 30 Tagen reaktivieren.
+              </span>
+            </p>
+          </div>
+          
+          <div className="max-w-md">
+            <label className="label">Bewerbungsfrist (optional)</label>
+            <div className="relative">
+              <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="date"
+                className="input-styled pl-12"
+                min={new Date().toISOString().split('T')[0]}
+                max={new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                {...register('deadline')}
+              />
+            </div>
+            <p className="text-gray-500 text-sm mt-2">
+              Wenn keine Frist gesetzt wird, bleibt die Stelle unbegrenzt aktiv.
+            </p>
           </div>
         </div>
 

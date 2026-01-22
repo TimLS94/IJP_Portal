@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 import os
 import logging
+import asyncio
+from datetime import datetime, timedelta, date
 
 # Logging konfigurieren
 logging.basicConfig(level=logging.INFO)
@@ -39,13 +42,99 @@ if settings.DEBUG:
     finally:
         db.close()
 
+
+def cleanup_jobs():
+    """
+    Cleanup-Funktion für Jobs:
+    1. Archiviert Stellen, deren Deadline abgelaufen ist
+    2. Löscht Stellen endgültig, die seit mehr als 30 Tagen archiviert sind
+    """
+    db = SessionLocal()
+    try:
+        from app.models.job_posting import JobPosting
+        from app.models.application import Application
+        
+        today = date.today()
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        
+        # 1. Abgelaufene Stellen archivieren
+        expired_jobs = db.query(JobPosting).filter(
+            JobPosting.is_archived == False,
+            JobPosting.deadline != None,
+            JobPosting.deadline < today
+        ).all()
+        
+        for job in expired_jobs:
+            job.is_active = False
+            job.is_archived = True
+            job.archived_at = datetime.utcnow()
+            logger.info(f"Job {job.id} '{job.title}' archiviert (Deadline abgelaufen)")
+        
+        if expired_jobs:
+            db.commit()
+            logger.info(f"{len(expired_jobs)} Jobs wegen abgelaufener Deadline archiviert")
+        
+        # 2. Alte Archive endgültig löschen
+        old_archived_jobs = db.query(JobPosting).filter(
+            JobPosting.is_archived == True,
+            JobPosting.archived_at != None,
+            JobPosting.archived_at < thirty_days_ago
+        ).all()
+        
+        deleted_count = 0
+        for job in old_archived_jobs:
+            # Bewerbungen löschen
+            db.query(Application).filter(Application.job_posting_id == job.id).delete()
+            db.delete(job)
+            deleted_count += 1
+            logger.info(f"Job {job.id} '{job.title}' endgültig gelöscht (30 Tage im Archiv)")
+        
+        if deleted_count > 0:
+            db.commit()
+            logger.info(f"{deleted_count} alte archivierte Jobs endgültig gelöscht")
+            
+    except Exception as e:
+        logger.error(f"Fehler beim Job-Cleanup: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+async def periodic_cleanup(interval_hours: int = 6):
+    """Background-Task für regelmäßiges Cleanup"""
+    while True:
+        await asyncio.sleep(interval_hours * 60 * 60)  # Warte interval_hours Stunden
+        logger.info("Starte periodisches Job-Cleanup...")
+        cleanup_jobs()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle-Handler für App-Start und -Stopp"""
+    logger.info("=== Running startup cleanup ===")
+    cleanup_jobs()
+    
+    # Starte periodischen Cleanup-Task
+    cleanup_task = asyncio.create_task(periodic_cleanup(6))  # Alle 6 Stunden
+    
+    yield
+    
+    # Cleanup bei Shutdown
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
+
+
 # FastAPI App erstellen
 app = FastAPI(
     title=settings.APP_NAME,
     description="API für das IJP Portal - Jobvermittlung für internationale Arbeitskräfte",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # CORS Middleware - Eingeschränkte Methods für bessere Sicherheit

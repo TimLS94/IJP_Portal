@@ -255,33 +255,6 @@ async def reactivate_job(
     return job
 
 
-@router.get("/my/archived", response_model=List[JobPostingResponse])
-async def get_archived_jobs(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Listet alle archivierten Stellenangebote der Firma"""
-    if current_user.role != UserRole.COMPANY:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Nur Firmen können auf diesen Endpunkt zugreifen"
-        )
-    
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
-    if not company:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Firmen-Profil nicht gefunden"
-        )
-    
-    jobs = db.query(JobPosting).filter(
-        JobPosting.company_id == company.id,
-        JobPosting.is_archived == True
-    ).order_by(JobPosting.archived_at.desc()).all()
-    
-    return jobs
-
-
 @router.get("/my/jobs", response_model=List[JobPostingResponse])
 async def get_my_jobs(
     current_user: User = Depends(get_current_user),
@@ -307,6 +280,75 @@ async def get_my_jobs(
     ).order_by(JobPosting.created_at.desc()).all()
     
     return jobs
+
+
+@router.get("/my/jobs/archived", response_model=List[JobPostingResponse])
+async def get_archived_jobs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Listet alle archivierten Stellenangebote der Firma"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Firmen können auf diesen Endpunkt zugreifen"
+        )
+    
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    if not company:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Firmen-Profil nicht gefunden"
+        )
+    
+    # Nur archivierte Stellen, die nicht älter als 30 Tage sind
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    jobs = db.query(JobPosting).filter(
+        JobPosting.company_id == company.id,
+        JobPosting.is_archived == True,
+        # Nur Stellen anzeigen, die nicht zu alt zum Reaktivieren sind
+        JobPosting.archived_at >= thirty_days_ago
+    ).order_by(JobPosting.archived_at.desc()).all()
+    
+    return jobs
+
+
+@router.delete("/{job_id}/permanent")
+async def delete_job_permanent(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Löscht ein archiviertes Stellenangebot endgültig (nur eigene)"""
+    from app.models.application import Application
+    
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Firmen können Stellenangebote löschen"
+        )
+    
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    job = db.query(JobPosting).filter(
+        JobPosting.id == job_id,
+        JobPosting.company_id == company.id
+    ).first()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stellenangebot nicht gefunden oder keine Berechtigung"
+        )
+    
+    # Endgültig löschen
+    applications_count = db.query(Application).filter(Application.job_posting_id == job_id).count()
+    db.query(Application).filter(Application.job_posting_id == job_id).delete()
+    db.delete(job)
+    db.commit()
+    return {
+        "message": "Stellenangebot endgültig gelöscht",
+        "deleted_applications": applications_count
+    }
 
 
 @router.get("/{job_id}/match")

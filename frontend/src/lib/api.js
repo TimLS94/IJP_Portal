@@ -86,8 +86,11 @@ export const jobsAPI = {
   get: (id) => api.get(`/jobs/${id}`),
   create: (data) => api.post('/jobs', data),
   update: (id, data) => api.put(`/jobs/${id}`, data),
-  delete: (id) => api.delete(`/jobs/${id}`),
+  delete: (id) => api.delete(`/jobs/${id}`), // Archiviert die Stelle
+  deletePermanent: (id) => api.delete(`/jobs/${id}/permanent`), // Löscht endgültig
   getMyJobs: () => api.get('/jobs/my/jobs'),
+  getArchivedJobs: () => api.get('/jobs/my/jobs/archived'), // Archivierte Stellen
+  reactivate: (id) => api.post(`/jobs/${id}/reactivate`), // Stelle reaktivieren
 };
 
 // Applications API
