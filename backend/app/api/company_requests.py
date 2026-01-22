@@ -284,6 +284,40 @@ async def cancel_request(
     return {"message": "Auftrag storniert"}
 
 
+@router.delete("/{request_id}/permanent")
+async def delete_request_permanent(
+    request_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Löscht einen Auftrag endgültig (nur wenn cancelled oder completed)"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
+    
+    request = db.query(CompanyRequest).filter(
+        CompanyRequest.id == request_id,
+        CompanyRequest.company_id == company.id
+    ).first()
+    
+    if not request:
+        raise HTTPException(status_code=404, detail="Auftrag nicht gefunden")
+    
+    if request.status not in [CompanyRequestStatus.COMPLETED, CompanyRequestStatus.CANCELLED]:
+        raise HTTPException(
+            status_code=400, 
+            detail="Nur abgeschlossene oder stornierte Aufträge können endgültig gelöscht werden"
+        )
+    
+    db.delete(request)
+    db.commit()
+    
+    return {"message": "Auftrag endgültig gelöscht"}
+
+
 @router.get("/options/types")
 async def get_request_types():
     """Gibt alle verfügbaren Auftragstypen zurück"""

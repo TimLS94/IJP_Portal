@@ -207,6 +207,7 @@ export const companyRequestsAPI = {
   get: (id) => api.get(`/company-requests/${id}`),
   update: (id, data) => api.put(`/company-requests/${id}`, data),
   cancel: (id) => api.delete(`/company-requests/${id}`),
+  deletePermanent: (id) => api.delete(`/company-requests/${id}/permanent`),
   getTypes: () => api.get('/company-requests/options/types'),
   getStatuses: () => api.get('/company-requests/options/statuses'),
   // Admin

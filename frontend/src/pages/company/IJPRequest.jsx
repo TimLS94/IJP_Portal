@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { 
   LifeBuoy, Plus, Clock, CheckCircle, XCircle, Loader2, 
   Users, FileText, Briefcase, ChevronDown, Calendar, Euro,
-  ArrowRight, AlertTriangle, Building2
+  ArrowRight, AlertTriangle, Building2, Eye, X, Trash2, Phone, Mail
 } from 'lucide-react';
 
 const requestTypeOptions = [
@@ -37,6 +37,10 @@ function CompanyIJPRequest() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
+  // Detail Modal
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  
   const [formData, setFormData] = useState({
     request_type: '',
     title: '',
@@ -65,8 +69,21 @@ function CompanyIJPRequest() {
       setJobs(jobsRes.data);
     } catch (error) {
       console.error('Fehler beim Laden:', error);
+      toast.error('Fehler beim Laden der Daten');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRequestDetails = async (requestId) => {
+    setDetailLoading(true);
+    try {
+      const response = await companyRequestsAPI.get(requestId);
+      setSelectedRequest(response.data);
+    } catch (error) {
+      toast.error('Fehler beim Laden der Details');
+    } finally {
+      setDetailLoading(false);
     }
   };
 
@@ -84,22 +101,38 @@ function CompanyIJPRequest() {
     
     setSubmitting(true);
     try {
-      // Nur gefüllte Felder senden, leere Strings entfernen
+      // Nur gefüllte Felder senden
       const data = {
         request_type: formData.request_type,
         title: formData.title,
         positions_needed: parseInt(formData.positions_needed) || 1,
       };
       
-      // Optionale Felder nur wenn ausgefüllt
-      if (formData.description) data.description = formData.description;
-      if (formData.start_date) data.start_date = formData.start_date;
-      if (formData.deadline) data.deadline = formData.deadline;
-      if (formData.salary_range) data.salary_range = formData.salary_range;
-      if (formData.job_posting_id) data.job_posting_id = parseInt(formData.job_posting_id);
-      if (formData.contact_name) data.contact_name = formData.contact_name;
-      if (formData.contact_email) data.contact_email = formData.contact_email;
-      if (formData.contact_phone) data.contact_phone = formData.contact_phone;
+      // Optionale Felder nur wenn ausgefüllt (nicht leere Strings)
+      if (formData.description && formData.description.trim()) {
+        data.description = formData.description.trim();
+      }
+      if (formData.start_date) {
+        data.start_date = formData.start_date;
+      }
+      if (formData.deadline) {
+        data.deadline = formData.deadline;
+      }
+      if (formData.salary_range && formData.salary_range.trim()) {
+        data.salary_range = formData.salary_range.trim();
+      }
+      if (formData.job_posting_id) {
+        data.job_posting_id = parseInt(formData.job_posting_id);
+      }
+      if (formData.contact_name && formData.contact_name.trim()) {
+        data.contact_name = formData.contact_name.trim();
+      }
+      if (formData.contact_email && formData.contact_email.trim()) {
+        data.contact_email = formData.contact_email.trim();
+      }
+      if (formData.contact_phone && formData.contact_phone.trim()) {
+        data.contact_phone = formData.contact_phone.trim();
+      }
       
       await companyRequestsAPI.create(data);
       toast.success('Auftrag erfolgreich erstellt!');
@@ -119,7 +152,8 @@ function CompanyIJPRequest() {
       });
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Fehler beim Erstellen');
+      console.error('Fehler beim Erstellen:', error);
+      toast.error(error.response?.data?.detail || 'Fehler beim Erstellen des Auftrags');
     } finally {
       setSubmitting(false);
     }
@@ -132,8 +166,22 @@ function CompanyIJPRequest() {
       await companyRequestsAPI.cancel(requestId);
       toast.success('Auftrag storniert');
       loadData();
+      setSelectedRequest(null);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Fehler beim Stornieren');
+    }
+  };
+
+  const handleDelete = async (requestId) => {
+    if (!confirm('Möchten Sie diesen stornierten Auftrag endgültig löschen? Dies kann nicht rückgängig gemacht werden.')) return;
+    
+    try {
+      await companyRequestsAPI.deletePermanent(requestId);
+      toast.success('Auftrag endgültig gelöscht');
+      loadData();
+      setSelectedRequest(null);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Fehler beim Löschen');
     }
   };
 
@@ -238,7 +286,7 @@ function CompanyIJPRequest() {
 
             {/* Beschreibung */}
             <div>
-              <label className="label">Ausführliche Beschreibung</label>
+              <label className="label">Ausführliche Beschreibung (optional)</label>
               <textarea
                 className="input-styled"
                 rows={4}
@@ -261,7 +309,7 @@ function CompanyIJPRequest() {
                 />
               </div>
               <div>
-                <label className="label">Gewünschter Start</label>
+                <label className="label">Gewünschter Start (optional)</label>
                 <input
                   type="date"
                   className="input-styled"
@@ -270,7 +318,7 @@ function CompanyIJPRequest() {
                 />
               </div>
               <div>
-                <label className="label">Deadline für Vermittlung</label>
+                <label className="label">Deadline für Vermittlung (optional)</label>
                 <input
                   type="date"
                   className="input-styled"
@@ -283,7 +331,7 @@ function CompanyIJPRequest() {
             {/* Gehalt & Stelle */}
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Gehaltsrahmen</label>
+                <label className="label">Gehaltsrahmen (optional)</label>
                 <input
                   type="text"
                   className="input-styled"
@@ -312,7 +360,8 @@ function CompanyIJPRequest() {
 
             {/* Kontakt */}
             <div className="border-t pt-6">
-              <h3 className="font-medium text-gray-900 mb-4">Kontaktperson für diesen Auftrag</h3>
+              <h3 className="font-medium text-gray-900 mb-4">Kontaktperson für diesen Auftrag (optional)</h3>
+              <p className="text-sm text-gray-500 mb-4">Falls leer, werden Ihre Firmenkontaktdaten verwendet.</p>
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label className="label">Name</label>
@@ -394,7 +443,7 @@ function CompanyIJPRequest() {
           <h2 className="text-xl font-semibold text-gray-900">Ihre Aufträge ({requests.length})</h2>
           
           {requests.map((request) => (
-            <div key={request.id} className="card">
+            <div key={request.id} className="card hover:shadow-md transition-shadow">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -436,13 +485,34 @@ function CompanyIJPRequest() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {request.status === 'pending' && (
+                  {/* Details ansehen */}
+                  <button
+                    onClick={() => loadRequestDetails(request.id)}
+                    className="btn-secondary text-sm flex items-center gap-1"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Details
+                  </button>
+                  
+                  {/* Stornieren (nur wenn pending oder in_progress) */}
+                  {['pending', 'ijp_review', 'ijp_accepted', 'in_progress'].includes(request.status) && (
                     <button
                       onClick={() => handleCancel(request.id)}
-                      className="btn-secondary text-sm flex items-center gap-1 text-red-600 hover:text-red-700"
+                      className="btn-secondary text-sm flex items-center gap-1 text-orange-600 hover:text-orange-700"
                     >
                       <XCircle className="h-4 w-4" />
                       Stornieren
+                    </button>
+                  )}
+                  
+                  {/* Löschen (nur wenn cancelled oder completed) */}
+                  {['cancelled', 'completed'].includes(request.status) && (
+                    <button
+                      onClick={() => handleDelete(request.id)}
+                      className="btn-secondary text-sm flex items-center gap-1 text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Löschen
                     </button>
                   )}
                 </div>
@@ -451,9 +521,172 @@ function CompanyIJPRequest() {
           ))}
         </div>
       )}
+
+      {/* Detail Modal */}
+      {selectedRequest && (
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-8 relative">
+            {/* Schließen-Button */}
+            <button 
+              onClick={() => setSelectedRequest(null)}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-200 rounded-lg z-10 bg-gray-100"
+            >
+              <X className="h-6 w-6 text-gray-700" />
+            </button>
+            
+            {detailLoading ? (
+              <div className="p-12 flex justify-center">
+                <Loader2 className="h-12 w-12 text-primary-600 animate-spin" />
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="p-6 border-b bg-primary-50 pr-16">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[selectedRequest.status]}`}>
+                      {selectedRequest.status_label}
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                      {selectedRequest.request_type_label}
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedRequest.title}</h2>
+                  <p className="text-gray-600">Erstellt: {formatDate(selectedRequest.created_at)}</p>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* Beschreibung */}
+                  {selectedRequest.description && (
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-semibold text-gray-900 mb-2">Beschreibung</h3>
+                      <p className="text-gray-700 whitespace-pre-line">{selectedRequest.description}</p>
+                    </div>
+                  )}
+
+                  {/* Info Grid */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="bg-blue-50 rounded-xl p-4">
+                      <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Users className="h-5 w-5 text-blue-600" />
+                        Positionen
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Benötigt</span>
+                          <span className="font-medium">{selectedRequest.positions_needed}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Besetzt</span>
+                          <span className="font-medium">{selectedRequest.positions_filled}</span>
+                        </div>
+                        {selectedRequest.candidates_proposed > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Kandidaten vorgeschlagen</span>
+                            <span className="font-medium text-purple-600">{selectedRequest.candidates_proposed}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-green-50 rounded-xl p-4">
+                      <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-green-600" />
+                        Zeitraum
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        {selectedRequest.start_date && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Gewünschter Start</span>
+                            <span className="font-medium">{formatDate(selectedRequest.start_date)}</span>
+                          </div>
+                        )}
+                        {selectedRequest.deadline && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Deadline</span>
+                            <span className="font-medium">{formatDate(selectedRequest.deadline)}</span>
+                          </div>
+                        )}
+                        {selectedRequest.salary_range && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Gehalt</span>
+                            <span className="font-medium">{selectedRequest.salary_range}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Kontakt */}
+                  {(selectedRequest.contact_name || selectedRequest.contact_email || selectedRequest.contact_phone) && (
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-semibold text-gray-900 mb-3">Kontaktperson</h3>
+                      <div className="space-y-2 text-sm">
+                        {selectedRequest.contact_name && (
+                          <p className="text-gray-700">{selectedRequest.contact_name}</p>
+                        )}
+                        {selectedRequest.contact_email && (
+                          <a href={`mailto:${selectedRequest.contact_email}`} className="flex items-center gap-2 text-primary-600 hover:underline">
+                            <Mail className="h-4 w-4" />
+                            {selectedRequest.contact_email}
+                          </a>
+                        )}
+                        {selectedRequest.contact_phone && (
+                          <a href={`tel:${selectedRequest.contact_phone}`} className="flex items-center gap-2 text-primary-600 hover:underline">
+                            <Phone className="h-4 w-4" />
+                            {selectedRequest.contact_phone}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Admin-Notizen (falls vorhanden) */}
+                  {selectedRequest.admin_notes && (
+                    <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                      <h3 className="font-semibold text-yellow-800 mb-2">Nachricht von IJP</h3>
+                      <p className="text-yellow-700 whitespace-pre-line">{selectedRequest.admin_notes}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer mit Aktionen */}
+                <div className="p-6 border-t bg-gray-50 flex justify-between gap-4">
+                  <button
+                    onClick={() => setSelectedRequest(null)}
+                    className="btn-secondary"
+                  >
+                    Schließen
+                  </button>
+                  
+                  <div className="flex gap-2">
+                    {['pending', 'ijp_review', 'ijp_accepted', 'in_progress'].includes(selectedRequest.status) && (
+                      <button
+                        onClick={() => handleCancel(selectedRequest.id)}
+                        className="btn-secondary flex items-center gap-1 text-orange-600 hover:text-orange-700"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Stornieren
+                      </button>
+                    )}
+                    
+                    {['cancelled', 'completed'].includes(selectedRequest.status) && (
+                      <button
+                        onClick={() => handleDelete(selectedRequest.id)}
+                        className="btn-secondary flex items-center gap-1 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Endgültig löschen
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default CompanyIJPRequest;
-
