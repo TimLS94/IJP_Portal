@@ -153,6 +153,7 @@ async def parse_cv(
         )
     
     # ========== CV AUTOMATISCH ALS DOKUMENT SPEICHERN ==========
+    cv_saved = False
     try:
         # Bewerber-Profil holen
         applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
@@ -167,37 +168,39 @@ async def parse_cv(
             # Wenn ja, altes löschen
             if existing_cv:
                 try:
-                    storage_service.delete_file(existing_cv.storage_path)
+                    await storage_service.delete_file(existing_cv.storage_path)
                 except:
                     pass
                 db.delete(existing_cv)
                 db.commit()
             
             # Neues Dokument speichern
-            file_ext = ".pdf"
-            storage_filename = f"{uuid.uuid4()}{file_ext}"
-            storage_path = f"documents/{applicant.id}/{storage_filename}"
+            storage_filename = f"{uuid.uuid4()}.pdf"
             
-            # In Cloud-Storage hochladen
-            file_url = storage_service.upload_file(
+            # In Cloud-Storage hochladen (korrekte Signatur!)
+            success, storage_path, error = await storage_service.upload_file(
                 file_content=content,
-                storage_path=storage_path,
+                applicant_id=applicant.id,
+                filename=storage_filename,
                 content_type="application/pdf"
             )
             
-            # Dokument in DB speichern
-            new_doc = Document(
-                applicant_id=applicant.id,
-                document_type="cv",
-                file_name=file.filename,
-                file_size=len(content),
-                mime_type="application/pdf",
-                storage_path=storage_path,
-                file_url=file_url
-            )
-            db.add(new_doc)
-            db.commit()
-            logger.info(f"CV automatisch als Dokument gespeichert für Bewerber {applicant.id}")
+            if success:
+                # Dokument in DB speichern
+                new_doc = Document(
+                    applicant_id=applicant.id,
+                    document_type="cv",
+                    file_name=file.filename,
+                    file_size=len(content),
+                    mime_type="application/pdf",
+                    storage_path=storage_path
+                )
+                db.add(new_doc)
+                db.commit()
+                cv_saved = True
+                logger.info(f"CV automatisch als Dokument gespeichert für Bewerber {applicant.id}")
+            else:
+                logger.warning(f"CV Upload fehlgeschlagen: {error}")
             
     except Exception as e:
         logger.warning(f"CV konnte nicht als Dokument gespeichert werden: {e}")
@@ -216,7 +219,7 @@ async def parse_cv(
             # CV wurde trotzdem gespeichert, aber kein Text extrahierbar
             return {
                 "message": "Ihr Lebenslauf wurde gespeichert, aber die automatische Textanalyse war nicht möglich.",
-                "cv_saved": True,
+                "cv_saved": cv_saved,
                 "parse_error": "Das PDF scheint gescannt zu sein (keine Textebene). Bitte füllen Sie Ihr Profil manuell aus oder laden Sie ein digitales PDF hoch."
             }
             
@@ -238,7 +241,9 @@ async def parse_cv(
     google_api_key = os.environ.get("GOOGLE_API_KEY")
     if not google_api_key:
         logger.warning("Google API Key nicht konfiguriert - verwende Fallback-Parsing")
-        return parse_cv_fallback(text)
+        result = parse_cv_fallback(text)
+        result["cv_saved"] = cv_saved
+        return result
     
     try:
         import google.generativeai as genai
@@ -314,16 +319,20 @@ Antworte NUR mit dem JSON-Objekt (ohne ```json oder andere Formatierung):"""
         
         parsed_data = json.loads(response_text)
         parsed_data["message"] = "Daten erfolgreich aus Lebenslauf extrahiert"
-        parsed_data["cv_saved"] = True
+        parsed_data["cv_saved"] = cv_saved
         
         return parsed_data
         
     except ImportError:
         logger.warning("Google Generative AI nicht installiert")
-        return parse_cv_fallback(text)
+        result = parse_cv_fallback(text)
+        result["cv_saved"] = cv_saved
+        return result
     except json.JSONDecodeError as e:
         logger.error(f"JSON Parse Error: {e}")
-        return parse_cv_fallback(text)
+        result = parse_cv_fallback(text)
+        result["cv_saved"] = cv_saved
+        return result
     except Exception as e:
         error_msg = str(e).lower()
         logger.error(f"Google Gemini API Error: {e}")
@@ -336,46 +345,164 @@ Antworte NUR mit dem JSON-Objekt (ohne ```json oder andere Formatierung):"""
             )
         
         # Andere Fehler - Fallback
-        return parse_cv_fallback(text)
+        result = parse_cv_fallback(text)
+        result["cv_saved"] = cv_saved
+        return result
 
 
 def parse_cv_fallback(text: str) -> dict:
-    """Einfaches Fallback-Parsing ohne AI"""
+    """Verbessertes Fallback-Parsing ohne AI - extrahiert mehr Daten"""
     import re
     
     result = {
         "message": "Basis-Extraktion durchgeführt. Bitte überprüfen und ergänzen Sie die Daten manuell."
     }
     
+    # Text normalisieren
+    text_lower = text.lower()
+    lines = text.split('\n')
+    
+    # ========== KONTAKTDATEN ==========
+    
     # E-Mail finden
     email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
     if email_match:
         result["email"] = email_match.group()
     
-    # Telefonnummer finden
-    phone_match = re.search(r'[\+]?[\d\s\-\(\)]{10,}', text)
-    if phone_match:
-        result["phone"] = phone_match.group().strip()
-    
-    # Geburtsdatum finden (verschiedene Formate)
-    date_patterns = [
-        r'(\d{2})[./](\d{2})[./](\d{4})',  # DD.MM.YYYY oder DD/MM/YYYY
-        r'(\d{4})-(\d{2})-(\d{2})',         # YYYY-MM-DD
+    # Telefonnummer finden (verschiedene Formate)
+    phone_patterns = [
+        r'(?:Tel\.?|Telefon|Phone|Mobil|Mobile|Handy)[:\s]*([+\d\s\-\(\)\/]{8,})',
+        r'(\+\d{1,3}[\s\-]?\d{2,4}[\s\-]?\d{4,})',  # +49 123 456789
+        r'(\d{3,5}[\s\-\/]\d{4,})',  # 0123 456789
     ]
-    for pattern in date_patterns:
-        date_match = re.search(pattern, text)
-        if date_match:
-            groups = date_match.groups()
-            if len(groups[0]) == 4:  # YYYY-MM-DD
-                result["date_of_birth"] = f"{groups[0]}-{groups[1]}-{groups[2]}"
-            else:  # DD.MM.YYYY
-                result["date_of_birth"] = f"{groups[2]}-{groups[1]}-{groups[0]}"
+    for pattern in phone_patterns:
+        phone_match = re.search(pattern, text, re.IGNORECASE)
+        if phone_match:
+            phone = re.sub(r'[^\d+]', '', phone_match.group(1) if phone_match.lastindex else phone_match.group())
+            if len(phone) >= 8:
+                result["phone"] = phone_match.group(1).strip() if phone_match.lastindex else phone_match.group().strip()
+                break
+    
+    # ========== NAME ==========
+    # Versuche Namen aus ersten Zeilen zu extrahieren
+    for i, line in enumerate(lines[:10]):
+        line = line.strip()
+        # Überspringe leere Zeilen und typische Header
+        if not line or len(line) < 3 or any(x in line.lower() for x in ['lebenslauf', 'curriculum', 'resume', 'cv', '@', 'tel', 'email']):
+            continue
+        # Prüfe ob es wie ein Name aussieht (2-3 Wörter, nur Buchstaben)
+        words = line.split()
+        if 2 <= len(words) <= 4 and all(w.replace('-', '').replace("'", '').isalpha() for w in words):
+            result["first_name"] = words[0]
+            result["last_name"] = ' '.join(words[1:])
             break
     
-    # PLZ und Stadt (deutsches Format)
-    plz_city = re.search(r'(\d{5})\s+([A-Za-zäöüÄÖÜß\-]+)', text)
+    # ========== GEBURTSDATUM ==========
+    date_patterns = [
+        (r'(?:geboren|geb\.?|birth|dob)[:\s]*(\d{1,2})[./](\d{1,2})[./](\d{4})', 'dmy'),
+        (r'(\d{1,2})[./](\d{1,2})[./](\d{4})', 'dmy'),
+        (r'(\d{4})-(\d{2})-(\d{2})', 'ymd'),
+    ]
+    for pattern, fmt in date_patterns:
+        date_match = re.search(pattern, text, re.IGNORECASE)
+        if date_match:
+            groups = date_match.groups()
+            if fmt == 'ymd':
+                result["date_of_birth"] = f"{groups[0]}-{groups[1]}-{groups[2]}"
+            else:  # dmy
+                day = groups[0].zfill(2)
+                month = groups[1].zfill(2)
+                year = groups[2]
+                if int(day) <= 31 and int(month) <= 12:
+                    result["date_of_birth"] = f"{year}-{month}-{day}"
+            break
+    
+    # ========== ADRESSE ==========
+    # PLZ und Stadt (deutsches/österreichisches/schweizer Format)
+    plz_city = re.search(r'(\d{4,5})\s+([A-Za-zäöüÄÖÜßéèêëàâùûîïôç\-\s]{2,30})', text)
     if plz_city:
         result["postal_code"] = plz_city.group(1)
-        result["city"] = plz_city.group(2)
+        city = plz_city.group(2).strip()
+        # Entferne trailing Wörter die keine Stadt sein können
+        city = re.sub(r'\s+(deutschland|germany|österreich|austria|schweiz|switzerland).*$', '', city, flags=re.IGNORECASE)
+        result["city"] = city.strip()
+    
+    # Straße mit Hausnummer
+    street_match = re.search(r'([A-Za-zäöüÄÖÜß\-\.\s]{3,40}(?:str\.?|straße|strasse|weg|platz|allee|gasse))\s*(\d{1,4}\s*[a-z]?)', text, re.IGNORECASE)
+    if street_match:
+        result["street"] = street_match.group(1).strip()
+        result["house_number"] = street_match.group(2).strip()
+    
+    # ========== NATIONALITÄT ==========
+    nationality_patterns = [
+        r'(?:nationalität|staatsangehörigkeit|nationality|citizenship)[:\s]*([A-Za-zäöüÄÖÜß]+)',
+    ]
+    for pattern in nationality_patterns:
+        nat_match = re.search(pattern, text, re.IGNORECASE)
+        if nat_match:
+            result["nationality"] = nat_match.group(1).strip()
+            break
+    
+    # ========== SPRACHKENNTNISSE ==========
+    # Deutsch
+    german_patterns = [
+        (r'deutsch[:\s]*([A-C][12]|muttersprache|fließend|sehr gut|gut|grundkenntnisse)', re.IGNORECASE),
+    ]
+    for pattern, flags in german_patterns:
+        match = re.search(pattern, text, flags)
+        if match:
+            level = match.group(1).lower()
+            if 'mutter' in level or 'c2' in level:
+                result["german_level"] = "C2"
+            elif 'fließend' in level or 'c1' in level:
+                result["german_level"] = "C1"
+            elif 'sehr gut' in level or 'b2' in level:
+                result["german_level"] = "B2"
+            elif 'gut' in level or 'b1' in level:
+                result["german_level"] = "B1"
+            elif 'grund' in level or 'a' in level:
+                result["german_level"] = "A1"
+            break
+    
+    # Englisch
+    english_patterns = [
+        (r'(?:englisch|english)[:\s]*([A-C][12]|muttersprache|fließend|fluent|sehr gut|gut|grundkenntnisse|basic)', re.IGNORECASE),
+    ]
+    for pattern, flags in english_patterns:
+        match = re.search(pattern, text, flags)
+        if match:
+            level = match.group(1).lower()
+            if 'mutter' in level or 'c2' in level or 'native' in level:
+                result["english_level"] = "C2"
+            elif 'fließend' in level or 'fluent' in level or 'c1' in level:
+                result["english_level"] = "C1"
+            elif 'sehr gut' in level or 'b2' in level:
+                result["english_level"] = "B2"
+            elif 'gut' in level or 'b1' in level:
+                result["english_level"] = "B1"
+            elif 'grund' in level or 'basic' in level or 'a' in level:
+                result["english_level"] = "A1"
+            break
+    
+    # ========== BILDUNG ==========
+    # Universität/Hochschule
+    uni_patterns = [
+        r'(?:universität|university|hochschule|fachhochschule|tu |fh )[:\s]*([A-Za-zäöüÄÖÜß\s\-]{5,50})',
+    ]
+    for pattern in uni_patterns:
+        uni_match = re.search(pattern, text, re.IGNORECASE)
+        if uni_match:
+            result["university_name"] = uni_match.group(1).strip()[:50]
+            break
+    
+    # Studienfach
+    study_patterns = [
+        r'(?:studium|studiengang|fachrichtung|major)[:\s]*([A-Za-zäöüÄÖÜß\s\-]{3,40})',
+    ]
+    for pattern in study_patterns:
+        study_match = re.search(pattern, text, re.IGNORECASE)
+        if study_match:
+            result["field_of_study"] = study_match.group(1).strip()
+            break
     
     return result
