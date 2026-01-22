@@ -66,6 +66,7 @@ function Navbar() {
         { to: '/admin/users', icon: Users, label: t('nav.adminUsers') },
         { to: '/admin/jobs', icon: Briefcase, label: t('nav.adminJobs') },
         { to: '/admin/blog', icon: BookOpen, label: t('nav.adminBlog') },
+        { to: '/admin/feature-flags', icon: Settings, label: 'Feature Flags' },
         { divider: true },
         { to: '/admin/settings', icon: Settings, label: t('nav.settings') },
       ];

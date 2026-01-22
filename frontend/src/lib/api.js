@@ -216,6 +216,9 @@ export const interviewAPI = {
 
 export const adminAPI = {
   getStats: () => api.get('/admin/stats'),
+  // Feature Flags
+  getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
+  setFeatureFlag: (key, value) => api.put(`/admin/settings/feature-flags/${key}`, { value }),
   listUsers: (params) => api.get('/admin/users', { params }),
   toggleUserActive: (id) => api.put(`/admin/users/${id}/toggle-active`),
   createAdmin: (data) => api.post('/admin/users/create-admin', data),

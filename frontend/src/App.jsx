@@ -39,6 +39,7 @@ import AdminJobRequests from './pages/admin/JobRequests';
 import BlogManager from './pages/admin/BlogManager';
 import BlogEditor from './pages/admin/BlogEditor';
 import AnabinVerification from './pages/admin/AnabinVerification';
+import AdminSettings from './pages/admin/Settings';
 
 // Blog
 import BlogList from './pages/blog/BlogList';
@@ -126,6 +127,7 @@ function App() {
             <Route path="blog" element={<BlogManager />} />
             <Route path="blog/new" element={<BlogEditor />} />
             <Route path="blog/edit/:id" element={<BlogEditor />} />
+            <Route path="feature-flags" element={<AdminSettings />} />
             <Route path="settings" element={<AccountSettings />} />
           </Route>
         </Route>
