@@ -189,7 +189,6 @@ async def parse_cv(
         import json
         
         genai.configure(api_key=google_api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""Analysiere den folgenden Lebenslauf und extrahiere die relevanten Informationen im JSON-Format.
         
@@ -228,7 +227,26 @@ Lebenslauf-Text:
 
 Antworte NUR mit dem JSON-Objekt (ohne ```json oder andere Formatierung):"""
 
-        response = model.generate_content(prompt)
+        # Versuche verschiedene Modelle (Fallback-Kette)
+        model_names = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-pro', 'gemini-1.0-pro']
+        response = None
+        last_error = None
+        
+        for model_name in model_names:
+            try:
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(prompt)
+                logger.info(f"CV-Parsing erfolgreich mit Modell: {model_name}")
+                break
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Modell {model_name} fehlgeschlagen: {e}")
+                continue
+        
+        if not response:
+            logger.error(f"Alle Gemini Modelle fehlgeschlagen. Letzter Fehler: {last_error}")
+            return parse_cv_fallback(text)
+        
         response_text = response.text.strip()
         
         # JSON aus Antwort extrahieren (falls in Markdown-Codeblock)
