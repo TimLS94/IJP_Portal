@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { 
   Settings as SettingsIcon, ToggleLeft, ToggleRight, Save, Loader2, 
   Sparkles, Building2, Users, AlertTriangle, RefreshCw, Clock, Trash2,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Calendar
 } from 'lucide-react';
 
 function AdminSettings() {
@@ -17,6 +17,10 @@ function AdminSettings() {
   const [archivePreview, setArchivePreview] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [showArchiveSection, setShowArchiveSection] = useState(false);
+  
+  // Max. Stellenlaufzeit State
+  const [maxDeadlineDays, setMaxDeadlineDays] = useState(90);
+  const [showDeadlineSection, setShowDeadlineSection] = useState(false);
 
   useEffect(() => {
     loadFlags();
@@ -29,13 +33,17 @@ function AdminSettings() {
       if (response.data.archive_deletion_days) {
         setArchiveDays(response.data.archive_deletion_days);
       }
+      if (response.data.max_job_deadline_days) {
+        setMaxDeadlineDays(response.data.max_job_deadline_days);
+      }
     } catch (error) {
       console.error('Fehler beim Laden:', error);
       // Fallback auf Standard-Werte
       setFlags({
         matching_enabled_for_companies: false,
         matching_enabled_for_applicants: false,
-        archive_deletion_days: 90
+        archive_deletion_days: 90,
+        max_job_deadline_days: 90
       });
     } finally {
       setLoading(false);
@@ -88,6 +96,22 @@ function AdminSettings() {
       }));
       toast.success(`Archiv-Löschfrist auf ${archiveDays} Tage gesetzt`);
       setArchivePreview(null);
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+    } finally {
+      setSaving(null);
+    }
+  };
+  
+  const saveMaxDeadlineDays = async () => {
+    setSaving('max_job_deadline_days');
+    try {
+      await adminAPI.setSetting('max_job_deadline_days', maxDeadlineDays);
+      setFlags(prev => ({
+        ...prev,
+        max_job_deadline_days: maxDeadlineDays
+      }));
+      toast.success(`Max. Stellenlaufzeit auf ${maxDeadlineDays} Tage gesetzt`);
     } catch (error) {
       toast.error('Fehler beim Speichern');
     } finally {
@@ -213,6 +237,139 @@ function AdminSettings() {
             );
           })}
         </div>
+      </div>
+
+      {/* Max. Stellenlaufzeit */}
+      <div className="card mb-8">
+        <button
+          onClick={() => setShowDeadlineSection(!showDeadlineSection)}
+          className="w-full flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Calendar className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="text-left">
+              <h2 className="text-xl font-semibold text-gray-900">Max. Stellenlaufzeit</h2>
+              <p className="text-sm text-gray-600">
+                Wie lange eine Stelle maximal aktiv bleiben kann
+                <span className="ml-2 font-medium text-gray-800">
+                  (Aktuell: {flags.max_job_deadline_days || 90} Tage)
+                </span>
+              </p>
+            </div>
+          </div>
+          {showDeadlineSection ? (
+            <ChevronUp className="h-5 w-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-gray-500" />
+          )}
+        </button>
+
+        {showDeadlineSection && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Maximale Laufzeit in Tagen
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min="7"
+                    max="365"
+                    value={maxDeadlineDays}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 90;
+                      setMaxDeadlineDays(value);
+                    }}
+                    className="input w-32"
+                  />
+                  <span className="text-gray-600">Tage</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Standard: 90 Tage (3 Monate)
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setMaxDeadlineDays(30)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    maxDeadlineDays === 30 
+                      ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  30 Tage
+                </button>
+                <button
+                  onClick={() => setMaxDeadlineDays(60)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    maxDeadlineDays === 60 
+                      ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  60 Tage
+                </button>
+                <button
+                  onClick={() => setMaxDeadlineDays(90)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    maxDeadlineDays === 90 
+                      ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  90 Tage
+                </button>
+                <button
+                  onClick={() => setMaxDeadlineDays(180)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    maxDeadlineDays === 180 
+                      ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  180 Tage
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-700">
+                <strong>Hinweis:</strong> Diese Einstellung legt fest, wie lange eine Stellenanzeige 
+                maximal online bleiben kann. Nach Ablauf wird sie automatisch archiviert.
+              </p>
+            </div>
+
+            {/* Speichern-Button */}
+            {maxDeadlineDays !== (flags.max_job_deadline_days || 90) && (
+              <div className="mt-6 flex items-center justify-end gap-4">
+                <button
+                  onClick={() => {
+                    setMaxDeadlineDays(flags.max_job_deadline_days || 90);
+                  }}
+                  className="btn-secondary"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={saveMaxDeadlineDays}
+                  disabled={saving === 'max_job_deadline_days'}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  {saving === 'max_job_deadline_days' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Speichern
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Archiv-Löschfrist */}
@@ -410,15 +567,17 @@ function AdminSettings() {
         <div className="flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-yellow-800">Hinweis zu Feature Flags</h3>
+            <h3 className="font-semibold text-yellow-800">Hinweis zu Einstellungen</h3>
             <p className="text-sm text-yellow-700 mt-1">
-              Änderungen an Feature Flags werden sofort wirksam. Das Matching-Feature verwendet 
+              Änderungen werden sofort wirksam. Das Matching-Feature verwendet 
               einen Algorithmus, der Bewerberprofile mit Stellenanforderungen vergleicht. 
               Diskriminierende Faktoren wie Geschlecht oder Herkunft werden nicht berücksichtigt.
             </p>
             <p className="text-sm text-yellow-700 mt-2">
-              <strong>Archiv-Löschfrist:</strong> Stellen werden archiviert, wenn ihre Deadline abläuft 
-              oder sie manuell gelöscht werden. Nach der eingestellten Frist werden sie endgültig 
+              <strong>Max. Stellenlaufzeit:</strong> Stellen werden nach dieser Zeit automatisch archiviert.
+            </p>
+            <p className="text-sm text-yellow-700 mt-2">
+              <strong>Archiv-Löschfrist:</strong> Archivierte Stellen werden nach dieser Zeit endgültig 
               aus dem System entfernt.
             </p>
           </div>

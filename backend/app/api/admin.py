@@ -753,7 +753,8 @@ async def get_feature_flags(
         "matching_enabled_for_companies": get_setting(db, "matching_enabled_for_companies", True),
         "matching_enabled_for_applicants": get_setting(db, "matching_enabled_for_applicants", True),
         "auto_deactivate_expired_jobs": get_setting(db, "auto_deactivate_expired_jobs", True),
-        "archive_deletion_days": get_setting(db, "archive_deletion_days", 90)
+        "archive_deletion_days": get_setting(db, "archive_deletion_days", 90),
+        "max_job_deadline_days": get_setting(db, "max_job_deadline_days", 90)
     }
 
 

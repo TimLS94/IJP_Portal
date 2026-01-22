@@ -31,9 +31,9 @@ DEFAULT_SETTINGS = {
     },
     # Job-Einstellungen
     "max_job_deadline_days": {
-        "value": "31",
+        "value": "90",
         "value_type": "integer",
-        "description": "Maximale Anzahl Tage für Job-Deadline"
+        "description": "Maximale Anzahl Tage, wie lange eine Stelle aktiv bleiben kann (Standard: 90 Tage = 3 Monate)"
     },
     "auto_deactivate_expired_jobs": {
         "value": "true",

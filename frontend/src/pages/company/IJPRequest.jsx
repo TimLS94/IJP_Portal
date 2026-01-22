@@ -145,7 +145,7 @@ function CompanyIJPRequest() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <Handshake className="h-8 w-8 text-primary-600" />
+          <Briefcase className="h-8 w-8 text-primary-600" />
           <div>
             <h1 className="text-3xl font-bold text-gray-900">IJP beauftragen</h1>
             <p className="text-gray-600">Lassen Sie uns Personal für Sie finden</p>
@@ -367,7 +367,7 @@ function CompanyIJPRequest() {
       {/* Liste der Aufträge */}
       {requests.length === 0 ? (
         <div className="card text-center py-12">
-          <Handshake className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Noch keine Aufträge</h2>
           <p className="text-gray-600 mb-4">
             Erstellen Sie Ihren ersten Auftrag und lassen Sie IJP für Sie arbeiten!
