@@ -62,6 +62,7 @@ function Navbar() {
       return [
         { to: '/admin/dashboard', icon: LayoutDashboard, label: t('nav.adminDashboard') },
         { to: '/admin/job-requests', icon: ClipboardList, label: t('nav.adminJobRequests') },
+        { to: '/admin/company-requests', icon: Building2, label: 'Firmen-Aufträge' },
         { to: '/admin/anabin', icon: GraduationCap, label: 'Anabin Prüfung' },
         { to: '/admin/applications', icon: FileText, label: t('nav.adminApplications') },
         { to: '/admin/users', icon: Users, label: t('nav.adminUsers') },
