@@ -3,14 +3,14 @@ import { Link } from 'react-router-dom';
 import { companyRequestsAPI, jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
-  Handshake, Plus, Clock, CheckCircle, XCircle, Loader2, 
+  LifeBuoy, Plus, Clock, CheckCircle, XCircle, Loader2, 
   Users, FileText, Briefcase, ChevronDown, Calendar, Euro,
   ArrowRight, AlertTriangle, Building2
 } from 'lucide-react';
 
 const requestTypeOptions = [
   { value: 'recruiting', label: 'Personal finden', icon: Users, description: 'IJP sucht passende Kandidaten für Sie' },
-  { value: 'support', label: 'Prozess-Unterstützung', icon: Handshake, description: 'Hilfe bei laufenden Bewerbungen' },
+  { value: 'support', label: 'Prozess-Unterstützung', icon: LifeBuoy, description: 'Hilfe bei laufenden Bewerbungen' },
   { value: 'documents', label: 'Dokumenten-Hilfe', icon: FileText, description: 'Unterstützung bei Visa, Verträgen etc.' },
   { value: 'full_service', label: 'Full-Service', icon: Building2, description: 'Komplettes Recruiting von A-Z' },
 ];
