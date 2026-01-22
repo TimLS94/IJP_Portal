@@ -7,7 +7,8 @@ import toast from 'react-hot-toast';
 import { 
   User, Save, Loader2, GraduationCap, Building2, Languages, MapPin, Briefcase,
   Plus, Minus, Upload, Download, Trash2, File, Shield, FileText, FileImage,
-  CheckCircle, Clock, ChevronDown, X, ClipboardList, ArrowRight
+  CheckCircle, Clock, ChevronDown, X, ClipboardList, ArrowRight, Sparkles, Wand2,
+  AlertCircle
 } from 'lucide-react';
 
 // Diese werden in der Komponente mit t() übersetzt
@@ -121,6 +122,9 @@ function ApplicantProfile() {
   const [otherLanguages, setOtherLanguages] = useState([]);
   const [workExperiences, setWorkExperiences] = useState([]);
   const [showIJPModal, setShowIJPModal] = useState(false);
+  const [cvParsing, setCvParsing] = useState(false);
+  const [cvParseResult, setCvParseResult] = useState(null);
+  const cvFileInputRef = useRef(null);
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
   const fileInputRefs = useRef({});
   
@@ -323,6 +327,100 @@ function ApplicantProfile() {
 
   const getDocumentForType = (docType) => {
     return documents.find(d => d.document_type === docType);
+  };
+
+  // ========== CV PARSING FUNKTION ==========
+  const handleCVParse = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // PDF-Validierung
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.pdf')) {
+      toast.error('Bitte laden Sie Ihren Lebenslauf als PDF hoch');
+      if (cvFileInputRef.current) cvFileInputRef.current.value = '';
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Datei ist zu groß (max. 10 MB)');
+      if (cvFileInputRef.current) cvFileInputRef.current.value = '';
+      return;
+    }
+
+    setCvParsing(true);
+    setCvParseResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await applicantAPI.parseCV(formData);
+      const parsedData = response.data;
+      
+      // Extrahierte Daten in Formularfelder übernehmen
+      if (parsedData.first_name) setValue('first_name', parsedData.first_name);
+      if (parsedData.last_name) setValue('last_name', parsedData.last_name);
+      if (parsedData.date_of_birth) setValue('date_of_birth', parsedData.date_of_birth);
+      if (parsedData.place_of_birth) setValue('place_of_birth', parsedData.place_of_birth);
+      if (parsedData.nationality) setValue('nationality', parsedData.nationality);
+      if (parsedData.phone) setValue('phone', parsedData.phone);
+      
+      // Adresse
+      if (parsedData.street) setValue('street', parsedData.street);
+      if (parsedData.house_number) setValue('house_number', parsedData.house_number);
+      if (parsedData.postal_code) setValue('postal_code', parsedData.postal_code);
+      if (parsedData.city) setValue('city', parsedData.city);
+      if (parsedData.country) setValue('country', parsedData.country);
+      
+      // Sprachkenntnisse
+      if (parsedData.german_level) setValue('german_level', parsedData.german_level);
+      if (parsedData.english_level) setValue('english_level', parsedData.english_level);
+      if (parsedData.other_languages?.length > 0) {
+        setOtherLanguages(parsedData.other_languages);
+      }
+      
+      // Berufserfahrung
+      if (parsedData.work_experiences?.length > 0) {
+        setWorkExperiences(parsedData.work_experiences);
+      }
+      
+      // Ausbildung/Studium
+      if (parsedData.university_name) setValue('university_name', parsedData.university_name);
+      if (parsedData.field_of_study) setValue('field_of_study', parsedData.field_of_study);
+      if (parsedData.profession) setValue('profession', parsedData.profession);
+      if (parsedData.school_degree) setValue('school_degree', parsedData.school_degree);
+      
+      setCvParseResult({
+        success: true,
+        fieldsExtracted: Object.keys(parsedData).filter(k => parsedData[k]).length,
+        message: parsedData.message || 'Daten erfolgreich extrahiert!'
+      });
+      
+      toast.success('Lebenslauf analysiert! Bitte überprüfen Sie die Daten.');
+      
+    } catch (error) {
+      console.error('CV Parse Error:', error);
+      const errorMessage = error.response?.data?.detail || 'Fehler beim Analysieren des Lebenslaufs';
+      const isQuotaError = error.response?.status === 503;
+      
+      setCvParseResult({
+        success: false,
+        isQuotaError,
+        message: errorMessage
+      });
+      
+      if (isQuotaError) {
+        toast.error('Funktion heute nicht verfügbar - bitte morgen erneut versuchen', { duration: 5000 });
+      } else {
+        toast.error('Fehler beim Analysieren des Lebenslaufs');
+      }
+    } finally {
+      setCvParsing(false);
+      if (cvFileInputRef.current) {
+        cvFileInputRef.current.value = '';
+      }
+    }
   };
 
   const formatFileSize = (bytes) => {
@@ -565,9 +663,104 @@ function ApplicantProfile() {
         </div>
       )}
 
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-6">
         <User className="h-8 w-8 text-primary-600" />
         <h1 className="text-3xl font-bold text-gray-900">{t('applicant.profileTitle')}</h1>
+      </div>
+
+      {/* ========== CV IMPORT BANNER ========== */}
+      <div className="mb-8 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+        {/* Dekoration */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
+        
+        <div className="relative z-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <Wand2 className="h-6 w-6" />
+                </div>
+                <h2 className="text-xl font-bold">Profil automatisch ausfüllen</h2>
+                <span className="px-2 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full animate-pulse">
+                  NEU
+                </span>
+              </div>
+              <p className="text-white/90 text-sm md:text-base">
+                Laden Sie Ihren Lebenslauf hoch und wir füllen Ihr Profil automatisch aus. 
+                Sie können alle Daten danach noch bearbeiten.
+              </p>
+            </div>
+            
+            <div className="flex flex-col items-stretch md:items-end gap-2">
+              <label className={`inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-purple-700 
+                              font-semibold rounded-xl hover:bg-purple-50 transition-all cursor-pointer
+                              shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
+                              ${cvParsing ? 'opacity-75 cursor-wait' : ''}`}>
+                {cvParsing ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Analysiere...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5" />
+                    Lebenslauf hochladen
+                  </>
+                )}
+                <input
+                  ref={cvFileInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={handleCVParse}
+                  disabled={cvParsing}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-white/70 text-xs text-center md:text-right">
+                PDF-Format, max. 10 MB
+              </span>
+            </div>
+          </div>
+          
+          {/* Ergebnis-Anzeige */}
+          {cvParseResult && (
+            <div className={`mt-4 p-4 rounded-xl flex items-start gap-3 ${
+              cvParseResult.success 
+                ? 'bg-green-500/20 border border-green-400/30' 
+                : 'bg-red-500/20 border border-red-400/30'
+            }`}>
+              {cvParseResult.success ? (
+                <>
+                  <CheckCircle className="h-5 w-5 text-green-300 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-green-100">
+                      {cvParseResult.message}
+                    </p>
+                    <p className="text-sm text-green-200/80 mt-1">
+                      {cvParseResult.fieldsExtracted} Felder wurden erkannt. 
+                      Bitte überprüfen Sie die Daten unten und ergänzen Sie fehlende Informationen.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-5 w-5 text-red-300 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-red-100">
+                      {cvParseResult.message}
+                    </p>
+                    <p className="text-sm text-red-200/80 mt-1">
+                      {cvParseResult.isQuotaError 
+                        ? 'Die Funktion ist morgen wieder verfügbar. Sie können Ihr Profil auch manuell ausfüllen.'
+                        : 'Bitte füllen Sie die Felder manuell aus oder versuchen Sie es mit einem anderen PDF.'}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">

@@ -64,6 +64,10 @@ export const applicantAPI = {
   createProfile: (data) => api.post('/applicants/me', data),
   updateProfile: (data) => api.put('/applicants/me', data),
   getApplicant: (id) => api.get(`/applicants/${id}`),
+  // CV Parsing - extrahiert Daten aus Lebenslauf
+  parseCV: (formData) => api.post('/applicants/parse-cv', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 // Company API
