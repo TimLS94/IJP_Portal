@@ -3,307 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { 
   HelpCircle, ChevronDown, ChevronUp, Building2, Users, 
-  FileText, Clock, Euro, Shield, Mail, CheckCircle,
-  Briefcase, Globe, GraduationCap
+  Shield, Mail, CheckCircle
 } from 'lucide-react';
-
-// FAQ Kategorien und Fragen
-const faqCategories = [
-  {
-    id: 'employer',
-    title: 'Für Arbeitgeber',
-    icon: Building2,
-    color: 'bg-blue-100 text-blue-600',
-    questions: [
-      {
-        question: 'Wie registriere ich mein Unternehmen?',
-        answer: `Die Registrierung ist einfach und kostenlos:
-        
-1. Klicken Sie auf "Registrieren" in der Navigation
-2. Wählen Sie "Als Unternehmen registrieren"
-3. Geben Sie Ihre E-Mail-Adresse und ein sicheres Passwort ein
-4. Vervollständigen Sie Ihr Firmenprofil mit Kontaktdaten und Beschreibung
-5. Sie können sofort Stellenanzeigen erstellen`
-      },
-      {
-        question: 'Wie erstelle ich eine Stellenanzeige?',
-        answer: `Nach der Registrierung und Anmeldung:
-
-1. Gehen Sie zu "Meine Stellenanzeigen" im Dashboard
-2. Klicken Sie auf "Neue Stelle erstellen"
-3. Füllen Sie alle relevanten Felder aus:
-   - Stellentitel und Beschreibung
-   - Anforderungen (Sprachkenntnisse, Qualifikationen)
-   - Arbeitsort und Gehalt
-   - Stellenart (Fachkraft, Ausbildung, Saisonjob, etc.)
-4. Veröffentlichen Sie die Stelle
-
-Tipp: Je detaillierter Ihre Angaben, desto passendere Bewerber erhalten Sie.`
-      },
-      {
-        question: 'Welche Kosten entstehen für Arbeitgeber?',
-        answer: `Unser Preismodell:
-
-• **Stellenanzeigen schalten:** Kostenlos
-• **Bewerberprofile ansehen:** Kostenlos
-• **Erfolgsvermittlung:** Provision nur bei erfolgreicher Einstellung
-
-Die genauen Konditionen besprechen wir gerne individuell mit Ihnen. Kontaktieren Sie uns für ein unverbindliches Angebot.`
-      },
-      {
-        question: 'Wie läuft der Bewerbungsprozess ab?',
-        answer: `Der Prozess ist transparent und effizient:
-
-1. **Bewerbung eingeht:** Bewerber bewirbt sich auf Ihre Stelle
-2. **IJP-Prüfung:** Wir prüfen die Unterlagen auf Vollständigkeit
-3. **Weiterleitung:** Geeignete Kandidaten werden an Sie weitergeleitet
-4. **Ihre Entscheidung:** Sie prüfen die Bewerbungen und laden zu Gesprächen ein
-5. **Einstellung:** Bei Interesse stellen Sie den Kandidaten ein
-
-Sie haben jederzeit Zugriff auf den Status aller Bewerbungen in Ihrem Dashboard.`
-      },
-      {
-        question: 'Welche Unterlagen erhalte ich vom Bewerber?',
-        answer: `Je nach Stellenart erhalten Sie:
-
-**Für alle Bewerber:**
-• Lebenslauf (CV)
-• Passfoto
-• Reisepass/Ausweiskopie
-• Sprachzertifikate (falls vorhanden)
-
-**Für Fachkräfte zusätzlich:**
-• Berufsabschluss/Diplom
-• Arbeitszeugnisse
-• Qualifikationsnachweise
-
-**Für Studenten/Saisonarbeiter:**
-• Immatrikulationsbescheinigung
-• Hochschulbescheinigung
-
-Alle Dokumente werden von uns auf Echtheit und Vollständigkeit geprüft.`
-      },
-      {
-        question: 'Aus welchen Ländern kommen die Bewerber?',
-        answer: `Unsere Bewerber kommen hauptsächlich aus:
-
-• **Osteuropa:** Ukraine, Moldawien, Georgien, Armenien
-• **Zentralasien:** Usbekistan, Kasachstan, Kirgisistan
-• **Weitere Länder:** Auf Anfrage
-
-Alle Bewerber haben die erforderlichen Voraussetzungen für eine Arbeitsaufnahme in Deutschland oder wir unterstützen bei der Beschaffung der notwendigen Genehmigungen.`
-      },
-      {
-        question: 'Wie lange werden Bewerberdaten gespeichert?',
-        answer: `Gemäß DSGVO gelten folgende Aufbewahrungsfristen:
-
-• **Aktive Bewerbungen:** Solange das Verfahren läuft
-• **Abgelehnte Bewerbungen:** 6 Monate nach Abschluss
-• **Erfolgreiche Vermittlungen:** Entsprechend gesetzlicher Aufbewahrungspflichten
-
-Sie können jederzeit die Löschung von Bewerberdaten anfordern, sofern keine gesetzlichen Aufbewahrungspflichten entgegenstehen.`
-      },
-    ]
-  },
-  {
-    id: 'applicant',
-    title: 'Für Bewerber',
-    icon: Users,
-    color: 'bg-green-100 text-green-600',
-    questions: [
-      {
-        question: 'Wie bewerbe ich mich?',
-        answer: `So einfach geht's:
-
-1. Registrieren Sie sich kostenlos als Bewerber
-2. Vervollständigen Sie Ihr Profil mit allen relevanten Daten
-3. Laden Sie Ihre Dokumente hoch (Lebenslauf, Zeugnisse, etc.)
-4. Durchsuchen Sie die verfügbaren Stellenangebote
-5. Bewerben Sie sich mit einem Klick
-
-Alternativ können Sie auch "IJP beauftragen" - dann suchen wir aktiv nach passenden Stellen für Sie.`
-      },
-      {
-        question: 'Welche Dokumente brauche ich?',
-        answer: `Die benötigten Dokumente hängen von der Stellenart ab:
-
-**Studentenferienjob:**
-• Reisepass
-• Immatrikulationsbescheinigung (mit Übersetzung)
-• Passfoto
-• BA-Erklärung
-
-**Fachkraft:**
-• Reisepass
-• Lebenslauf
-• Berufsabschluss/Diplom
-• Arbeitszeugnisse
-• Sprachzertifikat (empfohlen)
-
-**Ausbildung:**
-• Reisepass
-• Schulzeugnis
-• Lebenslauf
-• Sprachzertifikat (mind. B1)
-
-Alle Dokumente sollten als PDF hochgeladen werden.`
-      },
-      {
-        question: 'Ist die Vermittlung kostenlos?',
-        answer: `**Ja, für Bewerber ist unser Service komplett kostenlos!**
-
-Wir finanzieren uns über Vermittlungsprovisionen, die von den Arbeitgebern gezahlt werden. Für Sie als Bewerber entstehen keine Kosten - weder für die Registrierung, noch für die Bewerbung oder die Vermittlung.`
-      },
-      {
-        question: 'Welche Sprachkenntnisse brauche ich?',
-        answer: `Die Anforderungen variieren je nach Stelle:
-
-**Studentenferienjob/Saisonjob:**
-• Deutsch: A2-B1 (Grundkenntnisse ausreichend)
-• Englisch: Hilfreich, aber nicht zwingend
-
-**Fachkraft:**
-• Deutsch: B1-B2 (je nach Beruf)
-• Fachspezifische Zertifikate können erforderlich sein
-
-**Ausbildung:**
-• Deutsch: Mindestens B1
-• Für Berufsschule ist B2 empfohlen
-
-Tipp: Je besser Ihre Deutschkenntnisse, desto mehr Stellenangebote stehen Ihnen offen.`
-      },
-      {
-        question: 'Was ist "IJP beauftragen"?',
-        answer: `Mit dieser Funktion beauftragen Sie uns, aktiv nach passenden Stellen für Sie zu suchen:
-
-**Vorteile:**
-• Wir durchsuchen unser Netzwerk nach passenden Stellen
-• Sie werden über neue Möglichkeiten informiert
-• Persönliche Betreuung durch unser Team
-• Zugang zu nicht öffentlich ausgeschriebenen Stellen
-
-**So funktioniert's:**
-1. Vervollständigen Sie Ihr Profil
-2. Wählen Sie Ihre gewünschte(n) Stellenart(en)
-3. Klicken Sie auf "IJP beauftragen"
-4. Wir suchen aktiv und melden uns bei passenden Angeboten`
-      },
-    ]
-  },
-  {
-    id: 'legal',
-    title: 'Rechtliches & Visa',
-    icon: Shield,
-    color: 'bg-purple-100 text-purple-600',
-    questions: [
-      {
-        question: 'Brauche ich ein Visum für Deutschland?',
-        answer: `Das hängt von Ihrer Nationalität ab:
-
-**EU-Bürger:** Kein Visum erforderlich, freier Arbeitsmarktzugang
-
-**Drittstaatsangehörige:**
-• Für kurzfristige Beschäftigung (max. 90 Tage): Oft Arbeitserlaubnis über Bundesagentur für Arbeit
-• Für längerfristige Beschäftigung: Arbeitsvisum erforderlich
-
-Wir unterstützen Sie bei der Beantragung der notwendigen Genehmigungen und beraten zu den Voraussetzungen.`
-      },
-      {
-        question: 'Was ist eine kurzfristige Beschäftigung?',
-        answer: `Die kurzfristige Beschäftigung ist eine besondere Regelung:
-
-• **Dauer:** Maximal 90 Tage oder 3 Monate im Kalenderjahr
-• **Für:** Studenten aus bestimmten Ländern (z.B. Ukraine, Moldawien)
-• **Vorteil:** Vereinfachtes Verfahren ohne Aufenthaltstitel
-
-**Voraussetzungen:**
-• Gültige Immatrikulationsbescheinigung
-• Vermittlung über zugelassene Agentur (wie IJP)
-• Zustimmung der Bundesagentur für Arbeit
-
-Wir kümmern uns um alle Formalitäten!`
-      },
-      {
-        question: 'Welche Arbeitszeiten gelten in Deutschland?',
-        answer: `In Deutschland gelten folgende Regelungen:
-
-• **Maximale Arbeitszeit:** 8 Stunden/Tag, max. 10 Stunden mit Ausgleich
-• **Pausen:** Nach 6 Stunden mind. 30 Min., nach 9 Stunden mind. 45 Min.
-• **Ruhezeit:** Mind. 11 Stunden zwischen Arbeitstagen
-• **Wochenende:** In der Regel arbeitsfrei (Ausnahmen in bestimmten Branchen)
-
-Mindestlohn (2024): 12,41 €/Stunde`
-      },
-      {
-        question: 'Wie werden meine Daten geschützt?',
-        answer: `Datenschutz hat bei uns höchste Priorität:
-
-• Alle Daten werden gemäß DSGVO verarbeitet
-• SSL-verschlüsselte Übertragung
-• Speicherung auf deutschen Servern
-• Weitergabe nur mit Ihrer Zustimmung an potenzielle Arbeitgeber
-• Löschung auf Anfrage jederzeit möglich
-
-Mehr Informationen finden Sie in unserer Datenschutzerklärung.`
-      },
-    ]
-  },
-  {
-    id: 'technical',
-    title: 'Technische Fragen',
-    icon: HelpCircle,
-    color: 'bg-orange-100 text-orange-600',
-    questions: [
-      {
-        question: 'Welche Dateiformate werden unterstützt?',
-        answer: `Für Dokumente akzeptieren wir:
-
-• **PDF** (empfohlen) - Maximale Dateigröße: 10 MB
-
-Bitte achten Sie darauf, dass:
-• Dokumente gut lesbar sind
-• Keine Passwortgeschützten PDFs verwendet werden
-• Übersetzungen beglaubigt sind (wenn erforderlich)`
-      },
-      {
-        question: 'Ich habe mein Passwort vergessen',
-        answer: `Kein Problem! So setzen Sie es zurück:
-
-1. Gehen Sie zur Login-Seite
-2. Klicken Sie auf "Passwort vergessen?"
-3. Geben Sie Ihre E-Mail-Adresse ein
-4. Sie erhalten einen Link zum Zurücksetzen per E-Mail
-5. Wählen Sie ein neues sicheres Passwort
-
-Der Link ist 24 Stunden gültig. Falls Sie keine E-Mail erhalten, prüfen Sie Ihren Spam-Ordner.`
-      },
-      {
-        question: 'Wie kann ich meinen Account löschen?',
-        answer: `Sie können Ihren Account jederzeit selbst löschen:
-
-1. Melden Sie sich an
-2. Gehen Sie zu "Einstellungen"
-3. Scrollen Sie zu "Account löschen"
-4. Bestätigen Sie mit Ihrem Passwort und "DELETE"
-
-**Achtung:** Diese Aktion ist unwiderruflich. Alle Ihre Daten, Bewerbungen und Dokumente werden dauerhaft gelöscht.`
-      },
-      {
-        question: 'An wen kann ich mich bei Problemen wenden?',
-        answer: `Unser Support-Team hilft Ihnen gerne:
-
-**E-Mail:** service@internationaljobplacement.com
-
-**Kontaktformular:** Über unsere Kontaktseite
-
-Wir antworten in der Regel innerhalb von 24-48 Stunden.`
-      },
-    ]
-  },
-];
 
 // Einfacher Markdown-Parser für **fett** und Listen
 function formatAnswer(text) {
+  if (!text) return '';
   // **text** zu <strong>text</strong>
   let formatted = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   // Listen-Items mit • am Anfang
@@ -342,13 +47,60 @@ function FAQ() {
   const [activeCategory, setActiveCategory] = useState('employer');
   const [openQuestions, setOpenQuestions] = useState({});
 
-  // Localized category titles
-  const categoryTitles = {
-    employer: t('faq.forEmployers'),
-    applicant: t('faq.forApplicants'),
-    legal: t('faq.legalVisa'),
-    technical: t('faq.technical')
-  };
+  // Kategorien mit Übersetzungskeys
+  const faqCategories = [
+    {
+      id: 'employer',
+      title: t('faq.forEmployers'),
+      icon: Building2,
+      color: 'bg-blue-100 text-blue-600',
+      questions: [
+        { question: t('faq.employer.q1'), answer: t('faq.employer.a1') },
+        { question: t('faq.employer.q2'), answer: t('faq.employer.a2') },
+        { question: t('faq.employer.q3'), answer: t('faq.employer.a3') },
+        { question: t('faq.employer.q4'), answer: t('faq.employer.a4') },
+        { question: t('faq.employer.q5'), answer: t('faq.employer.a5') },
+        { question: t('faq.employer.q6'), answer: t('faq.employer.a6') },
+      ]
+    },
+    {
+      id: 'applicant',
+      title: t('faq.forApplicants'),
+      icon: Users,
+      color: 'bg-green-100 text-green-600',
+      questions: [
+        { question: t('faq.applicant.q1'), answer: t('faq.applicant.a1') },
+        { question: t('faq.applicant.q2'), answer: t('faq.applicant.a2') },
+        { question: t('faq.applicant.q3'), answer: t('faq.applicant.a3') },
+        { question: t('faq.applicant.q4'), answer: t('faq.applicant.a4') },
+        { question: t('faq.applicant.q5'), answer: t('faq.applicant.a5') },
+      ]
+    },
+    {
+      id: 'legal',
+      title: t('faq.legalVisa'),
+      icon: Shield,
+      color: 'bg-purple-100 text-purple-600',
+      questions: [
+        { question: t('faq.legal.q1'), answer: t('faq.legal.a1') },
+        { question: t('faq.legal.q2'), answer: t('faq.legal.a2') },
+        { question: t('faq.legal.q3'), answer: t('faq.legal.a3') },
+        { question: t('faq.legal.q4'), answer: t('faq.legal.a4') },
+      ]
+    },
+    {
+      id: 'technical',
+      title: t('faq.technical'),
+      icon: HelpCircle,
+      color: 'bg-orange-100 text-orange-600',
+      questions: [
+        { question: t('faq.technical.q1'), answer: t('faq.technical.a1') },
+        { question: t('faq.technical.q2'), answer: t('faq.technical.a2') },
+        { question: t('faq.technical.q3'), answer: t('faq.technical.a3') },
+        { question: t('faq.technical.q4'), answer: t('faq.technical.a4') },
+      ]
+    },
+  ];
 
   const toggleQuestion = (categoryId, questionIndex) => {
     const key = `${categoryId}-${questionIndex}`;
@@ -393,7 +145,7 @@ function FAQ() {
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {categoryTitles[category.id] || category.title}
+                  {category.title}
                 </button>
               );
             })}
@@ -404,7 +156,7 @@ function FAQ() {
             <div className="space-y-3">
               <div className={`flex items-center gap-3 mb-6 p-4 rounded-xl ${currentCategory.color}`}>
                 <currentCategory.icon className="h-6 w-6" />
-                <h2 className="text-xl font-semibold">{categoryTitles[currentCategory.id] || currentCategory.title}</h2>
+                <h2 className="text-xl font-semibold">{currentCategory.title}</h2>
               </div>
               
               {currentCategory.questions.map((faq, index) => (
@@ -450,4 +202,3 @@ function FAQ() {
 }
 
 export default FAQ;
-

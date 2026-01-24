@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { 
-  Mail, Phone, MapPin, Send, Loader2, 
+  Mail, MapPin, Send, Loader2, 
   MessageSquare, User, Building2, CheckCircle
 } from 'lucide-react';
 import api from '../lib/api';
@@ -60,7 +60,7 @@ function Contact() {
                       <Mail className="h-5 w-5 text-primary-600" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm text-gray-500">E-Mail</p>
+                      <p className="text-sm text-gray-500">{t('contact.email')}</p>
                       <p className="font-medium text-gray-900 group-hover:text-primary-600 break-all text-sm">
                         service@internationaljobplacement.com
                       </p>
@@ -72,7 +72,7 @@ function Contact() {
                       <MapPin className="h-5 w-5 text-gray-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Adresse</p>
+                      <p className="text-sm text-gray-500">{t('contact.address')}</p>
                       <p className="font-medium text-gray-900">
                         IJP International Job Placement UG<br />
                         Husemannstr. 9<br />
@@ -85,19 +85,19 @@ function Contact() {
 
               {/* Info-Box */}
               <div className="bg-primary-50 border border-primary-200 rounded-2xl p-6">
-                <h3 className="font-semibold text-gray-900 mb-2">Schnelle Antwort</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">{t('contact.quickResponse')}</h3>
                 <p className="text-gray-600 text-sm">
-                  Wir bemühen uns, alle Anfragen innerhalb von 24-48 Stunden zu beantworten.
+                  {t('contact.quickResponseDesc')}
                 </p>
               </div>
 
               {/* Handelsregister Info */}
               <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h3 className="font-semibold text-gray-900 mb-3">Firmendaten</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">{t('contact.companyData')}</h3>
                 <div className="space-y-2 text-sm text-gray-600">
-                  <p><span className="text-gray-500">Handelsregister:</span> HRB 207656 B</p>
-                  <p><span className="text-gray-500">Registergericht:</span> AG Berlin-Charlottenburg</p>
-                  <p><span className="text-gray-500">USt-IdNr.:</span> DE324792764</p>
+                  <p><span className="text-gray-500">{t('contact.commercialRegister')}:</span> HRB 207656 B</p>
+                  <p><span className="text-gray-500">{t('contact.registerCourt')}:</span> AG Berlin-Charlottenburg</p>
+                  <p><span className="text-gray-500">{t('contact.vatId')}:</span> DE324792764</p>
                 </div>
               </div>
             </div>
@@ -132,14 +132,14 @@ function Contact() {
                       <div className="grid md:grid-cols-2 gap-6">
                         {/* Name */}
                         <div>
-                          <label className="label">Name *</label>
+                          <label className="label">{t('contact.name')} *</label>
                           <div className="relative">
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                             <input
                               type="text"
                               className={`input-styled pl-10 ${errors.name ? 'border-red-500' : ''}`}
-                              placeholder="Ihr Name"
-                              {...register('name', { required: 'Name ist erforderlich' })}
+                              placeholder={t('contact.namePlaceholder')}
+                              {...register('name', { required: t('contact.nameRequired') })}
                             />
                           </div>
                           {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
@@ -147,18 +147,18 @@ function Contact() {
 
                         {/* E-Mail */}
                         <div>
-                          <label className="label">E-Mail *</label>
+                          <label className="label">{t('contact.email')} *</label>
                           <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                             <input
                               type="email"
                               className={`input-styled pl-10 ${errors.email ? 'border-red-500' : ''}`}
-                              placeholder="ihre@email.de"
+                              placeholder={t('contact.emailPlaceholder')}
                               {...register('email', { 
-                                required: 'E-Mail ist erforderlich',
+                                required: t('contact.emailRequired'),
                                 pattern: {
                                   value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                                  message: 'Ungültige E-Mail-Adresse'
+                                  message: t('contact.emailInvalid')
                                 }
                               })}
                             />
@@ -169,13 +169,13 @@ function Contact() {
 
                       {/* Firma (optional) */}
                       <div>
-                        <label className="label">Firma (optional)</label>
+                        <label className="label">{t('contact.company')} ({t('contact.optional')})</label>
                         <div className="relative">
                           <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                           <input
                             type="text"
                             className="input-styled pl-10"
-                            placeholder="Firmenname"
+                            placeholder={t('contact.companyPlaceholder')}
                             {...register('company')}
                           />
                         </div>
@@ -183,35 +183,35 @@ function Contact() {
 
                       {/* Betreff */}
                       <div>
-                        <label className="label">Betreff *</label>
+                        <label className="label">{t('contact.subject')} *</label>
                         <select
                           className={`input-styled ${errors.subject ? 'border-red-500' : ''}`}
-                          {...register('subject', { required: 'Betreff ist erforderlich' })}
+                          {...register('subject', { required: t('contact.subjectRequired') })}
                         >
-                          <option value="">Bitte wählen...</option>
-                          <option value="Allgemeine Anfrage">Allgemeine Anfrage</option>
-                          <option value="Für Bewerber">Für Bewerber</option>
-                          <option value="Für Unternehmen">Für Unternehmen</option>
-                          <option value="Technischer Support">Technischer Support</option>
-                          <option value="Kooperation / Partnerschaft">Kooperation / Partnerschaft</option>
-                          <option value="Feedback">Feedback</option>
-                          <option value="Sonstiges">Sonstiges</option>
+                          <option value="">{t('contact.subjectPlaceholder')}</option>
+                          <option value="Allgemeine Anfrage">{t('contact.subjectOptions.general')}</option>
+                          <option value="Für Bewerber">{t('contact.subjectOptions.applicant')}</option>
+                          <option value="Für Unternehmen">{t('contact.subjectOptions.company')}</option>
+                          <option value="Technischer Support">{t('contact.subjectOptions.support')}</option>
+                          <option value="Kooperation / Partnerschaft">{t('contact.subjectOptions.partnership')}</option>
+                          <option value="Feedback">{t('contact.subjectOptions.feedback')}</option>
+                          <option value="Sonstiges">{t('contact.subjectOptions.other')}</option>
                         </select>
                         {errors.subject && <p className="text-red-500 text-sm mt-1">{errors.subject.message}</p>}
                       </div>
 
                       {/* Nachricht */}
                       <div>
-                        <label className="label">Nachricht *</label>
+                        <label className="label">{t('contact.message')} *</label>
                         <textarea
                           rows={6}
                           className={`input-styled resize-none ${errors.message ? 'border-red-500' : ''}`}
-                          placeholder="Ihre Nachricht an uns..."
+                          placeholder={t('contact.messagePlaceholder')}
                           {...register('message', { 
-                            required: 'Nachricht ist erforderlich',
+                            required: t('contact.messageRequired'),
                             minLength: {
                               value: 10,
-                              message: 'Nachricht muss mindestens 10 Zeichen lang sein'
+                              message: t('contact.messageMinLength')
                             }
                           })}
                         />
@@ -224,14 +224,14 @@ function Contact() {
                           type="checkbox"
                           id="privacy"
                           className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                          {...register('privacy', { required: 'Sie müssen der Datenschutzerklärung zustimmen' })}
+                          {...register('privacy', { required: t('contact.privacyRequired') })}
                         />
                         <label htmlFor="privacy" className="text-sm text-gray-600">
-                          Ich habe die{' '}
+                          {t('contact.privacyText')}{' '}
                           <a href="/datenschutz" target="_blank" className="text-primary-600 hover:underline">
-                            Datenschutzerklärung
+                            {t('contact.privacyLink')}
                           </a>{' '}
-                          gelesen und bin mit der Verarbeitung meiner Daten einverstanden. *
+                          {t('contact.privacyText2')} *
                         </label>
                       </div>
                       {errors.privacy && <p className="text-red-500 text-sm">{errors.privacy.message}</p>}
@@ -267,4 +267,3 @@ function Contact() {
 }
 
 export default Contact;
-
