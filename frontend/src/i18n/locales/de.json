@@ -577,6 +577,33 @@
       "allUploaded": "Alle Pflichtdokumente wurden hochgeladen!",
       "progress": "{{uploaded}} von {{total}} Pflichtdokumenten hochgeladen"
     },
+    "documentTypes": {
+      "passport": "Reisepass",
+      "cv": "Lebenslauf",
+      "photo": "Bewerbungsfoto",
+      "enrollment_cert": "Immatrikulationsbescheinigung (Original)",
+      "enrollment_trans": "Immatrikulation (Übersetzung DE/EN)",
+      "ba_declaration": "Erklärung zur Immatrikulation (BA)",
+      "language_cert": "Sprachzertifikat",
+      "diploma": "Studienzeugnis/Abschluss",
+      "school_cert": "Schulzeugnis",
+      "work_reference": "Arbeitszeugnis",
+      "visa": "Visum",
+      "other": "Sonstiges"
+    },
+    "documentDescriptions": {
+      "passport": "Gültiger Reisepass (alle Seiten mit Stempeln)",
+      "cv": "Lebenslauf (optional)",
+      "photo": "Bewerbungsfoto (optional)",
+      "enrollment_cert": "Immatrikulationsbescheinigung im Original",
+      "enrollment_trans": "Beglaubigte deutsche oder englische Übersetzung der Immatrikulation",
+      "ba_declaration": "Erklärung zur Immatrikulationsbescheinigung (Bundesagentur für Arbeit)",
+      "language_cert": "Sprachzertifikat (mindestens B1 Deutsch)",
+      "diploma": "Studienzeugnis / Berufsabschluss",
+      "school_cert": "Schulzeugnis",
+      "work_reference": "Arbeitszeugnisse",
+      "visa": "Visum (falls bereits vorhanden)"
+    },
     "errors": {
       "positionRequired": "Bitte wählen Sie eine Stellenart",
       "firstNameRequired": "Vorname ist erforderlich",

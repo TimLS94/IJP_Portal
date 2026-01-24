@@ -506,7 +506,9 @@ function ApplicantProfile() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-gray-900">{req.type_label}</span>
+                      <span className="font-semibold text-gray-900">
+                        {t(`profile.documentTypes.${req.document_type}`, req.type_label)}
+                      </span>
                       {req.is_required ? (
                         <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full font-medium">
                           {t('profile.documents.required')}
@@ -517,7 +519,9 @@ function ApplicantProfile() {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{req.description}</p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {t(`profile.documentDescriptions.${req.document_type}`, req.description)}
+                    </p>
                     {uploaded && doc && (
                       <p className="text-sm text-green-700 mt-1 font-medium">
                         ✓ {doc.file_name} ({formatFileSize(doc.file_size)})

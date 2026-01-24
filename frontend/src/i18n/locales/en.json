@@ -576,6 +576,33 @@
       "allUploaded": "All required documents have been uploaded!",
       "progress": "{{uploaded}} of {{total}} required documents uploaded"
     },
+    "documentTypes": {
+      "passport": "Passport",
+      "cv": "Resume/CV",
+      "photo": "Application Photo",
+      "enrollment_cert": "Enrollment Certificate (Original)",
+      "enrollment_trans": "Enrollment Certificate (Translation DE/EN)",
+      "ba_declaration": "Declaration for Enrollment (BA)",
+      "language_cert": "Language Certificate",
+      "diploma": "Diploma/Degree Certificate",
+      "school_cert": "School Certificate",
+      "work_reference": "Work Reference",
+      "visa": "Visa",
+      "other": "Other"
+    },
+    "documentDescriptions": {
+      "passport": "Valid passport (all pages with stamps)",
+      "cv": "Resume (optional)",
+      "photo": "Application photo (optional)",
+      "enrollment_cert": "Original enrollment certificate",
+      "enrollment_trans": "Certified German or English translation of enrollment certificate",
+      "ba_declaration": "Declaration for enrollment certificate (Federal Employment Agency)",
+      "language_cert": "Language certificate (at least B1 German)",
+      "diploma": "Degree certificate / professional qualification",
+      "school_cert": "School certificate",
+      "work_reference": "Work references",
+      "visa": "Visa (if already available)"
+    },
     "errors": {
       "positionRequired": "Please select a job type",
       "firstNameRequired": "First name is required",
