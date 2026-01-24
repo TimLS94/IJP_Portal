@@ -7,6 +7,7 @@ import { MapPin, Calendar, Building2, Search, Filter, Briefcase, ChevronDown, X,
 const positionTypeColors = {
   studentenferienjob: 'bg-blue-100 text-blue-800 border-blue-200',
   saisonjob: 'bg-orange-100 text-orange-800 border-orange-200',
+  workandholiday: 'bg-pink-100 text-pink-800 border-pink-200',
   fachkraft: 'bg-purple-100 text-purple-800 border-purple-200',
   ausbildung: 'bg-green-100 text-green-800 border-green-200'
 };
@@ -32,6 +33,7 @@ function Jobs() {
     { value: '', label: t('jobs.allTypes') },
     { value: 'studentenferienjob', label: t('positionTypes.studentenferienjob') },
     { value: 'saisonjob', label: t('positionTypes.saisonjob') },
+    { value: 'workandholiday', label: t('positionTypes.workandholiday') },
     { value: 'fachkraft', label: t('positionTypes.fachkraft') },
     { value: 'ausbildung', label: t('positionTypes.ausbildung') }
   ];

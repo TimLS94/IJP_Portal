@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 const positionTypes = [
   { value: 'studentenferienjob', label: 'Studentenferienjob' },
   { value: 'saisonjob', label: 'Saisonjob (8 Monate)' },
+  { value: 'workandholiday', label: 'Work & Holiday' },
   { value: 'fachkraft', label: 'Fachkraft' },
   { value: 'ausbildung', label: 'Ausbildung' }
 ];
