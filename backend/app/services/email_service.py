@@ -9,12 +9,28 @@ logger = logging.getLogger(__name__)
 
 def _safe_email_call(func):
     """Decorator der ALLE E-Mail-Fehler abfängt - App darf NIEMALS crashen!"""
+    import asyncio
+    from functools import wraps
+    
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception as e:
             logger.error(f"E-Mail-Fehler (ignoriert): {type(e).__name__}: {str(e)}")
             return True  # Immer True zurückgeben, damit App weiterläuft
+    
+    @wraps(func)
+    async def async_wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"E-Mail-Fehler (ignoriert): {type(e).__name__}: {str(e)}")
+            return True  # Immer True zurückgeben, damit App weiterläuft
+    
+    # Prüfen ob die Funktion async ist
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper
     return wrapper
 
 

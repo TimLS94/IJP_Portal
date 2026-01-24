@@ -118,3 +118,4 @@ def is_applicant_matching_enabled(db: Session) -> bool:
     """Prüft ob Matching für Bewerber aktiviert ist"""
     return get_setting(db, "matching_enabled_for_applicants", True)
 
+

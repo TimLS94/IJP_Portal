@@ -152,3 +152,4 @@ class CompanyRequest(Base):
     job_posting = relationship("JobPosting")
     assigned_admin = relationship("User", foreign_keys=[assigned_admin_id])
 
+

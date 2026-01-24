@@ -257,3 +257,4 @@ def get_top_matches_for_applicant(db: Session, applicant_id: int, limit: int = 2
     matches.sort(key=lambda x: x["total_score"], reverse=True)
     return matches[:limit]
 
+
