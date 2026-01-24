@@ -342,6 +342,14 @@ function FAQ() {
   const [activeCategory, setActiveCategory] = useState('employer');
   const [openQuestions, setOpenQuestions] = useState({});
 
+  // Localized category titles
+  const categoryTitles = {
+    employer: t('faq.forEmployers'),
+    applicant: t('faq.forApplicants'),
+    legal: t('faq.legalVisa'),
+    technical: t('faq.technical')
+  };
+
   const toggleQuestion = (categoryId, questionIndex) => {
     const key = `${categoryId}-${questionIndex}`;
     setOpenQuestions(prev => ({
@@ -363,10 +371,10 @@ function FAQ() {
               <HelpCircle className="h-8 w-8 text-primary-600" />
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Häufig gestellte Fragen
+              {t('faq.title')}
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Finden Sie Antworten auf die wichtigsten Fragen rund um IJP und unsere Vermittlung.
+              {t('faq.subtitle')}
             </p>
           </div>
 
@@ -385,7 +393,7 @@ function FAQ() {
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {category.title}
+                  {categoryTitles[category.id] || category.title}
                 </button>
               );
             })}
@@ -396,7 +404,7 @@ function FAQ() {
             <div className="space-y-3">
               <div className={`flex items-center gap-3 mb-6 p-4 rounded-xl ${currentCategory.color}`}>
                 <currentCategory.icon className="h-6 w-6" />
-                <h2 className="text-xl font-semibold">{currentCategory.title}</h2>
+                <h2 className="text-xl font-semibold">{categoryTitles[currentCategory.id] || currentCategory.title}</h2>
               </div>
               
               {currentCategory.questions.map((faq, index) => (
@@ -413,9 +421,9 @@ function FAQ() {
 
           {/* Kontakt CTA */}
           <div className="mt-12 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-8 text-center text-white">
-            <h2 className="text-2xl font-bold mb-2">Noch Fragen?</h2>
+            <h2 className="text-2xl font-bold mb-2">{t('faq.moreQuestions')}</h2>
             <p className="text-primary-100 mb-6">
-              Unser Team beantwortet gerne alle Ihre Fragen persönlich.
+              {t('faq.moreQuestionsDesc')}
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
@@ -423,14 +431,14 @@ function FAQ() {
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-primary-600 font-semibold rounded-xl hover:bg-primary-50 transition-colors"
               >
                 <Mail className="h-5 w-5" />
-                Kontakt aufnehmen
+                {t('faq.contactUs')}
               </Link>
               <Link
                 to="/register"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-500 text-white font-semibold rounded-xl hover:bg-primary-400 transition-colors"
               >
                 <CheckCircle className="h-5 w-5" />
-                Jetzt registrieren
+                {t('faq.registerNow')}
               </Link>
             </div>
           </div>

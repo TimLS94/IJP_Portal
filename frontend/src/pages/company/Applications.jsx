@@ -21,6 +21,7 @@ const statusOptions = [
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
   saisonjob: 'Saisonjob (8 Monate)',
+  workandholiday: 'Work & Holiday',
   fachkraft: 'Fachkraft',
   ausbildung: 'Ausbildung'
 };
@@ -955,6 +956,20 @@ function CompanyApplications() {
                         <div className="flex justify-between p-2 bg-white rounded">
                           <span className="text-gray-500">Studiengang</span>
                           <span className="font-medium">{applicantDetails.applicant.field_of_study}</span>
+                        </div>
+                      )}
+                      {applicantDetails.applicant.current_semester && (
+                        <div className="flex justify-between p-2 bg-white rounded">
+                          <span className="text-gray-500">Semester</span>
+                          <span className="font-medium">{applicantDetails.applicant.current_semester}. Semester</span>
+                        </div>
+                      )}
+                      {(applicantDetails.applicant.semester_break_start || applicantDetails.applicant.semester_break_end) && (
+                        <div className="flex justify-between p-2 bg-green-50 rounded border border-green-200">
+                          <span className="text-green-700 font-medium">Semesterferien</span>
+                          <span className="font-medium text-green-800">
+                            {formatDate(applicantDetails.applicant.semester_break_start)} - {formatDate(applicantDetails.applicant.semester_break_end)}
+                          </span>
                         </div>
                       )}
                     </div>

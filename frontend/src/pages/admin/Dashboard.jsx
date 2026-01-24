@@ -10,6 +10,7 @@ import {
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
   saisonjob: 'Saisonjob',
+  workandholiday: 'Work & Holiday',
   fachkraft: 'Fachkräfte',
   ausbildung: 'Ausbildung'
 };

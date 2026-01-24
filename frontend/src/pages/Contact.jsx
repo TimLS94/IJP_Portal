@@ -19,11 +19,11 @@ function Contact() {
     setSending(true);
     try {
       await api.post('/contact', data);
-      toast.success('Nachricht erfolgreich gesendet!');
+      toast.success(t('contact.success'));
       setSent(true);
       reset();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Fehler beim Senden der Nachricht');
+      toast.error(error.response?.data?.detail || t('contact.error'));
     } finally {
       setSending(false);
     }
@@ -36,9 +36,9 @@ function Contact() {
           
           {/* Header */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Kontakt</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">{t('contact.title')}</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Haben Sie Fragen? Wir sind für Sie da und helfen Ihnen gerne weiter.
+              {t('contact.subtitle')}
             </p>
           </div>
 
@@ -49,7 +49,7 @@ function Contact() {
               
               {/* Kontaktkarte */}
               <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">Kontaktdaten</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('contact.contactInfo')}</h2>
                 
                 <div className="space-y-4">
                   <a 
@@ -110,22 +110,22 @@ function Contact() {
                     <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                       <CheckCircle className="h-10 w-10 text-green-600" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Nachricht gesendet!</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('contact.success')}</h2>
                     <p className="text-gray-600 mb-6">
-                      Vielen Dank für Ihre Nachricht. Wir werden uns schnellstmöglich bei Ihnen melden.
+                      {t('contact.successDesc')}
                     </p>
                     <button
                       onClick={() => setSent(false)}
                       className="btn-primary"
                     >
-                      Weitere Nachricht senden
+                      {t('contact.send')}
                     </button>
                   </div>
                 ) : (
                   <>
                     <h2 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
                       <MessageSquare className="h-6 w-6 text-primary-600" />
-                      Nachricht senden
+                      {t('contact.formTitle')}
                     </h2>
 
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -245,12 +245,12 @@ function Contact() {
                         {sending ? (
                           <>
                             <Loader2 className="h-5 w-5 animate-spin" />
-                            Wird gesendet...
+                            {t('contact.sending')}
                           </>
                         ) : (
                           <>
                             <Send className="h-5 w-5" />
-                            Nachricht senden
+                            {t('contact.send')}
                           </>
                         )}
                       </button>

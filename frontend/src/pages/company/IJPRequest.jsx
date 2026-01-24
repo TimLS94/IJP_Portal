@@ -53,6 +53,10 @@ function CompanyIJPRequest() {
     contact_name: '',
     contact_email: '',
     contact_phone: '',
+    // Für Studentenjobs: Semesterferien
+    semester_break_start: '',
+    semester_break_end: '',
+    position_type: '', // studentenferienjob, saisonjob, etc.
   });
 
   useEffect(() => {
@@ -134,6 +138,21 @@ function CompanyIJPRequest() {
         data.contact_phone = formData.contact_phone.trim();
       }
       
+      // Requirements mit Semesterferien und Stellenart
+      const requirements = {};
+      if (formData.position_type) {
+        requirements.position_type = formData.position_type;
+      }
+      if (formData.semester_break_start) {
+        requirements.semester_break_start = formData.semester_break_start;
+      }
+      if (formData.semester_break_end) {
+        requirements.semester_break_end = formData.semester_break_end;
+      }
+      if (Object.keys(requirements).length > 0) {
+        data.requirements = requirements;
+      }
+      
       await companyRequestsAPI.create(data);
       toast.success('Auftrag erfolgreich erstellt!');
       setShowForm(false);
@@ -149,6 +168,9 @@ function CompanyIJPRequest() {
         contact_name: '',
         contact_email: '',
         contact_phone: '',
+        semester_break_start: '',
+        semester_break_end: '',
+        position_type: '',
       });
       loadData();
     } catch (error) {
@@ -327,6 +349,59 @@ function CompanyIJPRequest() {
                 />
               </div>
             </div>
+
+            {/* Stellenart (für Studentenjobs) */}
+            <div>
+              <label className="label">Welche Art von Personal suchen Sie?</label>
+              <div className="relative">
+                <select
+                  className="input-styled pr-10 appearance-none"
+                  value={formData.position_type}
+                  onChange={(e) => setFormData({ ...formData, position_type: e.target.value })}
+                >
+                  <option value="">Bitte wählen...</option>
+                  <option value="studentenferienjob">Studentenferienjob</option>
+                  <option value="saisonjob">Saisonjob (8 Monate)</option>
+                  <option value="workandholiday">Work & Holiday</option>
+                  <option value="fachkraft">Fachkraft</option>
+                  <option value="ausbildung">Ausbildung</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Semesterferien (nur bei Studentenjobs anzeigen) */}
+            {formData.position_type === 'studentenferienjob' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  Gewünschte Semesterferien
+                </h3>
+                <p className="text-sm text-blue-700 mb-3">
+                  Wann sollen die Studenten bei Ihnen arbeiten? (max. 90 Tage)
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label text-blue-800">Semesterferien Beginn</label>
+                    <input
+                      type="date"
+                      className="input-styled"
+                      value={formData.semester_break_start}
+                      onChange={(e) => setFormData({ ...formData, semester_break_start: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label text-blue-800">Semesterferien Ende</label>
+                    <input
+                      type="date"
+                      className="input-styled"
+                      value={formData.semester_break_end}
+                      onChange={(e) => setFormData({ ...formData, semester_break_end: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Gehalt & Stelle */}
             <div className="grid md:grid-cols-2 gap-4">

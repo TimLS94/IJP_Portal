@@ -421,6 +421,40 @@ function AdminCompanyRequests() {
                     )}
                   </div>
 
+                  {/* Semesterferien (wenn vorhanden in requirements) */}
+                  {requestDetails.requirements && (requestDetails.requirements.semester_break_start || requestDetails.requirements.semester_break_end) && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-blue-600" />
+                        Semesterferien
+                      </h3>
+                      <div className="flex items-center gap-4 text-sm">
+                        {requestDetails.requirements.position_type && (
+                          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                            {requestDetails.requirements.position_type === 'studentenferienjob' ? 'Studentenferienjob' : requestDetails.requirements.position_type}
+                          </span>
+                        )}
+                        <span className="text-blue-800 font-medium">
+                          {formatDate(requestDetails.requirements.semester_break_start)} - {formatDate(requestDetails.requirements.semester_break_end)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stellenart (wenn gesetzt, aber keine Semesterferien) */}
+                  {requestDetails.requirements?.position_type && !requestDetails.requirements?.semester_break_start && (
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <span className="text-xs text-gray-500">Stellenart</span>
+                      <p className="font-medium">
+                        {requestDetails.requirements.position_type === 'studentenferienjob' && 'Studentenferienjob'}
+                        {requestDetails.requirements.position_type === 'saisonjob' && 'Saisonjob'}
+                        {requestDetails.requirements.position_type === 'workandholiday' && 'Work & Holiday'}
+                        {requestDetails.requirements.position_type === 'fachkraft' && 'Fachkraft'}
+                        {requestDetails.requirements.position_type === 'ausbildung' && 'Ausbildung'}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Admin-Bereich */}
                   <div className="border-t pt-6">
                     <h3 className="font-bold text-gray-900 mb-4">Admin-Aktionen</h3>

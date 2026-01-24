@@ -330,11 +330,10 @@ export default function JobCategories() {
       {/* Hero */}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Stellenarten im Überblick
+          {t('jobCategories.title')}
         </h1>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-          Deutschland bietet verschiedene Möglichkeiten für internationale Arbeitskräfte. 
-          Finden Sie heraus, welche Option am besten zu Ihnen passt.
+          {t('jobCategories.subtitle')}
         </p>
       </div>
 
@@ -369,22 +368,22 @@ export default function JobCategories() {
 
       {/* Bottom CTA */}
       <div className="mt-12 bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-8 text-center text-white">
-        <h2 className="text-2xl font-bold mb-4">Noch unsicher?</h2>
+        <h2 className="text-2xl font-bold mb-4">{t('jobCategories.unsure')}</h2>
         <p className="text-primary-100 mb-6 max-w-2xl mx-auto">
-          Kontaktieren Sie uns und wir helfen Ihnen, die passende Stellenart für Ihre Situation zu finden.
+          {t('jobCategories.unsureDesc')}
         </p>
         <div className="flex justify-center gap-4 flex-wrap">
           <Link 
             to="/contact" 
             className="bg-white text-primary-600 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all"
           >
-            Kontakt aufnehmen
+            {t('jobCategories.contactUs')}
           </Link>
           <Link 
             to="/faq" 
             className="border-2 border-white text-white px-6 py-3 rounded-xl font-bold hover:bg-white/10 transition-all"
           >
-            Häufige Fragen
+            {t('jobCategories.faqLink')}
           </Link>
         </div>
       </div>

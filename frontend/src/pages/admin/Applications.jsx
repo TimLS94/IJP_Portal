@@ -10,6 +10,7 @@ import {
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
   saisonjob: 'Saisonjob (8 Monate)',
+  workandholiday: 'Work & Holiday',
   fachkraft: 'Fachkraft',
   ausbildung: 'Ausbildung'
 };
@@ -644,6 +645,19 @@ function AdminApplications() {
                         )}
                         {applicationDetails.applicant.field_of_study && (
                           <p><strong>Studiengang:</strong> {applicationDetails.applicant.field_of_study}</p>
+                        )}
+                        {applicationDetails.applicant.current_semester && (
+                          <p><strong>Semester:</strong> {applicationDetails.applicant.current_semester}. Semester</p>
+                        )}
+                        {(applicationDetails.applicant.semester_break_start || applicationDetails.applicant.semester_break_end) && (
+                          <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                            <p className="text-green-700 font-medium">
+                              <strong>Semesterferien:</strong>{' '}
+                              {applicationDetails.applicant.semester_break_start ? new Date(applicationDetails.applicant.semester_break_start).toLocaleDateString('de-DE') : '?'} 
+                              {' - '}
+                              {applicationDetails.applicant.semester_break_end ? new Date(applicationDetails.applicant.semester_break_end).toLocaleDateString('de-DE') : '?'}
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
