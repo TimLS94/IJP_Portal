@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
@@ -8,31 +9,6 @@ import {
   Languages, Plus, Minus, Clock, AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const positionTypes = [
-  { value: 'studentenferienjob', label: 'Studentenferienjob' },
-  { value: 'saisonjob', label: 'Saisonjob (8 Monate)' },
-  { value: 'workandholiday', label: 'Work & Holiday' },
-  { value: 'fachkraft', label: 'Fachkraft' },
-  { value: 'ausbildung', label: 'Ausbildung' }
-];
-
-const salaryTypes = [
-  { value: 'hourly', label: 'Pro Stunde' },
-  { value: 'monthly', label: 'Pro Monat' },
-  { value: 'yearly', label: 'Pro Jahr' }
-];
-
-// Sprachniveaus - detaillierte GER-Stufen
-const languageLevels = [
-  { value: 'not_required', label: 'Nicht erforderlich' },
-  { value: 'a1', label: 'A1 - Grundkenntnisse' },
-  { value: 'a2', label: 'A2 - Grundkenntnisse' },
-  { value: 'b1', label: 'B1 - Gute Kenntnisse' },
-  { value: 'b2', label: 'B2 - Sehr gute Kenntnisse' },
-  { value: 'c1', label: 'C1 - Fließend' },
-  { value: 'c2', label: 'C2 - Fließend' }
-];
 
 // Vollständige Liste aller Sprachen der Welt
 const allLanguages = [
@@ -81,6 +57,7 @@ function StyledSelect({ options, placeholder, value, onChange, className = '' })
 
 function CreateJob() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [otherLanguages, setOtherLanguages] = useState([]);
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
@@ -89,6 +66,31 @@ function CreateJob() {
       english_required: 'not_required'
     }
   });
+
+  // Position types with translations (Ausbildung and Work & Holiday stay German)
+  const positionTypes = [
+    { value: 'studentenferienjob', label: t('positionTypes.studentenferienjob') },
+    { value: 'saisonjob', label: t('positionTypes.saisonjob') },
+    { value: 'workandholiday', label: 'Work & Holiday' },
+    { value: 'fachkraft', label: t('positionTypes.fachkraft') },
+    { value: 'ausbildung', label: 'Ausbildung' }
+  ];
+
+  const salaryTypes = [
+    { value: 'hourly', label: t('createJob.hourly') },
+    { value: 'monthly', label: t('createJob.monthly') },
+    { value: 'yearly', label: t('createJob.yearly') }
+  ];
+
+  const languageLevels = [
+    { value: 'not_required', label: t('languageLevelOptions.not_required') },
+    { value: 'a1', label: t('languageLevelOptions.a1') },
+    { value: 'a2', label: t('languageLevelOptions.a2') },
+    { value: 'b1', label: t('languageLevelOptions.b1') },
+    { value: 'b2', label: t('languageLevelOptions.b2') },
+    { value: 'c1', label: t('languageLevelOptions.c1') },
+    { value: 'c2', label: t('languageLevelOptions.c2') }
+  ];
 
   const germanRequired = watch('german_required');
   const englishRequired = watch('english_required');

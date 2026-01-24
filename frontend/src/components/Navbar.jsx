@@ -41,7 +41,7 @@ function Navbar() {
         { to: '/applicant/profile', icon: User, label: t('nav.profile') },
         { to: '/applicant/documents', icon: FolderOpen, label: t('nav.documents') },
         { to: '/applicant/applications', icon: FileText, label: t('nav.applications') },
-        { to: '/applicant/ijp-auftrag', icon: ClipboardList, label: t('nav.ijpRequest'), highlight: true },
+        { to: '/applicant/ijp-auftrag', icon: ClipboardList, label: t('nav.ijpRequest') },
         { divider: true },
         { to: '/applicant/settings', icon: Settings, label: t('nav.settings') },
       ];
@@ -122,7 +122,7 @@ function Navbar() {
               className="flex items-center gap-1.5 px-3 py-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
             >
               <Info className="h-4 w-4" />
-              <span>Stellenarten</span>
+              <span>{t('nav.jobTypes')}</span>
             </Link>
             
             <Link 
@@ -130,7 +130,7 @@ function Navbar() {
               className="flex items-center gap-1.5 px-3 py-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
             >
               <BookOpen className="h-4 w-4" />
-              <span>Blog</span>
+              <span>{t('nav.blog')}</span>
             </Link>
 
             {!isAuthenticated ? (
@@ -251,7 +251,7 @@ function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <Info className="h-5 w-5 text-gray-400" />
-                <span>Stellenarten</span>
+                <span>{t('nav.jobTypes')}</span>
               </Link>
               <Link
                 to="/blog"
@@ -259,7 +259,7 @@ function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <BookOpen className="h-5 w-5 text-gray-400" />
-                <span>Blog</span>
+                <span>{t('nav.blog')}</span>
               </Link>
             </div>
 
