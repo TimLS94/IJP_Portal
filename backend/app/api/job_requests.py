@@ -432,6 +432,11 @@ async def get_job_request_details(
             "work_experience_years": applicant.work_experience_years if applicant else None,
             "university_name": applicant.university_name if applicant else None,
             "field_of_study": applicant.field_of_study if applicant else None,
+            "current_semester": applicant.current_semester if applicant else None,
+            # Semesterferien
+            "semester_break_start": applicant.semester_break_start if applicant else None,
+            "semester_break_end": applicant.semester_break_end if applicant else None,
+            "continue_studying": applicant.continue_studying if applicant else None,
         },
         "documents": [
             {
