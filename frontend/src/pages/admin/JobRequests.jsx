@@ -539,6 +539,33 @@ function AdminJobRequests() {
                         {requestDetails.applicant.university_name && (
                           <p><strong>Universität:</strong> {requestDetails.applicant.university_name}</p>
                         )}
+                        {requestDetails.applicant.field_of_study && (
+                          <p><strong>Studiengang:</strong> {requestDetails.applicant.field_of_study}</p>
+                        )}
+                        {requestDetails.applicant.current_semester && (
+                          <p><strong>Semester:</strong> {requestDetails.applicant.current_semester}. Semester</p>
+                        )}
+                        
+                        {/* Semesterferien - für Studentenferienjobs immer anzeigen */}
+                        {requestDetails.request.position_type === 'studentenferienjob' && (
+                          requestDetails.applicant.semester_break_start || requestDetails.applicant.semester_break_end ? (
+                            <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                              <p className="text-green-700 font-medium">
+                                <strong>📅 Semesterferien:</strong>{' '}
+                                {requestDetails.applicant.semester_break_start ? new Date(requestDetails.applicant.semester_break_start).toLocaleDateString('de-DE') : '?'} 
+                                {' - '}
+                                {requestDetails.applicant.semester_break_end ? new Date(requestDetails.applicant.semester_break_end).toLocaleDateString('de-DE') : '?'}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+                              <p className="text-yellow-700 font-medium">
+                                <strong>📅 Semesterferien:</strong>{' '}
+                                <span className="italic">Nicht angegeben</span>
+                              </p>
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
 
