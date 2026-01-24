@@ -687,6 +687,26 @@ function CompanyIJPRequest() {
                             <span className="font-medium">{selectedRequest.salary_range}</span>
                           </div>
                         )}
+                        {/* Semesterferien anzeigen */}
+                        {(selectedRequest.requirements?.semester_break_start || selectedRequest.requirements?.semester_break_end) && (
+                          <div className="pt-2 mt-2 border-t border-green-200">
+                            <div className="flex justify-between">
+                              <span className="text-green-700 font-medium">Semesterferien</span>
+                              <span className="font-medium text-green-800">
+                                {selectedRequest.requirements?.semester_break_start && formatDate(selectedRequest.requirements.semester_break_start)}
+                                {selectedRequest.requirements?.semester_break_start && selectedRequest.requirements?.semester_break_end && ' - '}
+                                {selectedRequest.requirements?.semester_break_end && formatDate(selectedRequest.requirements.semester_break_end)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        {/* Stellenart anzeigen */}
+                        {selectedRequest.requirements?.position_type && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Stellenart</span>
+                            <span className="font-medium capitalize">{selectedRequest.requirements.position_type}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

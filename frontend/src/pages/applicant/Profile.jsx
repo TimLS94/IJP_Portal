@@ -286,7 +286,7 @@ function ApplicantProfile() {
     setUploading(docType);
     try {
       await documentsAPI.upload(file, docType, '');
-      toast.success('Dokument hochgeladen!');
+      toast.success(t('profile.documents.uploaded'));
       const docsRes = await documentsAPI.list();
       setDocuments(docsRes.data);
     } catch (error) {
@@ -470,10 +470,10 @@ function ApplicantProfile() {
       <div className="card border-l-4 border-l-primary-500 bg-gradient-to-r from-primary-50 to-white">
         <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
           <File className="h-5 w-5 text-primary-600" />
-          Benötigte Dokumente
+          {t('profile.documents.title')}
         </h2>
-        <p className="text-gray-600 mb-6">
-          Laden Sie die folgenden Dokumente für Ihre Bewerbung als <strong>{requirements.position_label}</strong> hoch.
+        <p className="text-gray-600 mb-6" dangerouslySetInnerHTML={{ __html: t('profile.documents.subtitle', { position: requirements.position_label }) }}>
+        
         </p>
         
         <div className="space-y-4">
@@ -509,11 +509,11 @@ function ApplicantProfile() {
                       <span className="font-semibold text-gray-900">{req.type_label}</span>
                       {req.is_required ? (
                         <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full font-medium">
-                          Pflicht
+                          {t('profile.documents.required')}
                         </span>
                       ) : (
                         <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-                          Optional
+                          {t('profile.documents.optional')}
                         </span>
                       )}
                     </div>
@@ -555,7 +555,7 @@ function ApplicantProfile() {
                       ) : (
                         <Upload className="h-4 w-4" />
                       )}
-                      {isCurrentlyUploading ? 'Lädt...' : 'Hochladen'}
+                      {isCurrentlyUploading ? t('profile.documents.uploading') : t('profile.documents.upload')}
                       <input
                         type="file"
                         ref={(el) => fileInputRefs.current[req.document_type] = el}
@@ -586,14 +586,14 @@ function ApplicantProfile() {
                 <>
                   <CheckCircle className="h-6 w-6 text-green-600" />
                   <span className="font-medium text-green-800">
-                    Alle Pflichtdokumente wurden hochgeladen!
+                    {t('profile.documents.allUploaded')}
                   </span>
                 </>
               ) : (
                 <>
                   <Clock className="h-6 w-6 text-yellow-600" />
                   <span className="font-medium text-yellow-800">
-                    {uploadedRequired.length} von {requiredDocs.length} Pflichtdokumenten hochgeladen
+                    {t('profile.documents.progress', { uploaded: uploadedRequired.length, total: requiredDocs.length })}
                   </span>
                 </>
               )}
@@ -704,14 +704,13 @@ function ApplicantProfile() {
                 <div className="p-2 bg-white/20 rounded-xl">
                   <Wand2 className="h-6 w-6" />
                 </div>
-                <h2 className="text-xl font-bold">Profil automatisch ausfüllen</h2>
+                <h2 className="text-xl font-bold">{t('profile.cvAutoFill.title')}</h2>
                 <span className="px-2 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full animate-pulse">
-                  NEU
+                  {t('profile.cvAutoFill.new')}
                 </span>
               </div>
               <p className="text-white/90 text-sm md:text-base">
-                Laden Sie Ihren Lebenslauf hoch und wir füllen Ihr Profil automatisch aus. 
-                Sie können alle Daten danach noch bearbeiten.
+                {t('profile.cvAutoFill.description')}
               </p>
             </div>
             
@@ -723,12 +722,12 @@ function ApplicantProfile() {
                 {cvParsing ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    Analysiere...
+                    {t('profile.cvAutoFill.analyzing')}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-5 w-5" />
-                    Lebenslauf hochladen
+                    {t('profile.cvAutoFill.uploadButton')}
                   </>
                 )}
                 <input
@@ -741,7 +740,7 @@ function ApplicantProfile() {
                 />
               </label>
               <span className="text-white/70 text-xs text-center md:text-right">
-                PDF-Format, max. 10 MB
+                {t('profile.cvAutoFill.pdfFormat')}
               </span>
             </div>
           </div>

@@ -557,6 +557,25 @@
     "availableUntil": "Available until",
     "preferredWorkArea": "Preferred Work Area",
     "saveProfile": "Save Profile",
+    "cvAutoFill": {
+      "title": "Auto-fill profile",
+      "new": "NEW",
+      "description": "Upload your CV and we'll automatically fill in your profile. You can edit all data afterwards.",
+      "uploadButton": "Upload CV",
+      "analyzing": "Analyzing...",
+      "pdfFormat": "PDF format, max. 10 MB"
+    },
+    "documents": {
+      "title": "Required Documents",
+      "subtitle": "Upload the following documents for your application as <strong>{{position}}</strong>.",
+      "required": "Required",
+      "optional": "Optional",
+      "upload": "Upload",
+      "uploading": "Uploading...",
+      "uploaded": "Document uploaded!",
+      "allUploaded": "All required documents have been uploaded!",
+      "progress": "{{uploaded}} of {{total}} required documents uploaded"
+    },
     "errors": {
       "positionRequired": "Please select a job type",
       "firstNameRequired": "First name is required",

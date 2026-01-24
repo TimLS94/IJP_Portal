@@ -558,6 +558,25 @@
     "availableUntil": "Verfügbar bis",
     "preferredWorkArea": "Bevorzugter Arbeitsbereich",
     "saveProfile": "Profil speichern",
+    "cvAutoFill": {
+      "title": "Profil automatisch ausfüllen",
+      "new": "NEU",
+      "description": "Laden Sie Ihren Lebenslauf hoch und wir füllen Ihr Profil automatisch aus. Sie können alle Daten danach noch bearbeiten.",
+      "uploadButton": "Lebenslauf hochladen",
+      "analyzing": "Analysiere...",
+      "pdfFormat": "PDF-Format, max. 10 MB"
+    },
+    "documents": {
+      "title": "Benötigte Dokumente",
+      "subtitle": "Laden Sie die folgenden Dokumente für Ihre Bewerbung als <strong>{{position}}</strong> hoch.",
+      "required": "Pflicht",
+      "optional": "Optional",
+      "upload": "Hochladen",
+      "uploading": "Lädt...",
+      "uploaded": "Dokument hochgeladen!",
+      "allUploaded": "Alle Pflichtdokumente wurden hochgeladen!",
+      "progress": "{{uploaded}} von {{total}} Pflichtdokumenten hochgeladen"
+    },
     "errors": {
       "positionRequired": "Bitte wählen Sie eine Stellenart",
       "firstNameRequired": "Vorname ist erforderlich",
