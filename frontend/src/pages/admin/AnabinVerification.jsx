@@ -101,7 +101,30 @@ function AnabinVerification() {
       }
     } catch (error) {
       console.error('Fehler:', error);
-      toast.error('Fehler bei der Anabin-Suche');
+      const statusCode = error.response?.status;
+      const errorDetail = error.response?.data?.detail || '';
+      
+      let userMessage = 'Die Suche konnte nicht durchgeführt werden. ';
+      
+      if (statusCode === 404 || errorDetail.toLowerCase().includes('not found')) {
+        userMessage = '📚 Keine passende Universität in der Anabin-Datenbank gefunden. Bitte prüfen Sie die Schreibweise oder suchen Sie manuell auf anabin.kmk.org';
+      } else if (statusCode === 503) {
+        userMessage = '🌐 Der Dienst ist momentan nicht verfügbar. Bitte versuchen Sie es später erneut.';
+      } else {
+        userMessage += errorDetail || 'Bitte versuchen Sie es später erneut.';
+      }
+      
+      toast.error(userMessage, { duration: 5000 });
+      
+      // Bei nicht gefunden trotzdem Ergebnis setzen
+      setSearchResult({
+        result: {
+          status: 'not_found',
+          message: 'Keine Übereinstimmung in der Anabin-Datenbank gefunden.',
+          all_matches: [],
+          database_count: 0
+        }
+      });
     } finally {
       setSearching(false);
     }
@@ -166,8 +189,24 @@ function AnabinVerification() {
       toast.success(forceRefresh ? 'PDF neu geladen!' : 'PDF geladen!', { id: toastId });
     } catch (error) {
       console.error('PDF-Fehler:', error);
-      const errorMsg = error.response?.data?.detail || 'PDF konnte nicht geladen werden';
-      toast.error(errorMsg, { id: toastId });
+      const statusCode = error.response?.status;
+      const errorDetail = error.response?.data?.detail || '';
+      
+      let userMessage = 'Das PDF konnte nicht geladen werden. ';
+      
+      if (statusCode === 404 || errorDetail.toLowerCase().includes('not found') || errorDetail.toLowerCase().includes('nicht gefunden')) {
+        userMessage = '📄 Kein Anabin-Dokument gefunden. Die Universität ist möglicherweise nicht in der Anabin-Datenbank verzeichnet oder der Name stimmt nicht überein. Versuchen Sie, den Universitätsnamen manuell zu suchen.';
+      } else if (statusCode === 503 || errorDetail.toLowerCase().includes('unavailable') || errorDetail.toLowerCase().includes('timeout')) {
+        userMessage = '🌐 Der Anabin-Server ist momentan nicht erreichbar. Bitte versuchen Sie es in einigen Minuten erneut.';
+      } else if (statusCode === 400) {
+        userMessage = '⚠️ Die Universität konnte nicht gefunden werden. Bitte prüfen Sie den eingegebenen Namen und versuchen Sie es erneut.';
+      } else if (statusCode === 500) {
+        userMessage = '❌ Es ist ein technischer Fehler aufgetreten. Bitte versuchen Sie es später erneut oder kontaktieren Sie den Support.';
+      } else {
+        userMessage += errorDetail || 'Bitte versuchen Sie es später erneut.';
+      }
+      
+      toast.error(userMessage, { id: toastId, duration: 6000 });
     } finally {
       setLoadingPdf(null);
     }
