@@ -964,13 +964,23 @@ function CompanyApplications() {
                           <span className="font-medium">{applicantDetails.applicant.current_semester}. Semester</span>
                         </div>
                       )}
-                      {(applicantDetails.applicant.semester_break_start || applicantDetails.applicant.semester_break_end) && (
-                        <div className="flex justify-between p-2 bg-green-50 rounded border border-green-200">
-                          <span className="text-green-700 font-medium">Semesterferien</span>
-                          <span className="font-medium text-green-800">
-                            {formatDate(applicantDetails.applicant.semester_break_start)} - {formatDate(applicantDetails.applicant.semester_break_end)}
-                          </span>
-                        </div>
+                      {/* Semesterferien - immer für Studentenferienjobs anzeigen */}
+                      {applicantDetails.applicant.position_type === 'studentenferienjob' && (
+                        applicantDetails.applicant.semester_break_start || applicantDetails.applicant.semester_break_end ? (
+                          <div className="flex justify-between p-2 bg-green-50 rounded border border-green-200">
+                            <span className="text-green-700 font-medium">📅 Semesterferien</span>
+                            <span className="font-medium text-green-800">
+                              {formatDate(applicantDetails.applicant.semester_break_start)} - {formatDate(applicantDetails.applicant.semester_break_end)}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between p-2 bg-yellow-50 rounded border border-yellow-200">
+                            <span className="text-yellow-700 font-medium">📅 Semesterferien</span>
+                            <span className="font-medium text-yellow-600 italic">
+                              Nicht angegeben
+                            </span>
+                          </div>
+                        )
                       )}
                     </div>
                   </div>
