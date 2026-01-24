@@ -50,7 +50,7 @@ function Settings() {
       const response = await accountAPI.getAccountInfo();
       setAccountInfo(response.data);
     } catch (error) {
-      toast.error('Fehler beim Laden der Account-Daten');
+      toast.error(t('settings.errors.loadAccountData'));
     } finally {
       setLoading(false);
     }
@@ -59,18 +59,18 @@ function Settings() {
   // ========== PASSWORT ÄNDERN ==========
   const handleChangePassword = async (data) => {
     if (data.newPassword !== data.confirmPassword) {
-      toast.error('Passwörter stimmen nicht überein');
+      toast.error(t('settings.passwordsDoNotMatch'));
       return;
     }
     
     setChangingPassword(true);
     try {
       await accountAPI.changePassword(data.currentPassword, data.newPassword);
-      toast.success('Passwort erfolgreich geändert');
+      toast.success(t('settings.passwordChanged'));
       setShowPasswordModal(false);
       passwordForm.reset();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Fehler beim Ändern des Passworts');
+      toast.error(error.response?.data?.detail || t('settings.errors.changePassword'));
     } finally {
       setChangingPassword(false);
     }
@@ -81,12 +81,12 @@ function Settings() {
     setChangingEmail(true);
     try {
       await accountAPI.changeEmail(data.newEmail, data.password);
-      toast.success('E-Mail erfolgreich geändert');
+      toast.success(t('settings.emailChanged'));
       setShowEmailModal(false);
       emailForm.reset();
       loadAccountInfo();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Fehler beim Ändern der E-Mail');
+      toast.error(error.response?.data?.detail || t('settings.errors.changeEmail'));
     } finally {
       setChangingEmail(false);
     }
@@ -95,18 +95,18 @@ function Settings() {
   // ========== ACCOUNT LÖSCHEN ==========
   const handleDeleteAccount = async (data) => {
     if (data.confirmation !== 'DELETE') {
-      toast.error('Bitte geben Sie DELETE zur Bestätigung ein');
+      toast.error(t('settings.deleteAccountConfirmError'));
       return;
     }
     
     setDeletingAccount(true);
     try {
       await accountAPI.deleteAccount(data.password, data.confirmation);
-      toast.success('Account wurde gelöscht');
+      toast.success(t('settings.accountDeleted'));
       logout();
       navigate('/');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Fehler beim Löschen des Accounts');
+      toast.error(error.response?.data?.detail || t('settings.errors.deleteAccount'));
     } finally {
       setDeletingAccount(false);
     }
@@ -118,9 +118,9 @@ function Settings() {
 
   const getRoleLabel = (role) => {
     const labels = {
-      applicant: { text: 'Bewerber', color: 'bg-blue-100 text-blue-800', icon: User },
-      company: { text: 'Unternehmen', color: 'bg-green-100 text-green-800', icon: SettingsIcon },
-      admin: { text: 'Administrator', color: 'bg-purple-100 text-purple-800', icon: Shield }
+      applicant: { text: t('settings.roles.applicant'), color: 'bg-blue-100 text-blue-800', icon: User },
+      company: { text: t('settings.roles.company'), color: 'bg-green-100 text-green-800', icon: SettingsIcon },
+      admin: { text: t('settings.roles.admin'), color: 'bg-purple-100 text-purple-800', icon: Shield }
     };
     return labels[role] || labels.applicant;
   };
@@ -163,7 +163,7 @@ function Settings() {
               onClick={() => setShowEmailModal(true)}
               className="btn-secondary text-sm"
             >
-              Ändern
+              {t('settings.change')}
             </button>
           </div>
 
@@ -184,11 +184,11 @@ function Settings() {
               <div className="flex items-center gap-3">
                 <User className="h-5 w-5 text-gray-500" />
                 <div>
-                  <p className="text-sm text-gray-500">Profil</p>
+                  <p className="text-sm text-gray-500">{t('settings.profile')}</p>
                   <p className="font-medium text-gray-900">
                     {accountInfo.profile.first_name && accountInfo.profile.last_name 
                       ? `${accountInfo.profile.first_name} ${accountInfo.profile.last_name}`
-                      : accountInfo.profile.company_name || 'Nicht ausgefüllt'}
+                      : accountInfo.profile.company_name || t('settings.profileNotFilled')}
                   </p>
                 </div>
               </div>
@@ -199,7 +199,7 @@ function Settings() {
             <div className="flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-green-500" />
               <div>
-                <p className="text-sm text-gray-500">Registriert am</p>
+                <p className="text-sm text-gray-500">{t('settings.registeredOn')}</p>
                 <p className="font-medium text-gray-900">
                   {new Date(accountInfo?.created_at).toLocaleDateString('de-DE', {
                     day: '2-digit',
@@ -215,21 +215,21 @@ function Settings() {
 
       {/* Sicherheit */}
       <div className="card mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Sicherheit</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">{t('settings.security')}</h2>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
             <div className="flex items-center gap-3">
               <Lock className="h-5 w-5 text-gray-500" />
               <div>
-                <p className="font-medium text-gray-900">Passwort</p>
-                <p className="text-sm text-gray-500">Ändern Sie Ihr Passwort regelmäßig</p>
+                <p className="font-medium text-gray-900">{t('settings.password')}</p>
+                <p className="text-sm text-gray-500">{t('settings.passwordHint')}</p>
               </div>
             </div>
             <button 
               onClick={() => setShowPasswordModal(true)}
               className="btn-primary text-sm"
             >
-              Passwort ändern
+              {t('settings.changePassword')}
             </button>
           </div>
         </div>
@@ -239,21 +239,21 @@ function Settings() {
       <div className="card border-2 border-red-200">
         <h2 className="text-xl font-bold text-red-600 mb-4 flex items-center gap-2">
           <AlertTriangle className="h-6 w-6" />
-          Gefahrenzone
+          {t('settings.dangerZone')}
         </h2>
         <div className="p-4 bg-red-50 rounded-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900">Account löschen</p>
+              <p className="font-medium text-gray-900">{t('settings.deleteAccount')}</p>
               <p className="text-sm text-gray-600">
-                Dies löscht Ihren Account und alle zugehörigen Daten unwiderruflich.
+                {t('settings.deleteAccountDesc')}
               </p>
             </div>
             <button 
               onClick={() => setShowDeleteModal(true)}
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
             >
-              Account löschen
+              {t('settings.deleteAccount')}
             </button>
           </div>
         </div>
@@ -266,13 +266,13 @@ function Settings() {
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Lock className="h-6 w-6 text-primary-600" />
-                Passwort ändern
+                {t('settings.changePassword')}
               </h2>
             </div>
             
             <form onSubmit={passwordForm.handleSubmit(handleChangePassword)} className="p-6 space-y-4">
               <div>
-                <label className="label">Aktuelles Passwort</label>
+                <label className="label">{t('settings.currentPassword')}</label>
                 <div className="relative">
                   <input
                     type={showPasswords.current ? 'text' : 'password'}
@@ -290,12 +290,12 @@ function Settings() {
               </div>
               
               <div>
-                <label className="label">Neues Passwort</label>
+                <label className="label">{t('settings.newPassword')}</label>
                 <div className="relative">
                   <input
                     type={showPasswords.new ? 'text' : 'password'}
                     className="input-styled pr-10"
-                    placeholder="Mindestens 6 Zeichen"
+                    placeholder={t('settings.newPasswordPlaceholder')}
                     {...passwordForm.register('newPassword', { required: true, minLength: 6 })}
                   />
                   <button
@@ -309,7 +309,7 @@ function Settings() {
               </div>
               
               <div>
-                <label className="label">Passwort bestätigen</label>
+                <label className="label">{t('settings.confirmNewPassword')}</label>
                 <div className="relative">
                   <input
                     type={showPasswords.confirm ? 'text' : 'password'}
@@ -332,7 +332,7 @@ function Settings() {
                   onClick={() => { setShowPasswordModal(false); passwordForm.reset(); }}
                   className="btn-secondary flex-1"
                 >
-                  Abbrechen
+                  {t('settings.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -340,7 +340,7 @@ function Settings() {
                   className="btn-primary flex-1 flex items-center justify-center gap-2"
                 >
                   {changingPassword && <Loader2 className="h-5 w-5 animate-spin" />}
-                  Speichern
+                  {t('settings.save')}
                 </button>
               </div>
             </form>
@@ -355,27 +355,27 @@ function Settings() {
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Mail className="h-6 w-6 text-primary-600" />
-                E-Mail ändern
+                {t('settings.changeEmail')}
               </h2>
             </div>
             
             <form onSubmit={emailForm.handleSubmit(handleChangeEmail)} className="p-6 space-y-4">
               <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600">
-                Aktuelle E-Mail: <strong>{accountInfo?.email}</strong>
+                {t('settings.currentEmail')}: <strong>{accountInfo?.email}</strong>
               </div>
               
               <div>
-                <label className="label">Neue E-Mail-Adresse</label>
+                <label className="label">{t('settings.newEmail')}</label>
                 <input
                   type="email"
                   className="input-styled"
-                  placeholder="neue@email.de"
+                  placeholder={t('settings.newEmailPlaceholder')}
                   {...emailForm.register('newEmail', { required: true })}
                 />
               </div>
               
               <div>
-                <label className="label">Passwort zur Bestätigung</label>
+                <label className="label">{t('settings.passwordForConfirmation')}</label>
                 <div className="relative">
                   <input
                     type={showPasswords.emailPassword ? 'text' : 'password'}
@@ -398,7 +398,7 @@ function Settings() {
                   onClick={() => { setShowEmailModal(false); emailForm.reset(); }}
                   className="btn-secondary flex-1"
                 >
-                  Abbrechen
+                  {t('settings.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -406,7 +406,7 @@ function Settings() {
                   className="btn-primary flex-1 flex items-center justify-center gap-2"
                 >
                   {changingEmail && <Loader2 className="h-5 w-5 animate-spin" />}
-                  E-Mail ändern
+                  {t('settings.changeEmail')}
                 </button>
               </div>
             </form>
@@ -421,26 +421,26 @@ function Settings() {
             <div className="p-6 border-b bg-red-50">
               <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
                 <AlertTriangle className="h-6 w-6" />
-                Account löschen
+                {t('settings.deleteAccount')}
               </h2>
             </div>
             
             <form onSubmit={deleteForm.handleSubmit(handleDeleteAccount)} className="p-6 space-y-4">
               <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-                <p className="text-red-800 font-medium mb-2">⚠️ Warnung</p>
+                <p className="text-red-800 font-medium mb-2">⚠️ {t('common.warning', 'Warnung')}</p>
                 <p className="text-sm text-red-700">
-                  Diese Aktion kann nicht rückgängig gemacht werden. Alle Ihre Daten werden dauerhaft gelöscht, einschließlich:
+                  {t('settings.deleteAccountWarning')}
                 </p>
                 <ul className="text-sm text-red-700 mt-2 list-disc list-inside">
-                  <li>Ihr Profil und persönliche Daten</li>
-                  <li>Alle hochgeladenen Dokumente</li>
-                  <li>Alle Bewerbungen</li>
-                  {accountInfo?.role === 'company' && <li>Alle erstellten Stellenangebote</li>}
+                  <li>{t('settings.deleteAccountWarningProfile')}</li>
+                  <li>{t('settings.deleteAccountWarningDocuments')}</li>
+                  <li>{t('settings.deleteAccountWarningApplications')}</li>
+                  {accountInfo?.role === 'company' && <li>{t('settings.deleteAccountWarningJobs')}</li>}
                 </ul>
               </div>
               
               <div>
-                <label className="label">Passwort zur Bestätigung</label>
+                <label className="label">{t('settings.passwordForConfirmation')}</label>
                 <div className="relative">
                   <input
                     type={showPasswords.deletePassword ? 'text' : 'password'}
@@ -459,7 +459,7 @@ function Settings() {
               
               <div>
                 <label className="label">
-                  Geben Sie <strong>DELETE</strong> ein zur Bestätigung
+                  {t('settings.deleteAccountConfirm')}
                 </label>
                 <input
                   type="text"
@@ -475,7 +475,7 @@ function Settings() {
                   onClick={() => { setShowDeleteModal(false); deleteForm.reset(); }}
                   className="btn-secondary flex-1"
                 >
-                  Abbrechen
+                  {t('settings.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -483,7 +483,7 @@ function Settings() {
                   className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex-1 flex items-center justify-center gap-2"
                 >
                   {deletingAccount && <Loader2 className="h-5 w-5 animate-spin" />}
-                  Account löschen
+                  {t('settings.deleteAccount')}
                 </button>
               </div>
             </form>
