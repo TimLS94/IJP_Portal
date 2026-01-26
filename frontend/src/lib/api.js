@@ -97,6 +97,8 @@ export const jobsAPI = {
   reactivate: (id) => api.post(`/jobs/${id}/reactivate`), // Stelle reaktivieren
   // Matching Score für eine Stelle (für Bewerber)
   getMatchScore: (id) => api.get(`/jobs/${id}/match`),
+  // Öffentliche Einstellungen (max_deadline_days etc.)
+  getPublicSettings: () => api.get('/jobs/settings/public'),
 };
 
 // Applications API

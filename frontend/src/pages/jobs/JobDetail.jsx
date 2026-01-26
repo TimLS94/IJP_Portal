@@ -7,14 +7,21 @@ import toast from 'react-hot-toast';
 import { 
   MapPin, Calendar, Building2, Euro, Clock, Globe, 
   ArrowLeft, Send, CheckCircle, Languages, AlertTriangle, FileText, Loader2, ClipboardList,
-  Sparkles, TrendingUp, TrendingDown, Minus
+  Sparkles, TrendingUp, TrendingDown, Minus, User, Phone, Mail, Briefcase, ListTodo
 } from 'lucide-react';
 
 const positionTypeColors = {
   studentenferienjob: 'bg-blue-100 text-blue-800 border-blue-200',
   saisonjob: 'bg-orange-100 text-orange-800 border-orange-200',
+  workandholiday: 'bg-teal-100 text-teal-800 border-teal-200',
   fachkraft: 'bg-purple-100 text-purple-800 border-purple-200',
   ausbildung: 'bg-green-100 text-green-800 border-green-200'
+};
+
+const employmentTypeLabels = {
+  fulltime: 'Vollzeit',
+  parttime: 'Teilzeit',
+  both: 'Vollzeit oder Teilzeit'
 };
 
 const languageLevelColors = {
@@ -38,8 +45,9 @@ function JobDetail() {
   const positionTypeLabels = {
     studentenferienjob: t('positionTypes.studentenferienjob'),
     saisonjob: t('positionTypes.saisonjob'),
+    workandholiday: 'Work & Holiday',
     fachkraft: t('positionTypes.fachkraft'),
-    ausbildung: t('positionTypes.ausbildung')
+    ausbildung: 'Ausbildung'
   };
 
   const languageLevelLabels = {
@@ -198,6 +206,13 @@ function JobDetail() {
                 <span className="flex items-center gap-1.5">
                   <MapPin className="h-5 w-5 text-gray-400" />
                   {job.location}
+                  {job.postal_code && ` (${job.postal_code})`}
+                </span>
+              )}
+              {job.employment_type && (
+                <span className="flex items-center gap-1.5">
+                  <Briefcase className="h-5 w-5 text-gray-400" />
+                  {employmentTypeLabels[job.employment_type]}
                 </span>
               )}
               {job.remote_possible && (
@@ -212,6 +227,16 @@ function JobDetail() {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Beschreibung</h3>
               <p className="text-gray-600 whitespace-pre-wrap">{job.description}</p>
 
+              {job.tasks && (
+                <>
+                  <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2 flex items-center gap-2">
+                    <ListTodo className="h-5 w-5 text-purple-600" />
+                    Aufgaben
+                  </h3>
+                  <p className="text-gray-600 whitespace-pre-wrap">{job.tasks}</p>
+                </>
+              )}
+
               {job.requirements && (
                 <>
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2">Anforderungen</h3>
@@ -223,6 +248,21 @@ function JobDetail() {
                 <>
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2">Wir bieten</h3>
                   <p className="text-gray-600 whitespace-pre-wrap">{job.benefits}</p>
+                </>
+              )}
+
+              {/* Adresse */}
+              {job.address && (
+                <>
+                  <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2 flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary-600" />
+                    Arbeitsort
+                  </h3>
+                  <p className="text-gray-600">
+                    {job.address}
+                    {job.postal_code && <><br />{job.postal_code} </>}
+                    {job.location}
+                  </p>
                 </>
               )}
             </div>
@@ -592,6 +632,33 @@ function JobDetail() {
               >
                 Jetzt registrieren
               </Link>
+            </div>
+          )}
+
+          {/* Kontaktperson */}
+          {(job.contact_person || job.contact_phone || job.contact_email) && (
+            <div className="card border-l-4 border-l-green-500">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <User className="h-5 w-5 text-green-600" />
+                Kontaktperson
+              </h3>
+              <div className="space-y-3">
+                {job.contact_person && (
+                  <p className="font-semibold text-gray-900">{job.contact_person}</p>
+                )}
+                {job.contact_phone && (
+                  <a href={`tel:${job.contact_phone}`} className="flex items-center gap-2 text-gray-600 hover:text-primary-600">
+                    <Phone className="h-4 w-4" />
+                    {job.contact_phone}
+                  </a>
+                )}
+                {job.contact_email && (
+                  <a href={`mailto:${job.contact_email}`} className="flex items-center gap-2 text-gray-600 hover:text-primary-600">
+                    <Mail className="h-4 w-4" />
+                    {job.contact_email}
+                  </a>
+                )}
+              </div>
             </div>
           )}
 

@@ -5,7 +5,8 @@ import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
-  Languages, Plus, Minus, Clock, AlertTriangle
+  Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
+  ListTodo, FileText
 } from 'lucide-react';
 
 const positionTypes = [
@@ -14,6 +15,12 @@ const positionTypes = [
   { value: 'workandholiday', label: 'Work & Holiday' },
   { value: 'fachkraft', label: 'Fachkraft' },
   { value: 'ausbildung', label: 'Ausbildung' }
+];
+
+const employmentTypes = [
+  { value: 'fulltime', label: 'Vollzeit' },
+  { value: 'parttime', label: 'Teilzeit' },
+  { value: 'both', label: 'Vollzeit oder Teilzeit' }
 ];
 
 const salaryTypes = [
@@ -76,12 +83,34 @@ function StyledSelect({ options, placeholder, value, onChange, className = '' })
   );
 }
 
+// Formatierte Textarea mit Hilfetext
+function FormattedTextarea({ label, placeholder, register, name, rows = 4, helpText }) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <textarea
+        className="input-styled"
+        rows={rows}
+        placeholder={placeholder}
+        {...register(name)}
+      />
+      {helpText && (
+        <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+          <FileText className="h-3 w-3" />
+          {helpText}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function EditJob() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [otherLanguages, setOtherLanguages] = useState([]);
+  const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90, archive_deletion_days: 90 });
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm();
 
   const germanRequired = watch('german_required') || 'not_required';
@@ -89,25 +118,42 @@ function EditJob() {
 
   useEffect(() => {
     loadJob();
+    loadSettings();
   }, [id]);
+
+  const loadSettings = async () => {
+    try {
+      const response = await jobsAPI.getPublicSettings();
+      setJobSettings(response.data);
+    } catch (error) {
+      console.error('Fehler beim Laden der Job-Settings:', error);
+    }
+  };
 
   const loadJob = async () => {
     try {
       const response = await jobsAPI.get(id);
       const job = response.data;
       
-      // Formular mit bestehenden Daten füllen
+      // Formular mit bestehenden Daten füllen (inkl. neuer Felder)
       reset({
         title: job.title || '',
         position_type: job.position_type || '',
+        employment_type: job.employment_type || '',
         description: job.description || '',
+        tasks: job.tasks || '',
         requirements: job.requirements || '',
         benefits: job.benefits || '',
         location: job.location || '',
+        address: job.address || '',
+        postal_code: job.postal_code || '',
         remote_possible: job.remote_possible || false,
         start_date: job.start_date || '',
         end_date: job.end_date || '',
         deadline: job.deadline || '',
+        contact_person: job.contact_person || '',
+        contact_phone: job.contact_phone || '',
+        contact_email: job.contact_email || '',
         salary_min: job.salary_min ? String(job.salary_min).replace('.', ',') : '',
         salary_max: job.salary_max ? String(job.salary_max).replace('.', ',') : '',
         salary_type: job.salary_type || '',
@@ -192,6 +238,9 @@ function EditJob() {
     }
   };
 
+  // Berechne max Deadline-Datum
+  const maxDeadlineDate = new Date(Date.now() + jobSettings.max_job_deadline_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -243,7 +292,7 @@ function EditJob() {
           </div>
         </div>
 
-        {/* Grundinformationen */}
+        {/* ========== 1. GRUNDINFORMATIONEN ========== */}
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary-600" />
@@ -261,39 +310,91 @@ function EditJob() {
               {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
             </div>
             
-            <div>
-              <label className="label">Stellenart *</label>
-              <div className="relative">
-                <select
-                  className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
-                           focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
-                           transition-all cursor-pointer text-gray-700 font-medium"
-                  {...register('position_type', { required: 'Stellenart ist erforderlich' })}
-                >
-                  <option value="">Stellenart wählen</option>
-                  {positionTypes.map((type) => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="label">Stellenart *</label>
+                <div className="relative">
+                  <select
+                    className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
+                             focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
+                             transition-all cursor-pointer text-gray-700 font-medium"
+                    {...register('position_type', { required: 'Stellenart ist erforderlich' })}
+                  >
+                    <option value="">Stellenart wählen</option>
+                    {positionTypes.map((type) => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                </div>
+                {errors.position_type && <p className="text-red-500 text-sm mt-1">{errors.position_type.message}</p>}
               </div>
-              {errors.position_type && <p className="text-red-500 text-sm mt-1">{errors.position_type.message}</p>}
+
+              <div>
+                <label className="label">Einstellungsart</label>
+                <div className="relative">
+                  <select
+                    className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
+                             focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
+                             transition-all cursor-pointer text-gray-700 font-medium"
+                    {...register('employment_type')}
+                  >
+                    <option value="">Einstellungsart wählen (optional)</option>
+                    {employmentTypes.map((type) => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
             </div>
             
             <div>
-              <label className="label">Beschreibung *</label>
+              <label className="label">Stellenbeschreibung *</label>
               <textarea
                 className="input-styled"
                 rows={6}
-                placeholder="Beschreiben Sie die Stelle und die Aufgaben..."
+                placeholder="Beschreiben Sie die Stelle allgemein. Was erwartet die Bewerber?"
                 {...register('description', { required: 'Beschreibung ist erforderlich' })}
               />
+              <p className="text-gray-500 text-xs mt-1">Absätze und Zeilenumbrüche werden übernommen.</p>
               {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
             </div>
           </div>
         </div>
 
-        {/* Sprachanforderungen */}
+        {/* ========== 2. AUFGABEN & ANFORDERUNGEN ========== */}
+        <div className="card border-l-4 border-l-purple-500">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <ListTodo className="h-5 w-5 text-purple-600" />
+            Aufgaben & Anforderungen
+          </h2>
+          <p className="text-gray-600 mb-6 text-sm">
+            Beschreiben Sie die Aufgaben und welche Qualifikationen benötigt werden.
+          </p>
+          
+          <div className="space-y-4">
+            <FormattedTextarea
+              label="Aufgaben"
+              name="tasks"
+              register={register}
+              rows={5}
+              placeholder="Was sind die Hauptaufgaben dieser Stelle?"
+              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
+            />
+            
+            <FormattedTextarea
+              label="Anforderungen"
+              name="requirements"
+              register={register}
+              rows={5}
+              placeholder="Welche Qualifikationen und Fähigkeiten werden benötigt?"
+              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
+            />
+          </div>
+        </div>
+
+        {/* ========== 3. SPRACHANFORDERUNGEN ========== */}
         <div className="card border-l-4 border-l-blue-500">
           <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
             <Languages className="h-5 w-5 text-blue-600" />
@@ -375,41 +476,17 @@ function EditJob() {
           </div>
         </div>
 
-        {/* Anforderungen & Benefits */}
-        <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Anforderungen & Benefits</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="label">Sonstige Anforderungen</label>
-              <textarea
-                className="input-styled"
-                rows={4}
-                placeholder="Welche weiteren Qualifikationen werden benötigt?"
-                {...register('requirements')}
-              />
-            </div>
-            
-            <div>
-              <label className="label">Wir bieten</label>
-              <textarea
-                className="input-styled"
-                rows={4}
-                placeholder="Was bieten Sie den Bewerbern?"
-                {...register('benefits')}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Ort & Zeit */}
+        {/* ========== 4. ORT & ZEITRAUM ========== */}
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary-600" />
             Ort & Zeitraum
           </h2>
-          <div className="grid md:grid-cols-2 gap-4">
+          
+          {/* Standort */}
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="label">Arbeitsort</label>
+              <label className="label">Ort / Stadt</label>
               <div className="relative">
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -421,22 +498,49 @@ function EditJob() {
               </div>
             </div>
             
-            <div className="flex items-center pt-8">
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  {...register('remote_possible')}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-primary-100 
-                              rounded-full peer peer-checked:after:translate-x-full 
-                              after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
-                              after:bg-white after:border after:rounded-full after:h-5 after:w-5 
-                              after:transition-all peer-checked:bg-primary-600"></div>
-                <span className="ml-3 text-gray-700 font-medium">Remote-Arbeit möglich</span>
-              </label>
+            <div>
+              <label className="label">Postleitzahl</label>
+              <input
+                type="text"
+                className="input-styled"
+                placeholder="z.B. 80331"
+                maxLength={10}
+                {...register('postal_code')}
+              />
             </div>
-            
+          </div>
+
+          <div className="mb-4">
+            <label className="label">Adresse / Straße</label>
+            <div className="relative">
+              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                className="input-styled pl-12"
+                placeholder="z.B. Musterstraße 123"
+                {...register('address')}
+              />
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                {...register('remote_possible')}
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-primary-100 
+                            rounded-full peer peer-checked:after:translate-x-full 
+                            after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                            after:bg-white after:border after:rounded-full after:h-5 after:w-5 
+                            after:transition-all peer-checked:bg-primary-600"></div>
+              <span className="ml-3 text-gray-700 font-medium">Remote-Arbeit möglich</span>
+            </label>
+          </div>
+
+          {/* Zeitraum */}
+          <div className="grid md:grid-cols-2 gap-4 border-t pt-4">
             <div>
               <label className="label">Startdatum</label>
               <div className="relative">
@@ -463,51 +567,70 @@ function EditJob() {
           </div>
         </div>
 
-        {/* Bewerbungsfrist */}
-        <div className="card border-l-4 border-l-orange-500">
+        {/* ========== 5. KONTAKTPERSON ========== */}
+        <div className="card border-l-4 border-l-green-500">
           <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
-            <Clock className="h-5 w-5 text-orange-600" />
-            Bewerbungsfrist
+            <User className="h-5 w-5 text-green-600" />
+            Kontaktperson
           </h2>
-          <p className="text-gray-600 mb-4 text-sm">
-            Legen Sie fest, wie lange Bewerbungen möglich sein sollen.
+          <p className="text-gray-600 mb-6 text-sm">
+            Optional: Geben Sie eine Kontaktperson für Rückfragen an.
           </p>
           
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
-            <p className="text-orange-800 text-sm flex items-start gap-2">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <span>
-                <strong>Wichtig:</strong> Die Bewerbungsfrist darf maximal 1 Monat in der Zukunft liegen. 
-                Nach Ablauf wird die Stelle automatisch archiviert.
-              </span>
-            </p>
-          </div>
-          
-          <div className="max-w-md">
-            <label className="label">Bewerbungsfrist (optional)</label>
-            <div className="relative">
-              <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="date"
-                className="input-styled pl-12"
-                min={new Date().toISOString().split('T')[0]}
-                max={new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                {...register('deadline')}
-              />
+          <div className="grid md:grid-cols-3 gap-4">
+            <div>
+              <label className="label">Ansprechpartner</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  className="input-styled pl-12"
+                  placeholder="Max Mustermann"
+                  {...register('contact_person')}
+                />
+              </div>
             </div>
-            <p className="text-gray-500 text-sm mt-2">
-              Wenn keine Frist gesetzt wird, bleibt die Stelle unbegrenzt aktiv.
-            </p>
+            
+            <div>
+              <label className="label">Telefon</label>
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="tel"
+                  className="input-styled pl-12"
+                  placeholder="+49 123 456789"
+                  {...register('contact_phone')}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="label">E-Mail</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="email"
+                  className="input-styled pl-12"
+                  placeholder="kontakt@firma.de"
+                  {...register('contact_email')}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Vergütung */}
-        <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-            <Euro className="h-5 w-5 text-primary-600" />
-            Vergütung
+        {/* ========== 6. GEHALT & BENEFITS ========== */}
+        <div className="card border-l-4 border-l-yellow-500">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <Euro className="h-5 w-5 text-yellow-600" />
+            Gehalt & Benefits
           </h2>
-          <div className="grid md:grid-cols-3 gap-4">
+          <p className="text-gray-600 mb-6 text-sm">
+            Geben Sie die Vergütung und Zusatzleistungen an.
+          </p>
+          
+          {/* Gehalt */}
+          <div className="grid md:grid-cols-3 gap-4 mb-6">
             <div>
               <label className="label">Minimum (€)</label>
               <div className="relative">
@@ -516,7 +639,7 @@ function EditJob() {
                   type="text"
                   inputMode="decimal"
                   className="input-styled pl-12"
-                  placeholder="z.B. 12,50"
+                  placeholder="z.B. 13,90"
                   {...register('salary_min')}
                 />
               </div>
@@ -553,6 +676,57 @@ function EditJob() {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
               </div>
             </div>
+          </div>
+
+          {/* Benefits */}
+          <div className="border-t pt-4">
+            <FormattedTextarea
+              label="Benefits / Wir bieten"
+              name="benefits"
+              register={register}
+              rows={4}
+              placeholder="Was bieten Sie den Bewerbern? (Unterkunft, Verpflegung, etc.)"
+              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
+            />
+          </div>
+        </div>
+
+        {/* ========== 7. BEWERBUNGSFRIST ========== */}
+        <div className="card border-l-4 border-l-orange-500">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-orange-600" />
+            Bewerbungsfrist
+          </h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Legen Sie fest, wie lange Bewerbungen möglich sein sollen.
+          </p>
+          
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+            <p className="text-orange-800 text-sm flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Wichtig:</strong> Die Bewerbungsfrist darf maximal <strong>{jobSettings.max_job_deadline_days} Tage</strong> in der Zukunft liegen. 
+                Nach Ablauf wird die Stelle automatisch archiviert. Sie können archivierte Stellen 
+                innerhalb von {jobSettings.archive_deletion_days} Tagen reaktivieren.
+              </span>
+            </p>
+          </div>
+          
+          <div className="max-w-md">
+            <label className="label">Bewerbungsfrist (optional)</label>
+            <div className="relative">
+              <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="date"
+                className="input-styled pl-12"
+                min={new Date().toISOString().split('T')[0]}
+                max={maxDeadlineDate}
+                {...register('deadline')}
+              />
+            </div>
+            <p className="text-gray-500 text-sm mt-2">
+              Wenn keine Frist gesetzt wird, bleibt die Stelle unbegrenzt aktiv.
+            </p>
           </div>
         </div>
 

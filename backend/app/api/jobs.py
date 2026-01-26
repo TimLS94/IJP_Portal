@@ -10,11 +10,28 @@ from app.models.company import Company
 from app.models.job_posting import JobPosting
 from app.models.applicant import PositionType
 from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPostingResponse, JobPostingListResponse
+from app.services.settings_service import get_setting
 
-# Maximale Deadline: 1 Monat
-MAX_DEADLINE_DAYS = 31
+# Standard-Wert falls Setting nicht existiert (wird aus DB überschrieben)
+DEFAULT_MAX_DEADLINE_DAYS = 90
 
 router = APIRouter(prefix="/jobs", tags=["Stellenangebote"])
+
+
+def get_max_deadline_days(db: Session) -> int:
+    """Liest die maximale Deadline aus den Admin-Settings"""
+    return get_setting(db, "max_job_deadline_days", DEFAULT_MAX_DEADLINE_DAYS)
+
+
+@router.get("/settings/public")
+async def get_public_job_settings(db: Session = Depends(get_db)):
+    """Gibt öffentliche Job-Einstellungen zurück (für Formulare)"""
+    max_days = get_max_deadline_days(db)
+    archive_days = get_setting(db, "archive_deletion_days", 90)
+    return {
+        "max_job_deadline_days": max_days,
+        "archive_deletion_days": archive_days
+    }
 
 
 @router.get("", response_model=List[JobPostingResponse])
@@ -84,13 +101,14 @@ async def create_job(
     
     job_dict = job_data.model_dump()
     
-    # Deadline-Validierung: max 1 Monat in der Zukunft
+    # Deadline-Validierung: Max aus Admin-Settings
+    max_deadline_days = get_max_deadline_days(db)
     if job_dict.get('deadline'):
-        max_deadline = date.today() + timedelta(days=MAX_DEADLINE_DAYS)
+        max_deadline = date.today() + timedelta(days=max_deadline_days)
         if job_dict['deadline'] > max_deadline:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Die Deadline darf maximal {MAX_DEADLINE_DAYS} Tage in der Zukunft liegen"
+                detail=f"Die Deadline darf maximal {max_deadline_days} Tage in der Zukunft liegen"
             )
         if job_dict['deadline'] < date.today():
             raise HTTPException(
@@ -227,13 +245,14 @@ async def reactivate_job(
             detail="Diese Stelle ist nicht archiviert"
         )
     
-    # Deadline-Validierung
+    # Deadline-Validierung (aus Admin-Settings)
+    max_deadline_days = get_max_deadline_days(db)
     if new_deadline:
-        max_deadline = date.today() + timedelta(days=MAX_DEADLINE_DAYS)
+        max_deadline = date.today() + timedelta(days=max_deadline_days)
         if new_deadline > max_deadline:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Die Deadline darf maximal {MAX_DEADLINE_DAYS} Tage in der Zukunft liegen"
+                detail=f"Die Deadline darf maximal {max_deadline_days} Tage in der Zukunft liegen"
             )
         if new_deadline < date.today():
             raise HTTPException(
@@ -242,8 +261,8 @@ async def reactivate_job(
             )
         job.deadline = new_deadline
     else:
-        # Standard: 1 Monat ab heute
-        job.deadline = date.today() + timedelta(days=MAX_DEADLINE_DAYS)
+        # Standard: Max Tage ab heute
+        job.deadline = date.today() + timedelta(days=max_deadline_days)
     
     job.is_active = True
     job.is_archived = False

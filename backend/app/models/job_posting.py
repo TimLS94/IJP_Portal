@@ -38,6 +38,13 @@ LANGUAGE_LEVEL_LABELS = {
 }
 
 
+class EmploymentType(str, enum.Enum):
+    """Einstellungsart"""
+    FULLTIME = "fulltime"
+    PARTTIME = "parttime"
+    BOTH = "both"  # Vollzeit und Teilzeit möglich
+
+
 class JobPosting(Base):
     __tablename__ = "job_postings"
     
@@ -47,15 +54,24 @@ class JobPosting(Base):
     # Stelleninformationen
     title = Column(String(255), nullable=False)
     position_type = Column(Enum(PositionType), nullable=False)
+    employment_type = Column(Enum(EmploymentType))  # NEU: Vollzeit/Teilzeit
     description = Column(Text, nullable=False)
+    tasks = Column(Text)  # NEU: Aufgaben
     requirements = Column(Text)
     benefits = Column(Text)
     
     # Ort und Zeit
     location = Column(String(255))
+    address = Column(String(255))  # NEU: Straße
+    postal_code = Column(String(20))  # NEU: PLZ
     remote_possible = Column(Boolean, default=False)
     start_date = Column(Date)
     end_date = Column(Date)  # Optional, z.B. für Saisonjobs
+    
+    # Kontaktperson (NEU)
+    contact_person = Column(String(255))  # Ansprechpartner
+    contact_phone = Column(String(50))  # Telefon
+    contact_email = Column(String(255))  # E-Mail
     
     # Vergütung (Float für Dezimalwerte wie 12,50€)
     salary_min = Column(Float)
@@ -76,7 +92,7 @@ class JobPosting(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Deadline (max 1 Monat, dann automatisch deaktiviert)
+    # Deadline (dynamisch aus Admin-Settings)
     deadline = Column(Date)  # Bewerbungsschluss
     archived_at = Column(DateTime)  # Wann archiviert
     
