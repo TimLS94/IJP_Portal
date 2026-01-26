@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date
-from app.models.applicant import PositionType, LanguageLevel
+from app.models.applicant import PositionType, LanguageLevel, Gender
 
 
 class OtherLanguage(BaseModel):
@@ -23,6 +23,7 @@ class ApplicantBase(BaseModel):
     # ========== ALLGEMEINE PERSONENDATEN ==========
     first_name: str
     last_name: str
+    gender: Optional[Gender] = None  # Geschlecht (m/w/d)
     date_of_birth: Optional[date] = None
     place_of_birth: Optional[str] = None
     nationality: Optional[str] = None
@@ -94,6 +95,7 @@ class ApplicantUpdate(BaseModel):
     # Alle Felder optional für partielle Updates
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    gender: Optional[Gender] = None  # Geschlecht (m/w/d)
     date_of_birth: Optional[date] = None
     place_of_birth: Optional[str] = None
     nationality: Optional[str] = None

@@ -225,6 +225,29 @@ function Register() {
             {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>}
           </div>
 
+          {/* Datenschutz-Checkbox */}
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1 h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                {...register('privacyAccepted', {
+                  required: t('auth.privacyRequired')
+                })}
+              />
+              <span className="text-sm text-gray-700">
+                {t('auth.privacyText')}{' '}
+                <Link to="/datenschutz" className="text-primary-600 hover:underline font-medium" target="_blank">
+                  {t('auth.privacyLink')}
+                </Link>
+                {' '}{t('auth.privacyText2')}
+              </span>
+            </label>
+            {errors.privacyAccepted && (
+              <p className="text-red-500 text-sm mt-2">{errors.privacyAccepted.message}</p>
+            )}
+          </div>
+
           <button
             type="submit"
             disabled={loading}

@@ -13,6 +13,13 @@ class PositionType(str, enum.Enum):
     AUSBILDUNG = "ausbildung"
 
 
+class Gender(str, enum.Enum):
+    """Geschlecht"""
+    MALE = "male"
+    FEMALE = "female"
+    DIVERSE = "diverse"
+
+
 class LanguageLevel(str, enum.Enum):
     NONE = "keine"
     A1 = "A1"
@@ -33,9 +40,14 @@ class Applicant(Base):
     # ========== ALLGEMEINE PERSONENDATEN (für alle) ==========
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
+    gender = Column(Enum(Gender))  # Geschlecht (m/w/d)
     date_of_birth = Column(Date)
     place_of_birth = Column(String(100))  # Geburtsort
     nationality = Column(String(100))
+    
+    # Datenschutz
+    privacy_accepted = Column(Boolean, default=False)  # Datenschutzerklärung akzeptiert
+    privacy_accepted_at = Column(Date)  # Wann akzeptiert
     
     # Kontaktdaten
     phone = Column(String(50))

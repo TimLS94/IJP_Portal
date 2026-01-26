@@ -111,7 +111,18 @@
     "resetPassword": "Reset Password",
     "newPassword": "New Password",
     "resetLinkSent": "Reset link has been sent",
-    "passwordChanged": "Password has been changed"
+    "passwordChanged": "Password has been changed",
+    "privacyText": "I have read the",
+    "privacyLink": "Privacy Policy",
+    "privacyText2": "and accept it.",
+    "privacyRequired": "You must accept the privacy policy"
+  },
+  "gender": {
+    "label": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "diverse": "Diverse",
+    "placeholder": "Select gender"
   },
   "jobs": {
     "title": "Job Listings",

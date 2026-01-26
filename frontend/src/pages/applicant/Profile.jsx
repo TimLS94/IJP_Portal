@@ -906,6 +906,20 @@ function ApplicantProfile() {
               {errors.place_of_birth && <p className="text-red-500 text-sm mt-1">{errors.place_of_birth.message}</p>}
             </div>
             <div>
+              <label className="label">{t('gender.label')} *</label>
+              <CustomSelect
+                value={watch('gender') || ''}
+                onChange={(e) => setValue('gender', e.target.value)}
+                options={[
+                  { value: 'male', label: t('gender.male') },
+                  { value: 'female', label: t('gender.female') },
+                  { value: 'diverse', label: t('gender.diverse') }
+                ]}
+                placeholder={t('gender.placeholder')}
+              />
+              {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender.message}</p>}
+            </div>
+            <div>
               <label className="label">{t('applicant.nationality')} *</label>
               <CustomSelect
                 value={watch('nationality') || ''}

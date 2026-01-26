@@ -266,12 +266,27 @@ async def delete_account(
     user_role = current_user.role
     
     # Zugehörige Daten löschen je nach Rolle
+    deleted_files = 0
     if user_role == UserRole.APPLICANT:
         applicant = db.query(Applicant).filter(Applicant.user_id == user_id).first()
         if applicant:
             # Bewerbungen löschen
             db.query(Application).filter(Application.applicant_id == applicant.id).delete()
-            # Dokumente löschen
+            
+            # Dokumente aus Storage (R2/Lokal) löschen - DSGVO-konform!
+            from app.services.storage_service import storage_service
+            documents = db.query(Document).filter(Document.applicant_id == applicant.id).all()
+            for doc in documents:
+                if doc.file_path:
+                    try:
+                        await storage_service.delete_file(doc.file_path)
+                        deleted_files += 1
+                    except Exception as e:
+                        # Fehler loggen, aber weitermachen
+                        import logging
+                        logging.error(f"Fehler beim Löschen der Datei {doc.file_path}: {e}")
+            
+            # Dokumente aus DB löschen
             db.query(Document).filter(Document.applicant_id == applicant.id).delete()
             # Bewerber-Profil löschen
             db.delete(applicant)
@@ -296,7 +311,10 @@ async def delete_account(
     db.delete(current_user)
     db.commit()
     
-    return {"message": "Ihr Account wurde erfolgreich gelöscht"}
+    return {
+        "message": "Ihr Account wurde erfolgreich gelöscht",
+        "deleted_files": deleted_files
+    }
 
 
 # ==================== ACCOUNT INFO ====================

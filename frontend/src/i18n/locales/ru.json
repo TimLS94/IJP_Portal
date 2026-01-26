@@ -111,7 +111,18 @@
     "resetPassword": "Сбросить пароль",
     "newPassword": "Новый пароль",
     "resetLinkSent": "Ссылка для сброса отправлена",
-    "passwordChanged": "Пароль изменён"
+    "passwordChanged": "Пароль изменён",
+    "privacyText": "Я прочитал(а)",
+    "privacyLink": "Политику конфиденциальности",
+    "privacyText2": "и принимаю её.",
+    "privacyRequired": "Вы должны принять политику конфиденциальности"
+  },
+  "gender": {
+    "label": "Пол",
+    "male": "Мужской",
+    "female": "Женский",
+    "diverse": "Другой",
+    "placeholder": "Выберите пол"
   },
   "jobs": {
     "title": "Вакансии",

@@ -111,7 +111,18 @@
     "resetPassword": "Restablecer contraseña",
     "newPassword": "Nueva contraseña",
     "resetLinkSent": "Se ha enviado el enlace de restablecimiento",
-    "passwordChanged": "La contraseña ha sido cambiada"
+    "passwordChanged": "La contraseña ha sido cambiada",
+    "privacyText": "He leído la",
+    "privacyLink": "Política de Privacidad",
+    "privacyText2": "y la acepto.",
+    "privacyRequired": "Debe aceptar la política de privacidad"
+  },
+  "gender": {
+    "label": "Género",
+    "male": "Masculino",
+    "female": "Femenino",
+    "diverse": "Diverso",
+    "placeholder": "Seleccionar género"
   },
   "jobs": {
     "title": "Ofertas de empleo",
