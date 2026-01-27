@@ -40,7 +40,7 @@ class Applicant(Base):
     # ========== ALLGEMEINE PERSONENDATEN (für alle) ==========
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
-    gender = Column(Enum(Gender, values_callable=lambda obj: [e.value for e in obj]))  # Geschlecht (m/w/d)
+    gender = Column(Enum(Gender))  # Geschlecht (m/w/d)
     date_of_birth = Column(Date)
     place_of_birth = Column(String(100))  # Geburtsort
     nationality = Column(String(100))
@@ -69,8 +69,8 @@ class Applicant(Base):
     work_experiences = Column(JSON, default=[])
     
     # Sprachkenntnisse
-    german_level = Column(Enum(LanguageLevel, values_callable=lambda obj: [e.value for e in obj]), default=LanguageLevel.NONE)
-    english_level = Column(Enum(LanguageLevel, values_callable=lambda obj: [e.value for e in obj]), default=LanguageLevel.NONE)
+    german_level = Column(Enum(LanguageLevel), default=LanguageLevel.NONE)
+    english_level = Column(Enum(LanguageLevel), default=LanguageLevel.NONE)
     other_languages = Column(JSON, default=[])  # [{language: "Russisch", level: "B2"}, ...]
     
     # Deutschland-Erfahrung
@@ -78,7 +78,7 @@ class Applicant(Base):
     germany_details = Column(Text)  # Wann, wie lange, warum
     
     # ========== POSITIONSTYP ==========
-    position_type = Column(Enum(PositionType, values_callable=lambda obj: [e.value for e in obj]))  # Legacy: Einzelauswahl
+    position_type = Column(Enum(PositionType))  # Legacy: Einzelauswahl
     position_types = Column(JSON, default=[])   # NEU: Mehrfachauswahl als Liste ["studentenferienjob", "fachkraft"]
     
     # ========== STUDENTENFERIENJOB-SPEZIFISCH ==========
