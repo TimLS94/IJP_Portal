@@ -857,7 +857,34 @@
       "positionTypeRequired": "Stellenart ist erforderlich",
       "descriptionRequired": "Beschreibung ist erforderlich",
       "minimumWage": "Der Mindestlohn darf nicht unter {{wage}}€ liegen"
+    },
+    "multiLanguage": {
+      "title": "Mehrsprachige Stellenausschreibung",
+      "description": "Erstellen Sie Ihre Stellenausschreibung in mehreren Sprachen. Deutsch ist Pflicht, weitere Sprachen sind optional.",
+      "languageEnabled": "Sprachen aktiviert",
+      "languageHint": "Bewerber können zwischen den Sprachen wechseln, um die Stelle in ihrer bevorzugten Sprache zu lesen."
     }
+  },
+  "jobDetail": {
+    "description": "Beschreibung",
+    "tasks": "Aufgaben",
+    "requirements": "Anforderungen",
+    "benefits": "Wir bieten",
+    "workLocation": "Arbeitsort",
+    "languageRequirements": "Sprachanforderungen",
+    "contactPerson": "Kontaktperson",
+    "details": "Details",
+    "salary": "Vergütung",
+    "startDate": "Startdatum",
+    "endDate": "Enddatum",
+    "publishedAt": "Veröffentlicht am",
+    "applyNow": "Jetzt bewerben",
+    "applicationSubmitted": "Bewerbung eingereicht!",
+    "trackStatus": "Sie können den Status in Ihrem Profil verfolgen.",
+    "toMyApplications": "Zu meinen Bewerbungen",
+    "aboutCompany": "Über das Unternehmen",
+    "language": "Sprache",
+    "backToJobs": "Zurück zu den Stellenangeboten"
   },
   "companyRequest": {
     "title": "IJP beauftragen",

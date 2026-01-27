@@ -811,7 +811,34 @@
       "positionTypeRequired": "Тип работы обязателен",
       "descriptionRequired": "Описание обязательно",
       "minimumWage": "Зарплата не может быть ниже {{wage}}€"
+    },
+    "multiLanguage": {
+      "title": "Многоязычное объявление",
+      "description": "Создайте вакансию на нескольких языках. Немецкий обязателен, дополнительные языки — по желанию.",
+      "languageEnabled": "Языки включены",
+      "languageHint": "Соискатели могут переключаться между языками, чтобы читать вакансию на предпочитаемом языке."
     }
+  },
+  "jobDetail": {
+    "description": "Описание",
+    "tasks": "Задачи",
+    "requirements": "Требования",
+    "benefits": "Мы предлагаем",
+    "workLocation": "Место работы",
+    "languageRequirements": "Языковые требования",
+    "contactPerson": "Контактное лицо",
+    "details": "Детали",
+    "salary": "Зарплата",
+    "startDate": "Дата начала",
+    "endDate": "Дата окончания",
+    "publishedAt": "Опубликовано",
+    "applyNow": "Подать заявку",
+    "applicationSubmitted": "Заявка отправлена!",
+    "trackStatus": "Вы можете отслеживать статус в своём профиле.",
+    "toMyApplications": "К моим заявкам",
+    "aboutCompany": "О компании",
+    "language": "Язык",
+    "backToJobs": "Назад к вакансиям"
   },
   "companyRequest": {
     "title": "Заказать услугу IJP",

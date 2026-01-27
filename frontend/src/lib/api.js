@@ -259,6 +259,12 @@ export const adminAPI = {
   getApplicantDocuments: (id) => api.get(`/admin/applicants/${id}/documents`),
   downloadAllDocuments: (id) => api.get(`/admin/applicants/${id}/documents/download-all`, { responseType: 'blob' }),
   
+  // DSGVO / Datenschutz
+  gdprExportData: (userId) => api.get(`/admin/gdpr/export/${userId}`),
+  gdprDeleteData: (userId, deleteDocuments = true) => api.delete(`/admin/gdpr/data/${userId}`, { params: { delete_documents: deleteDocuments } }),
+  gdprGetDocuments: (userId) => api.get(`/admin/gdpr/documents/${userId}`),
+  gdprDeleteDocument: (documentId) => api.delete(`/admin/gdpr/documents/${documentId}`),
+  
   // Anabin Uni-Verifizierung
   getAnabinStudents: () => api.get('/anabin/students-to-verify'),
   searchAnabin: (applicantId) => api.get(`/anabin/search/${applicantId}`),

@@ -14,6 +14,15 @@ class OtherLanguageRequirement(BaseModel):
     level: RequiredLanguageLevel
 
 
+class JobTranslation(BaseModel):
+    """Übersetzung der Stelleninhalte in einer Sprache"""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    tasks: Optional[str] = None
+    requirements: Optional[str] = None
+    benefits: Optional[str] = None
+
+
 class JobPostingBase(BaseModel):
     title: str
     position_type: PositionType
@@ -47,6 +56,10 @@ class JobPostingBase(BaseModel):
     
     additional_requirements: Optional[dict] = {}
     deadline: Optional[date] = None  # Bewerbungsschluss
+    
+    # Mehrsprachige Inhalte
+    translations: Optional[dict] = {}  # {"en": JobTranslation, "es": JobTranslation, ...}
+    available_languages: Optional[List[str]] = ["de"]
     
     @field_validator('salary_min')
     @classmethod
@@ -101,6 +114,10 @@ class JobPostingUpdate(BaseModel):
     additional_requirements: Optional[dict] = None
     is_active: Optional[bool] = None
     deadline: Optional[date] = None  # Bewerbungsschluss
+    
+    # Mehrsprachige Inhalte
+    translations: Optional[dict] = None
+    available_languages: Optional[List[str]] = None
     
     @field_validator('salary_min')
     @classmethod

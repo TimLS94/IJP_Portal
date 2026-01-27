@@ -794,6 +794,376 @@ async def get_archive_deletion_preview(
     }
 
 
+# ==================== DSGVO / DATENSCHUTZ ====================
+
+@router.get("/gdpr/export/{user_id}")
+async def export_user_data(
+    user_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    DSGVO Art. 15: Recht auf Auskunft - Exportiert alle Daten eines Benutzers als JSON
+    """
+    from app.models.job_request import JobRequest
+    from app.services.storage_service import storage_service
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Benutzer nicht gefunden")
+    
+    export_data = {
+        "export_date": datetime.utcnow().isoformat(),
+        "export_type": "DSGVO Art. 15 Datenauskunft",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role.value,
+            "is_active": user.is_active,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        }
+    }
+    
+    if user.role == UserRole.APPLICANT:
+        applicant = db.query(Applicant).filter(Applicant.user_id == user_id).first()
+        if applicant:
+            # Alle Bewerberdaten
+            export_data["applicant"] = {
+                "id": applicant.id,
+                "first_name": applicant.first_name,
+                "last_name": applicant.last_name,
+                "gender": applicant.gender.value if applicant.gender else None,
+                "date_of_birth": applicant.date_of_birth.isoformat() if applicant.date_of_birth else None,
+                "place_of_birth": applicant.place_of_birth,
+                "nationality": applicant.nationality,
+                "phone": applicant.phone,
+                "address": {
+                    "street": applicant.street,
+                    "house_number": applicant.house_number,
+                    "postal_code": applicant.postal_code,
+                    "city": applicant.city,
+                    "country": applicant.country,
+                },
+                "university": {
+                    "name": applicant.university_name,
+                    "street": applicant.university_street,
+                    "house_number": applicant.university_house_number,
+                    "postal_code": applicant.university_postal_code,
+                    "city": applicant.university_city,
+                    "country": applicant.university_country,
+                    "field_of_study": applicant.field_of_study,
+                    "current_semester": applicant.current_semester,
+                },
+                "semester_break": {
+                    "start": applicant.semester_break_start.isoformat() if applicant.semester_break_start else None,
+                    "end": applicant.semester_break_end.isoformat() if applicant.semester_break_end else None,
+                    "continue_studying": applicant.continue_studying,
+                },
+                "languages": {
+                    "german_level": applicant.german_level.value if applicant.german_level else None,
+                    "english_level": applicant.english_level.value if applicant.english_level else None,
+                    "other_languages": applicant.other_languages or [],
+                },
+                "work_experience": applicant.work_experience,
+                "work_experience_years": applicant.work_experience_years,
+                "work_experiences": applicant.work_experiences or [],
+                "position_type": applicant.position_type.value if applicant.position_type else None,
+                "position_types": applicant.position_types or [],
+                "profession": applicant.profession,
+                "degree": applicant.degree,
+                "degree_year": applicant.degree_year,
+                "desired_profession": applicant.desired_profession,
+                "school_degree": applicant.school_degree,
+                "available_from": applicant.available_from.isoformat() if applicant.available_from else None,
+                "available_until": applicant.available_until.isoformat() if applicant.available_until else None,
+                "preferred_work_area": applicant.preferred_work_area,
+                "been_to_germany": applicant.been_to_germany,
+                "germany_details": applicant.germany_details,
+                "additional_info": applicant.additional_info,
+                "privacy_accepted": applicant.privacy_accepted,
+                "privacy_accepted_at": applicant.privacy_accepted_at.isoformat() if applicant.privacy_accepted_at else None,
+                "anabin": {
+                    "verified": applicant.anabin_verified,
+                    "match_score": applicant.anabin_match_score,
+                    "institution_name": applicant.anabin_institution_name,
+                    "status": applicant.anabin_status,
+                    "notes": applicant.anabin_notes,
+                    "checked_at": applicant.anabin_checked_at.isoformat() if applicant.anabin_checked_at else None,
+                }
+            }
+            
+            # Dokumente
+            documents = db.query(Document).filter(Document.applicant_id == applicant.id).all()
+            export_data["documents"] = [
+                {
+                    "id": doc.id,
+                    "type": doc.document_type.value,
+                    "file_name": doc.file_name,
+                    "original_name": doc.original_name,
+                    "file_path": doc.file_path,  # Pfad zum Download
+                    "file_size": doc.file_size,
+                    "uploaded_at": doc.uploaded_at.isoformat() if doc.uploaded_at else None,
+                    "is_verified": doc.is_verified,
+                }
+                for doc in documents
+            ]
+            
+            # Bewerbungen
+            applications = db.query(Application).filter(Application.applicant_id == applicant.id).all()
+            export_data["applications"] = [
+                {
+                    "id": app.id,
+                    "job_title": app.job_posting.title if app.job_posting else None,
+                    "company": app.job_posting.company.company_name if app.job_posting and app.job_posting.company else None,
+                    "status": app.status.value,
+                    "applied_at": app.applied_at.isoformat() if app.applied_at else None,
+                    "cover_letter": app.cover_letter,
+                }
+                for app in applications
+            ]
+            
+            # IJP-Aufträge
+            job_requests = db.query(JobRequest).filter(JobRequest.applicant_id == applicant.id).all()
+            export_data["job_requests"] = [
+                {
+                    "id": req.id,
+                    "position_type": req.position_type.value,
+                    "status": req.status.value,
+                    "notes": req.notes,
+                    "admin_notes": req.admin_notes,
+                    "created_at": req.created_at.isoformat() if req.created_at else None,
+                }
+                for req in job_requests
+            ]
+    
+    elif user.role == UserRole.COMPANY:
+        company = db.query(Company).filter(Company.user_id == user_id).first()
+        if company:
+            export_data["company"] = {
+                "id": company.id,
+                "company_name": company.company_name,
+                "street": company.street,
+                "house_number": company.house_number,
+                "postal_code": company.postal_code,
+                "city": company.city,
+                "country": company.country,
+                "phone": company.phone,
+                "website": company.website,
+                "description": company.description,
+                "industry": company.industry,
+                "company_size": company.company_size,
+                "contact_person": company.contact_person,
+                "contact_email": company.contact_email,
+            }
+            
+            # Stellenangebote
+            jobs = db.query(JobPosting).filter(JobPosting.company_id == company.id).all()
+            export_data["job_postings"] = [
+                {
+                    "id": job.id,
+                    "title": job.title,
+                    "description": job.description,
+                    "location": job.location,
+                    "is_active": job.is_active,
+                    "created_at": job.created_at.isoformat() if job.created_at else None,
+                }
+                for job in jobs
+            ]
+    
+    return export_data
+
+
+@router.delete("/gdpr/data/{user_id}")
+async def delete_user_data(
+    user_id: int,
+    delete_documents: bool = Query(True, description="Dokumente aus dem Storage löschen"),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    DSGVO Art. 17: Recht auf Löschung - Löscht personenbezogene Daten ohne den Account zu löschen.
+    Der Account bleibt bestehen (für Audit-Trail), aber alle persönlichen Daten werden anonymisiert.
+    """
+    from app.services.storage_service import storage_service
+    from app.models.job_request import JobRequest
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Benutzer nicht gefunden")
+    
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Sie können Ihre eigenen Daten nicht löschen")
+    
+    deleted_items = {
+        "documents_deleted": 0,
+        "documents_from_storage": 0,
+        "applicant_anonymized": False,
+        "company_anonymized": False,
+        "applications_deleted": 0,
+        "job_requests_deleted": 0,
+    }
+    
+    if user.role == UserRole.APPLICANT:
+        applicant = db.query(Applicant).filter(Applicant.user_id == user_id).first()
+        if applicant:
+            # 1. Dokumente löschen (aus Datenbank UND Storage)
+            documents = db.query(Document).filter(Document.applicant_id == applicant.id).all()
+            for doc in documents:
+                if delete_documents and doc.file_path:
+                    success, error = await storage_service.delete_file(doc.file_path)
+                    if success:
+                        deleted_items["documents_from_storage"] += 1
+                db.delete(doc)
+                deleted_items["documents_deleted"] += 1
+            
+            # 2. Bewerbungen löschen
+            applications = db.query(Application).filter(Application.applicant_id == applicant.id).all()
+            for app in applications:
+                db.delete(app)
+                deleted_items["applications_deleted"] += 1
+            
+            # 3. IJP-Aufträge löschen
+            job_requests = db.query(JobRequest).filter(JobRequest.applicant_id == applicant.id).all()
+            for req in job_requests:
+                db.delete(req)
+                deleted_items["job_requests_deleted"] += 1
+            
+            # 4. Bewerberprofil anonymisieren
+            applicant.first_name = "[GELÖSCHT]"
+            applicant.last_name = "[GELÖSCHT]"
+            applicant.date_of_birth = None
+            applicant.place_of_birth = None
+            applicant.nationality = None
+            applicant.phone = None
+            applicant.street = None
+            applicant.house_number = None
+            applicant.postal_code = None
+            applicant.city = None
+            applicant.country = None
+            applicant.university_name = None
+            applicant.university_street = None
+            applicant.university_house_number = None
+            applicant.university_postal_code = None
+            applicant.university_city = None
+            applicant.university_country = None
+            applicant.field_of_study = None
+            applicant.work_experience = None
+            applicant.work_experiences = []
+            applicant.germany_details = None
+            applicant.additional_info = None
+            applicant.profile_image = None
+            deleted_items["applicant_anonymized"] = True
+    
+    elif user.role == UserRole.COMPANY:
+        company = db.query(Company).filter(Company.user_id == user_id).first()
+        if company:
+            # Firmenprofil anonymisieren
+            company.company_name = "[GELÖSCHT]"
+            company.street = None
+            company.house_number = None
+            company.postal_code = None
+            company.city = None
+            company.phone = None
+            company.website = None
+            company.description = None
+            company.contact_person = None
+            company.contact_email = None
+            deleted_items["company_anonymized"] = True
+    
+    # User-Email anonymisieren
+    user.email = f"deleted_{user.id}@anonymized.local"
+    user.is_active = False
+    
+    db.commit()
+    
+    return {
+        "message": "Personenbezogene Daten wurden gelöscht/anonymisiert",
+        "user_id": user_id,
+        "details": deleted_items
+    }
+
+
+@router.get("/gdpr/documents/{user_id}")
+async def get_user_documents_for_deletion(
+    user_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Listet alle Dokumente eines Benutzers für selektive Löschung"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Benutzer nicht gefunden")
+    
+    if user.role != UserRole.APPLICANT:
+        return {"documents": [], "message": "Nur Bewerber haben Dokumente"}
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == user_id).first()
+    if not applicant:
+        return {"documents": [], "message": "Kein Bewerberprofil gefunden"}
+    
+    documents = db.query(Document).filter(Document.applicant_id == applicant.id).all()
+    
+    return {
+        "user_id": user_id,
+        "applicant_id": applicant.id,
+        "applicant_name": f"{applicant.first_name} {applicant.last_name}",
+        "documents": [
+            {
+                "id": doc.id,
+                "type": doc.document_type.value,
+                "type_label": {
+                    "passport": "Reisepass",
+                    "cv": "Lebenslauf",
+                    "photo": "Bewerbungsfoto",
+                    "enrollment_cert": "Immatrikulationsbescheinigung",
+                    "enrollment_trans": "Immatrikulation (Übersetzung)",
+                    "ba_declaration": "BA-Erklärung",
+                    "language_cert": "Sprachzertifikat",
+                    "diploma": "Zeugnis/Diplom",
+                    "school_cert": "Schulzeugnis",
+                    "work_reference": "Arbeitszeugnis",
+                    "visa": "Visum",
+                    "other": "Sonstiges",
+                }.get(doc.document_type.value, doc.document_type.value),
+                "original_name": doc.original_name,
+                "file_size_kb": round(doc.file_size / 1024, 1) if doc.file_size else None,
+                "uploaded_at": doc.uploaded_at.isoformat() if doc.uploaded_at else None,
+            }
+            for doc in documents
+        ]
+    }
+
+
+@router.delete("/gdpr/documents/{document_id}")
+async def delete_single_document(
+    document_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Löscht ein einzelnes Dokument (aus Datenbank und Storage)"""
+    from app.services.storage_service import storage_service
+    
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
+    
+    # Aus Storage löschen
+    storage_deleted = False
+    if document.file_path:
+        success, error = await storage_service.delete_file(document.file_path)
+        storage_deleted = success
+    
+    # Aus Datenbank löschen
+    db.delete(document)
+    db.commit()
+    
+    return {
+        "message": "Dokument gelöscht",
+        "document_id": document_id,
+        "storage_deleted": storage_deleted
+    }
+
+
 # ==================== MATCHING ====================
 
 @router.get("/matching/job/{job_id}")

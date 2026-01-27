@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { adminAPI } from '../../lib/api';
+import { adminAPI, downloadBlob } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   Users, Search, UserCheck, UserX, Building2, 
-  User, Shield, Filter, Plus, X, Trash2, Eye, EyeOff, Loader2
+  User, Shield, Filter, Plus, X, Trash2, Eye, EyeOff, Loader2,
+  Download, FileText, ShieldAlert, AlertTriangle, File
 } from 'lucide-react';
 
 const roleLabels = {
@@ -25,6 +26,14 @@ function AdminUsers() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({ email: '', password: '', confirmPassword: '' });
   const [creating, setCreating] = useState(false);
+
+  // DSGVO Modal State
+  const [showGdprModal, setShowGdprModal] = useState(false);
+  const [gdprUser, setGdprUser] = useState(null);
+  const [gdprDocuments, setGdprDocuments] = useState([]);
+  const [gdprLoading, setGdprLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -106,6 +115,81 @@ function AdminUsers() {
       loadUsers();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Fehler beim Löschen');
+    }
+  };
+
+  // DSGVO: Modal öffnen
+  const openGdprModal = async (user) => {
+    setGdprUser(user);
+    setShowGdprModal(true);
+    setGdprLoading(true);
+    
+    try {
+      const response = await adminAPI.gdprGetDocuments(user.id);
+      setGdprDocuments(response.data.documents || []);
+    } catch (error) {
+      console.error('Fehler beim Laden der Dokumente:', error);
+      setGdprDocuments([]);
+    } finally {
+      setGdprLoading(false);
+    }
+  };
+
+  // DSGVO: Daten exportieren (Art. 15)
+  const handleExportData = async () => {
+    if (!gdprUser) return;
+    setExportLoading(true);
+    
+    try {
+      const response = await adminAPI.gdprExportData(gdprUser.id);
+      const dataStr = JSON.stringify(response.data, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      downloadBlob(blob, `dsgvo_export_${gdprUser.email}_${new Date().toISOString().split('T')[0]}.json`);
+      toast.success('Datenexport heruntergeladen');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Fehler beim Exportieren');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // DSGVO: Einzelnes Dokument löschen
+  const handleDeleteDocument = async (documentId) => {
+    if (!confirm('Möchten Sie dieses Dokument wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+      return;
+    }
+    
+    try {
+      await adminAPI.gdprDeleteDocument(documentId);
+      toast.success('Dokument gelöscht');
+      // Liste aktualisieren
+      setGdprDocuments(docs => docs.filter(d => d.id !== documentId));
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Fehler beim Löschen');
+    }
+  };
+
+  // DSGVO: Alle Daten löschen/anonymisieren (Art. 17)
+  const handleDeleteAllData = async () => {
+    if (!gdprUser) return;
+    
+    const confirmText = `Möchten Sie wirklich ALLE personenbezogenen Daten von "${gdprUser.email}" löschen?\n\nDies umfasst:\n- Alle Dokumente (Lebenslauf, Reisepass etc.)\n- Bewerbungen\n- IJP-Aufträge\n- Persönliche Profildaten\n\nDer Account bleibt anonymisiert bestehen. Diese Aktion kann NICHT rückgängig gemacht werden!`;
+    
+    if (!confirm(confirmText)) {
+      return;
+    }
+    
+    setDeleteLoading(true);
+    try {
+      const response = await adminAPI.gdprDeleteData(gdprUser.id, true);
+      toast.success('Personenbezogene Daten wurden gelöscht/anonymisiert');
+      setShowGdprModal(false);
+      setGdprUser(null);
+      loadUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Fehler beim Löschen');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -225,7 +309,15 @@ function AdminUsers() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1">
+                            {/* DSGVO Button */}
+                            <button
+                              onClick={() => openGdprModal(user)}
+                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                              title="DSGVO: Daten verwalten"
+                            >
+                              <ShieldAlert className="h-4 w-4" />
+                            </button>
                             <button
                               onClick={() => toggleActive(user.id)}
                               className={`p-2 rounded-lg transition-colors ${
@@ -361,6 +453,144 @@ function AdminUsers() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: DSGVO Datenverwaltung */}
+      {showGdprModal && gdprUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <ShieldAlert className="h-6 w-6 text-purple-600" />
+                DSGVO Datenverwaltung
+              </h2>
+              <button 
+                onClick={() => { setShowGdprModal(false); setGdprUser(null); }}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              {/* Benutzer-Info */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-purple-100 p-3 rounded-full">
+                    <User className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{gdprUser.name || 'Kein Name'}</p>
+                    <p className="text-gray-600">{gdprUser.email}</p>
+                    <p className="text-sm text-gray-500">
+                      {roleLabels[gdprUser.role]?.label || gdprUser.role} • Registriert am {formatDate(gdprUser.created_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* DSGVO Art. 15: Datenexport */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                  <Download className="h-5 w-5 text-blue-600" />
+                  Art. 15 DSGVO: Recht auf Auskunft
+                </h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Exportiert alle gespeicherten Daten des Benutzers als JSON-Datei.
+                </p>
+                <button
+                  onClick={handleExportData}
+                  disabled={exportLoading}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  {exportLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Daten exportieren (JSON)
+                </button>
+              </div>
+
+              {/* Dokumente */}
+              {gdprUser.role === 'applicant' && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-orange-600" />
+                    Hochgeladene Dokumente
+                  </h3>
+                  
+                  {gdprLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                    </div>
+                  ) : gdprDocuments.length > 0 ? (
+                    <div className="space-y-2">
+                      {gdprDocuments.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center gap-3">
+                            <File className="h-5 w-5 text-gray-400" />
+                            <div>
+                              <p className="font-medium text-gray-900">{doc.type_label}</p>
+                              <p className="text-sm text-gray-500">
+                                {doc.original_name} • {doc.file_size_kb} KB
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Dokument löschen"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm py-4">
+                      Keine Dokumente vorhanden.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* DSGVO Art. 17: Datenlöschung */}
+              <div className="border-t pt-6">
+                <h3 className="font-semibold text-red-600 mb-2 flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  Art. 17 DSGVO: Recht auf Löschung
+                </h3>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-red-800 mb-2">
+                    <strong>Achtung:</strong> Diese Aktion löscht alle personenbezogenen Daten:
+                  </p>
+                  <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+                    <li>Alle hochgeladenen Dokumente (Lebenslauf, Reisepass etc.)</li>
+                    <li>Bewerbungen und IJP-Aufträge</li>
+                    <li>Persönliche Profildaten werden anonymisiert</li>
+                    <li>E-Mail-Adresse wird anonymisiert</li>
+                  </ul>
+                  <p className="text-sm text-red-800 mt-2">
+                    Der Account-Eintrag bleibt für Audit-Zwecke anonymisiert bestehen.
+                  </p>
+                </div>
+                <button
+                  onClick={handleDeleteAllData}
+                  disabled={deleteLoading}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {deleteLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Alle personenbezogenen Daten löschen
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

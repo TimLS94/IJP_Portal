@@ -7,8 +7,16 @@ import toast from 'react-hot-toast';
 import { 
   MapPin, Calendar, Building2, Euro, Clock, Globe, 
   ArrowLeft, Send, CheckCircle, Languages, AlertTriangle, FileText, Loader2, ClipboardList,
-  Sparkles, TrendingUp, TrendingDown, Minus, User, Phone, Mail, Briefcase, ListTodo
+  Sparkles, TrendingUp, TrendingDown, Minus, User, Phone, Mail, Briefcase, ListTodo, Globe2
 } from 'lucide-react';
+
+// Verfügbare Sprachen
+const JOB_LANGUAGES = [
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+];
 
 const positionTypeColors = {
   studentenferienjob: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -66,12 +74,16 @@ function JobDetail() {
   };
   const { id } = useParams();
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   const { isAuthenticated, isApplicant } = useAuth();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const [message, setMessage] = useState('');
+  
+  // Mehrsprachige Anzeige
+  const [displayLanguage, setDisplayLanguage] = useState('de');
   
   // Bewerbungsvoraussetzungen
   const [requirements, setRequirements] = useState(null);
@@ -80,6 +92,34 @@ function JobDetail() {
   // Matching Score
   const [matchScore, setMatchScore] = useState(null);
   const [matchLoading, setMatchLoading] = useState(false);
+  
+  // Helper: Text in der gewählten Sprache abrufen (mit Fallback auf Deutsch)
+  const getTranslatedText = (field) => {
+    if (!job) return '';
+    
+    // Wenn Deutsch gewählt oder keine Übersetzung vorhanden, Hauptfelder verwenden
+    if (displayLanguage === 'de') {
+      return job[field] || '';
+    }
+    
+    // Übersetzung aus translations abrufen
+    const translation = job.translations?.[displayLanguage]?.[field];
+    if (translation) {
+      return translation;
+    }
+    
+    // Fallback auf Deutsch
+    return job[field] || '';
+  };
+  
+  // Sprache beim Laden basierend auf Browser-Sprache setzen
+  useEffect(() => {
+    if (job?.available_languages?.includes(i18n.language)) {
+      setDisplayLanguage(i18n.language);
+    } else {
+      setDisplayLanguage('de');
+    }
+  }, [job, i18n.language]);
 
   useEffect(() => {
     loadJob();
@@ -190,8 +230,36 @@ function JobDetail() {
         {/* Hauptinhalt */}
         <div className="lg:col-span-2 space-y-6">
           <div className="card">
+            {/* Sprachauswahl - nur wenn mehrere Sprachen verfügbar */}
+            {job.available_languages?.length > 1 && (
+              <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+                <Globe2 className="h-5 w-5 text-indigo-600" />
+                <span className="text-sm text-gray-600 mr-2">Sprache:</span>
+                <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+                  {job.available_languages.map((langCode) => {
+                    const lang = JOB_LANGUAGES.find(l => l.code === langCode);
+                    if (!lang) return null;
+                    return (
+                      <button
+                        key={langCode}
+                        onClick={() => setDisplayLanguage(langCode)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                          displayLanguage === langCode
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <span>{lang.flag}</span>
+                        <span className="hidden sm:inline">{lang.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
             <div className="flex items-start justify-between gap-4 mb-4">
-              <h1 className="text-3xl font-bold text-gray-900">{job.title}</h1>
+              <h1 className="text-3xl font-bold text-gray-900">{getTranslatedText('title')}</h1>
               <span className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap border ${positionTypeColors[job.position_type]}`}>
                 {positionTypeLabels[job.position_type]}
               </span>
@@ -224,30 +292,36 @@ function JobDetail() {
             </div>
 
             <div className="prose max-w-none">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Beschreibung</h3>
-              <p className="text-gray-600 whitespace-pre-wrap">{job.description}</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {t('jobDetail.description', 'Beschreibung')}
+              </h3>
+              <p className="text-gray-600 whitespace-pre-wrap">{getTranslatedText('description')}</p>
 
-              {job.tasks && (
+              {(job.tasks || job.translations?.[displayLanguage]?.tasks) && (
                 <>
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2 flex items-center gap-2">
                     <ListTodo className="h-5 w-5 text-purple-600" />
-                    Aufgaben
+                    {t('jobDetail.tasks', 'Aufgaben')}
                   </h3>
-                  <p className="text-gray-600 whitespace-pre-wrap">{job.tasks}</p>
+                  <p className="text-gray-600 whitespace-pre-wrap">{getTranslatedText('tasks')}</p>
                 </>
               )}
 
-              {job.requirements && (
+              {(job.requirements || job.translations?.[displayLanguage]?.requirements) && (
                 <>
-                  <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2">Anforderungen</h3>
-                  <p className="text-gray-600 whitespace-pre-wrap">{job.requirements}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2">
+                    {t('jobDetail.requirements', 'Anforderungen')}
+                  </h3>
+                  <p className="text-gray-600 whitespace-pre-wrap">{getTranslatedText('requirements')}</p>
                 </>
               )}
 
-              {job.benefits && (
+              {(job.benefits || job.translations?.[displayLanguage]?.benefits) && (
                 <>
-                  <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2">Wir bieten</h3>
-                  <p className="text-gray-600 whitespace-pre-wrap">{job.benefits}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2">
+                    {t('jobDetail.benefits', 'Wir bieten')}
+                  </h3>
+                  <p className="text-gray-600 whitespace-pre-wrap">{getTranslatedText('benefits')}</p>
                 </>
               )}
 

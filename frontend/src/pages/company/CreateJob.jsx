@@ -7,9 +7,17 @@ import toast from 'react-hot-toast';
 import { 
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
   Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
-  ListTodo, Award, Gift, FileText
+  ListTodo, Award, Gift, FileText, Globe
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+// Verfügbare Sprachen für Stellenausschreibungen
+const JOB_LANGUAGES = [
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+];
 
 // Vollständige Liste aller Sprachen der Welt
 const allLanguages = [
@@ -83,6 +91,17 @@ function CreateJob() {
   const [saving, setSaving] = useState(false);
   const [otherLanguages, setOtherLanguages] = useState([]);
   const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90, archive_deletion_days: 90 });
+  
+  // Mehrsprachige Inhalte
+  const [activeLanguage, setActiveLanguage] = useState('de');
+  const [enabledLanguages, setEnabledLanguages] = useState(['de']); // Deutsch ist immer aktiviert
+  const [translations, setTranslations] = useState({
+    de: { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+    en: { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+    es: { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+    ru: { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+  });
+  
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
       german_required: 'not_required',
@@ -152,6 +171,27 @@ function CreateJob() {
     setOtherLanguages(updated);
   };
 
+  // Übersetzungen verwalten
+  const toggleLanguage = (langCode) => {
+    if (langCode === 'de') return; // Deutsch ist immer aktiv
+    if (enabledLanguages.includes(langCode)) {
+      setEnabledLanguages(enabledLanguages.filter(l => l !== langCode));
+      if (activeLanguage === langCode) setActiveLanguage('de');
+    } else {
+      setEnabledLanguages([...enabledLanguages, langCode]);
+    }
+  };
+
+  const updateTranslation = (field, value) => {
+    setTranslations({
+      ...translations,
+      [activeLanguage]: {
+        ...translations[activeLanguage],
+        [field]: value
+      }
+    });
+  };
+
   // Konvertiert deutsche Zahlenformate (Komma) zu Float
   const parseGermanNumber = (value) => {
     if (!value) return null;
@@ -162,6 +202,18 @@ function CreateJob() {
   };
 
   const onSubmit = async (data) => {
+    // Validierung der deutschen Pflichtfelder
+    if (!translations.de.title?.trim()) {
+      toast.error('Bitte geben Sie einen Stellentitel (Deutsch) ein');
+      setActiveLanguage('de');
+      return;
+    }
+    if (!translations.de.description?.trim()) {
+      toast.error('Bitte geben Sie eine Stellenbeschreibung (Deutsch) ein');
+      setActiveLanguage('de');
+      return;
+    }
+    
     setSaving(true);
     try {
       // Leere Strings zu null konvertieren
@@ -194,6 +246,26 @@ function CreateJob() {
       
       // Sprachanforderungen hinzufügen
       cleanData.other_languages_required = otherLanguages.filter(l => l.language);
+      
+      // Deutsche Werte aus translations für Hauptfelder
+      cleanData.title = translations.de.title;
+      cleanData.description = translations.de.description;
+      cleanData.tasks = translations.de.tasks;
+      cleanData.requirements = translations.de.requirements;
+      cleanData.benefits = translations.de.benefits;
+      
+      // Mehrsprachige Inhalte - nur aktivierte Sprachen (außer Deutsch)
+      const translationsToSend = {};
+      enabledLanguages.filter(l => l !== 'de').forEach(lang => {
+        // Nur hinzufügen wenn mindestens ein Feld ausgefüllt ist
+        const trans = translations[lang];
+        if (trans.title || trans.description || trans.tasks || trans.requirements || trans.benefits) {
+          translationsToSend[lang] = trans;
+        }
+      });
+      
+      cleanData.translations = translationsToSend;
+      cleanData.available_languages = enabledLanguages;
       
       await jobsAPI.create(cleanData);
       toast.success('Stellenangebot erstellt!');
@@ -228,22 +300,93 @@ function CreateJob() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        {/* ========== 1. GRUNDINFORMATIONEN ========== */}
+        {/* ========== 0. SPRACH-AUSWAHL ========== */}
+        <div className="card border-l-4 border-l-indigo-500">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <Globe className="h-5 w-5 text-indigo-600" />
+            Mehrsprachige Stellenausschreibung
+          </h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Erstellen Sie Ihre Stellenausschreibung in mehreren Sprachen. Deutsch ist Pflicht, weitere Sprachen sind optional.
+          </p>
+          
+          {/* Sprachen aktivieren/deaktivieren */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {JOB_LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => toggleLanguage(lang.code)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  enabledLanguages.includes(lang.code)
+                    ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-300'
+                    : 'bg-gray-100 text-gray-500 border-2 border-transparent hover:bg-gray-200'
+                } ${lang.code === 'de' ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                disabled={lang.code === 'de'}
+              >
+                <span className="text-xl">{lang.flag}</span>
+                <span>{lang.name}</span>
+                {enabledLanguages.includes(lang.code) && lang.code !== 'de' && (
+                  <span className="text-xs bg-indigo-200 px-1.5 py-0.5 rounded">✓</span>
+                )}
+              </button>
+            ))}
+          </div>
+          
+          {enabledLanguages.length > 1 && (
+            <p className="text-indigo-700 text-sm bg-indigo-50 rounded-lg p-3">
+              <Globe className="h-4 w-4 inline mr-1" />
+              <strong>{enabledLanguages.length} Sprachen aktiviert.</strong> Bewerber können zwischen den Sprachen wechseln, um die Stelle in ihrer bevorzugten Sprache zu lesen.
+            </p>
+          )}
+        </div>
+
+        {/* ========== 1. GRUNDINFORMATIONEN MIT SPRACH-TABS ========== */}
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary-600" />
             Grundinformationen
           </h2>
+          
+          {/* Sprach-Tabs für Bearbeitung */}
+          {enabledLanguages.length > 1 && (
+            <div className="flex gap-1 mb-6 p-1 bg-gray-100 rounded-lg w-fit">
+              {enabledLanguages.map((langCode) => {
+                const lang = JOB_LANGUAGES.find(l => l.code === langCode);
+                return (
+                  <button
+                    key={langCode}
+                    type="button"
+                    onClick={() => setActiveLanguage(langCode)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      activeLanguage === langCode
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>{lang?.flag}</span>
+                    <span>{lang?.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          
           <div className="space-y-4">
+            {/* Stellentitel - mehrsprachig */}
             <div>
-              <label className="label">Stellentitel *</label>
+              <label className="label">
+                Stellentitel * 
+                {activeLanguage !== 'de' && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
+              </label>
               <input
                 type="text"
                 className="input-styled"
-                placeholder="z.B. Erntehelfer für Obstbau"
-                {...register('title', { required: 'Titel ist erforderlich' })}
+                placeholder={activeLanguage === 'de' ? 'z.B. Erntehelfer für Obstbau' : `Titel auf ${JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name}...`}
+                value={translations[activeLanguage].title}
+                onChange={(e) => updateTranslation('title', e.target.value)}
               />
-              {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
+              {activeLanguage === 'de' && !translations.de.title && <p className="text-red-500 text-sm mt-1">Titel ist erforderlich</p>}
             </div>
             
             <div className="grid md:grid-cols-2 gap-4">
@@ -285,16 +428,21 @@ function CreateJob() {
               </div>
             </div>
             
+            {/* Stellenbeschreibung - mehrsprachig */}
             <div>
-              <label className="label">Stellenbeschreibung *</label>
+              <label className="label">
+                Stellenbeschreibung *
+                {activeLanguage !== 'de' && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
+              </label>
               <textarea
                 className="input-styled"
                 rows={6}
-                placeholder="Beschreiben Sie die Stelle allgemein. Was erwartet die Bewerber?"
-                {...register('description', { required: 'Beschreibung ist erforderlich' })}
+                placeholder={activeLanguage === 'de' ? 'Beschreiben Sie die Stelle allgemein. Was erwartet die Bewerber?' : `Beschreibung auf ${JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name}...`}
+                value={translations[activeLanguage].description}
+                onChange={(e) => updateTranslation('description', e.target.value)}
               />
               <p className="text-gray-500 text-xs mt-1">Absätze und Zeilenumbrüche werden übernommen.</p>
-              {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
+              {activeLanguage === 'de' && !translations.de.description && <p className="text-red-500 text-sm mt-1">Beschreibung ist erforderlich</p>}
             </div>
           </div>
         </div>
@@ -304,29 +452,72 @@ function CreateJob() {
           <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
             <ListTodo className="h-5 w-5 text-purple-600" />
             Aufgaben & Anforderungen
+            {activeLanguage !== 'de' && <span className="text-sm font-normal text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
           </h2>
           <p className="text-gray-600 mb-6 text-sm">
             Beschreiben Sie die Aufgaben und welche Qualifikationen benötigt werden.
           </p>
           
+          {/* Sprach-Tabs (wenn mehrere Sprachen) */}
+          {enabledLanguages.length > 1 && (
+            <div className="flex gap-1 mb-4 p-1 bg-gray-100 rounded-lg w-fit">
+              {enabledLanguages.map((langCode) => {
+                const lang = JOB_LANGUAGES.find(l => l.code === langCode);
+                return (
+                  <button
+                    key={langCode}
+                    type="button"
+                    onClick={() => setActiveLanguage(langCode)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      activeLanguage === langCode
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>{lang?.flag}</span>
+                    <span>{lang?.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          
           <div className="space-y-4">
-            <FormattedTextarea
-              label="Aufgaben"
-              name="tasks"
-              register={register}
-              rows={5}
-              placeholder="Was sind die Hauptaufgaben dieser Stelle?&#10;&#10;- Aufgabe 1&#10;- Aufgabe 2&#10;- Aufgabe 3"
-              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
-            />
+            {/* Aufgaben - mehrsprachig */}
+            <div>
+              <label className="label">Aufgaben</label>
+              <textarea
+                className="input-styled"
+                rows={5}
+                placeholder={activeLanguage === 'de' 
+                  ? "Was sind die Hauptaufgaben dieser Stelle?\n\n- Aufgabe 1\n- Aufgabe 2\n- Aufgabe 3"
+                  : `Aufgaben auf ${JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name}...`}
+                value={translations[activeLanguage].tasks}
+                onChange={(e) => updateTranslation('tasks', e.target.value)}
+              />
+              <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
+              </p>
+            </div>
             
-            <FormattedTextarea
-              label="Anforderungen"
-              name="requirements"
-              register={register}
-              rows={5}
-              placeholder="Welche Qualifikationen und Fähigkeiten werden benötigt?&#10;&#10;- Körperliche Belastbarkeit&#10;- Teamfähigkeit&#10;- Zuverlässigkeit"
-              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
-            />
+            {/* Anforderungen - mehrsprachig */}
+            <div>
+              <label className="label">Anforderungen</label>
+              <textarea
+                className="input-styled"
+                rows={5}
+                placeholder={activeLanguage === 'de' 
+                  ? "Welche Qualifikationen und Fähigkeiten werden benötigt?\n\n- Körperliche Belastbarkeit\n- Teamfähigkeit\n- Zuverlässigkeit"
+                  : `Anforderungen auf ${JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name}...`}
+                value={translations[activeLanguage].requirements}
+                onChange={(e) => updateTranslation('requirements', e.target.value)}
+              />
+              <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
+              </p>
+            </div>
           </div>
         </div>
 
@@ -617,16 +808,51 @@ function CreateJob() {
             </div>
           </div>
 
-          {/* Benefits */}
+          {/* Benefits - mehrsprachig */}
           <div className="border-t pt-4">
-            <FormattedTextarea
-              label="Benefits / Wir bieten"
-              name="benefits"
-              register={register}
-              rows={4}
-              placeholder="Was bieten Sie den Bewerbern?&#10;&#10;- Unterkunft&#10;- Verpflegung&#10;- Fahrtkostenzuschuss&#10;- Flexible Arbeitszeiten"
-              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
-            />
+            {/* Sprach-Tabs (wenn mehrere Sprachen) */}
+            {enabledLanguages.length > 1 && (
+              <div className="flex gap-1 mb-4 p-1 bg-gray-100 rounded-lg w-fit">
+                {enabledLanguages.map((langCode) => {
+                  const lang = JOB_LANGUAGES.find(l => l.code === langCode);
+                  return (
+                    <button
+                      key={langCode}
+                      type="button"
+                      onClick={() => setActiveLanguage(langCode)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                        activeLanguage === langCode
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <span>{lang?.flag}</span>
+                      <span>{lang?.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            
+            <div>
+              <label className="label">
+                Benefits / Wir bieten
+                {activeLanguage !== 'de' && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
+              </label>
+              <textarea
+                className="input-styled"
+                rows={4}
+                placeholder={activeLanguage === 'de' 
+                  ? "Was bieten Sie den Bewerbern?\n\n- Unterkunft\n- Verpflegung\n- Fahrtkostenzuschuss\n- Flexible Arbeitszeiten"
+                  : `Benefits auf ${JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name}...`}
+                value={translations[activeLanguage].benefits}
+                onChange={(e) => updateTranslation('benefits', e.target.value)}
+              />
+              <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
+              </p>
+            </div>
           </div>
         </div>
 

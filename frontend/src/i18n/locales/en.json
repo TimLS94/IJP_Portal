@@ -856,7 +856,34 @@
       "positionTypeRequired": "Job type is required",
       "descriptionRequired": "Description is required",
       "minimumWage": "The wage must not be below {{wage}}€"
+    },
+    "multiLanguage": {
+      "title": "Multilingual Job Listing",
+      "description": "Create your job listing in multiple languages. German is required, additional languages are optional.",
+      "languageEnabled": "Languages enabled",
+      "languageHint": "Applicants can switch between languages to read the job in their preferred language."
     }
+  },
+  "jobDetail": {
+    "description": "Description",
+    "tasks": "Tasks",
+    "requirements": "Requirements",
+    "benefits": "We Offer",
+    "workLocation": "Work Location",
+    "languageRequirements": "Language Requirements",
+    "contactPerson": "Contact Person",
+    "details": "Details",
+    "salary": "Salary",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "publishedAt": "Published on",
+    "applyNow": "Apply Now",
+    "applicationSubmitted": "Application Submitted!",
+    "trackStatus": "You can track the status in your profile.",
+    "toMyApplications": "To My Applications",
+    "aboutCompany": "About the Company",
+    "language": "Language",
+    "backToJobs": "Back to Job Listings"
   },
   "companyRequest": {
     "title": "Request IJP Service",

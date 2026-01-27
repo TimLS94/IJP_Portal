@@ -810,7 +810,34 @@
       "positionTypeRequired": "El tipo de empleo es requerido",
       "descriptionRequired": "La descripción es requerida",
       "minimumWage": "El salario no puede ser inferior a {{wage}}€"
+    },
+    "multiLanguage": {
+      "title": "Oferta de empleo multilingüe",
+      "description": "Cree su oferta de empleo en varios idiomas. El alemán es obligatorio, los idiomas adicionales son opcionales.",
+      "languageEnabled": "Idiomas habilitados",
+      "languageHint": "Los candidatos pueden cambiar entre idiomas para leer la oferta en su idioma preferido."
     }
+  },
+  "jobDetail": {
+    "description": "Descripción",
+    "tasks": "Tareas",
+    "requirements": "Requisitos",
+    "benefits": "Ofrecemos",
+    "workLocation": "Lugar de trabajo",
+    "languageRequirements": "Requisitos de idioma",
+    "contactPerson": "Persona de contacto",
+    "details": "Detalles",
+    "salary": "Salario",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "publishedAt": "Publicado el",
+    "applyNow": "Solicitar ahora",
+    "applicationSubmitted": "¡Solicitud enviada!",
+    "trackStatus": "Puede seguir el estado en su perfil.",
+    "toMyApplications": "A mis solicitudes",
+    "aboutCompany": "Sobre la empresa",
+    "language": "Idioma",
+    "backToJobs": "Volver a las ofertas"
   },
   "companyRequest": {
     "title": "Solicitar servicio IJP",

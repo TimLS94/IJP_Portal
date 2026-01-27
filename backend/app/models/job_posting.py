@@ -96,6 +96,12 @@ class JobPosting(Base):
     deadline = Column(Date)  # Bewerbungsschluss
     archived_at = Column(DateTime)  # Wann archiviert
     
+    # ========== MEHRSPRACHIGE INHALTE ==========
+    # Struktur: {"en": {"title": "...", "description": "...", "tasks": "...", "requirements": "...", "benefits": "..."}, "es": {...}, "ru": {...}}
+    # Die Hauptfelder (title, description etc.) sind der deutsche Fallback
+    translations = Column(JSON, default={})
+    available_languages = Column(JSON, default=["de"])  # Liste der verfügbaren Sprachen für diese Stelle
+    
     # Relationships
     company = relationship("Company", back_populates="job_postings")
     applications = relationship("Application", back_populates="job_posting")
