@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { applicantAPI, documentsAPI, downloadBlob } from '../../lib/api';
+import { getNationalities } from '../../data/nationalities';
 import toast from 'react-hot-toast';
 import { 
   User, Save, Loader2, GraduationCap, Building2, Languages, MapPin, Briefcase,
@@ -51,29 +52,7 @@ const allLanguages = [
   'Vietnamesisch', 'Walisisch', 'Xhosa', 'Yoruba', 'Zulu'
 ];
 
-// Vollständige Liste aller Nationalitäten
-const allNationalities = [
-  'Afghanisch', 'Ägyptisch', 'Albanisch', 'Algerisch', 'Amerikanisch', 'Andorranisch', 'Angolanisch', 'Antiguanisch', 'Äquatorialguineisch', 'Argentinisch', 'Armenisch', 'Aserbaidschanisch', 'Äthiopisch', 'Australisch',
-  'Bahamaisch', 'Bahrainisch', 'Bangladeschisch', 'Barbadisch', 'Belarussisch', 'Belgisch', 'Belizisch', 'Beninisch', 'Bhutanisch', 'Bolivianisch', 'Bosnisch-Herzegowinisch', 'Botsuanisch', 'Brasilianisch', 'Britisch', 'Bruneiisch', 'Bulgarisch', 'Burkinisch', 'Burundisch',
-  'Chilenisch', 'Chinesisch', 'Costa-ricanisch', 'Dänisch', 'Deutsch', 'Dominikanisch', 'Dschibutisch',
-  'Ecuadorianisch', 'Salvadorianisch', 'Eritreisch', 'Estnisch', 'Eswatinisch',
-  'Fidschi', 'Finnisch', 'Französisch',
-  'Gabunisch', 'Gambisch', 'Georgisch', 'Ghanaisch', 'Grenadisch', 'Griechisch', 'Guatemaltekisch', 'Guineisch', 'Guinea-bissauisch', 'Guyanisch',
-  'Haitianisch', 'Honduranisch',
-  'Indisch', 'Indonesisch', 'Irakisch', 'Iranisch', 'Irisch', 'Isländisch', 'Israelisch', 'Italienisch', 'Ivorisch',
-  'Jamaikanisch', 'Japanisch', 'Jemenitisch', 'Jordanisch',
-  'Kambodschanisch', 'Kamerunisch', 'Kanadisch', 'Kapverdisch', 'Kasachisch', 'Katarisch', 'Kenianisch', 'Kirgisisch', 'Kiribatisch', 'Kolumbianisch', 'Komorisch', 'Kongolesisch', 'Kosovarisch', 'Kroatisch', 'Kubanisch', 'Kuwaitisch',
-  'Laotisch', 'Lesothisch', 'Lettisch', 'Libanesisch', 'Liberianisch', 'Libysch', 'Liechtensteinisch', 'Litauisch', 'Luxemburgisch',
-  'Madagassisch', 'Malawisch', 'Malaysisch', 'Maledivisch', 'Malisch', 'Maltesisch', 'Marokkanisch', 'Marshallisch', 'Mauretanisch', 'Mauritisch', 'Mazedonisch', 'Mexikanisch', 'Mikronesisch', 'Moldauisch', 'Monegassisch', 'Mongolisch', 'Montenegrinisch', 'Mosambikanisch', 'Myanmarisch',
-  'Namibisch', 'Nauruisch', 'Nepalesisch', 'Neuseeländisch', 'Nicaraguanisch', 'Niederländisch', 'Nigerianisch', 'Nigrisch', 'Nordkoreanisch', 'Norwegisch',
-  'Omanisch', 'Österreichisch',
-  'Pakistanisch', 'Palauisch', 'Palästinensisch', 'Panamaisch', 'Papua-neuguineisch', 'Paraguayisch', 'Peruanisch', 'Philippinisch', 'Polnisch', 'Portugiesisch',
-  'Ruandisch', 'Rumänisch', 'Russisch',
-  'Salomonisch', 'Sambisch', 'Samoanisch', 'San-marinesisch', 'São-toméisch', 'Saudi-arabisch', 'Schwedisch', 'Schweizerisch', 'Senegalesisch', 'Serbisch', 'Seychellisch', 'Sierra-leonisch', 'Simbabwisch', 'Singapurisch', 'Slowakisch', 'Slowenisch', 'Somalisch', 'Spanisch', 'Sri-lankisch', 'Südafrikanisch', 'Sudanesisch', 'Südkoreanisch', 'Südsudanesisch', 'Surinamisch', 'Syrisch',
-  'Tadschikisch', 'Tansanisch', 'Thailändisch', 'Timoresisch', 'Togoisch', 'Tongaisch', 'Trinidadisch', 'Tschadisch', 'Tschechisch', 'Tunesisch', 'Türkisch', 'Turkmenisch', 'Tuvaluisch',
-  'Ugandisch', 'Ukrainisch', 'Ungarisch', 'Uruguayisch', 'Usbekisch',
-  'Vanuatuisch', 'Vatikanisch', 'Venezolanisch', 'Vietnamesisch', 'Zentralafrikanisch', 'Zyprisch'
-];
+// Nationalitäten werden aus der separaten Datei geladen und basierend auf der UI-Sprache angezeigt
 
 // Dokumenttypen mit Icons
 const documentTypeIcons = {
@@ -113,7 +92,7 @@ function CustomSelect({ value, onChange, options, placeholder, className = '' })
 
 function ApplicantProfile() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(null);
@@ -896,14 +875,13 @@ function ApplicantProfile() {
               {errors.date_of_birth && <p className="text-red-500 text-sm mt-1">{errors.date_of_birth.message}</p>}
             </div>
             <div>
-              <label className="label">{t('applicant.placeOfBirth')} *</label>
+              <label className="label">{t('applicant.placeOfBirth')}</label>
               <input
                 type="text"
                 className="input-styled"
                 placeholder={t('profile.placeholders.placeOfBirth')}
-                {...register('place_of_birth', { required: t('profile.errors.placeOfBirthRequired') })}
+                {...register('place_of_birth')}
               />
-              {errors.place_of_birth && <p className="text-red-500 text-sm mt-1">{errors.place_of_birth.message}</p>}
             </div>
             <div>
               <label className="label">{t('gender.label')} *</label>
@@ -924,7 +902,7 @@ function ApplicantProfile() {
               <CustomSelect
                 value={watch('nationality') || ''}
                 onChange={(e) => setValue('nationality', e.target.value)}
-                options={allNationalities.map(n => ({ value: n, label: n }))}
+                options={getNationalities(i18n.language).map(n => ({ value: n, label: n }))}
                 placeholder={t('profile.placeholders.nationality')}
               />
               {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality.message}</p>}
