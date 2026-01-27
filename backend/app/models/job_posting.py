@@ -53,8 +53,8 @@ class JobPosting(Base):
     
     # Stelleninformationen
     title = Column(String(255), nullable=False)
-    position_type = Column(Enum(PositionType), nullable=False)
-    employment_type = Column(Enum(EmploymentType))  # NEU: Vollzeit/Teilzeit
+    position_type = Column(Enum(PositionType, values_callable=lambda x: [e.value for e in x]), nullable=False)
+    employment_type = Column(Enum(EmploymentType, values_callable=lambda x: [e.value for e in x]))  # NEU: Vollzeit/Teilzeit
     description = Column(Text, nullable=False)
     tasks = Column(Text)  # NEU: Aufgaben
     requirements = Column(Text)
@@ -79,8 +79,8 @@ class JobPosting(Base):
     salary_type = Column(String(50))  # "hourly", "monthly", "yearly"
     
     # ========== SPRACHANFORDERUNGEN ==========
-    german_required = Column(Enum(RequiredLanguageLevel), default=RequiredLanguageLevel.NOT_REQUIRED)
-    english_required = Column(Enum(RequiredLanguageLevel), default=RequiredLanguageLevel.NOT_REQUIRED)
+    german_required = Column(Enum(RequiredLanguageLevel, values_callable=lambda x: [e.value for e in x]), default=RequiredLanguageLevel.NOT_REQUIRED)
+    english_required = Column(Enum(RequiredLanguageLevel, values_callable=lambda x: [e.value for e in x]), default=RequiredLanguageLevel.NOT_REQUIRED)
     other_languages_required = Column(JSON, default=[])  # [{language: "Russisch", level: "basic"}, ...]
     
     # Zusätzliche Anforderungen (JSON für Flexibilität)

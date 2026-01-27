@@ -42,7 +42,7 @@ class BlogPost(Base):
     content = Column(Text, nullable=False)  # Markdown-Inhalt
     
     # Kategorisierung
-    category = Column(Enum(BlogCategory, values_callable=lambda obj: [e.value for e in obj]), default=BlogCategory.NEWS)
+    category = Column(Enum(BlogCategory, values_callable=lambda x: [e.value for e in x]), default=BlogCategory.NEWS)
     tags = Column(String(500))  # Komma-getrennte Tags
     
     # SEO

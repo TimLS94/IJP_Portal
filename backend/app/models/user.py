@@ -17,7 +17,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(Enum(UserRole, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
+    role = Column(Enum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

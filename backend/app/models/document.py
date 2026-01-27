@@ -137,7 +137,7 @@ class Document(Base):
     applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False)
     
     # Datei-Informationen
-    document_type = Column(Enum(DocumentType, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
+    document_type = Column(Enum(DocumentType, values_callable=lambda x: [e.value for e in x]), nullable=False)
     file_name = Column(String(255), nullable=False)
     original_name = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=False)
