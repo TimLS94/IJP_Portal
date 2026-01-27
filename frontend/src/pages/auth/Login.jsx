@@ -34,7 +34,7 @@ function Login() {
       
       // Spezielle Fehlermeldung für deaktivierte Benutzer (Firmen)
       if (errorDetail === 'Benutzer ist deaktiviert') {
-        toast.error('Ihr Konto wurde noch nicht freigeschaltet. Bitte warten Sie auf die Aktivierung durch einen Administrator.', {
+        toast.error(t('auth.accountNotActivated'), {
           duration: 6000,
           icon: '⏳'
         });
@@ -54,7 +54,7 @@ function Login() {
             <img src="/logo.png" alt="IJP" className="h-16 w-auto mx-auto" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">{t('auth.login')}</h1>
-          <p className="text-gray-600 mt-1">Willkommen zurück!</p>
+          <p className="text-gray-600 mt-1">{t('auth.welcomeBack')}</p>
         </div>
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -82,7 +82,7 @@ function Login() {
             <div className="flex justify-between items-center">
               <label className="label">{t('auth.password')}</label>
               <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700">
-                Passwort vergessen?
+                {t('auth.forgotPassword')}
               </Link>
             </div>
             <div className="relative">

@@ -50,19 +50,18 @@ function Register() {
           <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <Clock className="h-10 w-10 text-amber-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Registrierung erfolgreich!</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">{t('auth.registrationSuccess')}</h1>
           <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 text-left">
-            <p className="text-amber-800 font-medium mb-2">⏳ Warten auf Freischaltung</p>
+            <p className="text-amber-800 font-medium mb-2">⏳ {t('auth.waitingForApproval')}</p>
             <p className="text-amber-700 text-sm">
-              Ihr Unternehmenskonto wird derzeit von unserem Team geprüft. 
-              Sie erhalten eine E-Mail-Benachrichtigung, sobald Ihr Konto freigeschaltet wurde.
+              {t('auth.companyPendingMessage')}
             </p>
           </div>
           <p className="text-gray-600 mb-6">
-            Dieser Prozess dauert in der Regel 1-2 Werktage.
+            {t('auth.approvalDuration')}
           </p>
           <Link to="/" className="btn-primary inline-block">
-            Zurück zur Startseite
+            {t('auth.backToHome')}
           </Link>
         </div>
       </div>
@@ -77,7 +76,7 @@ function Register() {
             <img src="/logo.png" alt="IJP" className="h-16 w-auto mx-auto" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">{t('auth.register')}</h1>
-          <p className="text-gray-600 mt-1">Erstellen Sie Ihr Konto</p>
+          <p className="text-gray-600 mt-1">{t('auth.createAccount')}</p>
         </div>
         
         {/* User Type Selector */}
@@ -99,7 +98,7 @@ function Register() {
             }`}>
               {t('auth.applicant')}
             </span>
-            <span className="text-xs text-gray-500">Ich suche Arbeit</span>
+            <span className="text-xs text-gray-500">{t('auth.seekingJob')}</span>
             {userType === 'applicant' && (
               <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary-600" />
             )}
@@ -121,7 +120,7 @@ function Register() {
             }`}>
               {t('auth.company')}
             </span>
-            <span className="text-xs text-gray-500">Ich suche Mitarbeiter</span>
+            <span className="text-xs text-gray-500">{t('auth.seekingEmployees')}</span>
             {userType === 'company' && (
               <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary-600" />
             )}
@@ -132,36 +131,36 @@ function Register() {
           {userType === 'applicant' ? (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">Vorname</label>
+                <label className="label">{t('auth.firstName')}</label>
                 <input
                   type="text"
                   className="input-styled"
                   placeholder="Max"
-                  {...register('firstName', { required: 'Vorname ist erforderlich' })}
+                  {...register('firstName', { required: t('auth.firstNameRequired') })}
                 />
                 {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
               </div>
               <div>
-                <label className="label">Nachname</label>
+                <label className="label">{t('auth.lastName')}</label>
                 <input
                   type="text"
                   className="input-styled"
                   placeholder="Mustermann"
-                  {...register('lastName', { required: 'Nachname ist erforderlich' })}
+                  {...register('lastName', { required: t('auth.lastNameRequired') })}
                 />
                 {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
               </div>
             </div>
           ) : (
             <div>
-              <label className="label">Firmenname</label>
+              <label className="label">{t('auth.companyNameLabel')}</label>
               <div className="relative">
                 <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
                   className="input-styled pl-12"
                   placeholder="Musterfirma GmbH"
-                  {...register('companyName', { required: 'Firmenname ist erforderlich' })}
+                  {...register('companyName', { required: t('auth.companyNameRequired') })}
                 />
               </div>
               {errors.companyName && <p className="text-red-500 text-sm mt-1">{errors.companyName.message}</p>}
@@ -169,7 +168,7 @@ function Register() {
           )}
 
           <div>
-            <label className="label">E-Mail</label>
+            <label className="label">{t('auth.email')}</label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
@@ -177,10 +176,10 @@ function Register() {
                 className="input-styled pl-12"
                 placeholder="ihre@email.de"
                 {...register('email', {
-                  required: 'E-Mail ist erforderlich',
+                  required: t('auth.emailRequired'),
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Ungültige E-Mail-Adresse'
+                    message: t('auth.emailInvalid')
                   }
                 })}
               />
@@ -189,7 +188,7 @@ function Register() {
           </div>
 
           <div>
-            <label className="label">Passwort</label>
+            <label className="label">{t('auth.password')}</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
@@ -197,10 +196,10 @@ function Register() {
                 className="input-styled pl-12"
                 placeholder="••••••••"
                 {...register('password', {
-                  required: 'Passwort ist erforderlich',
+                  required: t('auth.passwordRequired'),
                   minLength: {
                     value: 6,
-                    message: 'Passwort muss mindestens 6 Zeichen haben'
+                    message: t('auth.passwordMinLength')
                   }
                 })}
               />
@@ -209,7 +208,7 @@ function Register() {
           </div>
 
           <div>
-            <label className="label">Passwort bestätigen</label>
+            <label className="label">{t('auth.confirmPassword')}</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
@@ -217,8 +216,8 @@ function Register() {
                 className="input-styled pl-12"
                 placeholder="••••••••"
                 {...register('confirmPassword', {
-                  required: 'Bitte Passwort bestätigen',
-                  validate: value => value === password || 'Passwörter stimmen nicht überein'
+                  required: t('auth.confirmPasswordRequired'),
+                  validate: value => value === password || t('auth.passwordsMismatch')
                 })}
               />
             </div>
@@ -256,7 +255,7 @@ function Register() {
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              'Registrieren'
+              t('auth.registerButton')
             )}
           </button>
         </form>
