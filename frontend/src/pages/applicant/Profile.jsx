@@ -21,13 +21,13 @@ const positionTypeKeys = [
 ];
 
 const languageLevelKeys = [
-  { value: 'keine', labelKey: 'languageLevels.none' },
-  { value: 'A1', labelKey: 'languageLevels.a1' },
-  { value: 'A2', labelKey: 'languageLevels.a2' },
-  { value: 'B1', labelKey: 'languageLevels.b1' },
-  { value: 'B2', labelKey: 'languageLevels.b2' },
-  { value: 'C1', labelKey: 'languageLevels.c1' },
-  { value: 'C2', labelKey: 'languageLevels.c2' }
+  { value: 'none', labelKey: 'languageLevels.none' },
+  { value: 'a1', labelKey: 'languageLevels.a1' },
+  { value: 'a2', labelKey: 'languageLevels.a2' },
+  { value: 'b1', labelKey: 'languageLevels.b1' },
+  { value: 'b2', labelKey: 'languageLevels.b2' },
+  { value: 'c1', labelKey: 'languageLevels.c1' },
+  { value: 'c2', labelKey: 'languageLevels.c2' }
 ];
 
 // Vollständige Liste aller Sprachen der Welt

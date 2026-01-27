@@ -21,14 +21,14 @@ class Gender(str, enum.Enum):
 
 
 class LanguageLevel(str, enum.Enum):
-    NONE = "keine"
-    A1 = "A1"
-    A2 = "A2"
-    B1 = "B1"
-    B2 = "B2"
-    C1 = "C1"
-    C2 = "C2"
-    NATIVE = "muttersprachlich"
+    NONE = "none"
+    A1 = "a1"
+    A2 = "a2"
+    B1 = "b1"
+    B2 = "b2"
+    C1 = "c1"
+    C2 = "c2"
+    NATIVE = "native"
 
 
 class Applicant(Base):
