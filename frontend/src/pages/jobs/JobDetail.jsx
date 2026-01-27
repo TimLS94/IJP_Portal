@@ -320,7 +320,7 @@ function JobDetail() {
         {/* Hauptinhalt */}
         <div className="lg:col-span-2 space-y-6">
           <div className="card">
-            {/* Sprachauswahl - nur wenn mehrere Sprachen verfügbar */}
+            {/* Sprachauswahl - ändert die gesamte UI-Sprache (wie Navbar) */}
             {job.available_languages?.length > 1 && (
               <div className="flex items-center gap-2 mb-4 pb-4 border-b">
                 <Globe2 className="h-5 w-5 text-indigo-600" />
@@ -332,9 +332,9 @@ function JobDetail() {
                     return (
                       <button
                         key={langCode}
-                        onClick={() => setDisplayLanguage(langCode)}
+                        onClick={() => i18n.changeLanguage(langCode)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                          displayLanguage === langCode
+                          i18n.language === langCode
                             ? 'bg-white text-gray-900 shadow-sm'
                             : 'text-gray-600 hover:text-gray-900'
                         }`}

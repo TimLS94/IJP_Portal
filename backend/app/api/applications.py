@@ -54,18 +54,26 @@ def check_application_requirements(applicant: Applicant, job: JobPosting, db: Se
         except Exception:
             pass  # Ignoriere Fehler beim Formatieren der Warnung
     
+    # Hochgeladene Dokumente holen
+    uploaded_docs = db.query(Document).filter(Document.applicant_id == applicant.id).all()
+    uploaded_types = [doc.document_type.value if hasattr(doc.document_type, 'value') else str(doc.document_type) for doc in uploaded_docs]
+    
+    # CV-PFLICHT: Bei allen Stellen außer Studentenferienjob ist ein Lebenslauf Pflicht
+    job_position_value = job_position.value if hasattr(job_position, 'value') else str(job_position) if job_position else None
+    if job_position_value != 'studentenferienjob':
+        if 'cv' not in uploaded_types:
+            errors.append("Lebenslauf erforderlich: Bitte laden Sie einen Lebenslauf in Ihrem Profil hoch")
+    
     # Pflichtdokumente prüfen (optional - nur wenn Stellenart gesetzt)
     if applicant_position:
         try:
             requirements = DOCUMENT_REQUIREMENTS.get(applicant_position, {})
             required_docs = requirements.get('required', [])
             
-            # Hochgeladene Dokumente holen
-            uploaded_docs = db.query(Document).filter(Document.applicant_id == applicant.id).all()
-            uploaded_types = [doc.document_type for doc in uploaded_docs]
-            
             for req in required_docs:
-                if req.get('type') not in uploaded_types:
+                req_type = req.get('type')
+                req_type_value = req_type.value if hasattr(req_type, 'value') else str(req_type) if req_type else None
+                if req_type_value and req_type_value not in uploaded_types:
                     # Als Warnung, nicht als Fehler - damit Bewerbung trotzdem möglich ist
                     warnings.append(f"Empfohlenes Dokument fehlt: {req.get('name', 'Unbekannt')}")
         except Exception:
