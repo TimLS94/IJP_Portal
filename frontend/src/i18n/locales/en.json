@@ -545,12 +545,12 @@
   },
   "languageLevels": {
     "none": "None",
-    "a1": "A1 - Beginner",
-    "a2": "A2 - Elementary",
-    "b1": "B1 - Intermediate",
-    "b2": "B2 - Upper Intermediate",
-    "c1": "C1 - Advanced",
-    "c2": "C2 - Native Level"
+    "a1": "Beginner",
+    "a2": "Elementary",
+    "b1": "Intermediate",
+    "b2": "Upper Intermediate",
+    "c1": "Advanced",
+    "c2": "Native Level"
   },
   "profile": {
     "selectPositionType": "Select the job type you want to apply for.",

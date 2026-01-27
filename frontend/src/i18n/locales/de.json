@@ -546,12 +546,12 @@
   },
   "languageLevels": {
     "none": "Keine",
-    "a1": "A1 - Anfänger",
-    "a2": "A2 - Grundkenntnisse",
-    "b1": "B1 - Mittelstufe",
-    "b2": "B2 - Gute Mittelstufe",
-    "c1": "C1 - Fortgeschritten",
-    "c2": "C2 - Muttersprachlich"
+    "a1": "Anfänger",
+    "a2": "Grundkenntnisse",
+    "b1": "Mittelstufe",
+    "b2": "Gute Mittelstufe",
+    "c1": "Fortgeschritten",
+    "c2": "Muttersprachlich"
   },
   "profile": {
     "selectPositionType": "Wählen Sie die Stellenart, für die Sie sich bewerben möchten.",
