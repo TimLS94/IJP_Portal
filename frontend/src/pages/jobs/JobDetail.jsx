@@ -26,11 +26,7 @@ const positionTypeColors = {
   ausbildung: 'bg-green-100 text-green-800 border-green-200'
 };
 
-const employmentTypeLabels = {
-  fulltime: 'Vollzeit',
-  parttime: 'Teilzeit',
-  both: 'Vollzeit oder Teilzeit'
-};
+// Employment type labels werden jetzt über t() geladen
 
 const languageLevelColors = {
   not_required: 'bg-gray-100 text-gray-600',
@@ -58,19 +54,29 @@ function JobDetail() {
     ausbildung: 'Ausbildung'
   };
 
+  const employmentTypeLabels = {
+    fulltime: t('jobDetail.fulltime'),
+    parttime: t('jobDetail.parttime'),
+    both: t('jobDetail.fulltimeOrParttime')
+  };
+
   const languageLevelLabels = {
     not_required: t('languageLevels.none'),
-    // Neue Werte
-    a1: 'A1 - Grundkenntnisse',
-    a2: 'A2 - Grundkenntnisse',
-    b1: 'B1 - Gute Kenntnisse',
-    b2: 'B2 - Sehr gute Kenntnisse',
-    c1: 'C1 - Fließend',
-    c2: 'C2 - Fließend',
-    // Legacy-Werte
-    basic: 'A2 - Grundkenntnisse',
-    good: 'B1 - Gute Kenntnisse',
-    fluent: 'C1 - Fließend'
+    a1: `A1 - ${t('languageLevels.a1')}`,
+    a2: `A2 - ${t('languageLevels.a2')}`,
+    b1: `B1 - ${t('languageLevels.b1')}`,
+    b2: `B2 - ${t('languageLevels.b2')}`,
+    c1: `C1 - ${t('languageLevels.c1')}`,
+    c2: `C2 - ${t('languageLevels.c2')}`,
+    basic: `A2 - ${t('languageLevels.a2')}`,
+    good: `B1 - ${t('languageLevels.b1')}`,
+    fluent: `C1 - ${t('languageLevels.c1')}`
+  };
+  
+  const salaryTypeLabels = {
+    hourly: t('jobDetail.hourly'),
+    monthly: t('jobDetail.monthly'),
+    yearly: t('jobDetail.yearly')
   };
   const { id } = useParams();
   const navigate = useNavigate();
@@ -138,7 +144,7 @@ function JobDetail() {
       const response = await jobsAPI.get(id);
       setJob(response.data);
     } catch (error) {
-      toast.error('Stellenangebot nicht gefunden');
+      toast.error(t('jobDetail.jobNotFound'));
       navigate('/jobs');
     } finally {
       setLoading(false);
@@ -223,7 +229,7 @@ function JobDetail() {
       {/* Zurück-Button */}
       <Link to="/jobs" className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 group">
         <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-        Zurück zu den Stellenangeboten
+        {t('jobDetail.backToJobs')}
       </Link>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -234,7 +240,7 @@ function JobDetail() {
             {job.available_languages?.length > 1 && (
               <div className="flex items-center gap-2 mb-4 pb-4 border-b">
                 <Globe2 className="h-5 w-5 text-indigo-600" />
-                <span className="text-sm text-gray-600 mr-2">Sprache:</span>
+                <span className="text-sm text-gray-600 mr-2">{t('jobDetail.language')}:</span>
                 <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
                   {job.available_languages.map((langCode) => {
                     const lang = JOB_LANGUAGES.find(l => l.code === langCode);
@@ -286,7 +292,7 @@ function JobDetail() {
               {job.remote_possible && (
                 <span className="flex items-center gap-1.5 text-teal-600">
                   <Globe className="h-5 w-5" />
-                  Remote möglich
+                  {t('jobDetail.remotePossible')}
                 </span>
               )}
             </div>
@@ -330,7 +336,7 @@ function JobDetail() {
                 <>
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2 flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-primary-600" />
-                    Arbeitsort
+                    {t('jobDetail.workLocation')}
                   </h3>
                   <p className="text-gray-600">
                     {job.address}
@@ -347,12 +353,12 @@ function JobDetail() {
             <div className="card border-l-4 border-l-blue-500">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Languages className="h-5 w-5 text-blue-600" />
-                Sprachanforderungen
+                {t('jobDetail.languageRequirements')}
               </h3>
               <div className="grid md:grid-cols-2 gap-4">
                 {job.german_required && job.german_required !== 'not_required' && (
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium text-gray-700">Deutsch</span>
+                    <span className="font-medium text-gray-700">{t('jobDetail.german')}</span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${languageLevelColors[job.german_required]}`}>
                       {languageLevelLabels[job.german_required]}
                     </span>
@@ -360,7 +366,7 @@ function JobDetail() {
                 )}
                 {job.english_required && job.english_required !== 'not_required' && (
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium text-gray-700">Englisch</span>
+                    <span className="font-medium text-gray-700">{t('jobDetail.english')}</span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${languageLevelColors[job.english_required]}`}>
                       {languageLevelLabels[job.english_required]}
                     </span>
@@ -399,7 +405,7 @@ function JobDetail() {
                         ? 'text-yellow-600'
                         : 'text-red-600'
                   }`} />
-                  <h3 className="text-lg font-semibold text-gray-900">Ihr Matching</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('jobDetail.yourMatching')}</h3>
                 </div>
                 {matchScore.total_score >= 70 ? (
                   <TrendingUp className="h-5 w-5 text-green-600" />
@@ -446,23 +452,23 @@ function JobDetail() {
               {matchScore.breakdown && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Positionstyp</span>
+                    <span className="text-gray-600">{t('jobDetail.positionType')}</span>
                     <span className="font-medium">{matchScore.breakdown.position_type}/30</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Deutsch</span>
+                    <span className="text-gray-600">{t('jobDetail.german')}</span>
                     <span className="font-medium">{matchScore.breakdown.german_level}/25</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Englisch</span>
+                    <span className="text-gray-600">{t('jobDetail.english')}</span>
                     <span className="font-medium">{matchScore.breakdown.english_level}/15</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Erfahrung</span>
+                    <span className="text-gray-600">{t('jobDetail.experience')}</span>
                     <span className="font-medium">{matchScore.breakdown.experience}/20</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Verfügbarkeit</span>
+                    <span className="text-gray-600">{t('jobDetail.availability')}</span>
                     <span className="font-medium">{matchScore.breakdown.availability}/10</span>
                   </div>
                 </div>
@@ -471,7 +477,7 @@ function JobDetail() {
               {/* Details */}
               {matchScore.details?.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-600 font-medium mb-2">Details:</p>
+                  <p className="text-sm text-gray-600 font-medium mb-2">{t('jobDetail.details')}:</p>
                   <ul className="text-sm text-gray-600 space-y-1">
                     {matchScore.details.map((detail, i) => (
                       <li key={i}>{detail}</li>
@@ -487,7 +493,7 @@ function JobDetail() {
             <div className="card">
               <div className="flex items-center justify-center gap-2 py-4">
                 <Loader2 className="h-5 w-5 animate-spin text-primary-600" />
-                <span className="text-gray-600">Berechne Matching...</span>
+                <span className="text-gray-600">{t('jobDetail.calculatingMatching')}</span>
               </div>
             </div>
           )}
@@ -497,17 +503,17 @@ function JobDetail() {
             {applied ? (
               <div className="text-center py-4">
                 <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-gray-900">Bewerbung eingereicht!</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('jobDetail.applicationSubmitted')}</h3>
                 <p className="text-gray-600 mt-2">
-                  Sie können den Status in Ihrem Profil verfolgen.
+                  {t('jobDetail.trackStatus')}
                 </p>
                 <Link to="/applicant/applications" className="btn-primary mt-4 inline-block">
-                  Zu meinen Bewerbungen
+                  {t('jobDetail.toMyApplications')}
                 </Link>
               </div>
             ) : (
               <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Jetzt bewerben</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('jobDetail.applyNow')}</h3>
                 
                 {/* Voraussetzungsprüfung für Bewerber */}
                 {isApplicant && (
@@ -515,16 +521,16 @@ function JobDetail() {
                     {requirementsLoading ? (
                       <div className="flex items-center gap-2 text-gray-500 mb-4">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Prüfe Voraussetzungen...
+                        {t('jobDetail.checkingRequirements')}
                       </div>
                     ) : requirements && !requirements.can_apply ? (
                       <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
                         <div className="flex items-start gap-2 text-red-800 mb-2">
                           <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                          <span className="font-semibold">Bewerbung noch nicht möglich</span>
+                          <span className="font-semibold">{t('jobDetail.applicationNotPossible')}</span>
                         </div>
                         <p className="text-sm text-red-700 mb-3">
-                          Bitte vervollständigen Sie zuerst Ihr Profil und laden Sie alle erforderlichen Dokumente hoch:
+                          {t('jobDetail.completeProfileFirst')}
                         </p>
                         <ul className="text-sm text-red-700 space-y-1 mb-3">
                           {requirements.errors.map((error, i) => (
@@ -539,14 +545,14 @@ function JobDetail() {
                             to="/applicant/profile" 
                             className="flex-1 bg-white text-red-700 border border-red-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-50 text-center"
                           >
-                            Profil bearbeiten
+                            {t('jobDetail.editProfile')}
                           </Link>
                           <Link 
                             to="/applicant/documents" 
                             className="flex-1 bg-white text-red-700 border border-red-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-50 text-center flex items-center justify-center gap-1"
                           >
                             <FileText className="h-4 w-4" />
-                            Dokumente
+                            {t('jobDetail.documents')}
                           </Link>
                         </div>
                       </div>
@@ -563,15 +569,15 @@ function JobDetail() {
                         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                           <p className="text-sm text-green-800 flex items-center gap-2">
                             <CheckCircle className="h-4 w-4" />
-                            Alle Voraussetzungen erfüllt!
+                            {t('jobDetail.allRequirementsMet')}
                           </p>
                         </div>
                         <div className="mb-4">
-                          <label className="label">Nachricht (optional)</label>
+                          <label className="label">{t('jobDetail.messageOptional')}</label>
                           <textarea
                             className="input-styled"
                             rows={4}
-                            placeholder="Fügen Sie eine persönliche Nachricht hinzu..."
+                            placeholder={t('jobDetail.addPersonalMessage')}
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                           />
@@ -591,7 +597,7 @@ function JobDetail() {
                   ) : (
                     <>
                       <Send className="h-4 w-4 mr-2" />
-                      Bewerbung einreichen
+                      {t('jobDetail.submitApplication')}
                     </>
                   )}
                 </button>
@@ -599,9 +605,9 @@ function JobDetail() {
                 {!isAuthenticated && (
                   <p className="text-sm text-gray-500 mt-3 text-center">
                     <Link to="/login" className="text-primary-600 hover:underline font-medium">
-                      Anmelden
+                      {t('jobDetail.login')}
                     </Link>
-                    {' '}um sich zu bewerben
+                    {' '}{t('jobDetail.loginToApply')}
                   </p>
                 )}
               </>
@@ -610,7 +616,7 @@ function JobDetail() {
 
           {/* Details Box */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Details</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('jobDetail.details')}</h3>
             <div className="space-y-4">
               {(job.salary_min || job.salary_max) && (
                 <div className="flex items-center gap-3">
@@ -618,11 +624,11 @@ function JobDetail() {
                     <Euro className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Vergütung</p>
+                    <p className="text-sm text-gray-500">{t('jobDetail.salary')}</p>
                     <p className="font-semibold text-gray-900">
                       {job.salary_min?.toLocaleString('de-DE', { minimumFractionDigits: job.salary_min % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€ - {job.salary_max?.toLocaleString('de-DE', { minimumFractionDigits: job.salary_max % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€
                       <span className="text-gray-500 font-normal">
-                        /{job.salary_type === 'hourly' ? 'Stunde' : job.salary_type === 'monthly' ? 'Monat' : 'Jahr'}
+                        /{salaryTypeLabels[job.salary_type] || job.salary_type}
                       </span>
                     </p>
                   </div>
@@ -635,7 +641,7 @@ function JobDetail() {
                     <Calendar className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Startdatum</p>
+                    <p className="text-sm text-gray-500">{t('jobDetail.startDate')}</p>
                     <p className="font-semibold text-gray-900">{formatDate(job.start_date)}</p>
                   </div>
                 </div>
@@ -647,7 +653,7 @@ function JobDetail() {
                     <Clock className="h-5 w-5 text-orange-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Enddatum</p>
+                    <p className="text-sm text-gray-500">{t('jobDetail.endDate')}</p>
                     <p className="font-semibold text-gray-900">{formatDate(job.end_date)}</p>
                   </div>
                 </div>
@@ -658,7 +664,7 @@ function JobDetail() {
                   <Calendar className="h-5 w-5 text-gray-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Veröffentlicht am</p>
+                  <p className="text-sm text-gray-500">{t('jobDetail.publishedAt')}</p>
                   <p className="font-semibold text-gray-900">{formatDate(job.created_at)}</p>
                 </div>
               </div>
@@ -672,18 +678,17 @@ function JobDetail() {
                 <div className="p-2 bg-primary-600 rounded-lg">
                   <ClipboardList className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">IJP beauftragen</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('jobDetail.ijpService')}</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4">
-                Sie möchten, dass wir den passenden Job für Sie finden? 
-                Wir vermitteln Sie an unsere Partnerunternehmen!
+                {t('jobDetail.ijpServiceDesc')}
               </p>
               <Link 
                 to="/applicant/ijp-auftrag" 
                 className="btn-primary w-full flex items-center justify-center gap-2"
               >
                 <ClipboardList className="h-4 w-4" />
-                IJP mit Jobsuche beauftragen
+                {t('jobDetail.ijpServiceButton')}
               </Link>
             </div>
           )}
@@ -694,17 +699,16 @@ function JobDetail() {
                 <div className="p-2 bg-primary-600 rounded-lg">
                   <ClipboardList className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">IJP beauftragen</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('jobDetail.ijpService')}</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4">
-                Lassen Sie uns den passenden Job für Sie finden! 
-                Registrieren Sie sich und beauftragen Sie IJP.
+                {t('jobDetail.ijpServiceDescGuest')}
               </p>
               <Link 
                 to="/register" 
                 className="btn-primary w-full flex items-center justify-center gap-2"
               >
-                Jetzt registrieren
+                {t('jobDetail.registerNow')}
               </Link>
             </div>
           )}
@@ -714,7 +718,7 @@ function JobDetail() {
             <div className="card border-l-4 border-l-green-500">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <User className="h-5 w-5 text-green-600" />
-                Kontaktperson
+                {t('jobDetail.contactPerson')}
               </h3>
               <div className="space-y-3">
                 {job.contact_person && (
@@ -739,7 +743,7 @@ function JobDetail() {
           {/* Firmen-Info */}
           {job.company && (
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Über das Unternehmen</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('jobDetail.aboutCompany')}</h3>
               <p className="font-semibold text-gray-900 text-lg">{job.company.company_name}</p>
               {job.company.industry && (
                 <p className="text-primary-600 font-medium">{job.company.industry}</p>
