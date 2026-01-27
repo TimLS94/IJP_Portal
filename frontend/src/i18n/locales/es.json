@@ -923,6 +923,28 @@
     "registerNow": "Registrarse ahora",
     "jobNotFound": "Oferta de empleo no encontrada"
   },
+  "matching": {
+    "veryGood": "Muy buena coincidencia",
+    "good": "Buena coincidencia",
+    "partial": "Coincidencia parcial",
+    "low": "Poca coincidencia",
+    "positionMatches": "Tipo de puesto coincide",
+    "positionMismatch": "Tipo de puesto no coincide",
+    "germanExceeds": "Conocimientos de alemán superan los requisitos",
+    "germanMeets": "Conocimientos de alemán cumplen los requisitos",
+    "germanBelow": "Conocimientos de alemán por debajo de los requisitos ({{levels}} niveles)",
+    "englishMeets": "Conocimientos de inglés cumplen los requisitos",
+    "englishBelow": "Conocimientos de inglés por debajo de los requisitos",
+    "yearsExperience": "{{years}} años de experiencia",
+    "availabilityMatches": "Disponibilidad coincide"
+  },
+  "requirements": {
+    "fieldMissing": "Campo obligatorio falta: {{field}}",
+    "positionMismatch": "Su tipo de puesto ({{yourType}}) difiere del puesto ({{jobType}})",
+    "selectPositionType": "Por favor seleccione un tipo de puesto en su perfil para una mejor coincidencia",
+    "recommendedDocMissing": "Documento recomendado falta: {{doc}}",
+    "createProfileFirst": "Por favor cree primero su perfil de candidato"
+  },
   "companyRequest": {
     "title": "Solicitar servicio IJP",
     "subtitle": "Déjenos encontrar personal para usted",

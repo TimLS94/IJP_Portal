@@ -969,6 +969,28 @@
     "registerNow": "Register Now",
     "jobNotFound": "Job posting not found"
   },
+  "matching": {
+    "veryGood": "Very good match",
+    "good": "Good match",
+    "partial": "Partial match",
+    "low": "Low match",
+    "positionMatches": "Position type matches",
+    "positionMismatch": "Position type does not match",
+    "germanExceeds": "German skills exceed requirements",
+    "germanMeets": "German skills meet requirements",
+    "germanBelow": "German skills below requirements ({{levels}} levels)",
+    "englishMeets": "English skills meet requirements",
+    "englishBelow": "English skills below requirements",
+    "yearsExperience": "{{years}} years of experience",
+    "availabilityMatches": "Availability matches"
+  },
+  "requirements": {
+    "fieldMissing": "Required field missing: {{field}}",
+    "positionMismatch": "Your position type ({{yourType}}) differs from the job ({{jobType}})",
+    "selectPositionType": "Please select a position type in your profile for better matching",
+    "recommendedDocMissing": "Recommended document missing: {{doc}}",
+    "createProfileFirst": "Please create your applicant profile first"
+  },
   "companyRequest": {
     "title": "Request IJP Service",
     "subtitle": "Let us find personnel for you",

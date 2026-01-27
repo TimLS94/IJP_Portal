@@ -970,6 +970,28 @@
     "registerNow": "Jetzt registrieren",
     "jobNotFound": "Stellenangebot nicht gefunden"
   },
+  "matching": {
+    "veryGood": "Sehr gute Übereinstimmung",
+    "good": "Gute Übereinstimmung",
+    "partial": "Teilweise Übereinstimmung",
+    "low": "Geringe Übereinstimmung",
+    "positionMatches": "Positionstyp passt",
+    "positionMismatch": "Positionstyp stimmt nicht überein",
+    "germanExceeds": "Deutschkenntnisse übertreffen Anforderungen",
+    "germanMeets": "Deutschkenntnisse erfüllen Anforderungen",
+    "germanBelow": "Deutschkenntnisse unter Anforderungen ({{levels}} Stufen)",
+    "englishMeets": "Englischkenntnisse erfüllen Anforderungen",
+    "englishBelow": "Englischkenntnisse unter Anforderungen",
+    "yearsExperience": "{{years}} Jahre Berufserfahrung",
+    "availabilityMatches": "Verfügbarkeit passt"
+  },
+  "requirements": {
+    "fieldMissing": "Pflichtfeld fehlt: {{field}}",
+    "positionMismatch": "Ihre Stellenart ({{yourType}}) unterscheidet sich von der Stelle ({{jobType}})",
+    "selectPositionType": "Bitte wählen Sie eine Stellenart in Ihrem Profil für eine bessere Zuordnung",
+    "recommendedDocMissing": "Empfohlenes Dokument fehlt: {{doc}}",
+    "createProfileFirst": "Bitte erstellen Sie zuerst Ihr Bewerber-Profil"
+  },
   "companyRequest": {
     "title": "IJP beauftragen",
     "subtitle": "Lassen Sie uns Personal für Sie finden",

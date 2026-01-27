@@ -44,7 +44,7 @@ const languageLevelColors = {
 };
 
 function JobDetail() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   
   const positionTypeLabels = {
     studentenferienjob: t('positionTypes.studentenferienjob'),
@@ -52,6 +52,91 @@ function JobDetail() {
     workandholiday: 'Work & Holiday',
     fachkraft: t('positionTypes.fachkraft'),
     ausbildung: 'Ausbildung'
+  };
+  
+  // Translate backend matching texts
+  const translateMatchingText = (text) => {
+    if (!text) return text;
+    
+    // Recommendation translations
+    const recommendations = {
+      'Sehr gute Übereinstimmung': t('matching.veryGood'),
+      'Gute Übereinstimmung': t('matching.good'),
+      'Teilweise Übereinstimmung': t('matching.partial'),
+      'Geringe Übereinstimmung': t('matching.low'),
+    };
+    
+    if (recommendations[text]) return recommendations[text];
+    
+    // Detail translations with patterns
+    if (text.includes('✓ Positionstyp passt')) return `✓ ${t('matching.positionMatches')}`;
+    if (text.includes('✗ Positionstyp stimmt nicht überein')) return `✗ ${t('matching.positionMismatch')}`;
+    if (text.includes('✓ Deutschkenntnisse übertreffen Anforderungen')) return `✓ ${t('matching.germanExceeds')}`;
+    if (text.includes('✓ Deutschkenntnisse erfüllen Anforderungen')) return `✓ ${t('matching.germanMeets')}`;
+    if (text.includes('✗ Deutschkenntnisse unter Anforderungen')) {
+      const match = text.match(/\((\d+) Stufen?\)/);
+      const levels = match ? match[1] : '';
+      return `✗ ${t('matching.germanBelow', { levels })}`;
+    }
+    if (text.includes('✓ Englischkenntnisse erfüllen Anforderungen')) return `✓ ${t('matching.englishMeets')}`;
+    if (text.includes('✗ Englischkenntnisse unter Anforderungen')) return `✗ ${t('matching.englishBelow')}`;
+    if (text.includes('Jahre Berufserfahrung')) {
+      const match = text.match(/(\d+) Jahre/);
+      const years = match ? match[1] : '0';
+      return `✓ ${t('matching.yearsExperience', { years })}`;
+    }
+    if (text.includes('✓ Verfügbarkeit passt')) return `✓ ${t('matching.availabilityMatches')}`;
+    
+    return text;
+  };
+  
+  // Translate backend requirement warnings/errors
+  const translateRequirementText = (text) => {
+    if (!text) return text;
+    
+    // Required field missing
+    if (text.includes('Pflichtfeld fehlt:')) {
+      const field = text.split(': ')[1];
+      const fieldTranslations = {
+        'Vorname': t('profile.firstName'),
+        'Nachname': t('profile.lastName'),
+        'Geburtsdatum': t('applicant.dateOfBirth'),
+        'Nationalität': t('applicant.nationality'),
+        'Telefonnummer': t('applicant.phone'),
+        'Straße': t('applicant.street'),
+        'Stadt': t('applicant.city'),
+        'Land': t('applicant.country'),
+      };
+      return t('requirements.fieldMissing', { field: fieldTranslations[field] || field });
+    }
+    
+    // Position type warnings
+    if (text.includes('Ihre Stellenart') && text.includes('unterscheidet sich')) {
+      const matches = text.match(/\(([^)]+)\)/g);
+      if (matches && matches.length >= 2) {
+        const yourType = matches[0].replace(/[()]/g, '');
+        const jobType = matches[1].replace(/[()]/g, '');
+        return t('requirements.positionMismatch', { 
+          yourType: positionTypeLabels[yourType] || yourType,
+          jobType: positionTypeLabels[jobType] || jobType
+        });
+      }
+    }
+    
+    if (text.includes('Bitte wählen Sie eine Stellenart')) {
+      return t('requirements.selectPositionType');
+    }
+    
+    if (text.includes('Empfohlenes Dokument fehlt:')) {
+      const docName = text.split(': ')[1];
+      return t('requirements.recommendedDocMissing', { doc: docName });
+    }
+    
+    if (text.includes('Bitte erstellen Sie zuerst Ihr Bewerber-Profil')) {
+      return t('requirements.createProfileFirst');
+    }
+    
+    return text;
   };
 
   const employmentTypeLabels = {
@@ -80,7 +165,6 @@ function JobDetail() {
   };
   const { id } = useParams();
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
   const { isAuthenticated, isApplicant } = useAuth();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -445,7 +529,7 @@ function JobDetail() {
                     ? 'text-yellow-700'
                     : 'text-red-700'
               }`}>
-                {matchScore.recommendation}
+                {translateMatchingText(matchScore.recommendation)}
               </p>
               
               {/* Score Breakdown */}
@@ -480,7 +564,7 @@ function JobDetail() {
                   <p className="text-sm text-gray-600 font-medium mb-2">{t('jobDetail.details')}:</p>
                   <ul className="text-sm text-gray-600 space-y-1">
                     {matchScore.details.map((detail, i) => (
-                      <li key={i}>{detail}</li>
+                      <li key={i}>{translateMatchingText(detail)}</li>
                     ))}
                   </ul>
                 </div>
@@ -536,7 +620,7 @@ function JobDetail() {
                           {requirements.errors.map((error, i) => (
                             <li key={i} className="flex items-center gap-2">
                               <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                              {error}
+                              {translateRequirementText(error)}
                             </li>
                           ))}
                         </ul>
@@ -562,7 +646,7 @@ function JobDetail() {
                           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                             <p className="text-sm text-yellow-800">
                               <AlertTriangle className="h-4 w-4 inline mr-1" />
-                              {requirements.warnings[0]}
+                              {translateRequirementText(requirements.warnings[0])}
                             </p>
                           </div>
                         )}
