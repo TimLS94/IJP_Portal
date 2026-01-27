@@ -9,19 +9,28 @@ import {
   Loader2
 } from 'lucide-react';
 
-const statusLabels = {
-  pending: { label: 'Eingereicht', color: 'bg-yellow-100 text-yellow-800' },
-  reviewing: { label: 'In Prüfung', color: 'bg-blue-100 text-blue-800' },
-  company_review: { label: 'In Prüfung', color: 'bg-blue-100 text-blue-800' },
-  interview: { label: 'Vorstellungsgespräch', color: 'bg-purple-100 text-purple-800' },
-  interview_scheduled: { label: 'Vorstellungsgespräch geplant', color: 'bg-purple-100 text-purple-800' },
-  accepted: { label: 'Angenommen', color: 'bg-green-100 text-green-800' },
-  rejected: { label: 'Abgelehnt', color: 'bg-red-100 text-red-800' },
-  withdrawn: { label: 'Zurückgezogen', color: 'bg-gray-100 text-gray-800' }
-};
-
 function ApplicantApplications() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  
+  const statusLabels = {
+    pending: { label: t('applicationStatus.pending'), color: 'bg-yellow-100 text-yellow-800' },
+    reviewing: { label: t('applicationStatus.reviewing'), color: 'bg-blue-100 text-blue-800' },
+    company_review: { label: t('applicationStatus.reviewing'), color: 'bg-blue-100 text-blue-800' },
+    interview: { label: t('applicationStatus.interview'), color: 'bg-purple-100 text-purple-800' },
+    interview_scheduled: { label: t('applicationStatus.interviewScheduled'), color: 'bg-purple-100 text-purple-800' },
+    accepted: { label: t('applicationStatus.accepted'), color: 'bg-green-100 text-green-800' },
+    rejected: { label: t('applicationStatus.rejected'), color: 'bg-red-100 text-red-800' },
+    withdrawn: { label: t('applicationStatus.withdrawn'), color: 'bg-gray-100 text-gray-800' }
+  };
+  
+  // Helper to get translated job title
+  const getJobTitle = (app) => {
+    const lang = i18n.language;
+    if (app.job_translations && app.job_translations[lang]?.title) {
+      return app.job_translations[lang].title;
+    }
+    return app.job_title || t('applicantApplications.jobPosting');
+  };
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [interviews, setInterviews] = useState({});
@@ -40,12 +49,12 @@ function ApplicantApplications() {
       const response = await applicationsAPI.getMyApplications();
       setApplications(response.data);
       
-      // Lade Interviews für jede Bewerbung
+      // Load interviews for each application
       for (const app of response.data) {
         loadInterviewsForApp(app.id);
       }
     } catch (error) {
-      toast.error('Fehler beim Laden der Bewerbungen');
+      toast.error(t('applicantApplications.loadError'));
     } finally {
       setLoading(false);
     }
@@ -64,10 +73,10 @@ function ApplicantApplications() {
     setProcessingInterview(interviewId);
     try {
       await interviewAPI.confirm(interviewId, selectedDate);
-      toast.success('Termin bestätigt! Die Firma wird benachrichtigt.');
+      toast.success(t('applicantApplications.interviewConfirmed'));
       loadApplications();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Fehler beim Bestätigen');
+      toast.error(error.response?.data?.detail || t('applicantApplications.confirmError'));
     } finally {
       setProcessingInterview(null);
     }
@@ -77,12 +86,12 @@ function ApplicantApplications() {
     setProcessingInterview(interviewId);
     try {
       await interviewAPI.cancel(interviewId, cancelReason);
-      toast.success('Termin abgesagt! Die Firma wird benachrichtigt.');
+      toast.success(t('applicantApplications.interviewCancelled'));
       setShowCancelModal(null);
       setCancelReason('');
       loadApplications();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Fehler beim Absagen');
+      toast.error(error.response?.data?.detail || t('applicantApplications.cancelError'));
     } finally {
       setProcessingInterview(null);
     }
@@ -92,12 +101,12 @@ function ApplicantApplications() {
     setProcessingInterview(interviewId);
     try {
       await interviewAPI.decline(interviewId, declineReason);
-      toast.success('Termine abgelehnt. Die Firma wird gebeten, neue Termine vorzuschlagen.');
+      toast.success(t('applicantApplications.interviewDeclined'));
       setShowDeclineModal(null);
       setDeclineReason('');
       loadApplications();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Fehler beim Ablehnen');
+      toast.error(error.response?.data?.detail || t('applicantApplications.declineError'));
     } finally {
       setProcessingInterview(null);
     }
@@ -115,14 +124,14 @@ function ApplicantApplications() {
   };
 
   const handleWithdraw = async (id) => {
-    if (!confirm('Möchten Sie diese Bewerbung wirklich zurückziehen?')) return;
+    if (!confirm(t('applicantApplications.withdrawConfirm'))) return;
     
     try {
       await applicationsAPI.withdraw(id);
-      toast.success('Bewerbung zurückgezogen');
+      toast.success(t('applicantApplications.withdrawSuccess'));
       loadApplications();
     } catch (error) {
-      toast.error('Fehler beim Zurückziehen der Bewerbung');
+      toast.error(t('applicantApplications.withdrawError'));
     }
   };
 
@@ -173,7 +182,7 @@ function ApplicantApplications() {
                       to={`/jobs/${app.job_posting_id}`}
                       className="text-xl font-semibold text-gray-900 hover:text-primary-600"
                     >
-                      {app.job_title || 'Stellenangebot'}
+                      {getJobTitle(app)}
                     </Link>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusLabels[app.status]?.color || 'bg-gray-100 text-gray-800'}`}>
                       {statusLabels[app.status]?.label || app.status}
@@ -183,23 +192,23 @@ function ApplicantApplications() {
                   <div className="flex flex-wrap items-center gap-4 text-gray-600">
                     <span className="flex items-center gap-1">
                       <Building2 className="h-4 w-4" />
-                      {app.company_name || 'Unbekannt'}
+                      {app.company_name || t('applicantApplications.unknown')}
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      Beworben am {formatDate(app.applied_at)}
+                      {t('applicantApplications.appliedOn')} {formatDate(app.applied_at)}
                     </span>
                     {app.updated_at !== app.applied_at && (
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        Aktualisiert: {formatDate(app.updated_at)}
+                        {t('applicantApplications.updated')}: {formatDate(app.updated_at)}
                       </span>
                     )}
                   </div>
 
                   {app.applicant_message && (
                     <p className="mt-3 text-gray-600 text-sm">
-                      <strong>Ihre Nachricht:</strong> {app.applicant_message}
+                      <strong>{t('applicantApplications.yourMessage')}:</strong> {app.applicant_message}
                     </p>
                   )}
 
@@ -213,12 +222,12 @@ function ApplicantApplications() {
                           interview.status === 'declined' ? 'bg-red-50 border-red-200' :
                           'bg-gray-50 border-gray-200'
                         }`}>
-                          {/* Bestätigter Termin */}
+                          {/* Confirmed appointment */}
                           {interview.status === 'confirmed' && (
                             <div className="flex items-start gap-3">
                               <CheckCircle className="h-6 w-6 text-green-600 mt-1" />
                               <div className="flex-1">
-                                <p className="font-semibold text-green-800">Termin bestätigt!</p>
+                                <p className="font-semibold text-green-800">{t('applicantApplications.appointmentConfirmed')}</p>
                                 <p className="text-green-700 text-lg">
                                   {formatDateTime(interview.confirmed_date)}
                                 </p>
@@ -236,44 +245,44 @@ function ApplicantApplications() {
                                     className="text-green-600 hover:text-green-800 flex items-center gap-1 mt-1"
                                   >
                                     <Video className="h-4 w-4" />
-                                    Zum Meeting-Link
+                                    {t('applicantApplications.toMeetingLink')}
                                   </a>
                                 )}
                                 
-                                {/* Absagen-Button */}
+                                {/* Cancel button */}
                                 <button
                                   onClick={() => setShowCancelModal(interview.id)}
                                   className="mt-3 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg flex items-center gap-1"
                                 >
                                   <XCircle className="h-4 w-4" />
-                                  Termin absagen
+                                  {t('applicantApplications.cancelAppointment')}
                                 </button>
                               </div>
                             </div>
                           )}
                           
-                          {/* Abgesagter Termin */}
+                          {/* Cancelled appointment */}
                           {interview.status === 'cancelled' && (
                             <div className="flex items-start gap-3">
                               <XCircle className="h-6 w-6 text-gray-500 mt-1" />
                               <div>
-                                <p className="font-semibold text-gray-700">Termin abgesagt</p>
+                                <p className="font-semibold text-gray-700">{t('applicantApplications.appointmentCancelled')}</p>
                                 <p className="text-gray-600 text-sm">
-                                  Dieser Termin wurde abgesagt. Die Firma kann neue Termine vorschlagen.
+                                  {t('applicantApplications.appointmentCancelledText')}
                                 </p>
                               </div>
                             </div>
                           )}
 
-                          {/* Termine vorgeschlagen - Auswahl */}
+                          {/* Proposed appointments - Selection */}
                           {interview.status === 'proposed' && (
                             <div>
                               <div className="flex items-start gap-3 mb-4">
                                 <AlertTriangle className="h-6 w-6 text-purple-600 mt-1" />
                                 <div>
-                                  <p className="font-semibold text-purple-800">Terminvorschläge erhalten!</p>
+                                  <p className="font-semibold text-purple-800">{t('applicantApplications.proposalsReceived')}</p>
                                   <p className="text-purple-600 text-sm">
-                                    Bitte wählen Sie einen Termin aus oder lehnen Sie ab, um neue Termine anzufordern.
+                                    {t('applicantApplications.selectOrDecline')}
                                   </p>
                                 </div>
                               </div>
@@ -281,52 +290,52 @@ function ApplicantApplications() {
                               {interview.location && (
                                 <p className="text-gray-600 text-sm mb-3 flex items-center gap-1">
                                   <MapPin className="h-4 w-4" />
-                                  <strong>Ort:</strong> {interview.location}
+                                  <strong>{t('applicantApplications.location')}:</strong> {interview.location}
                                 </p>
                               )}
                               {interview.meeting_link && (
                                 <p className="text-gray-600 text-sm mb-3 flex items-center gap-1">
                                   <Video className="h-4 w-4" />
-                                  <strong>Online:</strong> Link wird nach Bestätigung aktiv
+                                  <strong>{t('applicantApplications.online')}:</strong> {t('applicantApplications.linkActiveAfterConfirm')}
                                 </p>
                               )}
                               {interview.notes_company && (
                                 <p className="text-gray-600 text-sm mb-3">
-                                  <strong>Hinweis:</strong> {interview.notes_company}
+                                  <strong>{t('applicantApplications.note')}:</strong> {interview.notes_company}
                                 </p>
                               )}
 
                               <div className="grid sm:grid-cols-2 gap-3 mb-4">
-                                {/* Termin 1 */}
+                                {/* Option 1 */}
                                 <button
                                   onClick={() => confirmInterview(interview.id, interview.proposed_date_1)}
                                   disabled={processingInterview === interview.id}
                                   className="p-4 bg-white border-2 border-purple-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group text-left"
                                 >
-                                  <p className="text-xs text-purple-600 font-medium mb-1">Option 1</p>
+                                  <p className="text-xs text-purple-600 font-medium mb-1">{t('applicantApplications.option')} 1</p>
                                   <p className="font-semibold text-gray-900 group-hover:text-purple-700">
                                     {formatDateTime(interview.proposed_date_1)}
                                   </p>
                                   <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                                     <CalendarCheck className="h-3 w-3" />
-                                    Klicken zum Bestätigen
+                                    {t('applicantApplications.clickToConfirm')}
                                   </p>
                                 </button>
 
-                                {/* Termin 2 */}
+                                {/* Option 2 */}
                                 {interview.proposed_date_2 && (
                                   <button
                                     onClick={() => confirmInterview(interview.id, interview.proposed_date_2)}
                                     disabled={processingInterview === interview.id}
                                     className="p-4 bg-white border-2 border-purple-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group text-left"
                                   >
-                                    <p className="text-xs text-purple-600 font-medium mb-1">Option 2</p>
+                                    <p className="text-xs text-purple-600 font-medium mb-1">{t('applicantApplications.option')} 2</p>
                                     <p className="font-semibold text-gray-900 group-hover:text-purple-700">
                                       {formatDateTime(interview.proposed_date_2)}
                                     </p>
                                     <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                                       <CalendarCheck className="h-3 w-3" />
-                                      Klicken zum Bestätigen
+                                      {t('applicantApplications.clickToConfirm')}
                                     </p>
                                   </button>
                                 )}
@@ -335,7 +344,7 @@ function ApplicantApplications() {
                               {processingInterview === interview.id ? (
                                 <div className="flex items-center justify-center gap-2 text-gray-600">
                                   <Loader2 className="h-5 w-5 animate-spin" />
-                                  Wird verarbeitet...
+                                  {t('applicantApplications.processing')}
                                 </div>
                               ) : (
                                 <button
@@ -343,20 +352,20 @@ function ApplicantApplications() {
                                   className="w-full py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
                                 >
                                   <CalendarX className="h-4 w-4" />
-                                  Beide Termine passen nicht - Neue Termine anfordern
+                                  {t('applicantApplications.neitherFits')}
                                 </button>
                               )}
                             </div>
                           )}
 
-                          {/* Abgelehnt */}
+                          {/* Declined */}
                           {interview.status === 'declined' && (
                             <div className="flex items-start gap-3">
                               <XCircle className="h-6 w-6 text-red-500 mt-1" />
                               <div>
-                                <p className="font-semibold text-red-700">Termine abgelehnt</p>
+                                <p className="font-semibold text-red-700">{t('applicantApplications.datesDeclined')}</p>
                                 <p className="text-red-600 text-sm">
-                                  Die Firma wurde gebeten, neue Termine vorzuschlagen.
+                                  {t('applicantApplications.datesDeclinedText')}
                                 </p>
                               </div>
                             </div>
@@ -373,7 +382,7 @@ function ApplicantApplications() {
                     className="btn-secondary text-sm flex items-center gap-1"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    Details
+                    {t('applicantApplications.details')}
                   </Link>
                   {app.status === 'pending' && (
                     <button
@@ -381,7 +390,7 @@ function ApplicantApplications() {
                       className="btn-danger text-sm flex items-center gap-1"
                     >
                       <XCircle className="h-4 w-4" />
-                      Zurückziehen
+                      {t('applicantApplications.withdraw')}
                     </button>
                   )}
                 </div>
@@ -391,28 +400,28 @@ function ApplicantApplications() {
         </div>
       )}
 
-      {/* Ablehnen-Modal */}
+      {/* Decline Modal */}
       {showDeclineModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold flex items-center gap-2 text-red-700">
                 <CalendarX className="h-6 w-6" />
-                Termine ablehnen
+                {t('applicantApplications.declineDatesTitle')}
               </h2>
             </div>
 
             <div className="p-6">
               <p className="text-gray-600 mb-4">
-                Wenn Sie beide Termine ablehnen, wird die Firma gebeten, neue Terminvorschläge zu senden.
+                {t('applicantApplications.declineDatesText')}
               </p>
               
               <div>
-                <label className="label">Grund (optional)</label>
+                <label className="label">{t('applicantApplications.reasonOptional')}</label>
                 <textarea
                   className="input-styled"
                   rows={3}
-                  placeholder="z.B. An diesen Tagen bin ich verhindert, bitte Termine ab dem..."
+                  placeholder={t('applicantApplications.reasonPlaceholder')}
                   value={declineReason}
                   onChange={(e) => setDeclineReason(e.target.value)}
                 />
@@ -427,7 +436,7 @@ function ApplicantApplications() {
                 }}
                 className="btn-secondary"
               >
-                Abbrechen
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => declineInterview(showDeclineModal)}
@@ -439,35 +448,35 @@ function ApplicantApplications() {
                 ) : (
                   <CalendarX className="h-4 w-4" />
                 )}
-                Ablehnen & neue Termine anfordern
+                {t('applicantApplications.declineAndRequest')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Absage-Modal (für bereits bestätigte Termine) */}
+      {/* Cancel Modal (for already confirmed appointments) */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold flex items-center gap-2 text-red-700">
                 <XCircle className="h-6 w-6" />
-                Termin absagen
+                {t('applicantApplications.cancelAppointmentTitle')}
               </h2>
             </div>
 
             <div className="p-6">
               <p className="text-gray-600 mb-4">
-                Möchten Sie diesen bestätigten Termin wirklich absagen? Die Firma wird per E-Mail benachrichtigt.
+                {t('applicantApplications.cancelAppointmentText')}
               </p>
               
               <div>
-                <label className="label">Grund (optional)</label>
+                <label className="label">{t('applicantApplications.reasonOptional')}</label>
                 <textarea
                   className="input-styled"
                   rows={3}
-                  placeholder="z.B. Krankheit, familiärer Notfall..."
+                  placeholder={t('applicantApplications.cancelReasonPlaceholder')}
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                 />
@@ -482,7 +491,7 @@ function ApplicantApplications() {
                 }}
                 className="btn-secondary"
               >
-                Zurück
+                {t('common.back')}
               </button>
               <button
                 onClick={() => cancelInterview(showCancelModal)}
@@ -494,7 +503,7 @@ function ApplicantApplications() {
                 ) : (
                   <XCircle className="h-4 w-4" />
                 )}
-                Termin absagen
+                {t('applicantApplications.cancelAppointment')}
               </button>
             </div>
           </div>

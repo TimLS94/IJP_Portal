@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from app.models.application import ApplicationStatus
 
@@ -34,3 +34,4 @@ class ApplicationWithDetails(ApplicationResponse):
     job_title: Optional[str] = None
     company_name: Optional[str] = None
     applicant_name: Optional[str] = None
+    job_translations: Optional[Dict[str, Any]] = None

@@ -241,7 +241,8 @@ async def get_my_applications(
             "applied_at": app.applied_at,
             "updated_at": app.updated_at,
             "job_title": app.job_posting.title if app.job_posting else None,
-            "company_name": app.job_posting.company.company_name if app.job_posting and app.job_posting.company else None
+            "company_name": app.job_posting.company.company_name if app.job_posting and app.job_posting.company else None,
+            "job_translations": app.job_posting.translations if app.job_posting else None
         }
         result.append(ApplicationWithDetails(**app_dict))
     
