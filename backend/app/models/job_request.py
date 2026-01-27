@@ -111,10 +111,10 @@ class JobRequest(Base):
     applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False)
     
     # Stellenart für diesen Auftrag (z.B. "studentenferienjob", "fachkraft")
-    position_type = Column(Enum(PositionType), nullable=True)
+    position_type = Column(Enum(PositionType, values_callable=lambda obj: [e.value for e in obj]), nullable=True)
     
     # Status
-    status = Column(Enum(JobRequestStatus), default=JobRequestStatus.PENDING)
+    status = Column(Enum(JobRequestStatus, values_callable=lambda obj: [e.value for e in obj]), default=JobRequestStatus.PENDING)
     
     # Datenschutz-Zustimmung
     privacy_consent = Column(Boolean, default=False)

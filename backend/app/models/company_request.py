@@ -97,10 +97,10 @@ class CompanyRequest(Base):
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
     
     # Art des Auftrags
-    request_type = Column(Enum(CompanyRequestType), nullable=False)
+    request_type = Column(Enum(CompanyRequestType, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     
     # Status
-    status = Column(Enum(CompanyRequestStatus), default=CompanyRequestStatus.PENDING)
+    status = Column(Enum(CompanyRequestStatus, values_callable=lambda obj: [e.value for e in obj]), default=CompanyRequestStatus.PENDING)
     
     # Details zum Auftrag
     title = Column(String(255))  # z.B. "5 Erntehelfer für Sommer 2026"

@@ -78,7 +78,7 @@ class Application(Base):
     job_posting_id = Column(Integer, ForeignKey("job_postings.id"), nullable=False)
     
     # Status
-    status = Column(Enum(ApplicationStatus), default=ApplicationStatus.PENDING)
+    status = Column(Enum(ApplicationStatus, values_callable=lambda obj: [e.value for e in obj]), default=ApplicationStatus.PENDING)
     
     # Notizen
     applicant_message = Column(Text)  # Nachricht vom Bewerber

@@ -36,7 +36,7 @@ class CompanyMember(Base):
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
     
     # Rolle in der Firma
-    role = Column(Enum(CompanyRole), default=CompanyRole.MEMBER)
+    role = Column(Enum(CompanyRole, values_callable=lambda obj: [e.value for e in obj]), default=CompanyRole.MEMBER)
     
     # Einladung
     invited_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)

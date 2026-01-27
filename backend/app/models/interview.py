@@ -36,7 +36,7 @@ class Interview(Base):
     application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
     
     # Status
-    status = Column(Enum(InterviewStatus), default=InterviewStatus.PROPOSED)
+    status = Column(Enum(InterviewStatus, values_callable=lambda obj: [e.value for e in obj]), default=InterviewStatus.PROPOSED)
     
     # Terminvorschläge von der Firma (2 Optionen)
     proposed_date_1 = Column(DateTime, nullable=False)  # Erster Terminvorschlag
