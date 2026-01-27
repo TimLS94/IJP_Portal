@@ -27,7 +27,26 @@ const languageLevelColors = {
 };
 
 function Jobs() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  
+  // Helper: Übersetzten Text holen (mit Fallback auf Deutsch)
+  const getJobText = (job, field) => {
+    const currentLang = i18n.language;
+    
+    // Wenn Sprache Deutsch oder keine Übersetzung vorhanden, Original verwenden
+    if (currentLang === 'de') {
+      return job[field] || '';
+    }
+    
+    // Übersetzung suchen
+    const translation = job.translations?.[currentLang]?.[field];
+    if (translation) {
+      return translation;
+    }
+    
+    // Fallback auf Deutsch
+    return job[field] || '';
+  };
   
   const positionTypes = [
     { value: '', label: t('jobs.allTypes') },
@@ -161,7 +180,7 @@ function Jobs() {
         <Briefcase className="h-8 w-8 text-primary-600" />
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{t('jobs.title')}</h1>
-          <p className="text-gray-600">Finden Sie Ihren passenden Job in Deutschland</p>
+          <p className="text-gray-600">{t('jobs.subtitle')}</p>
         </div>
       </div>
 
@@ -171,7 +190,7 @@ function Jobs() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Suchfeld */}
             <div className="lg:col-span-2">
-              <label className="label">Suche</label>
+              <label className="label">{t('jobs.search')}</label>
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -179,7 +198,7 @@ function Jobs() {
                   className="w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-200 rounded-xl 
                            focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
                            transition-all placeholder-gray-400"
-                  placeholder="Job-Titel, Firma, Beschreibung..."
+                  placeholder={t('jobs.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -188,7 +207,7 @@ function Jobs() {
             
             {/* Stellenart Dropdown */}
             <div>
-              <label className="label">Stellenart</label>
+              <label className="label">{t('jobs.positionType')}</label>
               <div className="relative">
                 <select
                   className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
@@ -209,7 +228,7 @@ function Jobs() {
             
             {/* Ort */}
             <div>
-              <label className="label">Ort</label>
+              <label className="label">{t('jobs.location')}</label>
               <div className="relative">
                 <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -217,7 +236,7 @@ function Jobs() {
                   className="w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-200 rounded-xl 
                            focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
                            transition-all placeholder-gray-400"
-                  placeholder="Stadt, Region..."
+                  placeholder={t('jobs.locationPlaceholder')}
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
@@ -230,7 +249,7 @@ function Jobs() {
             <div>
               <label className="label flex items-center gap-2">
                 <Languages className="h-4 w-4 text-blue-600" />
-                Deutschkenntnisse
+                {t('jobs.germanSkills')}
               </label>
               <div className="relative">
                 <select
@@ -254,7 +273,7 @@ function Jobs() {
           <div className="flex items-center gap-3">
             <button type="submit" className="btn-primary flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              Filter anwenden
+              {t('jobs.applyFilters')}
             </button>
             {hasFilters && (
               <button 
@@ -263,7 +282,7 @@ function Jobs() {
                 className="btn-secondary flex items-center gap-2 text-sm"
               >
                 <X className="h-4 w-4" />
-                Filter zurücksetzen
+                {t('jobs.clearFilters')}
               </button>
             )}
           </div>
@@ -288,7 +307,7 @@ function Jobs() {
         <div className="card text-center py-12">
           <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 text-lg mb-2">{t('jobs.noJobs')}</p>
-          <p className="text-gray-400">Versuchen Sie andere Suchkriterien</p>
+          <p className="text-gray-400">{t('jobs.tryOtherCriteria')}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -302,14 +321,14 @@ function Jobs() {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <h2 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
-                      {job.title}
+                      {getJobText(job, 'title')}
                     </h2>
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${positionTypeColors[job.position_type]}`}>
                       {positionTypes.find(t => t.value === job.position_type)?.label}
                     </span>
                     {job.remote_possible && (
                       <span className="px-3 py-1 rounded-full text-sm font-medium bg-teal-100 text-teal-800 border border-teal-200">
-                        Remote möglich
+                        {t('jobDetail.remotePossible')}
                       </span>
                     )}
                   </div>
@@ -328,7 +347,7 @@ function Jobs() {
                     {job.start_date && (
                       <span className="flex items-center gap-1.5">
                         <Calendar className="h-4 w-4 text-gray-400" />
-                        Ab {formatDate(job.start_date)}
+                        {t('jobs.from')} {formatDate(job.start_date)}
                       </span>
                     )}
                   </div>
@@ -341,9 +360,9 @@ function Jobs() {
                     </div>
                   )}
                   
-                  {job.description && (
+                  {(job.description || job.translations?.[i18n.language]?.description) && (
                     <p className="text-gray-600 line-clamp-2">
-                      {job.description.substring(0, 200)}...
+                      {getJobText(job, 'description').substring(0, 200)}...
                     </p>
                   )}
                 </div>
