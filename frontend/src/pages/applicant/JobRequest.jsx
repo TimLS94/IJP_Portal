@@ -138,7 +138,20 @@ function ApplicantJobRequest() {
     profile.position_type || 
     (profile.position_types && profile.position_types.length > 0)
   );
-  const isProfileComplete = profile && profile.first_name && profile.last_name && profile.phone && hasPositionType;
+  
+  // Fehlende Felder ermitteln
+  const getMissingFields = () => {
+    if (!profile) return ['Profil'];
+    const missing = [];
+    if (!profile.first_name) missing.push('Vorname');
+    if (!profile.last_name) missing.push('Nachname');
+    if (!profile.phone) missing.push('Telefonnummer');
+    if (!hasPositionType) missing.push('Stellenart');
+    return missing;
+  };
+  
+  const missingFields = getMissingFields();
+  const isProfileComplete = missingFields.length === 0;
   const canCreateMore = isProfileComplete && getAvailablePositionTypes().length > 0;
 
   if (loading) {
@@ -341,8 +354,16 @@ function ApplicantJobRequest() {
             <div>
               <h3 className="font-bold text-gray-900">Profil unvollständig</h3>
               <p className="text-gray-600 mt-1">
-                Bitte vervollständigen Sie zuerst Ihr Profil mit allen Pflichtangaben und wählen Sie mindestens eine Stellenart aus.
+                Bitte vervollständigen Sie zuerst Ihr Profil. Folgende Angaben fehlen noch:
               </p>
+              <ul className="mt-2 space-y-1">
+                {missingFields.map((field, idx) => (
+                  <li key={idx} className="flex items-center gap-2 text-yellow-800">
+                    <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    {field}
+                  </li>
+                ))}
+              </ul>
               <Link to="/applicant/profile" className="btn-primary mt-4 inline-flex items-center gap-2">
                 Profil vervollständigen <ExternalLink className="h-4 w-4" />
               </Link>

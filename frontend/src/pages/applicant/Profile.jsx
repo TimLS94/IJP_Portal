@@ -1143,19 +1143,34 @@ function ApplicantProfile() {
               )}
             </div>
 
-            {/* Zusammenfassung */}
-            <div className="grid md:grid-cols-2 gap-4 pt-4 border-t">
+            {/* Berufserfahrung Jahre */}
+            <div className="pt-4 border-t">
               <div>
                 <label className="label">{t('applicant.workExperienceYears')}</label>
                 <input
                   type="number"
                   min="0"
-                  className="input-styled"
+                  className="input-styled max-w-xs"
                   placeholder="0"
                   {...register('work_experience_years')}
                 />
               </div>
-              <div className="flex items-center gap-3 pt-6">
+            </div>
+            
+            {/* Zusätzliche Notizen (Legacy-Feld) */}
+            <div>
+              <label className="label">Zusätzliche Anmerkungen zur Berufserfahrung</label>
+              <textarea
+                className="input-styled"
+                rows={2}
+                placeholder="Weitere Informationen zu Ihrer Berufserfahrung..."
+                {...register('work_experience')}
+              />
+            </div>
+            
+            {/* Deutschland-Erfahrung */}
+            <div className="pt-4 border-t">
+              <div className="flex items-center gap-3 mb-4">
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
@@ -1173,30 +1188,19 @@ function ApplicantProfile() {
                   </span>
                 </label>
               </div>
+              
+              {beenToGermany && (
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                  <label className="label text-blue-800">{t('applicant.germanyDetails')}</label>
+                  <textarea
+                    className="input-styled"
+                    rows={2}
+                    placeholder={t('profile.placeholders.germanyDetails')}
+                    {...register('germany_details')}
+                  />
+                </div>
+              )}
             </div>
-            
-            {/* Zusätzliche Notizen (Legacy-Feld) */}
-            <div>
-              <label className="label">Zusätzliche Anmerkungen zur Berufserfahrung</label>
-              <textarea
-                className="input-styled"
-                rows={2}
-                placeholder="Weitere Informationen zu Ihrer Berufserfahrung..."
-                {...register('work_experience')}
-              />
-            </div>
-            
-            {beenToGermany && (
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                <label className="label text-blue-800">{t('applicant.germanyDetails')}</label>
-                <textarea
-                  className="input-styled"
-                  rows={2}
-                  placeholder={t('profile.placeholders.germanyDetails')}
-                  {...register('germany_details')}
-                />
-              </div>
-            )}
           </div>
         </div>
 
