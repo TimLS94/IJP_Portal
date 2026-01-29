@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { applicantAPI, documentsAPI, downloadBlob } from '../../lib/api';
-import { getNationalities } from '../../data/nationalities';
+import { getNationalityOptions, getNationalityLabel, findNationalityIndex } from '../../data/nationalities';
 import toast from 'react-hot-toast';
 import { 
   User, Save, Loader2, GraduationCap, Building2, Languages, MapPin, Briefcase,
@@ -149,6 +149,19 @@ function ApplicantProfile() {
         } else {
           profileData.position_types = [];
         }
+      }
+      
+      // Migration: Falls Nationalität noch als Text gespeichert ist, in Index umwandeln
+      if (profileData.nationality && isNaN(profileData.nationality)) {
+        const index = findNationalityIndex(profileData.nationality);
+        if (index !== null) {
+          profileData.nationality = index;
+        }
+      }
+      
+      // Migration: Gender zu lowercase normalisieren (falls UPPERCASE aus DB)
+      if (profileData.gender) {
+        profileData.gender = profileData.gender.toLowerCase();
       }
       
       reset(profileData);
@@ -931,7 +944,7 @@ function ApplicantProfile() {
               <CustomSelect
                 value={watch('nationality') || ''}
                 onChange={(e) => setValue('nationality', e.target.value)}
-                options={getNationalities(i18n.language).map(n => ({ value: n, label: n }))}
+                options={getNationalityOptions(i18n.language)}
                 placeholder={t('profile.placeholders.nationality')}
               />
               {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality.message}</p>}

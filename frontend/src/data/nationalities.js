@@ -98,3 +98,31 @@ export const getNationalities = (language) => {
   return nationalities[language] || nationalities.de;
 };
 
+// Funktion zum Abrufen der Nationalitäten als Options mit Index als value
+export const getNationalityOptions = (language) => {
+  const list = nationalities[language] || nationalities.de;
+  return list.map((label, index) => ({
+    value: index.toString(),
+    label: label
+  }));
+};
+
+// Funktion um den übersetzten Namen basierend auf Index zu bekommen
+export const getNationalityLabel = (index, language) => {
+  if (index === null || index === undefined || index === '') return '';
+  const list = nationalities[language] || nationalities.de;
+  const idx = parseInt(index, 10);
+  return list[idx] || '';
+};
+
+// Funktion um den Index basierend auf dem Namen (in beliebiger Sprache) zu finden
+export const findNationalityIndex = (name) => {
+  if (!name) return null;
+  // Durchsuche alle Sprachen
+  for (const lang of ['de', 'en', 'es', 'ru']) {
+    const idx = nationalities[lang].findIndex(n => n === name);
+    if (idx !== -1) return idx.toString();
+  }
+  return null;
+};
+
