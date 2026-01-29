@@ -274,6 +274,12 @@ async def delete_account(
             from app.models.job_request import JobRequest
             db.query(JobRequest).filter(JobRequest.applicant_id == applicant.id).delete()
             
+            # Interviews löschen (vor Bewerbungen!)
+            from app.models.interview import Interview
+            applications = db.query(Application).filter(Application.applicant_id == applicant.id).all()
+            for app in applications:
+                db.query(Interview).filter(Interview.application_id == app.id).delete()
+            
             # Bewerbungen löschen
             db.query(Application).filter(Application.applicant_id == applicant.id).delete()
             
@@ -298,9 +304,14 @@ async def delete_account(
     elif user_role == UserRole.COMPANY:
         company = db.query(Company).filter(Company.user_id == user_id).first()
         if company:
+            from app.models.interview import Interview
             # Alle Jobs der Firma
             jobs = db.query(JobPosting).filter(JobPosting.company_id == company.id).all()
             for job in jobs:
+                # Interviews zu Bewerbungen dieser Jobs löschen
+                applications = db.query(Application).filter(Application.job_posting_id == job.id).all()
+                for app in applications:
+                    db.query(Interview).filter(Interview.application_id == app.id).delete()
                 # Bewerbungen zu diesen Jobs löschen
                 db.query(Application).filter(Application.job_posting_id == job.id).delete()
             # Jobs löschen
