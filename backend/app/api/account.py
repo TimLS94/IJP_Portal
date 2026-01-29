@@ -270,6 +270,10 @@ async def delete_account(
     if user_role == UserRole.APPLICANT:
         applicant = db.query(Applicant).filter(Applicant.user_id == user_id).first()
         if applicant:
+            # IJP-Aufträge löschen (WICHTIG: vor Applicant löschen!)
+            from app.models.job_request import JobRequest
+            db.query(JobRequest).filter(JobRequest.applicant_id == applicant.id).delete()
+            
             # Bewerbungen löschen
             db.query(Application).filter(Application.applicant_id == applicant.id).delete()
             

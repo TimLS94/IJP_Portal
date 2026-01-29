@@ -684,6 +684,9 @@ async def delete_user(
     if user.role == UserRole.APPLICANT:
         applicant = db.query(Applicant).filter(Applicant.user_id == user_id).first()
         if applicant:
+            # IJP-Aufträge löschen (WICHTIG: vor Applicant löschen!)
+            from app.models.job_request import JobRequest
+            db.query(JobRequest).filter(JobRequest.applicant_id == applicant.id).delete()
             # Zuerst Dokumente löschen (Fremdschlüssel auf applicant_id)
             db.query(Document).filter(Document.applicant_id == applicant.id).delete()
             # Dann Bewerbungen löschen
