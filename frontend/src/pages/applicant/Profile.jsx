@@ -107,6 +107,11 @@ function ApplicantProfile() {
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
   const fileInputRefs = useRef({});
   
+  // Tracking für IJP Modal und CV Banner
+  const [isNewProfile, setIsNewProfile] = useState(true);
+  const [initialPositionTypes, setInitialPositionTypes] = useState([]);
+  const [hasShownIJPModal, setHasShownIJPModal] = useState(false);
+  
   const selectedPositionType = watch('position_type');
   const selectedPositionTypes = watch('position_types') || [];
   const beenToGermany = watch('been_to_germany');
@@ -149,6 +154,13 @@ function ApplicantProfile() {
       reset(profileData);
       setDocuments(docsRes.data);
       
+      // Prüfen ob Profil bereits ausgefüllt ist (für CV Banner)
+      const hasData = profileData.first_name && profileData.last_name;
+      setIsNewProfile(!hasData);
+      
+      // Initiale position_types speichern (für IJP Modal)
+      setInitialPositionTypes(profileData.position_types || []);
+      
       // Andere Sprachen laden
       if (profileData.other_languages && Array.isArray(profileData.other_languages)) {
         setOtherLanguages(profileData.other_languages);
@@ -190,8 +202,23 @@ function ApplicantProfile() {
       data.work_experiences = workExperiences;
       await applicantAPI.updateProfile(data);
       toast.success('Profil erfolgreich gespeichert!');
-      // Modal anzeigen nach erfolgreichem Speichern
-      setShowIJPModal(true);
+      
+      // Prüfen ob neue position_types hinzugefügt wurden
+      const currentTypes = data.position_types || [];
+      const newTypes = currentTypes.filter(t => !initialPositionTypes.includes(t));
+      
+      // IJP Modal nur anzeigen wenn:
+      // 1. Noch nie gezeigt ODER
+      // 2. Neue Stellenarten hinzugefügt wurden
+      if (!hasShownIJPModal || newTypes.length > 0) {
+        setShowIJPModal(true);
+        setHasShownIJPModal(true);
+        // Initiale Types aktualisieren für nächsten Vergleich
+        setInitialPositionTypes(currentTypes);
+      }
+      
+      // Nach erstem Speichern ist Profil nicht mehr neu
+      setIsNewProfile(false);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Fehler beim Speichern');
     } finally {
@@ -674,7 +701,8 @@ function ApplicantProfile() {
         <h1 className="text-3xl font-bold text-gray-900">{t('applicant.profileTitle')}</h1>
       </div>
 
-      {/* ========== CV IMPORT BANNER ========== */}
+      {/* ========== CV IMPORT BANNER (nur bei neuem Profil) ========== */}
+      {isNewProfile && (
       <div className="mb-8 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
         {/* Dekoration */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
@@ -771,6 +799,7 @@ function ApplicantProfile() {
           )}
         </div>
       </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         
