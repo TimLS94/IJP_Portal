@@ -110,7 +110,6 @@ function ApplicantProfile() {
   // Tracking für IJP Modal und CV Banner
   const [isNewProfile, setIsNewProfile] = useState(true);
   const [initialPositionTypes, setInitialPositionTypes] = useState([]);
-  const [hasShownIJPModal, setHasShownIJPModal] = useState(false);
   
   const selectedPositionType = watch('position_type');
   const selectedPositionTypes = watch('position_types') || [];
@@ -216,16 +215,15 @@ function ApplicantProfile() {
       await applicantAPI.updateProfile(data);
       toast.success('Profil erfolgreich gespeichert!');
       
-      // Prüfen ob neue position_types hinzugefügt wurden
+      // Prüfen ob position_types geändert wurden (hinzugefügt oder entfernt)
       const currentTypes = data.position_types || [];
-      const newTypes = currentTypes.filter(t => !initialPositionTypes.includes(t));
+      const typesAdded = currentTypes.filter(t => !initialPositionTypes.includes(t));
+      const typesRemoved = initialPositionTypes.filter(t => !currentTypes.includes(t));
+      const positionTypesChanged = typesAdded.length > 0 || typesRemoved.length > 0;
       
-      // IJP Modal nur anzeigen wenn:
-      // 1. Noch nie gezeigt ODER
-      // 2. Neue Stellenarten hinzugefügt wurden
-      if (!hasShownIJPModal || newTypes.length > 0) {
+      // IJP Modal NUR anzeigen wenn Stellenarten geändert wurden
+      if (positionTypesChanged && currentTypes.length > 0) {
         setShowIJPModal(true);
-        setHasShownIJPModal(true);
         // Initiale Types aktualisieren für nächsten Vergleich
         setInitialPositionTypes(currentTypes);
       }
