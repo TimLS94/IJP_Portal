@@ -107,8 +107,7 @@ function ApplicantProfile() {
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
   const fileInputRefs = useRef({});
   
-  // Tracking für IJP Modal und CV Banner
-  const [isNewProfile, setIsNewProfile] = useState(true);
+  // Tracking für IJP Modal
   const [initialPositionTypes, setInitialPositionTypes] = useState([]);
   
   const selectedPositionType = watch('position_type');
@@ -165,10 +164,6 @@ function ApplicantProfile() {
       
       reset(profileData);
       setDocuments(docsRes.data);
-      
-      // Prüfen ob Profil bereits ausgefüllt ist (für CV Banner)
-      const hasData = profileData.first_name && profileData.last_name;
-      setIsNewProfile(!hasData);
       
       // Initiale position_types speichern (für IJP Modal)
       setInitialPositionTypes(profileData.position_types || []);
@@ -228,8 +223,6 @@ function ApplicantProfile() {
         setInitialPositionTypes(currentTypes);
       }
       
-      // Nach erstem Speichern ist Profil nicht mehr neu
-      setIsNewProfile(false);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Fehler beim Speichern');
     } finally {
@@ -391,44 +384,65 @@ function ApplicantProfile() {
         return;
       }
       
-      // Extrahierte Daten in Formularfelder übernehmen
-      if (parsedData.first_name) setValue('first_name', parsedData.first_name);
-      if (parsedData.last_name) setValue('last_name', parsedData.last_name);
-      if (parsedData.date_of_birth) setValue('date_of_birth', parsedData.date_of_birth);
-      if (parsedData.place_of_birth) setValue('place_of_birth', parsedData.place_of_birth);
-      if (parsedData.nationality) setValue('nationality', parsedData.nationality);
-      if (parsedData.phone) setValue('phone', parsedData.phone);
+      // Hilfsfunktion: Nur leere Felder füllen (vorhandene Daten nicht überschreiben)
+      const setIfEmpty = (field, value) => {
+        const currentValue = watch(field);
+        if (!currentValue && value) {
+          setValue(field, value);
+          return true;
+        }
+        return false;
+      };
+      
+      let fieldsUpdated = 0;
+      
+      // Extrahierte Daten nur in LEERE Formularfelder übernehmen
+      if (setIfEmpty('first_name', parsedData.first_name)) fieldsUpdated++;
+      if (setIfEmpty('last_name', parsedData.last_name)) fieldsUpdated++;
+      if (setIfEmpty('date_of_birth', parsedData.date_of_birth)) fieldsUpdated++;
+      if (setIfEmpty('place_of_birth', parsedData.place_of_birth)) fieldsUpdated++;
+      if (setIfEmpty('nationality', parsedData.nationality)) fieldsUpdated++;
+      if (setIfEmpty('phone', parsedData.phone)) fieldsUpdated++;
       
       // Adresse
-      if (parsedData.street) setValue('street', parsedData.street);
-      if (parsedData.house_number) setValue('house_number', parsedData.house_number);
-      if (parsedData.postal_code) setValue('postal_code', parsedData.postal_code);
-      if (parsedData.city) setValue('city', parsedData.city);
-      if (parsedData.country) setValue('country', parsedData.country);
+      if (setIfEmpty('street', parsedData.street)) fieldsUpdated++;
+      if (setIfEmpty('house_number', parsedData.house_number)) fieldsUpdated++;
+      if (setIfEmpty('postal_code', parsedData.postal_code)) fieldsUpdated++;
+      if (setIfEmpty('city', parsedData.city)) fieldsUpdated++;
+      if (setIfEmpty('country', parsedData.country)) fieldsUpdated++;
       
-      // Sprachkenntnisse
-      if (parsedData.german_level) setValue('german_level', parsedData.german_level);
-      if (parsedData.english_level) setValue('english_level', parsedData.english_level);
-      if (parsedData.other_languages?.length > 0) {
+      // Sprachkenntnisse (nur wenn nicht gesetzt)
+      if (setIfEmpty('german_level', parsedData.german_level)) fieldsUpdated++;
+      if (setIfEmpty('english_level', parsedData.english_level)) fieldsUpdated++;
+      
+      // Andere Sprachen nur hinzufügen wenn Liste leer ist
+      if (parsedData.other_languages?.length > 0 && otherLanguages.length === 0) {
         setOtherLanguages(parsedData.other_languages);
+        fieldsUpdated += parsedData.other_languages.length;
       }
       
-      // Berufserfahrung
-      if (parsedData.work_experiences?.length > 0) {
+      // Berufserfahrung nur hinzufügen wenn Liste leer ist
+      if (parsedData.work_experiences?.length > 0 && workExperiences.length === 0) {
         setWorkExperiences(parsedData.work_experiences);
+        fieldsUpdated += parsedData.work_experiences.length;
       }
       
-      // Ausbildung/Studium
-      if (parsedData.university_name) setValue('university_name', parsedData.university_name);
-      if (parsedData.field_of_study) setValue('field_of_study', parsedData.field_of_study);
-      if (parsedData.profession) setValue('profession', parsedData.profession);
-      if (parsedData.school_degree) setValue('school_degree', parsedData.school_degree);
+      // Ausbildung/Studium (nur leere Felder)
+      if (setIfEmpty('university_name', parsedData.university_name)) fieldsUpdated++;
+      if (setIfEmpty('field_of_study', parsedData.field_of_study)) fieldsUpdated++;
+      if (setIfEmpty('profession', parsedData.profession)) fieldsUpdated++;
+      if (setIfEmpty('school_degree', parsedData.school_degree)) fieldsUpdated++;
+      
+      const totalFieldsFound = Object.keys(parsedData).filter(k => parsedData[k] && !['message', 'cv_saved', 'parse_error'].includes(k)).length;
       
       setCvParseResult({
         success: true,
         cvSaved: parsedData.cv_saved,
-        fieldsExtracted: Object.keys(parsedData).filter(k => parsedData[k] && !['message', 'cv_saved'].includes(k)).length,
-        message: parsedData.message || 'Daten erfolgreich extrahiert!'
+        fieldsExtracted: totalFieldsFound,
+        fieldsUpdated: fieldsUpdated,
+        message: fieldsUpdated > 0 
+          ? `${fieldsUpdated} leere Felder wurden ausgefüllt!` 
+          : 'Alle Felder waren bereits ausgefüllt - keine Änderungen vorgenommen.'
       });
       
       // Dokumente neu laden (CV wurde gespeichert)
@@ -437,7 +451,11 @@ function ApplicantProfile() {
         setDocuments(docsRes.data);
       }
       
-      toast.success('Lebenslauf analysiert und gespeichert! Bitte überprüfen Sie die Daten.');
+      if (fieldsUpdated > 0) {
+        toast.success(`Lebenslauf gespeichert! ${fieldsUpdated} Felder wurden ergänzt.`);
+      } else {
+        toast.success('Lebenslauf gespeichert! Ihre Daten wurden nicht überschrieben.');
+      }
       
     } catch (error) {
       console.error('CV Parse Error:', error);
@@ -712,8 +730,7 @@ function ApplicantProfile() {
         <h1 className="text-3xl font-bold text-gray-900">{t('applicant.profileTitle')}</h1>
       </div>
 
-      {/* ========== CV IMPORT BANNER (nur bei neuem Profil) ========== */}
-      {isNewProfile && (
+      {/* ========== CV IMPORT BANNER ========== */}
       <div className="mb-8 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
         {/* Dekoration */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
@@ -762,7 +779,7 @@ function ApplicantProfile() {
                 />
               </label>
               <span className="text-white/70 text-xs text-center md:text-right">
-                {t('profile.cvAutoFill.pdfFormat')}
+                {t('profile.cvAutoFill.pdfFormat')} • Vorhandene Daten werden nicht überschrieben
               </span>
             </div>
           </div>
@@ -782,9 +799,9 @@ function ApplicantProfile() {
                       {cvParseResult.message}
                     </p>
                     <p className="text-sm text-green-200/80 mt-1">
-                      {cvParseResult.fieldsExtracted} Felder wurden erkannt. 
+                      {cvParseResult.fieldsExtracted} Felder im CV erkannt, {cvParseResult.fieldsUpdated || 0} leere Felder ausgefüllt.
                       {cvParseResult.cvSaved && ' ✓ Lebenslauf wurde in Ihren Dokumenten gespeichert.'}
-                      {' '}Bitte überprüfen Sie die Daten unten.
+                      {cvParseResult.fieldsUpdated === 0 && ' Ihre vorhandenen Daten wurden nicht überschrieben.'}
                     </p>
                   </div>
                 </>
@@ -810,7 +827,6 @@ function ApplicantProfile() {
           )}
         </div>
       </div>
-      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         
