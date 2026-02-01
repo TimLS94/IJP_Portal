@@ -687,8 +687,13 @@ async def delete_user(
             # IJP-Aufträge löschen (WICHTIG: vor Applicant löschen!)
             from app.models.job_request import JobRequest
             from app.models.interview import Interview
+            from app.models.application import ApplicationDocument
             db.query(JobRequest).filter(JobRequest.applicant_id == applicant.id).delete()
-            # Zuerst Dokumente löschen (Fremdschlüssel auf applicant_id)
+            # Zuerst application_documents löschen (FK auf documents)
+            doc_ids = [d.id for d in db.query(Document).filter(Document.applicant_id == applicant.id).all()]
+            if doc_ids:
+                db.query(ApplicationDocument).filter(ApplicationDocument.document_id.in_(doc_ids)).delete(synchronize_session=False)
+            # Dann Dokumente löschen
             db.query(Document).filter(Document.applicant_id == applicant.id).delete()
             # Interviews löschen (vor Bewerbungen!)
             applications = db.query(Application).filter(Application.applicant_id == applicant.id).all()
