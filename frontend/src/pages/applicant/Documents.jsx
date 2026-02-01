@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { documentsAPI, applicantAPI, downloadBlob } from '../../lib/api';
+import { documentsAPI, applicantAPI, applicationsAPI, downloadBlob } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   FileText, Upload, Download, Trash2, File, 
   FileImage, Loader2, AlertCircle,
-  CheckCircle, Clock, Shield, ChevronDown, FolderOpen
+  CheckCircle, Clock, Shield, ChevronDown, FolderOpen, Bell
 } from 'lucide-react';
 
 // Dokumenttypen mit Icons
@@ -49,6 +49,7 @@ function ApplicantDocuments() {
   const [selectedType, setSelectedType] = useState('other');
   const [description, setDescription] = useState('');
   const fileInputRef = useRef(null);
+  const [requestedDocuments, setRequestedDocuments] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -56,13 +57,15 @@ function ApplicantDocuments() {
 
   const loadData = async () => {
     try {
-      const [profileRes, docsRes] = await Promise.all([
+      const [profileRes, docsRes, requestedRes] = await Promise.all([
         applicantAPI.getProfile().catch(() => ({ data: null })),
-        documentsAPI.list()
+        documentsAPI.list(),
+        applicationsAPI.getMyRequestedDocuments().catch(() => ({ data: [] }))
       ]);
       
       setProfile(profileRes.data);
       setDocuments(docsRes.data);
+      setRequestedDocuments(requestedRes.data || []);
       
       if (profileRes.data?.position_type) {
         const statusRes = await documentsAPI.getStatus();
@@ -183,6 +186,50 @@ function ApplicantDocuments() {
           {t('applicant.documentsUploadButton')}
         </button>
       </div>
+
+      {/* Angeforderte Dokumente - Benachrichtigung */}
+      {requestedDocuments.length > 0 && (
+        <div className="card mb-6 border-l-4 border-l-orange-500 bg-orange-50">
+          <div className="flex items-start gap-4">
+            <Bell className="h-8 w-8 text-orange-600 flex-shrink-0 mt-1" />
+            <div className="flex-1">
+              <h3 className="font-bold text-orange-800 text-lg mb-2">
+                Dokumente angefordert
+              </h3>
+              <p className="text-orange-700 mb-4">
+                Folgende Dokumente wurden von Unternehmen für Ihre Bewerbungen angefordert:
+              </p>
+              <div className="space-y-3">
+                {requestedDocuments.map((req, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-4 border border-orange-200">
+                    <p className="font-medium text-gray-900 mb-2">
+                      📋 {req.job_title}
+                    </p>
+                    <ul className="space-y-1">
+                      {req.requested_documents.map((doc, docIdx) => (
+                        <li key={docIdx} className="text-sm text-orange-700 flex items-center gap-2">
+                          <span className="w-2 h-2 bg-orange-400 rounded-full"></span>
+                          <span>{documentTypeKeys.find(d => d.value === doc.type)?.labelKey ? t(documentTypeKeys.find(d => d.value === doc.type).labelKey) : doc.type}</span>
+                          <span className="text-xs text-orange-500">
+                            ({doc.company_name}, {new Date(doc.requested_at).toLocaleDateString('de-DE')})
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Dokumente jetzt hochladen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status-Übersicht */}
       {documentStatus && (

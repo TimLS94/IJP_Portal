@@ -3,7 +3,7 @@ from app.models.applicant import Applicant
 from app.models.company import Company
 from app.models.company_member import CompanyMember, CompanyRole
 from app.models.job_posting import JobPosting
-from app.models.application import Application
+from app.models.application import Application, ApplicationDocument
 from app.models.document import Document
 from app.models.blog import BlogPost
 from app.models.password_reset import PasswordResetToken

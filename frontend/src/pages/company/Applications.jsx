@@ -7,7 +7,7 @@ import {
   Globe, Loader2, ChevronDown, ChevronUp, Search, Filter, 
   ArrowUpDown, SlidersHorizontal, LayoutGrid, List, CalendarPlus,
   Clock, Video, MapPinned, CheckCircle, XCircle, AlertTriangle,
-  Sparkles, TrendingUp, TrendingDown, Minus
+  Sparkles, TrendingUp, TrendingDown, Minus, FilePlus, Send
 } from 'lucide-react';
 
 const statusOptions = [
@@ -66,6 +66,12 @@ function CompanyApplications() {
   // Matching Score
   const [matchScore, setMatchScore] = useState(null);
   const [matchLoading, setMatchLoading] = useState(false);
+  
+  // Dokumente anfordern
+  const [showDocRequestModal, setShowDocRequestModal] = useState(false);
+  const [selectedDocTypes, setSelectedDocTypes] = useState([]);
+  const [docRequestMessage, setDocRequestMessage] = useState('');
+  const [submittingDocRequest, setSubmittingDocRequest] = useState(false);
 
   useEffect(() => {
     loadApplications();
@@ -372,6 +378,59 @@ function CompanyApplications() {
     } catch (error) {
       console.error('Download-Fehler:', error);
       toast.error('Fehler beim Herunterladen des Dokuments');
+    }
+  };
+
+  // Dokumente anfordern
+  const documentTypeOptions = [
+    { value: 'cv', label: 'Lebenslauf' },
+    { value: 'passport', label: 'Reisepass' },
+    { value: 'photo', label: 'Bewerbungsfoto' },
+    { value: 'enrollment_cert', label: 'Immatrikulationsbescheinigung' },
+    { value: 'enrollment_trans', label: 'Immatrikulation (Übersetzung)' },
+    { value: 'ba_declaration', label: 'BA-Erklärung' },
+    { value: 'language_cert', label: 'Sprachzertifikat' },
+    { value: 'diploma', label: 'Studienzeugnis/Abschluss' },
+    { value: 'school_cert', label: 'Schulzeugnis' },
+    { value: 'work_reference', label: 'Arbeitszeugnis' },
+    { value: 'visa', label: 'Visum' },
+    { value: 'other', label: 'Sonstiges' },
+  ];
+
+  const openDocRequestModal = () => {
+    setSelectedDocTypes([]);
+    setDocRequestMessage('');
+    setShowDocRequestModal(true);
+  };
+
+  const toggleDocType = (docType) => {
+    setSelectedDocTypes(prev => 
+      prev.includes(docType) 
+        ? prev.filter(t => t !== docType)
+        : [...prev, docType]
+    );
+  };
+
+  const submitDocumentRequest = async () => {
+    if (selectedDocTypes.length === 0) {
+      toast.error('Bitte wählen Sie mindestens ein Dokument aus');
+      return;
+    }
+
+    setSubmittingDocRequest(true);
+    try {
+      await applicationsAPI.requestDocuments(selectedApp, {
+        document_types: selectedDocTypes,
+        message: docRequestMessage || null
+      });
+      toast.success('Dokumentenanforderung gesendet! Der Bewerber wurde per E-Mail benachrichtigt.');
+      setShowDocRequestModal(false);
+      // Details neu laden um angeforderte Dokumente anzuzeigen
+      loadApplicantDetails(selectedApp);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Fehler beim Senden der Anforderung');
+    } finally {
+      setSubmittingDocRequest(false);
     }
   };
 
@@ -1000,10 +1059,19 @@ function CompanyApplications() {
 
                   {/* Dokumente */}
                   <div className="md:col-span-2 bg-gray-50 rounded-xl p-5">
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary-600" />
-                      Dokumente ({applicantDetails.documents.length})
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary-600" />
+                        Dokumente ({applicantDetails.documents.length})
+                      </h3>
+                      <button
+                        onClick={openDocRequestModal}
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center gap-2"
+                      >
+                        <FilePlus className="h-4 w-4" />
+                        Dokumente anfordern
+                      </button>
+                    </div>
                     {applicantDetails.documents.length === 0 ? (
                       <p className="text-gray-500">Keine Dokumente hochgeladen</p>
                     ) : (
@@ -1024,6 +1092,26 @@ function CompanyApplications() {
                             <Download className="h-4 w-4 text-gray-400 group-hover:text-primary-600" />
                           </button>
                         ))}
+                      </div>
+                    )}
+                    
+                    {/* Angeforderte Dokumente anzeigen */}
+                    {applicantDetails.application.requested_documents?.length > 0 && (
+                      <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                        <h4 className="font-medium text-orange-800 mb-2 flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4" />
+                          Angeforderte Dokumente
+                        </h4>
+                        <ul className="space-y-1">
+                          {applicantDetails.application.requested_documents.map((req, idx) => (
+                            <li key={idx} className="text-sm text-orange-700 flex items-center gap-2">
+                              <span>• {documentTypeOptions.find(d => d.value === req.type)?.label || req.type}</span>
+                              <span className="text-xs text-orange-500">
+                                (angefordert am {new Date(req.requested_at).toLocaleDateString('de-DE')})
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>
@@ -1433,6 +1521,88 @@ function CompanyApplications() {
                   <XCircle className="h-4 w-4" />
                 )}
                 Termin absagen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dokumente anfordern Modal */}
+      {showDocRequestModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+            <div className="p-6 border-b bg-orange-50 rounded-t-2xl">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-orange-700">
+                <FilePlus className="h-6 w-6" />
+                Dokumente anfordern
+              </h2>
+              <p className="text-sm text-orange-600 mt-1">
+                Der Bewerber wird per E-Mail benachrichtigt
+              </p>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-600 mb-4">
+                Wählen Sie die Dokumente aus, die der Bewerber nachreichen soll:
+              </p>
+              
+              <div className="grid grid-cols-2 gap-2 mb-6">
+                {documentTypeOptions.map((docType) => (
+                  <button
+                    key={docType.value}
+                    onClick={() => toggleDocType(docType.value)}
+                    className={`p-3 rounded-lg border text-left transition-colors ${
+                      selectedDocTypes.includes(docType.value)
+                        ? 'bg-orange-100 border-orange-500 text-orange-800'
+                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                        selectedDocTypes.includes(docType.value)
+                          ? 'bg-orange-500 border-orange-500'
+                          : 'border-gray-300'
+                      }`}>
+                        {selectedDocTypes.includes(docType.value) && (
+                          <Check className="h-3 w-3 text-white" />
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">{docType.label}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div>
+                <label className="label">Nachricht an den Bewerber (optional)</label>
+                <textarea
+                  className="input-styled"
+                  rows={3}
+                  placeholder="z.B. Bitte reichen Sie die fehlenden Unterlagen zeitnah nach..."
+                  value={docRequestMessage}
+                  onChange={(e) => setDocRequestMessage(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+              <button
+                onClick={() => setShowDocRequestModal(false)}
+                className="btn-secondary"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={submitDocumentRequest}
+                disabled={submittingDocRequest || selectedDocTypes.length === 0}
+                className="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {submittingDocRequest ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                Anforderung senden
               </button>
             </div>
           </div>

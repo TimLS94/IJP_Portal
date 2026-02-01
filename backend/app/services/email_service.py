@@ -2,7 +2,7 @@
 E-Mail Service mit SendGrid HTTP API - CRASH-SAFE
 """
 import logging
-from typing import Optional
+from typing import Optional, List
 
 logger = logging.getLogger(__name__)
 
@@ -296,6 +296,92 @@ class EmailService:
                     {new_status}
                 </p>
                 <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
+    
+    @_safe_email_call
+    def send_document_request(
+        self, to_email: str, applicant_name: str, company_name: str, 
+        job_title: str, requested_documents: List[str], message: str = None
+    ) -> bool:
+        """Benachrichtigt den Bewerber, dass Dokumente angefordert wurden"""
+        subject = f"Unterlagen angefordert: {job_title} bei {company_name}"
+        
+        docs_list = "".join([f"<li>{doc}</li>" for doc in requested_documents])
+        message_html = f"<p><strong>Nachricht:</strong> {message}</p>" if message else ""
+        
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>📄 Unterlagen angefordert</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {applicant_name},</p>
+                <p><strong>{company_name}</strong> hat für Ihre Bewerbung auf <strong>{job_title}</strong> folgende Unterlagen angefordert:</p>
+                <ul style="background: white; padding: 20px 40px; border-radius: 8px; margin: 20px 0;">
+                    {docs_list}
+                </ul>
+                {message_html}
+                <p style="background: #dbeafe; padding: 15px; border-radius: 8px; border-left: 4px solid #2563eb;">
+                    💡 Bitte laden Sie die fehlenden Dokumente in Ihrem Profil unter "Dokumente" hoch.
+                </p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{settings.FRONTEND_URL}/applicant/documents" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Dokumente hochladen</a>
+                </p>
+                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
+    
+    @_safe_email_call
+    def send_rejection_email(
+        self, to_email: str, applicant_name: str, job_title: str, 
+        company_name: str, custom_subject: str = None, custom_text: str = None,
+        applicant_gender: str = None, applicant_last_name: str = None
+    ) -> bool:
+        """Sendet benutzerdefinierte Absage-E-Mail"""
+        # Anrede basierend auf Geschlecht generieren
+        if applicant_gender == 'male':
+            salutation = f"Sehr geehrter Herr {applicant_last_name or applicant_name}"
+        elif applicant_gender == 'female':
+            salutation = f"Sehr geehrte Frau {applicant_last_name or applicant_name}"
+        elif applicant_gender == 'diverse':
+            salutation = f"Guten Tag {applicant_name}"
+        else:
+            # Kein Geschlecht angegeben
+            salutation = f"Sehr geehrte/r {applicant_name}"
+        
+        # Platzhalter ersetzen
+        subject = (custom_subject or "Ihre Bewerbung bei {company_name}").format(
+            company_name=company_name,
+            applicant_name=applicant_name,
+            job_title=job_title,
+            salutation=salutation
+        )
+        
+        text_content = (custom_text or "").format(
+            company_name=company_name,
+            applicant_name=applicant_name,
+            job_title=job_title,
+            salutation=salutation
+        )
+        
+        # Text in HTML umwandeln (Zeilenumbrüche zu <br>)
+        text_html = text_content.replace('\n', '<br>')
+        
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #6b7280; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>Bewerbungsstatus</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p style="line-height: 1.8;">{text_html}</p>
+            </div>
+            <div style="padding: 15px; background: #e5e7eb; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; color: #6b7280;">
+                Diese E-Mail wurde über das IJP Portal versendet.
             </div>
         </body></html>
         """

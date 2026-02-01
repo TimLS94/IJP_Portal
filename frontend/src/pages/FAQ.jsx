@@ -90,7 +90,7 @@ function FAQ() {
     },
     {
       id: 'technical',
-      title: t('faq.technical'),
+      title: t('faq.technicalLabel'),
       icon: HelpCircle,
       color: 'bg-orange-100 text-orange-600',
       questions: [

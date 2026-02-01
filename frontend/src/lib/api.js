@@ -82,6 +82,10 @@ export const companyAPI = {
   updateMember: (id, data) => api.put(`/company/members/${id}`, data),
   removeMember: (id) => api.delete(`/company/members/${id}`),
   getMemberRoles: () => api.get('/company/members/roles'),
+  // Absage-E-Mail Einstellungen
+  getRejectionSettings: () => api.get('/companies/me/rejection-settings'),
+  updateRejectionSettings: (data) => api.put('/companies/me/rejection-settings', data),
+  resetRejectionSettings: () => api.post('/companies/me/rejection-settings/reset'),
 };
 
 // Jobs API
@@ -115,6 +119,14 @@ export const applicationsAPI = {
   getApplicantDetails: (applicationId) => api.get(`/applications/company/${applicationId}/applicant-details`),
   // Firma: Matching Score für Bewerbung
   getMatchScore: (applicationId) => api.get(`/applications/company/${applicationId}/match`),
+  // Firma: Dokumente anfordern
+  requestDocuments: (applicationId, data) => api.post(`/applications/company/${applicationId}/request-documents`, data),
+  // Bewerber: Angeforderte Dokumente abrufen
+  getMyRequestedDocuments: () => api.get('/applications/my/requested-documents'),
+  // Bewerber: Dokumente für Bewerbung freigeben
+  shareDocuments: (applicationId, documentIds) => api.post(`/applications/my/${applicationId}/share-documents`, { document_ids: documentIds }),
+  // Bewerber: Freigegebene Dokumente für Bewerbung abrufen
+  getSharedDocuments: (applicationId) => api.get(`/applications/my/${applicationId}/shared-documents`),
 };
 
 // Documents API

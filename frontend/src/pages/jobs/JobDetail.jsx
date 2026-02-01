@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { jobsAPI, applicationsAPI } from '../../lib/api';
+import { jobsAPI, applicationsAPI, documentsAPI } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { 
@@ -147,15 +147,15 @@ function JobDetail() {
 
   const languageLevelLabels = {
     not_required: t('languageLevels.none'),
-    a1: `A1 - ${t('languageLevels.a1')}`,
-    a2: `A2 - ${t('languageLevels.a2')}`,
-    b1: `B1 - ${t('languageLevels.b1')}`,
-    b2: `B2 - ${t('languageLevels.b2')}`,
-    c1: `C1 - ${t('languageLevels.c1')}`,
-    c2: `C2 - ${t('languageLevels.c2')}`,
-    basic: `A2 - ${t('languageLevels.a2')}`,
-    good: `B1 - ${t('languageLevels.b1')}`,
-    fluent: `C1 - ${t('languageLevels.c1')}`
+    a1: t('languageLevels.a1'),
+    a2: t('languageLevels.a2'),
+    b1: t('languageLevels.b1'),
+    b2: t('languageLevels.b2'),
+    c1: t('languageLevels.c1'),
+    c2: t('languageLevels.c2'),
+    basic: t('languageLevels.a2'),
+    good: t('languageLevels.b1'),
+    fluent: t('languageLevels.c1')
   };
   
   const salaryTypeLabels = {
@@ -182,6 +182,11 @@ function JobDetail() {
   // Matching Score
   const [matchScore, setMatchScore] = useState(null);
   const [matchLoading, setMatchLoading] = useState(false);
+  
+  // Dokumentenauswahl für Bewerbung
+  const [myDocuments, setMyDocuments] = useState([]);
+  const [selectedDocIds, setSelectedDocIds] = useState([]);
+  const [showDocumentSelection, setShowDocumentSelection] = useState(false);
   
   // Helper: Text in der gewählten Sprache abrufen (mit Fallback auf Deutsch)
   const getTranslatedText = (field) => {
@@ -220,8 +225,20 @@ function JobDetail() {
     if (isApplicant && id) {
       loadRequirements();
       loadMatchScore();
+      loadMyDocuments();
     }
   }, [isApplicant, id]);
+  
+  const loadMyDocuments = async () => {
+    try {
+      const response = await documentsAPI.list();
+      setMyDocuments(response.data || []);
+      // Standardmäßig alle Dokumente auswählen
+      setSelectedDocIds((response.data || []).map(d => d.id));
+    } catch (error) {
+      console.error('Fehler beim Laden der Dokumente');
+    }
+  };
 
   const loadJob = async () => {
     try {
@@ -271,19 +288,35 @@ function JobDetail() {
       return;
     }
 
+    // Zeige Dokumentenauswahl wenn Dokumente vorhanden
+    if (myDocuments.length > 0 && !showDocumentSelection) {
+      setShowDocumentSelection(true);
+      return;
+    }
+
     setApplying(true);
     try {
       await applicationsAPI.create({
         job_posting_id: parseInt(id),
-        applicant_message: message
+        applicant_message: message,
+        document_ids: selectedDocIds
       });
       toast.success('Bewerbung erfolgreich eingereicht!');
       setApplied(true);
+      setShowDocumentSelection(false);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Bewerbung fehlgeschlagen');
     } finally {
       setApplying(false);
     }
+  };
+
+  const toggleDocumentSelection = (docId) => {
+    setSelectedDocIds(prev => 
+      prev.includes(docId) 
+        ? prev.filter(id => id !== docId)
+        : [...prev, docId]
+    );
   };
 
   const formatDate = (dateString) => {
@@ -671,6 +704,58 @@ function JobDetail() {
                   </>
                 )}
                 
+                {/* Dokumentenauswahl */}
+                {showDocumentSelection && myDocuments.length > 0 && (
+                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Dokumente für {job.company_name || 'diese Firma'} freigeben
+                    </h4>
+                    <div className="bg-white rounded-lg p-3 mb-3 border border-blue-200">
+                      <p className="text-sm text-gray-700">
+                        <strong className="text-blue-800">{job.company_name}</strong> erhält Zugriff auf die ausgewählten Dokumente für die Stelle:
+                      </p>
+                      <p className="text-sm font-medium text-gray-900 mt-1">"{getTranslatedText('title')}"</p>
+                    </div>
+                    <p className="text-sm text-blue-600 mb-3">
+                      Wählen Sie aus, welche Dokumente freigegeben werden sollen:
+                    </p>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {myDocuments.map((doc) => (
+                        <label 
+                          key={doc.id} 
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                            selectedDocIds.includes(doc.id) 
+                              ? 'bg-blue-100 border border-blue-300' 
+                              : 'bg-white border border-gray-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedDocIds.includes(doc.id)}
+                            onChange={() => toggleDocumentSelection(doc.id)}
+                            className="w-4 h-4 text-blue-600 rounded"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{doc.original_name}</p>
+                            <p className="text-xs text-gray-500">{doc.document_type}</p>
+                          </div>
+                          {selectedDocIds.includes(doc.id) && (
+                            <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded">
+                              wird geteilt
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-xs text-yellow-700">
+                        ⚠️ <strong>Datenschutz:</strong> Nur die ausgewählten {selectedDocIds.length} Dokument(e) werden für <strong>{job.company_name}</strong> sichtbar. Andere Firmen sehen diese Dokumente nicht.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
                 <button
                   onClick={handleApply}
                   disabled={applying || (isApplicant && requirements && !requirements.can_apply)}
@@ -678,6 +763,11 @@ function JobDetail() {
                 >
                   {applying ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  ) : showDocumentSelection ? (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Bewerbung absenden ({selectedDocIds.length} Dokumente)
+                    </>
                   ) : (
                     <>
                       <Send className="h-4 w-4 mr-2" />

@@ -779,7 +779,7 @@ function ApplicantProfile() {
                 />
               </label>
               <span className="text-white/70 text-xs text-center md:text-right">
-                {t('profile.cvAutoFill.pdfFormat')} • Vorhandene Daten werden nicht überschrieben
+                {t('profile.cvAutoFill.pdfFormat')} • {t('profile.cvAutoFill.noOverwrite')}
               </span>
             </div>
           </div>
@@ -837,7 +837,7 @@ function ApplicantProfile() {
             {t('applicant.desiredPosition')}
           </h2>
           <p className="text-gray-600 mb-4">
-            Wählen Sie alle Stellenarten, für die Sie sich interessieren (Mehrfachauswahl möglich).
+            {t('applicant.desiredPositionHint')}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
             {positionTypeKeys.map((type) => {

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, Enum, JSON, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -85,6 +85,10 @@ class Application(Base):
     company_notes = Column(Text)      # Interne Notizen der Firma
     admin_notes = Column(Text)        # Interne Notizen von IJP Admin
     
+    # Angeforderte Dokumente von Firma/Admin
+    # Format: [{"type": "cv", "requested_by": "company", "requested_at": "...", "message": "..."}]
+    requested_documents = Column(JSON, default=[])
+    
     # Timestamps
     applied_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -93,3 +97,23 @@ class Application(Base):
     applicant = relationship("Applicant", back_populates="applications")
     job_posting = relationship("JobPosting", back_populates="applications")
     interviews = relationship("Interview", back_populates="application", order_by="Interview.created_at.desc()", cascade="all, delete-orphan")
+    shared_documents = relationship("ApplicationDocument", back_populates="application", cascade="all, delete-orphan")
+
+
+class ApplicationDocument(Base):
+    """Zwischentabelle: Welche Dokumente wurden für welche Bewerbung freigegeben"""
+    __tablename__ = "application_documents"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
+    document_id = Column(Integer, ForeignKey("documents.id"), nullable=False)
+    
+    # Wann wurde das Dokument freigegeben
+    shared_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Wurde es nachgereicht (auf Anforderung)?
+    is_follow_up = Column(Boolean, default=False)
+    
+    # Relationships
+    application = relationship("Application", back_populates="shared_documents")
+    document = relationship("Document")

@@ -278,6 +278,7 @@
     "city": "Stadt",
     "country": "Land",
     "desiredPosition": "Gewünschte Stellenart",
+    "desiredPositionHint": "Wählen Sie alle Stellenarten, für die Sie sich interessieren (Mehrfachauswahl möglich).",
     "education": "Ausbildung / Studium",
     "educationPlaceholder": "Beschreiben Sie Ihre Ausbildung...",
     "workExperience": "Berufserfahrung",
@@ -371,8 +372,7 @@
     "other": "Sonstiges",
     "university_confirmation": "Uni-Bestätigung Semesterferien",
     "health_certificate": "Gesundheitszeugnis",
-    "police_clearance": "Führungszeugnis",
-    "other": "Sonstiges"
+    "police_clearance": "Führungszeugnis"
   },
   "company": {
     "dashboard": "Dashboard",
@@ -647,7 +647,8 @@
       "description": "Laden Sie Ihren Lebenslauf hoch und wir füllen Ihr Profil automatisch aus. Sie können alle Daten danach noch bearbeiten.",
       "uploadButton": "Lebenslauf hochladen",
       "analyzing": "Analysiere...",
-      "pdfFormat": "PDF-Format, max. 10 MB"
+      "pdfFormat": "PDF-Format, max. 10 MB",
+      "noOverwrite": "Vorhandene Daten werden nicht überschrieben"
     },
     "documents": {
       "title": "Benötigte Dokumente",
@@ -676,7 +677,7 @@
     },
     "documentDescriptions": {
       "passport": "Gültiger Reisepass (alle Seiten mit Stempeln)",
-      "cv": "Lebenslauf (optional)",
+      "cv": "Lebenslauf",
       "photo": "Bewerbungsfoto (optional)",
       "enrollment_cert": "Immatrikulationsbescheinigung im Original",
       "enrollment_trans": "Beglaubigte deutsche oder englische Übersetzung der Immatrikulation",
@@ -1089,7 +1090,7 @@
       "docs3": "Passfoto",
       "docs4": "BA-Erklärung",
       "durationText": "Max. 90 Tage",
-      "salaryText": "12,41€+ /Stunde",
+      "salaryText": "13,90€+ /Stunde",
       "legalBasisText": "§14 Abs. 2 BeschV",
       "sectors": "Landwirtschaft, Produktion, Logistik, Gastronomie, Tourismus",
       "process1": "Registrierung",
@@ -1111,7 +1112,7 @@
       "docs3": "Arbeitszeugnisse (falls vorhanden)",
       "docs4": "Gesundheitszeugnis (branchenabhängig)",
       "durationText": "Bis 8 Monate",
-      "salaryText": "12,41€+ /Stunde",
+      "salaryText": "13,90€+ /Stunde",
       "legalBasisText": "§15a BeschV",
       "sectors": "Landwirtschaft, Tourismus, Gastronomie, Event",
       "process1": "Registrierung",
@@ -1192,7 +1193,7 @@
     "forEmployers": "Für Arbeitgeber",
     "forApplicants": "Für Bewerber",
     "legalVisa": "Rechtliches & Visa",
-    "technical": "Technische Fragen",
+    "technicalLabel": "Technische Fragen",
     "moreQuestions": "Noch Fragen?",
     "moreQuestionsDesc": "Unser Team beantwortet gerne alle Ihre Fragen persönlich.",
     "contactUs": "Kontakt aufnehmen",
@@ -1229,7 +1230,7 @@
       "q2": "Was ist eine kurzfristige Beschäftigung?",
       "a2": "Die kurzfristige Beschäftigung ist eine besondere Regelung:\n\n• Dauer: Maximal 90 Tage oder 3 Monate im Kalenderjahr\n• Für: Studenten aus bestimmten Ländern (z.B. Ukraine, Moldawien)\n• Vorteil: Vereinfachtes Verfahren ohne Aufenthaltstitel\n\nVoraussetzungen:\n• Gültige Immatrikulationsbescheinigung\n• Vermittlung über zugelassene Agentur (wie IJP)\n• Zustimmung der Bundesagentur für Arbeit\n\nWir kümmern uns um alle Formalitäten!",
       "q3": "Welche Arbeitszeiten gelten in Deutschland?",
-      "a3": "In Deutschland gelten folgende Regelungen:\n\n• Maximale Arbeitszeit: 8 Stunden/Tag, max. 10 Stunden mit Ausgleich\n• Pausen: Nach 6 Stunden mind. 30 Min., nach 9 Stunden mind. 45 Min.\n• Ruhezeit: Mind. 11 Stunden zwischen Arbeitstagen\n• Wochenende: In der Regel arbeitsfrei (Ausnahmen in bestimmten Branchen)\n\nMindestlohn (2024): 12,41 €/Stunde",
+      "a3": "In Deutschland gelten folgende Regelungen:\n\n• Maximale Arbeitszeit: 8 Stunden/Tag, max. 10 Stunden mit Ausgleich\n• Pausen: Nach 6 Stunden mind. 30 Min., nach 9 Stunden mind. 45 Min.\n• Ruhezeit: Mind. 11 Stunden zwischen Arbeitstagen\n• Wochenende: In der Regel arbeitsfrei (Ausnahmen in bestimmten Branchen)\n\nMindestlohn (2025): 13,90 €/Stunde",
       "q4": "Wie werden meine Daten geschützt?",
       "a4": "Datenschutz hat bei uns höchste Priorität:\n\n• Alle Daten werden gemäß DSGVO verarbeitet\n• SSL-verschlüsselte Übertragung\n• Speicherung auf deutschen Servern\n• Weitergabe nur mit Ihrer Zustimmung an potenzielle Arbeitgeber\n• Löschung auf Anfrage jederzeit möglich\n\nMehr Informationen finden Sie in unserer Datenschutzerklärung."
     },

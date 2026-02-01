@@ -1,6 +1,21 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+
+# Standard Absage-Text (rechtlich sicher formuliert)
+DEFAULT_REJECTION_SUBJECT = "Ihre Bewerbung bei {company_name}"
+DEFAULT_REJECTION_TEXT = """{salutation},
+
+vielen Dank für Ihr Interesse an einer Tätigkeit bei {company_name} und die Zeit, die Sie in Ihre Bewerbung investiert haben.
+
+Nach sorgfältiger Prüfung aller eingegangenen Bewerbungen müssen wir Ihnen leider mitteilen, dass wir uns für andere Kandidaten entschieden haben, deren Profile noch etwas besser zu unseren aktuellen Anforderungen passen.
+
+Diese Entscheidung ist uns nicht leicht gefallen, da wir viele qualifizierte Bewerbungen erhalten haben. Bitte verstehen Sie, dass es oft nur kleine Nuancen sind, die den Ausschlag geben.
+
+Wir wünschen Ihnen für Ihre berufliche Zukunft alles Gute und viel Erfolg bei der weiteren Stellensuche.
+
+Mit freundlichen Grüßen
+{company_name}"""
 
 
 class Company(Base):
@@ -31,6 +46,11 @@ class Company(Base):
     
     # Logo
     logo = Column(String(255))
+    
+    # Absage-E-Mail Einstellungen
+    rejection_email_enabled = Column(Boolean, default=True)  # Absage-E-Mail aktiviert?
+    rejection_email_subject = Column(String(255), default=DEFAULT_REJECTION_SUBJECT)
+    rejection_email_text = Column(Text, default=DEFAULT_REJECTION_TEXT)
     
     # Relationships
     user = relationship("User", back_populates="company")

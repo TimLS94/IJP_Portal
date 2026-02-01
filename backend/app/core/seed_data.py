@@ -79,8 +79,8 @@ def seed_database(db: Session):
             german_level=LanguageLevel.B1,
             english_level=LanguageLevel.B2,
             other_languages=[
-                {"language": "Russisch", "level": "C2"},
-                {"language": "Ukrainisch", "level": "B1"}
+                {"language": "Russisch", "level": "c2"},
+                {"language": "Ukrainisch", "level": "b1"}
             ],
             
             # Berufserfahrung

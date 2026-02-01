@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from app.models.application import ApplicationStatus
 
@@ -10,6 +10,7 @@ class ApplicationBase(BaseModel):
 
 class ApplicationCreate(ApplicationBase):
     job_posting_id: int
+    document_ids: Optional[List[int]] = None  # IDs der freigegebenen Dokumente
 
 
 class ApplicationUpdate(BaseModel):
@@ -35,3 +36,4 @@ class ApplicationWithDetails(ApplicationResponse):
     company_name: Optional[str] = None
     applicant_name: Optional[str] = None
     job_translations: Optional[Dict[str, Any]] = None
+    requested_documents: Optional[List[Dict[str, Any]]] = None

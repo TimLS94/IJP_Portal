@@ -49,7 +49,7 @@ DOCUMENT_REQUIREMENTS = {
             DocumentType.ENROLLMENT_CERT: "Immatrikulationsbescheinigung im Original",
             DocumentType.ENROLLMENT_TRANSLATION: "Beglaubigte deutsche oder englische Übersetzung der Immatrikulation",
             DocumentType.BA_DECLARATION: "Erklärung zur Immatrikulationsbescheinigung (Bundesagentur für Arbeit)",
-            DocumentType.CV: "Lebenslauf (optional)",
+            DocumentType.CV: "Lebenslauf",
             DocumentType.PHOTO: "Bewerbungsfoto (optional)",
         }
     },
@@ -102,25 +102,25 @@ DOCUMENT_REQUIREMENTS = {
         ],
         "descriptions": {
             DocumentType.PASSPORT: "Gültiger Reisepass (alle Seiten mit Stempeln)",
-            DocumentType.CV: "Lebenslauf (optional)",
+            DocumentType.CV: "Lebenslauf",
             DocumentType.WORK_REFERENCE: "Arbeitszeugnisse (optional)",
             DocumentType.PHOTO: "Bewerbungsfoto (optional)",
         }
     },
     "workandholiday": {
         "required": [
-            DocumentType.PASSPORT,
             DocumentType.CV,
         ],
         "optional": [
+            DocumentType.PASSPORT,
             DocumentType.VISA,
             DocumentType.LANGUAGE_CERT,
             DocumentType.WORK_REFERENCE,
             DocumentType.PHOTO,
         ],
         "descriptions": {
-            DocumentType.PASSPORT: "Gültiger Reisepass aus einem WHV-Partnerland (Argentinien, Chile, Australien, etc.)",
             DocumentType.CV: "Lebenslauf mit Foto",
+            DocumentType.PASSPORT: "Gültiger Reisepass aus einem WHV-Partnerland (kann nachgereicht werden)",
             DocumentType.VISA: "Working Holiday Visum (falls bereits vorhanden)",
             DocumentType.LANGUAGE_CERT: "Deutschkenntnisse (optional, empfohlen)",
             DocumentType.WORK_REFERENCE: "Arbeitszeugnisse (optional)",

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -9,7 +10,7 @@ from app.models.applicant import Applicant, PositionType
 from app.models.company import Company
 from app.models.job_posting import JobPosting
 from app.models.document import Document, DOCUMENT_REQUIREMENTS
-from app.models.application import Application, ApplicationStatus, APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS
+from app.models.application import Application, ApplicationDocument, ApplicationStatus, APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS
 from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse, ApplicationWithDetails
 from app.services.email_service import email_service
 
@@ -58,11 +59,14 @@ def check_application_requirements(applicant: Applicant, job: JobPosting, db: Se
     uploaded_docs = db.query(Document).filter(Document.applicant_id == applicant.id).all()
     uploaded_types = [doc.document_type.value if hasattr(doc.document_type, 'value') else str(doc.document_type) for doc in uploaded_docs]
     
-    # CV-PFLICHT: Bei allen Stellen außer Studentenferienjob ist ein Lebenslauf Pflicht
+    # CV-PFLICHT: Nur bei Work and Holiday ist ein Lebenslauf zwingend erforderlich
+    # Bei anderen Stellenarten ist es eine Empfehlung (kann nachgereicht werden)
     job_position_value = job_position.value if hasattr(job_position, 'value') else str(job_position) if job_position else None
-    if job_position_value != 'studentenferienjob':
-        if 'cv' not in uploaded_types:
+    if 'cv' not in uploaded_types:
+        if job_position_value == 'workandholiday':
             errors.append("Lebenslauf erforderlich: Bitte laden Sie einen Lebenslauf in Ihrem Profil hoch")
+        elif job_position_value != 'studentenferienjob':
+            warnings.append("Lebenslauf empfohlen: Bitte laden Sie einen Lebenslauf hoch (kann nachgereicht werden)")
     
     # Pflichtdokumente prüfen (optional - nur wenn Stellenart gesetzt)
     if applicant_position:
@@ -186,6 +190,23 @@ async def create_application(
     db.commit()
     db.refresh(application)
     
+    # Dokumente für diese Bewerbung freigeben
+    if application_data.document_ids:
+        # Prüfe ob die Dokumente dem Bewerber gehören
+        docs = db.query(Document).filter(
+            Document.id.in_(application_data.document_ids),
+            Document.applicant_id == applicant.id
+        ).all()
+        
+        for doc in docs:
+            app_doc = ApplicationDocument(
+                application_id=application.id,
+                document_id=doc.id,
+                is_follow_up=False
+            )
+            db.add(app_doc)
+        db.commit()
+    
     # Firmen-Daten für E-Mail holen
     company = db.query(Company).filter(Company.id == job.company_id).first()
     company_user = db.query(User).filter(User.id == company.user_id).first() if company else None
@@ -250,7 +271,8 @@ async def get_my_applications(
             "updated_at": app.updated_at,
             "job_title": app.job_posting.title if app.job_posting else None,
             "company_name": app.job_posting.company.company_name if app.job_posting and app.job_posting.company else None,
-            "job_translations": app.job_posting.translations if app.job_posting else None
+            "job_translations": app.job_posting.translations if app.job_posting else None,
+            "requested_documents": app.requested_documents or []
         }
         result.append(ApplicationWithDetails(**app_dict))
     
@@ -343,13 +365,30 @@ async def update_application(
         job_posting = db.query(JobPosting).filter(JobPosting.id == application.job_posting_id).first()
         
         if applicant_user and job_posting:
-            email_service.send_application_status_update(
-                to_email=applicant_user.email,
-                applicant_name=f"{applicant.first_name} {applicant.last_name}",
-                job_title=job_posting.title,
-                company_name=company.company_name,
-                new_status=update_data.status.value if hasattr(update_data.status, 'value') else str(update_data.status)
-            )
+            new_status_value = update_data.status.value if hasattr(update_data.status, 'value') else str(update_data.status)
+            applicant_name = f"{applicant.first_name} {applicant.last_name}"
+            
+            # Bei Absage: Benutzerdefinierte Absage-E-Mail senden (wenn aktiviert)
+            if new_status_value == 'rejected' and company.rejection_email_enabled:
+                email_service.send_rejection_email(
+                    to_email=applicant_user.email,
+                    applicant_name=applicant_name,
+                    job_title=job_posting.title,
+                    company_name=company.company_name,
+                    custom_subject=company.rejection_email_subject,
+                    custom_text=company.rejection_email_text,
+                    applicant_gender=applicant.gender,
+                    applicant_last_name=applicant.last_name
+                )
+            else:
+                # Standard Status-Update E-Mail
+                email_service.send_application_status_update(
+                    to_email=applicant_user.email,
+                    applicant_name=applicant_name,
+                    job_title=job_posting.title,
+                    company_name=company.company_name,
+                    new_status=new_status_value
+                )
     
     return application
 
@@ -385,8 +424,18 @@ async def get_applicant_details_for_company(
     applicant = db.query(Applicant).filter(Applicant.id == application.applicant_id).first()
     applicant_user = db.query(User).filter(User.id == applicant.user_id).first()
     
-    # Dokumente
-    documents = db.query(Document).filter(Document.applicant_id == applicant.id).all()
+    # NUR freigegebene Dokumente für diese Bewerbung laden (Datenschutz!)
+    shared_doc_ids = db.query(ApplicationDocument.document_id).filter(
+        ApplicationDocument.application_id == application.id
+    ).all()
+    shared_doc_ids = [d[0] for d in shared_doc_ids]
+    
+    if shared_doc_ids:
+        documents = db.query(Document).filter(Document.id.in_(shared_doc_ids)).all()
+    else:
+        # Fallback für alte Bewerbungen ohne explizite Freigabe: Alle Dokumente zeigen
+        # TODO: Nach Migration entfernen
+        documents = db.query(Document).filter(Document.applicant_id == applicant.id).all()
     
     # Job-Details
     job = db.query(JobPosting).filter(JobPosting.id == application.job_posting_id).first()
@@ -532,3 +581,224 @@ async def withdraw_application(
     db.commit()
     
     return {"message": "Bewerbung zurückgezogen"}
+
+
+# ========== DOKUMENTE ANFORDERN ==========
+
+class DocumentRequestCreate(BaseModel):
+    document_types: List[str]  # z.B. ["cv", "passport"]
+    message: Optional[str] = None  # Nachricht an den Bewerber
+
+
+@router.post("/company/{application_id}/request-documents")
+async def request_documents_from_applicant(
+    application_id: int,
+    request_data: DocumentRequestCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Firma fordert fehlende Unterlagen vom Bewerber an.
+    Der Bewerber wird per E-Mail benachrichtigt.
+    """
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen können Unterlagen anfordern")
+    
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
+    
+    # Bewerbung mit Zugriffsprüfung
+    application = db.query(Application).join(JobPosting).filter(
+        Application.id == application_id,
+        JobPosting.company_id == company.id
+    ).first()
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Bewerbung nicht gefunden")
+    
+    # Bewerber-Daten für E-Mail
+    applicant = db.query(Applicant).filter(Applicant.id == application.applicant_id).first()
+    applicant_user = db.query(User).filter(User.id == applicant.user_id).first()
+    job = db.query(JobPosting).filter(JobPosting.id == application.job_posting_id).first()
+    
+    # Angeforderte Dokumente speichern
+    from datetime import datetime
+    existing_requests = application.requested_documents or []
+    
+    for doc_type in request_data.document_types:
+        existing_requests.append({
+            "type": doc_type,
+            "requested_by": "company",
+            "requested_at": datetime.utcnow().isoformat(),
+            "message": request_data.message,
+            "company_name": company.company_name
+        })
+    
+    application.requested_documents = existing_requests
+    db.commit()
+    
+    # E-Mail an Bewerber senden
+    if applicant_user and applicant:
+        from app.models.document import DOCUMENT_REQUIREMENTS
+        from app.schemas.document import DOCUMENT_TYPE_LABELS
+        
+        doc_labels = [DOCUMENT_TYPE_LABELS.get(dt, dt) for dt in request_data.document_types]
+        
+        email_service.send_document_request(
+            to_email=applicant_user.email,
+            applicant_name=f"{applicant.first_name} {applicant.last_name}",
+            company_name=company.company_name,
+            job_title=job.title if job else "Stelle",
+            requested_documents=doc_labels,
+            message=request_data.message
+        )
+    
+    return {
+        "message": "Dokumentenanforderung gesendet",
+        "requested_documents": request_data.document_types
+    }
+
+
+@router.get("/my/requested-documents")
+async def get_my_requested_documents(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Bewerber sieht alle angeforderten Dokumente für seine Bewerbungen.
+    """
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(status_code=403, detail="Nur Bewerber")
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        return []
+    
+    applications = db.query(Application).options(
+        joinedload(Application.job_posting)
+    ).filter(
+        Application.applicant_id == applicant.id,
+        Application.requested_documents != None,
+        Application.requested_documents != []
+    ).all()
+    
+    result = []
+    for app in applications:
+        if app.requested_documents:
+            result.append({
+                "application_id": app.id,
+                "job_title": app.job_posting.title if app.job_posting else None,
+                "requested_documents": app.requested_documents
+            })
+    
+    return result
+
+
+# ========== DOKUMENTE NACHTRÄGLICH FREIGEBEN ==========
+
+class ShareDocumentsRequest(BaseModel):
+    document_ids: List[int]
+
+
+@router.post("/my/{application_id}/share-documents")
+async def share_documents_for_application(
+    application_id: int,
+    request_data: ShareDocumentsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Bewerber gibt nachträglich Dokumente für eine Bewerbung frei.
+    Wird verwendet wenn Firma Dokumente anfordert.
+    """
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(status_code=403, detail="Nur Bewerber")
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber-Profil nicht gefunden")
+    
+    # Prüfe ob die Bewerbung dem Bewerber gehört
+    application = db.query(Application).filter(
+        Application.id == application_id,
+        Application.applicant_id == applicant.id
+    ).first()
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Bewerbung nicht gefunden")
+    
+    # Prüfe ob die Dokumente dem Bewerber gehören
+    docs = db.query(Document).filter(
+        Document.id.in_(request_data.document_ids),
+        Document.applicant_id == applicant.id
+    ).all()
+    
+    # Bereits freigegebene Dokumente ermitteln
+    existing_shares = db.query(ApplicationDocument.document_id).filter(
+        ApplicationDocument.application_id == application_id
+    ).all()
+    existing_doc_ids = [d[0] for d in existing_shares]
+    
+    # Nur neue Dokumente freigeben
+    added_count = 0
+    for doc in docs:
+        if doc.id not in existing_doc_ids:
+            app_doc = ApplicationDocument(
+                application_id=application.id,
+                document_id=doc.id,
+                is_follow_up=True  # Markiert als nachgereicht
+            )
+            db.add(app_doc)
+            added_count += 1
+    
+    db.commit()
+    
+    return {
+        "message": f"{added_count} Dokument(e) freigegeben",
+        "shared_count": added_count
+    }
+
+
+@router.get("/my/{application_id}/shared-documents")
+async def get_shared_documents_for_application(
+    application_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Bewerber sieht welche Dokumente für eine Bewerbung freigegeben sind.
+    """
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(status_code=403, detail="Nur Bewerber")
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        return []
+    
+    # Prüfe ob die Bewerbung dem Bewerber gehört
+    application = db.query(Application).filter(
+        Application.id == application_id,
+        Application.applicant_id == applicant.id
+    ).first()
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Bewerbung nicht gefunden")
+    
+    # Freigegebene Dokumente laden
+    shared_docs = db.query(ApplicationDocument).options(
+        joinedload(ApplicationDocument.document)
+    ).filter(
+        ApplicationDocument.application_id == application_id
+    ).all()
+    
+    return [
+        {
+            "id": sd.document.id,
+            "document_type": sd.document.document_type.value if hasattr(sd.document.document_type, 'value') else str(sd.document.document_type),
+            "original_name": sd.document.original_name,
+            "shared_at": sd.shared_at,
+            "is_follow_up": sd.is_follow_up
+        }
+        for sd in shared_docs
+    ]

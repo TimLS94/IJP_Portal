@@ -278,6 +278,7 @@
     "city": "City",
     "country": "Country",
     "desiredPosition": "Desired Job Type",
+    "desiredPositionHint": "Select all job types you are interested in (multiple selection possible).",
     "education": "Education / Studies",
     "educationPlaceholder": "Describe your education...",
     "workExperience": "Work Experience",
@@ -646,7 +647,8 @@
       "description": "Upload your CV and we'll automatically fill in your profile. You can edit all data afterwards.",
       "uploadButton": "Upload CV",
       "analyzing": "Analyzing...",
-      "pdfFormat": "PDF format, max. 10 MB"
+      "pdfFormat": "PDF format, max. 10 MB",
+      "noOverwrite": "Existing data will not be overwritten"
     },
     "documents": {
       "title": "Required Documents",
@@ -1088,7 +1090,7 @@
       "docs3": "Passport photo",
       "docs4": "BA declaration",
       "durationText": "Max. 90 days",
-      "salaryText": "€12.41+ /hour",
+      "salaryText": "€13.90+ /hour",
       "legalBasisText": "§14 Para. 2 BeschV",
       "sectors": "Agriculture, Production, Logistics, Gastronomy, Tourism",
       "process1": "Registration",
@@ -1110,7 +1112,7 @@
       "docs3": "Work references (if available)",
       "docs4": "Health certificate (industry-dependent)",
       "durationText": "Up to 8 months",
-      "salaryText": "€12.41+ /hour",
+      "salaryText": "€13.90+ /hour",
       "legalBasisText": "§15a BeschV",
       "sectors": "Agriculture, Tourism, Gastronomy, Events",
       "process1": "Registration",
@@ -1191,7 +1193,7 @@
     "forEmployers": "For Employers",
     "forApplicants": "For Applicants",
     "legalVisa": "Legal & Visa",
-    "technical": "Technical Questions",
+    "technicalLabel": "Technical Questions",
     "moreQuestions": "More questions?",
     "moreQuestionsDesc": "Our team is happy to answer all your questions personally.",
     "contactUs": "Contact us",
@@ -1228,7 +1230,7 @@
       "q2": "What is short-term employment?",
       "a2": "Short-term employment is a special regulation:\n\n• Duration: Maximum 90 days or 3 months per calendar year\n• For: Students from certain countries (e.g., Ukraine, Moldova)\n• Advantage: Simplified procedure without residence permit\n\nRequirements:\n• Valid enrollment certificate\n• Placement through licensed agency (like IJP)\n• Approval from Federal Employment Agency\n\nWe take care of all formalities!",
       "q3": "What working hours apply in Germany?",
-      "a3": "The following regulations apply in Germany:\n\n• Maximum working time: 8 hours/day, max. 10 hours with compensation\n• Breaks: After 6 hours min. 30 min., after 9 hours min. 45 min.\n• Rest period: Min. 11 hours between working days\n• Weekend: Generally work-free (exceptions in certain industries)\n\nMinimum wage (2024): €12.41/hour",
+      "a3": "The following regulations apply in Germany:\n\n• Maximum working time: 8 hours/day, max. 10 hours with compensation\n• Breaks: After 6 hours min. 30 min., after 9 hours min. 45 min.\n• Rest period: Min. 11 hours between working days\n• Weekend: Generally work-free (exceptions in certain industries)\n\nMinimum wage (2025): €13.90/hour",
       "q4": "How is my data protected?",
       "a4": "Data protection is our highest priority:\n\n• All data is processed in accordance with GDPR\n• SSL-encrypted transmission\n• Storage on German servers\n• Disclosure only with your consent to potential employers\n• Deletion possible on request at any time\n\nMore information can be found in our privacy policy."
     },

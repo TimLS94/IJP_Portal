@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { applicationsAPI, interviewAPI } from '../../lib/api';
+import { applicationsAPI, interviewAPI, documentsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   FileText, Building2, Calendar, Clock, XCircle, ExternalLink,
   CalendarCheck, CalendarX, MapPin, Video, CheckCircle, AlertTriangle,
-  Loader2
+  Loader2, FilePlus, Eye, EyeOff, ChevronDown, ChevronUp, File
 } from 'lucide-react';
 
 function ApplicantApplications() {
@@ -39,10 +39,30 @@ function ApplicantApplications() {
   const [showDeclineModal, setShowDeclineModal] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
+  
+  // Dokumentenfreigabe
+  const [showShareDocsModal, setShowShareDocsModal] = useState(null);
+  const [myDocuments, setMyDocuments] = useState([]);
+  const [selectedDocIds, setSelectedDocIds] = useState([]);
+  const [sharingDocs, setSharingDocs] = useState(false);
+  
+  // Freigegebene Dokumente pro Bewerbung
+  const [sharedDocuments, setSharedDocuments] = useState({});
+  const [expandedApp, setExpandedApp] = useState(null);
 
   useEffect(() => {
     loadApplications();
+    loadMyDocuments();
   }, []);
+  
+  const loadMyDocuments = async () => {
+    try {
+      const response = await documentsAPI.list();
+      setMyDocuments(response.data || []);
+    } catch (error) {
+      console.error('Fehler beim Laden der Dokumente');
+    }
+  };
 
   const loadApplications = async () => {
     try {
@@ -66,6 +86,26 @@ function ApplicantApplications() {
       setInterviews(prev => ({ ...prev, [appId]: response.data }));
     } catch (error) {
       console.error('Interview-Fehler:', error);
+    }
+  };
+
+  const loadSharedDocuments = async (appId) => {
+    try {
+      const response = await applicationsAPI.getSharedDocuments(appId);
+      setSharedDocuments(prev => ({ ...prev, [appId]: response.data }));
+    } catch (error) {
+      console.error('Fehler beim Laden der freigegebenen Dokumente:', error);
+    }
+  };
+
+  const toggleAppDetails = (appId) => {
+    if (expandedApp === appId) {
+      setExpandedApp(null);
+    } else {
+      setExpandedApp(appId);
+      if (!sharedDocuments[appId]) {
+        loadSharedDocuments(appId);
+      }
     }
   };
 
@@ -145,6 +185,39 @@ function ApplicantApplications() {
     });
   };
 
+  const openShareDocsModal = (appId) => {
+    setShowShareDocsModal(appId);
+    setSelectedDocIds([]);
+  };
+
+  const handleShareDocuments = async () => {
+    if (selectedDocIds.length === 0) {
+      toast.error('Bitte wählen Sie mindestens ein Dokument aus');
+      return;
+    }
+    
+    setSharingDocs(true);
+    try {
+      await applicationsAPI.shareDocuments(showShareDocsModal, selectedDocIds);
+      toast.success('Dokumente erfolgreich freigegeben');
+      setShowShareDocsModal(null);
+      setSelectedDocIds([]);
+      loadApplications();
+    } catch (error) {
+      toast.error('Fehler beim Freigeben der Dokumente');
+    } finally {
+      setSharingDocs(false);
+    }
+  };
+
+  const toggleDocSelection = (docId) => {
+    setSelectedDocIds(prev => 
+      prev.includes(docId) 
+        ? prev.filter(id => id !== docId)
+        : [...prev, docId]
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -210,6 +283,119 @@ function ApplicantApplications() {
                     <p className="mt-3 text-gray-600 text-sm">
                       <strong>{t('applicantApplications.yourMessage')}:</strong> {app.applicant_message}
                     </p>
+                  )}
+
+                  {/* Button: Bewerbungsdetails anzeigen */}
+                  <button
+                    onClick={() => toggleAppDetails(app.id)}
+                    className="mt-3 inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    {expandedApp === app.id ? (
+                      <>
+                        <ChevronUp className="h-4 w-4" />
+                        Details ausblenden
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        Bewerbungsdetails anzeigen
+                      </>
+                    )}
+                  </button>
+
+                  {/* Expandierte Bewerbungsdetails */}
+                  {expandedApp === app.id && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Eye className="h-5 w-5 text-primary-600" />
+                        Freigegebene Dokumente für {app.company_name}
+                      </h4>
+                      
+                      {!sharedDocuments[app.id] ? (
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Lade Dokumente...
+                        </div>
+                      ) : sharedDocuments[app.id].length === 0 ? (
+                        <div className="text-gray-500 flex items-center gap-2">
+                          <EyeOff className="h-4 w-4" />
+                          Keine Dokumente freigegeben
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {sharedDocuments[app.id].map((doc) => (
+                            <div 
+                              key={doc.id} 
+                              className="flex items-center gap-3 p-2 bg-white rounded-lg border border-gray-200"
+                            >
+                              <File className="h-5 w-5 text-primary-600" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{doc.original_name}</p>
+                                <p className="text-xs text-gray-500">{doc.document_type}</p>
+                              </div>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                                freigegeben
+                              </span>
+                            </div>
+                          ))}
+                          <p className="text-xs text-gray-500 mt-2">
+                            ℹ️ Diese {sharedDocuments[app.id].length} Dokument(e) sind für <strong>{app.company_name}</strong> sichtbar.
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <button
+                          onClick={() => openShareDocsModal(app.id)}
+                          className="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                        >
+                          <FilePlus className="h-4 w-4" />
+                          Weitere Dokumente freigeben
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Angeforderte Dokumente Hinweis */}
+                  {app.requested_documents?.length > 0 && (
+                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-orange-700">
+                        <FilePlus className="h-5 w-5" />
+                        <span className="font-medium">Dokumente angefordert!</span>
+                      </div>
+                      <p className="text-sm text-orange-600 mt-1">
+                        {app.company_name || 'Das Unternehmen'} hat folgende Dokumente angefordert:
+                      </p>
+                      <ul className="mt-2 space-y-1">
+                        {app.requested_documents.map((doc, idx) => (
+                          <li key={idx} className="text-sm text-orange-700 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
+                            {doc.type === 'cv' ? 'Lebenslauf' :
+                             doc.type === 'passport' ? 'Reisepass' :
+                             doc.type === 'photo' ? 'Bewerbungsfoto' :
+                             doc.type === 'language_cert' ? 'Sprachzertifikat' :
+                             doc.type === 'diploma' ? 'Studienzeugnis' :
+                             doc.type === 'work_reference' ? 'Arbeitszeugnis' :
+                             doc.type}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => openShareDocsModal(app.id)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg"
+                        >
+                          <FilePlus className="h-4 w-4" />
+                          Dokumente freigeben
+                        </button>
+                        <Link 
+                          to="/applicant/documents" 
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-orange-700 hover:text-orange-800 border border-orange-300 rounded-lg hover:bg-orange-100"
+                        >
+                          Neue hochladen
+                        </Link>
+                      </div>
+                    </div>
                   )}
 
                   {/* Interview-Termine anzeigen */}
@@ -509,6 +695,103 @@ function ApplicantApplications() {
           </div>
         </div>
       )}
+
+      {/* Modal: Dokumente freigeben */}
+      {showShareDocsModal && (() => {
+        const app = applications.find(a => a.id === showShareDocsModal);
+        return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <FilePlus className="h-6 w-6 text-primary-600" />
+              Dokumente freigeben
+            </h3>
+            
+            {app && (
+              <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
+                <p className="text-sm text-gray-700">
+                  <strong className="text-blue-800">{app.company_name}</strong> erhält Zugriff auf die ausgewählten Dokumente für:
+                </p>
+                <p className="text-sm font-medium text-gray-900 mt-1">"{getJobTitle(app)}"</p>
+              </div>
+            )}
+            
+            <p className="text-gray-600 mb-4">
+              Wählen Sie die Dokumente aus, die freigegeben werden sollen:
+            </p>
+            
+            {myDocuments.length === 0 ? (
+              <div className="text-center py-6 text-gray-500">
+                <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                <p>Sie haben noch keine Dokumente hochgeladen.</p>
+                <Link 
+                  to="/applicant/documents" 
+                  className="text-primary-600 hover:underline mt-2 inline-block"
+                >
+                  Jetzt Dokumente hochladen
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
+                {myDocuments.map((doc) => (
+                  <label 
+                    key={doc.id} 
+                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                      selectedDocIds.includes(doc.id) 
+                        ? 'bg-primary-50 border-2 border-primary-300' 
+                        : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedDocIds.includes(doc.id)}
+                      onChange={() => toggleDocSelection(doc.id)}
+                      className="w-5 h-5 text-primary-600 rounded"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{doc.original_name}</p>
+                      <p className="text-sm text-gray-500">{doc.document_type}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            
+            {myDocuments.length > 0 && selectedDocIds.length > 0 && app && (
+              <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
+                <p className="text-xs text-yellow-700">
+                  ⚠️ <strong>Datenschutz:</strong> Nur die ausgewählten {selectedDocIds.length} Dokument(e) werden für <strong>{app.company_name}</strong> sichtbar. Andere Firmen sehen diese Dokumente nicht.
+                </p>
+              </div>
+            )}
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowShareDocsModal(null);
+                  setSelectedDocIds([]);
+                }}
+                className="btn-secondary flex-1"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleShareDocuments}
+                disabled={sharingDocs || selectedDocIds.length === 0}
+                className="btn-primary flex-1 flex items-center justify-center gap-2"
+              >
+                {sharingDocs ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+                Freigeben ({selectedDocIds.length})
+              </button>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
     </div>
   );
 }

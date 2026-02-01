@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Briefcase, User, Building2, LogOut, Menu, X, FileText, Shield, 
   BookOpen, Settings, ClipboardList, Users, ChevronDown, Home,
-  LayoutDashboard, FolderOpen, GraduationCap, Info
+  LayoutDashboard, FolderOpen, GraduationCap, Info, Mail
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -54,6 +54,7 @@ function Navbar() {
         { to: '/company/applications', icon: FileText, label: t('nav.companyApplications') },
         { to: '/company/team', icon: Users, label: 'Team' },
         { to: '/company/ijp-auftrag', icon: Briefcase, label: 'IJP beauftragen' },
+        { to: '/company/rejection-settings', icon: Mail, label: 'Absage-E-Mail' },
         { divider: true },
         { to: '/company/settings', icon: Settings, label: t('nav.settings') },
       ];
@@ -289,20 +290,33 @@ function Navbar() {
               </div>
             ) : (
               <>
-                {/* User Header */}
+                {/* User Header mit Logout-Button */}
                 <div className="px-4 py-3 mb-2 bg-gray-50 rounded-lg mx-2">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${
-                      isAdmin ? 'bg-purple-100' : isCompany ? 'bg-blue-100' : 'bg-green-100'
-                    }`}>
-                      <UserIcon className={`h-5 w-5 ${
-                        isAdmin ? 'text-purple-600' : isCompany ? 'text-blue-600' : 'text-green-600'
-                      }`} />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-full ${
+                        isAdmin ? 'bg-purple-100' : isCompany ? 'bg-blue-100' : 'bg-green-100'
+                      }`}>
+                        <UserIcon className={`h-5 w-5 ${
+                          isAdmin ? 'text-purple-600' : isCompany ? 'text-blue-600' : 'text-green-600'
+                        }`} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{getUserLabel()}</p>
+                        <p className="text-xs text-gray-500 truncate max-w-[150px]">{user?.email}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{getUserLabel()}</p>
-                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-                    </div>
+                    {/* Logout Button - gut erreichbar oben rechts */}
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                    >
+                      <LogOut className="h-5 w-5" />
+                      <span className="text-sm font-medium">{t('nav.logout')}</span>
+                    </button>
                   </div>
                 </div>
 
@@ -327,20 +341,6 @@ function Navbar() {
                       </Link>
                     )
                   )}
-                </div>
-
-                {/* Logout */}
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    <span>{t('nav.logout')}</span>
-                  </button>
                 </div>
               </>
             )}
