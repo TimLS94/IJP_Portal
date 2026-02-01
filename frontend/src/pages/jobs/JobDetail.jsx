@@ -321,7 +321,7 @@ function JobDetail() {
 
   const formatDate = (dateString) => {
     if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('de-DE');
+    return new Date(dateString).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   // Prüfen ob Sprachanforderungen vorhanden sind
@@ -410,6 +410,11 @@ function JobDetail() {
                 <span className="flex items-center gap-1.5 text-teal-600">
                   <Globe className="h-5 w-5" />
                   {t('jobDetail.remotePossible')}
+                </span>
+              )}
+              {job.accommodation_provided && (
+                <span className="flex items-center gap-1.5 text-amber-600">
+                  🏠 {t('jobDetail.accommodationProvided')}
                 </span>
               )}
             </div>

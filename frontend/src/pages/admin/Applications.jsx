@@ -655,9 +655,9 @@ function AdminApplications() {
                             <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
                               <p className="text-green-700 font-medium">
                                 <strong>📅 Semesterferien:</strong>{' '}
-                                {applicationDetails.applicant.semester_break_start ? new Date(applicationDetails.applicant.semester_break_start).toLocaleDateString('de-DE') : '?'} 
+                                {applicationDetails.applicant.semester_break_start ? new Date(applicationDetails.applicant.semester_break_start).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '?'} 
                                 {' - '}
-                                {applicationDetails.applicant.semester_break_end ? new Date(applicationDetails.applicant.semester_break_end).toLocaleDateString('de-DE') : '?'}
+                                {applicationDetails.applicant.semester_break_end ? new Date(applicationDetails.applicant.semester_break_end).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '?'}
                               </p>
                             </div>
                           ) : (

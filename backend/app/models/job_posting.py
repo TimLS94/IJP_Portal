@@ -65,6 +65,7 @@ class JobPosting(Base):
     address = Column(String(255))  # NEU: Straße
     postal_code = Column(String(20))  # NEU: PLZ
     remote_possible = Column(Boolean, default=False)
+    accommodation_provided = Column(Boolean, default=False)  # Unterkunft vorhanden
     start_date = Column(Date)
     end_date = Column(Date)  # Optional, z.B. für Saisonjobs
     

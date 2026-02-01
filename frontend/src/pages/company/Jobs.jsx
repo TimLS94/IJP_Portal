@@ -7,6 +7,7 @@ import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Ar
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
   saisonjob: 'Saisonjob',
+  workandholiday: 'Work & Holiday',
   fachkraft: 'Fachkräfte',
   ausbildung: 'Ausbildung'
 };
@@ -14,6 +15,7 @@ const positionTypeLabels = {
 const positionTypeColors = {
   studentenferienjob: 'bg-blue-100 text-blue-800',
   saisonjob: 'bg-green-100 text-green-800',
+  workandholiday: 'bg-teal-100 text-teal-800',
   fachkraft: 'bg-purple-100 text-purple-800',
   ausbildung: 'bg-orange-100 text-orange-800'
 };
@@ -170,7 +172,7 @@ function CompanyJobs() {
 
   const formatDate = (dateString) => {
     if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('de-DE');
+    return new Date(dateString).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   if (loading) {

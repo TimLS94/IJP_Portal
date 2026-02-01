@@ -68,7 +68,7 @@ function AdminJobs() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('de-DE');
+    return new Date(dateString).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   return (

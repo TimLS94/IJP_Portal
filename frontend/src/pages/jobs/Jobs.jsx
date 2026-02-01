@@ -89,10 +89,11 @@ function Jobs() {
   const [positionType, setPositionType] = useState(searchParams.get('type') || '');
   const [location, setLocation] = useState(searchParams.get('location') || '');
   const [germanLevel, setGermanLevel] = useState(searchParams.get('german') || '');
+  const [accommodationOnly, setAccommodationOnly] = useState(searchParams.get('accommodation') === 'true');
 
   useEffect(() => {
     loadJobs();
-  }, [positionType, location, germanLevel]);
+  }, [positionType, location, germanLevel, accommodationOnly]);
 
   const loadJobs = async () => {
     setLoading(true);
@@ -115,6 +116,11 @@ function Jobs() {
         });
       }
       
+      // Client-seitige Filterung nach Unterkunft
+      if (accommodationOnly) {
+        filteredJobs = filteredJobs.filter(job => job.accommodation_provided);
+      }
+      
       setJobs(filteredJobs);
     } catch (error) {
       console.error('Fehler beim Laden der Jobs:', error);
@@ -133,13 +139,18 @@ function Jobs() {
     setPositionType('');
     setLocation('');
     setGermanLevel('');
+    setAccommodationOnly(false);
   };
 
-  const hasFilters = search || positionType || location || germanLevel;
+  const hasFilters = search || positionType || location || germanLevel || accommodationOnly;
 
   const formatDate = (dateString) => {
     if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('de-DE');
+    return new Date(dateString).toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
   // Sprachbadges für ein Job rendern
@@ -244,8 +255,8 @@ function Jobs() {
             </div>
           </div>
           
-          {/* Zweite Filter-Reihe: Sprache */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Zweite Filter-Reihe: Sprache + Unterkunft */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
             <div>
               <label className="label flex items-center gap-2">
                 <Languages className="h-4 w-4 text-blue-600" />
@@ -267,6 +278,23 @@ function Jobs() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
               </div>
+            </div>
+            
+            <div className="flex items-center h-[50px]">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={accommodationOnly}
+                  onChange={(e) => setAccommodationOnly(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-primary-100 
+                              rounded-full peer peer-checked:after:translate-x-full 
+                              after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                              after:bg-white after:border after:rounded-full after:h-5 after:w-5 
+                              after:transition-all peer-checked:bg-primary-600"></div>
+                <span className="ml-3 text-gray-700 font-medium">{t('jobs.accommodationProvided')}</span>
+              </label>
             </div>
           </div>
           
@@ -329,6 +357,11 @@ function Jobs() {
                     {job.remote_possible && (
                       <span className="px-3 py-1 rounded-full text-sm font-medium bg-teal-100 text-teal-800 border border-teal-200">
                         {t('jobDetail.remotePossible')}
+                      </span>
+                    )}
+                    {job.accommodation_provided && (
+                      <span className="px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                        🏠 {t('jobDetail.accommodationProvided')}
                       </span>
                     )}
                   </div>

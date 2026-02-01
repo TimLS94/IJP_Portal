@@ -37,6 +37,7 @@ class JobPostingBase(BaseModel):
     address: Optional[str] = None  # NEU: Straße
     postal_code: Optional[str] = None  # NEU: PLZ
     remote_possible: bool = False
+    accommodation_provided: bool = False  # Unterkunft vorhanden
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     
@@ -95,6 +96,7 @@ class JobPostingUpdate(BaseModel):
     address: Optional[str] = None  # NEU
     postal_code: Optional[str] = None  # NEU
     remote_possible: Optional[bool] = None
+    accommodation_provided: Optional[bool] = None  # Unterkunft vorhanden
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     
