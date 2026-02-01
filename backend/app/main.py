@@ -34,6 +34,34 @@ logger.info("Creating database tables...")
 Base.metadata.create_all(bind=engine)
 logger.info("Database tables created")
 
+# SEO: Slug-Spalte hinzufügen falls nicht vorhanden
+def ensure_slug_column():
+    """Fügt die slug Spalte zur job_postings Tabelle hinzu falls nicht vorhanden"""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        # Prüfen ob Spalte existiert
+        result = db.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'job_postings' AND column_name = 'slug'
+        """))
+        if not result.fetchone():
+            logger.info("Adding 'slug' column to job_postings table...")
+            db.execute(text("ALTER TABLE job_postings ADD COLUMN slug VARCHAR(255)"))
+            db.execute(text("CREATE INDEX IF NOT EXISTS ix_job_postings_slug ON job_postings (slug)"))
+            db.commit()
+            logger.info("'slug' column added successfully")
+        else:
+            logger.info("'slug' column already exists")
+    except Exception as e:
+        logger.error(f"Error adding slug column: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+ensure_slug_column()
+
 # Testdaten einfügen (nur in Entwicklung)
 if settings.DEBUG:
     db = SessionLocal()

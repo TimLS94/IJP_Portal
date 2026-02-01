@@ -278,13 +278,16 @@ async def delete_account(
             # Interviews löschen (vor Bewerbungen!)
             from app.models.interview import Interview
             applications = db.query(Application).filter(Application.applicant_id == applicant.id).all()
-            for app in applications:
-                db.query(Interview).filter(Interview.application_id == app.id).delete()
-                # application_documents löschen (FK auf applications)
-                db.query(ApplicationDocument).filter(ApplicationDocument.application_id == app.id).delete()
+            app_ids = [app.id for app in applications]
+            
+            if app_ids:
+                # Zuerst alle application_documents löschen (FK auf applications)
+                db.query(ApplicationDocument).filter(ApplicationDocument.application_id.in_(app_ids)).delete(synchronize_session=False)
+                # Dann Interviews löschen
+                db.query(Interview).filter(Interview.application_id.in_(app_ids)).delete(synchronize_session=False)
             
             # Bewerbungen löschen
-            db.query(Application).filter(Application.applicant_id == applicant.id).delete()
+            db.query(Application).filter(Application.applicant_id == applicant.id).delete(synchronize_session=False)
             
             # Dokumente aus Storage (R2/Lokal) löschen - DSGVO-konform!
             from app.services.storage_service import storage_service
