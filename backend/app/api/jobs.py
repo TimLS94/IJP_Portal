@@ -236,8 +236,8 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
         "deadline": job.deadline,
         "translations": job.translations,
         "available_languages": job.available_languages,
-        "company_name": job.company.name if job.company else None,
-        "company_logo": job.company.logo_url if job.company else None,
+        "company_name": job.company.company_name if job.company else None,
+        "company_logo": job.company.logo if job.company else None,
         # SEO-spezifische Felder
         "canonical_url": canonical_url,
         "url_slug": canonical_slug,
