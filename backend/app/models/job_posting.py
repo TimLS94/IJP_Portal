@@ -51,6 +51,9 @@ class JobPosting(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
     
+    # SEO: URL-Slug (z.B. "housekeeping-hallenberg-unterkunft")
+    slug = Column(String(255), index=True)
+    
     # Stelleninformationen
     title = Column(String(255), nullable=False)
     position_type = Column(Enum(PositionType, values_callable=lambda x: [e.value for e in x]), nullable=False)

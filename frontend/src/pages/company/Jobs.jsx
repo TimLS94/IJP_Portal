@@ -248,7 +248,7 @@ function CompanyJobs() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <Link 
-                          to={`/jobs/${job.id}`}
+                          to={`/jobs/${job.slug ? `${job.slug}-${job.id}` : job.id}`}
                           className="text-xl font-semibold text-gray-900 hover:text-primary-600"
                         >
                           {job.title}

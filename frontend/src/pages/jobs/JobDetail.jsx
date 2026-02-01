@@ -163,7 +163,7 @@ function JobDetail() {
     monthly: t('jobDetail.monthly'),
     yearly: t('jobDetail.yearly')
   };
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, isApplicant } = useAuth();
   const [job, setJob] = useState(null);
@@ -218,16 +218,16 @@ function JobDetail() {
 
   useEffect(() => {
     loadJob();
-  }, [id]);
+  }, [slug]);
   
   // Voraussetzungen und Matching laden wenn Bewerber eingeloggt
   useEffect(() => {
-    if (isApplicant && id) {
+    if (isApplicant && job?.id) {
       loadRequirements();
       loadMatchScore();
       loadMyDocuments();
     }
-  }, [isApplicant, id]);
+  }, [isApplicant, job?.id]);
   
   const loadMyDocuments = async () => {
     try {
@@ -242,8 +242,20 @@ function JobDetail() {
 
   const loadJob = async () => {
     try {
-      const response = await jobsAPI.get(id);
-      setJob(response.data);
+      // Nutze SEO-Endpoint mit Slug
+      const response = await jobsAPI.getBySlug(slug);
+      const jobData = response.data;
+      
+      // Canonical Redirect: Wenn der Slug nicht korrekt ist, zur richtigen URL umleiten
+      if (jobData.needs_redirect && jobData.url_slug) {
+        navigate(`/jobs/${jobData.url_slug}`, { replace: true });
+        return;
+      }
+      
+      setJob(jobData);
+      
+      // SEO: Meta Tags setzen
+      updateMetaTags(jobData);
     } catch (error) {
       toast.error(t('jobDetail.jobNotFound'));
       navigate('/jobs');
@@ -252,10 +264,138 @@ function JobDetail() {
     }
   };
   
+  // SEO: Dynamische Meta Tags setzen
+  const updateMetaTags = (jobData) => {
+    if (!jobData) return;
+    
+    const title = `${jobData.title} - ${jobData.location || 'Deutschland'} | JobOn`;
+    const description = jobData.description 
+      ? jobData.description.replace(/<[^>]*>/g, '').substring(0, 160) + '...'
+      : `Jetzt bewerben: ${jobData.title} bei ${jobData.company_name || 'Top-Arbeitgeber'}`;
+    
+    document.title = title;
+    
+    // Meta Description
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.name = 'description';
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.content = description;
+    
+    // Canonical URL
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = `https://www.jobon.work/jobs/${jobData.url_slug || slug}`;
+    
+    // Open Graph Tags
+    setMetaProperty('og:title', title);
+    setMetaProperty('og:description', description);
+    setMetaProperty('og:url', `https://www.jobon.work/jobs/${jobData.url_slug || slug}`);
+    setMetaProperty('og:type', 'website');
+    
+    // Structured Data für Google Jobs
+    addStructuredData(jobData);
+  };
+  
+  const setMetaProperty = (property, content) => {
+    let meta = document.querySelector(`meta[property="${property}"]`);
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('property', property);
+      document.head.appendChild(meta);
+    }
+    meta.content = content;
+  };
+  
+  // SEO: JobPosting Structured Data (schema.org) für Google Jobs
+  const addStructuredData = (jobData) => {
+    if (!jobData) return;
+    
+    // Entferne vorhandenes Script
+    const existingScript = document.querySelector('script[type="application/ld+json"][data-job-posting]');
+    if (existingScript) existingScript.remove();
+    
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'JobPosting',
+      'title': jobData.title,
+      'description': jobData.description?.replace(/<[^>]*>/g, '') || '',
+      'datePosted': jobData.created_at ? new Date(jobData.created_at).toISOString().split('T')[0] : undefined,
+      'validThrough': jobData.deadline ? new Date(jobData.deadline).toISOString() : undefined,
+      'employmentType': mapEmploymentType(jobData.employment_type),
+      'jobLocation': {
+        '@type': 'Place',
+        'address': {
+          '@type': 'PostalAddress',
+          'addressLocality': jobData.location || 'Deutschland',
+          'addressCountry': 'DE',
+          ...(jobData.postal_code && { 'postalCode': jobData.postal_code }),
+          ...(jobData.address && { 'streetAddress': jobData.address }),
+        }
+      },
+      'hiringOrganization': {
+        '@type': 'Organization',
+        'name': jobData.company_name || jobData.company?.name || 'Unbekannt',
+        'sameAs': 'https://www.jobon.work',
+      },
+      'url': `https://www.jobon.work/jobs/${jobData.url_slug || slug}`,
+    };
+    
+    // Gehalt hinzufügen wenn vorhanden
+    if (jobData.salary_min || jobData.salary_max) {
+      schema.baseSalary = {
+        '@type': 'MonetaryAmount',
+        'currency': 'EUR',
+        'value': {
+          '@type': 'QuantitativeValue',
+          ...(jobData.salary_min && { 'minValue': jobData.salary_min }),
+          ...(jobData.salary_max && { 'maxValue': jobData.salary_max }),
+          'unitText': mapSalaryUnit(jobData.salary_type),
+        }
+      };
+    }
+    
+    // Remote-Arbeit
+    if (jobData.remote_possible) {
+      schema.jobLocationType = 'TELECOMMUTE';
+    }
+    
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.setAttribute('data-job-posting', 'true');
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+  };
+  
+  const mapEmploymentType = (type) => {
+    const mapping = {
+      'fulltime': 'FULL_TIME',
+      'parttime': 'PART_TIME',
+      'both': ['FULL_TIME', 'PART_TIME'],
+    };
+    return mapping[type] || 'FULL_TIME';
+  };
+  
+  const mapSalaryUnit = (type) => {
+    const mapping = {
+      'hourly': 'HOUR',
+      'monthly': 'MONTH',
+      'yearly': 'YEAR',
+    };
+    return mapping[type] || 'HOUR';
+  };
+  
   const loadRequirements = async () => {
+    if (!job?.id) return;
     setRequirementsLoading(true);
     try {
-      const response = await applicationsAPI.checkRequirements(id);
+      const response = await applicationsAPI.checkRequirements(job.id);
       setRequirements(response.data);
     } catch (error) {
       console.error('Fehler beim Prüfen der Voraussetzungen');
@@ -265,9 +405,10 @@ function JobDetail() {
   };
   
   const loadMatchScore = async () => {
+    if (!job?.id) return;
     setMatchLoading(true);
     try {
-      const response = await jobsAPI.getMatchScore(id);
+      const response = await jobsAPI.getMatchScore(job.id);
       setMatchScore(response.data);
     } catch (error) {
       console.error('Fehler beim Laden des Matching-Scores');

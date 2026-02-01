@@ -70,13 +70,13 @@ function ApplicantJobRequest() {
       setPrivacyText(res.data.text);
       setShowModal(true);
     } catch (error) {
-      toast.error('Fehler beim Laden');
+      toast.error(t('jobRequest.loadError'));
     }
   };
 
   const handleSubmit = async () => {
     if (!privacyAccepted) {
-      toast.error('Bitte stimmen Sie der Datenschutzerklärung zu');
+      toast.error(t('jobRequest.privacyRequired'));
       return;
     }
 
@@ -87,29 +87,29 @@ function ApplicantJobRequest() {
         preferred_location: preferredLocation || null,
         notes: notes || null
       });
-      toast.success(res.data.message || 'IJP-Aufträge erfolgreich erstellt!');
+      toast.success(res.data.message || t('jobRequest.success'));
       setShowModal(false);
       setPrivacyAccepted(false);
       setPreferredLocation('');
       setNotes('');
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Fehler beim Erstellen');
+      toast.error(error.response?.data?.detail || t('jobRequest.createError'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleCancel = async (requestId) => {
-    if (!confirm('Möchten Sie diesen IJP-Auftrag wirklich zurückziehen?')) return;
+    if (!confirm(t('jobRequest.withdrawConfirm'))) return;
     
     setCancellingId(requestId);
     try {
       await jobRequestsAPI.cancelRequest(requestId);
-      toast.success('Auftrag zurückgezogen');
+      toast.success(t('jobRequest.withdrawn'));
       loadData();
     } catch (error) {
-      toast.error('Fehler beim Stornieren');
+      toast.error(t('jobRequest.cancelError'));
     } finally {
       setCancellingId(null);
     }
@@ -168,8 +168,8 @@ function ApplicantJobRequest() {
       <div className="flex items-center gap-3 mb-8">
         <ClipboardList className="h-8 w-8 text-primary-600" />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">IJP beauftragen</h1>
-          <p className="text-gray-600">Wir finden den passenden Job für Sie</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('jobRequest.title')}</h1>
+          <p className="text-gray-600">{t('jobRequest.subtitle')}</p>
         </div>
       </div>
 
@@ -178,7 +178,7 @@ function ApplicantJobRequest() {
         <div className="space-y-4 mb-8">
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary-600" />
-            Ihre aktiven Aufträge ({requests.length})
+            {t('jobRequest.activeOrders')} ({requests.length})
           </h2>
           
           {requests.map((request) => (
@@ -199,18 +199,18 @@ function ApplicantJobRequest() {
                   <div className="space-y-2 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
-                      <span>Erstellt am {formatDate(request.created_at)}</span>
+                      <span>{t('jobRequest.createdAt')} {formatDate(request.created_at)}</span>
                     </div>
                     {request.preferred_location && (
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
-                        <span>Bevorzugt: {request.preferred_location}</span>
+                        <span>{t('jobRequest.preferredLocation')}: {request.preferred_location}</span>
                       </div>
                     )}
                     {request.matched_company_name && (
                       <div className="flex items-center gap-2 text-green-700 font-medium">
                         <Building2 className="h-4 w-4" />
-                        <span>Vermittelt an: {request.matched_company_name}</span>
+                        <span>{t('jobRequest.matchedTo')}: {request.matched_company_name}</span>
                         {request.matched_job_title && <span>- {request.matched_job_title}</span>}
                       </div>
                     )}
@@ -221,12 +221,12 @@ function ApplicantJobRequest() {
                     <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                       <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
                         <Calendar className="h-5 w-5" />
-                        Vorstellungsgespräch
+                        {t('jobRequest.interview')}
                       </h4>
                       <div className="space-y-2">
                         {request.interview_date && (
                           <p className="text-amber-900 font-medium">
-                            📅 Termin: {new Date(request.interview_date).toLocaleDateString('de-DE', { 
+                            📅 {t('jobRequest.interviewDate')}: {new Date(request.interview_date).toLocaleDateString('de-DE', { 
                               weekday: 'long', 
                               year: 'numeric', 
                               month: 'long', 
@@ -244,7 +244,7 @@ function ApplicantJobRequest() {
                             className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
                           >
                             <ExternalLink className="h-4 w-4" />
-                            Am Interview teilnehmen
+                            {t('jobRequest.joinInterview')}
                           </a>
                         )}
                       </div>
@@ -256,10 +256,10 @@ function ApplicantJobRequest() {
                     <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
                       <h4 className="font-bold text-green-800 flex items-center gap-2 mb-2">
                         <FileText className="h-5 w-5" />
-                        Vertrag
+                        {t('jobRequest.contract')}
                       </h4>
                       <p className="text-green-900 font-medium">
-                        📄 Vertragsdatum: {new Date(request.contract_date).toLocaleDateString('de-DE', { 
+                        📄 {t('jobRequest.contractDate')}: {new Date(request.contract_date).toLocaleDateString('de-DE', { 
                           year: 'numeric', 
                           month: 'long', 
                           day: 'numeric'
@@ -284,7 +284,7 @@ function ApplicantJobRequest() {
                   ) : (
                     <X className="h-4 w-4" />
                   )}
-                  Zurückziehen
+                  {t('jobRequest.withdraw')}
                 </button>
               </div>
             </div>
@@ -296,27 +296,21 @@ function ApplicantJobRequest() {
       {canCreateMore ? (
         <div className="card bg-gradient-to-br from-primary-50 to-blue-50 border-2 border-primary-200">
           <h2 className="text-xl font-bold text-gray-900 mb-4">
-            {requests.length > 0 ? 'Weitere Stellenarten beauftragen' : 'Lassen Sie uns Ihren Traumjob finden!'}
+            {requests.length > 0 ? t('jobRequest.morePositionTypes') : t('jobRequest.findDreamJob')}
           </h2>
           <p className="text-gray-700 mb-4">
             {requests.length > 0 
-              ? `Sie können noch für ${getAvailablePositionTypes().length} weitere Stellenart(en) IJP beauftragen.`
-              : 'Mit einem IJP-Auftrag beauftragen Sie uns, aktiv nach passenden Stellen für Sie zu suchen.'
+              ? t('jobRequest.canOrderMore', { count: getAvailablePositionTypes().length })
+              : t('jobRequest.withIJPOrder')
             }
           </p>
           
           {/* Verfügbare Stellenarten anzeigen */}
           <div className="flex flex-wrap gap-2 mb-6">
             {getAvailablePositionTypes().map((type) => {
-              const labels = {
-                studentenferienjob: 'Studentenferienjob',
-                saisonjob: 'Saisonjob',
-                fachkraft: 'Fachkraft',
-                ausbildung: 'Ausbildung'
-              };
               return (
                 <span key={type} className={`px-3 py-1 rounded-full text-white text-sm font-medium ${positionTypeColors[type] || 'bg-gray-500'}`}>
-                  {labels[type] || type}
+                  {t(`positionTypes.${type}`) || type}
                 </span>
               );
             })}
@@ -326,25 +320,25 @@ function ApplicantJobRequest() {
             <div className="grid md:grid-cols-3 gap-4 mb-6">
               <div className="bg-white p-4 rounded-xl">
                 <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
-                <h4 className="font-semibold">Persönliche Betreuung</h4>
-                <p className="text-sm text-gray-600">Individuelle Beratung und Unterstützung</p>
+                <h4 className="font-semibold">{t('jobRequest.benefits.personal')}</h4>
+                <p className="text-sm text-gray-600">{t('jobRequest.benefits.personalDesc')}</p>
               </div>
               <div className="bg-white p-4 rounded-xl">
                 <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
-                <h4 className="font-semibold">30+ Partner</h4>
-                <p className="text-sm text-gray-600">Zugang zu exklusiven Stellenangeboten</p>
+                <h4 className="font-semibold">{t('jobRequest.benefits.access')}</h4>
+                <p className="text-sm text-gray-600">{t('jobRequest.benefits.accessDesc')}</p>
               </div>
               <div className="bg-white p-4 rounded-xl">
                 <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
-                <h4 className="font-semibold">Kostenlos</h4>
-                <p className="text-sm text-gray-600">Keine Kosten für Bewerber</p>
+                <h4 className="font-semibold">{t('jobRequest.benefits.free')}</h4>
+                <p className="text-sm text-gray-600">{t('jobRequest.benefits.freeDesc')}</p>
               </div>
             </div>
           )}
 
           <button onClick={openModal} className="btn-primary text-lg py-3 px-8">
             <ClipboardList className="h-5 w-5 mr-2 inline" />
-            {requests.length > 0 ? 'Weitere Aufträge erstellen' : 'Jetzt IJP beauftragen'}
+            {requests.length > 0 ? t('jobRequest.submitMore') : t('jobRequest.submit')}
           </button>
         </div>
       ) : !isProfileComplete ? (
@@ -352,9 +346,9 @@ function ApplicantJobRequest() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-6 w-6 text-yellow-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-bold text-gray-900">Profil unvollständig</h3>
+              <h3 className="font-bold text-gray-900">{t('jobRequest.profileIncomplete')}</h3>
               <p className="text-gray-600 mt-1">
-                Bitte vervollständigen Sie zuerst Ihr Profil. Folgende Angaben fehlen noch:
+                {t('jobRequest.completeProfileFirst')}
               </p>
               <ul className="mt-2 space-y-1">
                 {missingFields.map((field, idx) => (
@@ -365,7 +359,7 @@ function ApplicantJobRequest() {
                 ))}
               </ul>
               <Link to="/applicant/profile" className="btn-primary mt-4 inline-flex items-center gap-2">
-                Profil vervollständigen <ExternalLink className="h-4 w-4" />
+                {t('jobRequest.completeProfile')} <ExternalLink className="h-4 w-4" />
               </Link>
             </div>
           </div>
@@ -375,8 +369,8 @@ function ApplicantJobRequest() {
           <div className="flex items-center gap-3">
             <CheckCircle className="h-6 w-6 text-green-600" />
             <div>
-              <h3 className="font-bold text-gray-900">Alle Stellenarten beauftragt</h3>
-              <p className="text-gray-600">Sie haben für alle ausgewählten Stellenarten bereits Aufträge erstellt.</p>
+              <h3 className="font-bold text-gray-900">{t('jobRequest.allTypesOrdered')}</h3>
+              <p className="text-gray-600">{t('jobRequest.allTypesOrderedDesc')}</p>
             </div>
           </div>
         </div>
@@ -385,19 +379,19 @@ function ApplicantJobRequest() {
       {/* Hinweise */}
       {requests.length === 0 && isProfileComplete && (
         <div className="card mt-6">
-          <h3 className="font-bold text-gray-900 mb-4">Wichtige Hinweise</h3>
+          <h3 className="font-bold text-gray-900 mb-4">{t('jobRequest.importantNotes')}</h3>
           <ul className="space-y-2 text-gray-600">
             <li className="flex items-start gap-2">
               <FileText className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
-              <span>Stellen Sie sicher, dass alle erforderlichen Dokumente hochgeladen sind</span>
+              <span>{t('jobRequest.noteDocuments')}</span>
             </li>
             <li className="flex items-start gap-2">
               <Shield className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
-              <span>Mit der Beauftragung stimmen Sie der Weitergabe Ihrer Daten an Partnerunternehmen zu</span>
+              <span>{t('jobRequest.notePrivacy')}</span>
             </li>
             <li className="flex items-start gap-2">
               <Clock className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
-              <span>Der Vermittlungsprozess kann je nach Verfügbarkeit einige Wochen dauern</span>
+              <span>{t('jobRequest.noteTime')}</span>
             </li>
           </ul>
         </div>
@@ -409,7 +403,7 @@ function ApplicantJobRequest() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">IJP-Aufträge erstellen</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{t('jobRequest.createOrders')}</h2>
                 <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                   <X className="h-6 w-6" />
                 </button>
@@ -417,18 +411,12 @@ function ApplicantJobRequest() {
               
               {/* Stellenarten die beauftragt werden */}
               <div className="mt-4">
-                <p className="text-sm text-gray-600 mb-2">Aufträge werden erstellt für:</p>
+                <p className="text-sm text-gray-600 mb-2">{t('jobRequest.ordersWillBeCreatedFor')}</p>
                 <div className="flex flex-wrap gap-2">
                   {getAvailablePositionTypes().map((type) => {
-                    const labels = {
-                      studentenferienjob: 'Studentenferienjob',
-                      saisonjob: 'Saisonjob',
-                      fachkraft: 'Fachkraft',
-                      ausbildung: 'Ausbildung'
-                    };
                     return (
                       <span key={type} className={`px-3 py-1 rounded-full text-white text-sm font-medium ${positionTypeColors[type] || 'bg-gray-500'}`}>
-                        {labels[type] || type}
+                        {t(`positionTypes.${type}`) || type}
                       </span>
                     );
                   })}
@@ -439,22 +427,22 @@ function ApplicantJobRequest() {
             <div className="p-6 space-y-6">
               {/* Optionale Angaben */}
               <div>
-                <label className="label">Bevorzugte Region/Stadt (optional)</label>
+                <label className="label">{t('jobRequest.preferredRegion')}</label>
                 <input
                   type="text"
                   className="input-styled"
-                  placeholder="z.B. München, Bayern, Süddeutschland..."
+                  placeholder={t('jobRequest.preferredRegionPlaceholder')}
                   value={preferredLocation}
                   onChange={(e) => setPreferredLocation(e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="label">Zusätzliche Wünsche (optional)</label>
+                <label className="label">{t('jobRequest.additionalWishes')}</label>
                 <textarea
                   className="input-styled"
                   rows={3}
-                  placeholder="Besondere Anforderungen, Präferenzen, Zeitraum..."
+                  placeholder={t('jobRequest.additionalWishesPlaceholder')}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
@@ -464,7 +452,7 @@ function ApplicantJobRequest() {
               <div className="bg-gray-50 rounded-xl p-4 border">
                 <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary-600" />
-                  Datenschutzerklärung
+                  {t('jobRequest.privacyTitle')}
                 </h3>
                 <div className="bg-white rounded-lg p-4 max-h-60 overflow-y-auto text-sm text-gray-700 whitespace-pre-wrap border mb-4">
                   {privacyText}
@@ -477,8 +465,7 @@ function ApplicantJobRequest() {
                     className="mt-1 h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                   />
                   <span className="text-gray-700">
-                    Ich habe die Datenschutzerklärung gelesen und stimme der Verarbeitung und
-                    Weitergabe meiner Daten zum Zweck der Arbeitsvermittlung zu.
+                    {t('jobRequest.privacyAccept')}
                   </span>
                 </label>
               </div>
@@ -486,7 +473,7 @@ function ApplicantJobRequest() {
 
             <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
               <button onClick={() => setShowModal(false)} className="btn-secondary">
-                Abbrechen
+                {t('jobRequest.cancel')}
               </button>
               <button
                 onClick={handleSubmit}
@@ -494,7 +481,7 @@ function ApplicantJobRequest() {
                 className="btn-primary flex items-center gap-2 disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle className="h-5 w-5" />}
-                {getAvailablePositionTypes().length} Auftrag(e) erstellen
+                {t('jobRequest.createOrdersCount', { count: getAvailablePositionTypes().length })}
               </button>
             </div>
           </div>

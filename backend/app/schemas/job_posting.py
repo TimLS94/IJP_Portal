@@ -141,6 +141,7 @@ class JobPostingUpdate(BaseModel):
 class JobPostingResponse(JobPostingBase):
     id: int
     company_id: int
+    slug: Optional[str] = None  # SEO: URL-Slug
     is_active: bool
     is_archived: Optional[bool] = False
     created_at: datetime

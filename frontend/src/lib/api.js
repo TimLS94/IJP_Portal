@@ -92,6 +92,7 @@ export const companyAPI = {
 export const jobsAPI = {
   list: (params) => api.get('/jobs', { params }),
   get: (id) => api.get(`/jobs/${id}`),
+  getBySlug: (slugWithId) => api.get(`/jobs/by-slug/${slugWithId}`),  // SEO: Neuer Endpoint
   create: (data) => api.post('/jobs', data),
   update: (id, data) => api.put(`/jobs/${id}`, data),
   delete: (id) => api.delete(`/jobs/${id}`), // Archiviert die Stelle
@@ -103,6 +104,8 @@ export const jobsAPI = {
   getMatchScore: (id) => api.get(`/jobs/${id}/match`),
   // Öffentliche Einstellungen (max_deadline_days etc.)
   getPublicSettings: () => api.get('/jobs/settings/public'),
+  // SEO: Sitemap URLs
+  getSitemapUrls: () => api.get('/jobs/sitemap/urls'),
 };
 
 // Applications API

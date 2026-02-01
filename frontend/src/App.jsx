@@ -85,7 +85,7 @@ function App() {
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="reset-password" element={<ResetPassword />} />
           <Route path="jobs" element={<Jobs />} />
-          <Route path="jobs/:id" element={<JobDetail />} />
+          <Route path="jobs/:slug" element={<JobDetail />} />
           <Route path="stellenarten" element={<JobCategories />} />
           <Route path="blog" element={<BlogList />} />
           <Route path="blog/:slug" element={<BlogDetail />} />

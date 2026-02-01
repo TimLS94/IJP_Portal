@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime, timedelta, date
@@ -11,6 +12,7 @@ from app.models.job_posting import JobPosting
 from app.models.applicant import PositionType
 from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPostingResponse, JobPostingListResponse
 from app.services.settings_service import get_setting
+from app.services.slug_service import generate_job_slug, extract_id_from_slug
 
 # Standard-Wert falls Setting nicht existiert (wird aus DB überschrieben)
 DEFAULT_MAX_DEADLINE_DAYS = 90
@@ -32,6 +34,83 @@ async def get_public_job_settings(db: Session = Depends(get_db)):
         "max_job_deadline_days": max_days,
         "archive_deletion_days": archive_days
     }
+
+
+@router.get("/sitemap/urls")
+async def get_sitemap_urls(db: Session = Depends(get_db)):
+    """
+    Gibt alle aktiven Job-URLs für die Sitemap zurück.
+    Format: [{url: "/jobs/slug-id", lastmod: "2026-01-15", title: "..."}]
+    """
+    jobs = db.query(JobPosting).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_archived == False
+    ).all()
+    
+    urls = []
+    for job in jobs:
+        # Slug generieren falls nicht vorhanden
+        if not job.slug:
+            job.slug = generate_job_slug(job.title, job.location, job.accommodation_provided)
+            db.commit()
+        
+        url_slug = f"{job.slug}-{job.id}"
+        urls.append({
+            "url": f"/jobs/{url_slug}",
+            "lastmod": job.updated_at.strftime("%Y-%m-%d") if job.updated_at else job.created_at.strftime("%Y-%m-%d"),
+            "title": job.title,
+            "location": job.location,
+            "id": job.id
+        })
+    
+    return {"urls": urls, "count": len(urls)}
+
+
+@router.get("/sitemap.xml")
+async def get_sitemap_xml(db: Session = Depends(get_db)):
+    """
+    Generiert eine vollständige Sitemap.xml mit allen aktiven Jobs.
+    """
+    jobs = db.query(JobPosting).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_archived == False
+    ).all()
+    
+    base_url = "https://www.jobon.work"
+    
+    # XML Header
+    xml_parts = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        # Statische Seiten
+        f'  <url><loc>{base_url}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>',
+        f'  <url><loc>{base_url}/jobs</loc><changefreq>daily</changefreq><priority>0.9</priority></url>',
+        f'  <url><loc>{base_url}/stellenarten</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>',
+        f'  <url><loc>{base_url}/blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>',
+        f'  <url><loc>{base_url}/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>',
+        f'  <url><loc>{base_url}/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>',
+        f'  <url><loc>{base_url}/faq</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>',
+    ]
+    
+    # Dynamische Job-URLs
+    for job in jobs:
+        if not job.slug:
+            job.slug = generate_job_slug(job.title, job.location, job.accommodation_provided)
+            db.commit()
+        
+        url_slug = f"{job.slug}-{job.id}"
+        lastmod = job.updated_at.strftime("%Y-%m-%d") if job.updated_at else job.created_at.strftime("%Y-%m-%d")
+        xml_parts.append(f'  <url><loc>{base_url}/jobs/{url_slug}</loc><lastmod>{lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>')
+    
+    xml_parts.append('</urlset>')
+    
+    xml_content = '\n'.join(xml_parts)
+    
+    return Response(
+        content=xml_content,
+        media_type="application/xml",
+        headers={"Content-Type": "application/xml; charset=utf-8"}
+    )
 
 
 @router.get("", response_model=List[JobPostingResponse])
@@ -64,9 +143,42 @@ async def list_jobs(
     return jobs
 
 
-@router.get("/{job_id}", response_model=JobPostingResponse)
-async def get_job(job_id: int, db: Session = Depends(get_db)):
-    """Gibt ein Stellenangebot zurück (öffentlich)"""
+def update_job_slug(job: JobPosting, db: Session) -> str:
+    """Generiert und speichert den Slug für einen Job"""
+    slug = generate_job_slug(
+        title=job.title,
+        location=job.location,
+        accommodation=job.accommodation_provided
+    )
+    job.slug = slug
+    db.commit()
+    return slug
+
+
+def get_job_url_slug(job: JobPosting) -> str:
+    """Gibt den vollständigen URL-Slug zurück (slug-id)"""
+    slug = job.slug or generate_job_slug(job.title, job.location, job.accommodation_provided)
+    return f"{slug}-{job.id}"
+
+
+@router.get("/by-slug/{slug_with_id}")
+async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
+    """
+    SEO-freundlicher Endpoint für Jobdetails.
+    URL-Format: /jobs/by-slug/housekeeping-hallenberg-unterkunft-12
+    
+    - Extrahiert die ID aus dem Slug
+    - Prüft ob der Slug korrekt ist (canonical redirect)
+    - Gibt Job-Daten + canonical_url zurück
+    """
+    slug_part, job_id = extract_id_from_slug(slug_with_id)
+    
+    if job_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stellenangebot nicht gefunden"
+        )
+    
     job = db.query(JobPosting).options(
         joinedload(JobPosting.company)
     ).filter(JobPosting.id == job_id).first()
@@ -76,6 +188,82 @@ async def get_job(job_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Stellenangebot nicht gefunden"
         )
+    
+    # Slug generieren falls nicht vorhanden
+    if not job.slug:
+        update_job_slug(job, db)
+    
+    # Canonical URL berechnen
+    canonical_slug = get_job_url_slug(job)
+    canonical_url = f"/jobs/{canonical_slug}"
+    
+    # Prüfen ob Redirect nötig (falscher Slug)
+    needs_redirect = slug_with_id != canonical_slug
+    
+    # Job-Daten als Dict für erweiterte Response
+    job_data = {
+        "id": job.id,
+        "company_id": job.company_id,
+        "slug": job.slug,
+        "title": job.title,
+        "position_type": job.position_type.value if job.position_type else None,
+        "employment_type": job.employment_type.value if job.employment_type else None,
+        "description": job.description,
+        "tasks": job.tasks,
+        "requirements": job.requirements,
+        "benefits": job.benefits,
+        "location": job.location,
+        "address": job.address,
+        "postal_code": job.postal_code,
+        "remote_possible": job.remote_possible,
+        "accommodation_provided": job.accommodation_provided,
+        "start_date": job.start_date,
+        "end_date": job.end_date,
+        "contact_person": job.contact_person,
+        "contact_phone": job.contact_phone,
+        "contact_email": job.contact_email,
+        "salary_min": job.salary_min,
+        "salary_max": job.salary_max,
+        "salary_type": job.salary_type,
+        "german_required": job.german_required.value if job.german_required else None,
+        "english_required": job.english_required.value if job.english_required else None,
+        "other_languages_required": job.other_languages_required,
+        "additional_requirements": job.additional_requirements,
+        "is_active": job.is_active,
+        "is_archived": job.is_archived,
+        "created_at": job.created_at,
+        "updated_at": job.updated_at,
+        "deadline": job.deadline,
+        "translations": job.translations,
+        "available_languages": job.available_languages,
+        "company_name": job.company.name if job.company else None,
+        "company_logo": job.company.logo_url if job.company else None,
+        # SEO-spezifische Felder
+        "canonical_url": canonical_url,
+        "url_slug": canonical_slug,
+        "needs_redirect": needs_redirect,
+    }
+    
+    return job_data
+
+
+@router.get("/{job_id}", response_model=JobPostingResponse)
+async def get_job(job_id: int, db: Session = Depends(get_db)):
+    """Gibt ein Stellenangebot zurück (öffentlich) - Legacy-Endpoint für Rückwärtskompatibilität"""
+    job = db.query(JobPosting).options(
+        joinedload(JobPosting.company)
+    ).filter(JobPosting.id == job_id).first()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stellenangebot nicht gefunden"
+        )
+    
+    # Slug generieren falls nicht vorhanden
+    if not job.slug:
+        update_job_slug(job, db)
+    
     return job
 
 
@@ -123,6 +311,11 @@ async def create_job(
     db.add(job)
     db.commit()
     db.refresh(job)
+    
+    # SEO: Slug generieren
+    update_job_slug(job, db)
+    db.refresh(job)
+    
     return job
 
 
@@ -153,10 +346,22 @@ async def update_job(
         )
     
     update_data = job_data.model_dump(exclude_unset=True)
+    
+    # Prüfen ob Slug-relevante Felder geändert werden
+    slug_fields_changed = any(
+        field in update_data and getattr(job, field) != update_data[field]
+        for field in ['title', 'location', 'accommodation_provided']
+    )
+    
     for field, value in update_data.items():
         setattr(job, field, value)
     
     db.commit()
+    
+    # SEO: Slug aktualisieren wenn relevante Felder geändert wurden
+    if slug_fields_changed:
+        update_job_slug(job, db)
+    
     db.refresh(job)
     return job
 

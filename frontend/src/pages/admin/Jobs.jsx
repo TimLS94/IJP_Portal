@@ -136,7 +136,7 @@ function AdminJobs() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <Link 
-                          to={`/jobs/${job.id}`}
+                          to={`/jobs/${job.slug ? `${job.slug}-${job.id}` : job.id}`}
                           className="text-lg font-semibold text-gray-900 hover:text-primary-600"
                         >
                           {job.title}
@@ -170,7 +170,7 @@ function AdminJobs() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Link 
-                        to={`/jobs/${job.id}`}
+                        to={`/jobs/${job.slug ? `${job.slug}-${job.id}` : job.id}`}
                         className="btn-secondary text-sm"
                       >
                         <Eye className="h-4 w-4 inline mr-1" />
