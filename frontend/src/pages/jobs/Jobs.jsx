@@ -410,7 +410,7 @@ function Jobs() {
                     </p>
                   )}
                   <p className="text-sm text-gray-400 mt-2">
-                    {new Date(job.created_at).toLocaleDateString('de-DE')}
+                    {new Date(job.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </p>
                 </div>
               </div>

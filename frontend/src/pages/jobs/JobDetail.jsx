@@ -714,16 +714,18 @@ function JobDetail() {
                   <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <h4 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
                       <FileText className="h-5 w-5" />
-                      Dokumente für {job.company_name || 'diese Firma'} freigeben
+                      {job.company_name 
+                        ? t('jobDetail.shareDocumentsFor', { company: job.company_name })
+                        : t('jobDetail.shareDocumentsForThisCompany')}
                     </h4>
                     <div className="bg-white rounded-lg p-3 mb-3 border border-blue-200">
                       <p className="text-sm text-gray-700">
-                        <strong className="text-blue-800">{job.company_name}</strong> erhält Zugriff auf die ausgewählten Dokumente für die Stelle:
+                        {t('jobDetail.companyGetsAccess', { company: job.company_name })}
                       </p>
                       <p className="text-sm font-medium text-gray-900 mt-1">"{getTranslatedText('title')}"</p>
                     </div>
                     <p className="text-sm text-blue-600 mb-3">
-                      Wählen Sie aus, welche Dokumente freigegeben werden sollen:
+                      {t('jobDetail.selectDocumentsToShare')}
                     </p>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {myDocuments.map((doc) => (
@@ -747,7 +749,7 @@ function JobDetail() {
                           </div>
                           {selectedDocIds.includes(doc.id) && (
                             <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded">
-                              wird geteilt
+                              {t('jobDetail.willBeShared')}
                             </span>
                           )}
                         </label>
@@ -755,7 +757,7 @@ function JobDetail() {
                     </div>
                     <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-xs text-yellow-700">
-                        ⚠️ <strong>Datenschutz:</strong> Nur die ausgewählten {selectedDocIds.length} Dokument(e) werden für <strong>{job.company_name}</strong> sichtbar. Andere Firmen sehen diese Dokumente nicht.
+                        ⚠️ <strong>{t('jobDetail.privacy')}:</strong> {t('jobDetail.privacyNotice', { count: selectedDocIds.length, company: job.company_name })}
                       </p>
                     </div>
                   </div>

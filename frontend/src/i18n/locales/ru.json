@@ -952,7 +952,14 @@
     "ijpServiceButton": "Заказать поиск работы через IJP",
     "ijpServiceDescGuest": "Позвольте нам найти для вас подходящую работу! Зарегистрируйтесь и закажите услуги IJP.",
     "registerNow": "Зарегистрироваться",
-    "jobNotFound": "Вакансия не найдена"
+    "jobNotFound": "Вакансия не найдена",
+    "shareDocumentsFor": "Поделиться документами с {{company}}",
+    "shareDocumentsForThisCompany": "Поделиться документами с этой компанией",
+    "companyGetsAccess": "{{company}} получит доступ к выбранным документам для вакансии:",
+    "selectDocumentsToShare": "Выберите, какими документами поделиться:",
+    "willBeShared": "будет отправлен",
+    "privacyNotice": "Только выбранные {{count}} документ(ов) будут видны {{company}}. Другие компании не увидят эти документы.",
+    "privacy": "Конфиденциальность"
   },
   "matching": {
     "veryGood": "Очень хорошее совпадение",

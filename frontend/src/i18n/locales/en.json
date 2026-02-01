@@ -990,7 +990,14 @@
     "ijpServiceButton": "Commission IJP for Job Search",
     "ijpServiceDescGuest": "Let us find the right job for you! Register and commission IJP.",
     "registerNow": "Register Now",
-    "jobNotFound": "Job posting not found"
+    "jobNotFound": "Job posting not found",
+    "shareDocumentsFor": "Share documents with {{company}}",
+    "shareDocumentsForThisCompany": "Share documents with this company",
+    "companyGetsAccess": "{{company}} will get access to the selected documents for the position:",
+    "selectDocumentsToShare": "Select which documents to share:",
+    "willBeShared": "will be shared",
+    "privacyNotice": "Only the selected {{count}} document(s) will be visible to {{company}}. Other companies will not see these documents.",
+    "privacy": "Privacy"
   },
   "matching": {
     "veryGood": "Very good match",

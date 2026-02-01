@@ -990,7 +990,14 @@
     "ijpServiceButton": "IJP mit Jobsuche beauftragen",
     "ijpServiceDescGuest": "Lassen Sie uns den passenden Job für Sie finden! Registrieren Sie sich und beauftragen Sie IJP.",
     "registerNow": "Jetzt registrieren",
-    "jobNotFound": "Stellenangebot nicht gefunden"
+    "jobNotFound": "Stellenangebot nicht gefunden",
+    "shareDocumentsFor": "Dokumente für {{company}} freigeben",
+    "shareDocumentsForThisCompany": "Dokumente für diese Firma freigeben",
+    "companyGetsAccess": "{{company}} erhält Zugriff auf die ausgewählten Dokumente für die Stelle:",
+    "selectDocumentsToShare": "Wählen Sie aus, welche Dokumente freigegeben werden sollen:",
+    "willBeShared": "wird geteilt",
+    "privacyNotice": "Nur die ausgewählten {{count}} Dokument(e) werden für {{company}} sichtbar. Andere Firmen sehen diese Dokumente nicht.",
+    "privacy": "Datenschutz"
   },
   "matching": {
     "veryGood": "Sehr gute Übereinstimmung",

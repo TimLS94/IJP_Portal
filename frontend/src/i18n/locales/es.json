@@ -952,7 +952,14 @@
     "ijpServiceButton": "Contratar IJP para búsqueda de empleo",
     "ijpServiceDescGuest": "¡Déjenos encontrar el trabajo adecuado para usted! Regístrese y contrate a IJP.",
     "registerNow": "Registrarse ahora",
-    "jobNotFound": "Oferta de empleo no encontrada"
+    "jobNotFound": "Oferta de empleo no encontrada",
+    "shareDocumentsFor": "Compartir documentos con {{company}}",
+    "shareDocumentsForThisCompany": "Compartir documentos con esta empresa",
+    "companyGetsAccess": "{{company}} tendrá acceso a los documentos seleccionados para el puesto:",
+    "selectDocumentsToShare": "Seleccione qué documentos compartir:",
+    "willBeShared": "se compartirá",
+    "privacyNotice": "Solo los {{count}} documento(s) seleccionados serán visibles para {{company}}. Otras empresas no verán estos documentos.",
+    "privacy": "Privacidad"
   },
   "matching": {
     "veryGood": "Muy buena coincidencia",
