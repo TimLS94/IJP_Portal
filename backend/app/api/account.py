@@ -272,6 +272,7 @@ async def delete_account(
         if applicant:
             # IJP-Aufträge löschen (WICHTIG: vor Applicant löschen!)
             from app.models.job_request import JobRequest
+            from app.models.application import ApplicationDocument
             db.query(JobRequest).filter(JobRequest.applicant_id == applicant.id).delete()
             
             # Interviews löschen (vor Bewerbungen!)
@@ -279,6 +280,8 @@ async def delete_account(
             applications = db.query(Application).filter(Application.applicant_id == applicant.id).all()
             for app in applications:
                 db.query(Interview).filter(Interview.application_id == app.id).delete()
+                # application_documents löschen (FK auf applications)
+                db.query(ApplicationDocument).filter(ApplicationDocument.application_id == app.id).delete()
             
             # Bewerbungen löschen
             db.query(Application).filter(Application.applicant_id == applicant.id).delete()
