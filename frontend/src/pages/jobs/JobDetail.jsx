@@ -438,7 +438,7 @@ function JobDetail() {
     setApplying(true);
     try {
       await applicationsAPI.create({
-        job_posting_id: parseInt(id),
+        job_posting_id: job.id,
         applicant_message: message,
         document_ids: selectedDocIds
       });
