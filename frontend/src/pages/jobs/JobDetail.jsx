@@ -502,7 +502,7 @@ function JobDetail() {
   if (!job) return null;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-0">
       {/* Zurück-Button */}
       <Link to="/jobs" className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 group">
         <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
@@ -541,9 +541,9 @@ function JobDetail() {
               </div>
             )}
             
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <h1 className="text-3xl font-bold text-gray-900">{getTranslatedText('title')}</h1>
-              <span className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap border ${positionTypeColors[job.position_type]}`}>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{getTranslatedText('title')}</h1>
+              <span className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border self-start ${positionTypeColors[job.position_type]}`}>
                 {positionTypeLabels[job.position_type]}
               </span>
             </div>
@@ -579,11 +579,11 @@ function JobDetail() {
               )}
             </div>
 
-            <div className="prose max-w-none">
+            <div className="prose max-w-none overflow-hidden">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t('jobDetail.description', 'Beschreibung')}
               </h3>
-              <p className="text-gray-600 whitespace-pre-wrap">{getTranslatedText('description')}</p>
+              <p className="text-gray-600 whitespace-pre-wrap break-words">{getTranslatedText('description')}</p>
 
               {(job.tasks || job.translations?.[displayLanguage]?.tasks) && (
                 <>
