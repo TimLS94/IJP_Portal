@@ -134,9 +134,13 @@ async def list_jobs(
         query = query.filter(JobPosting.location.ilike(f"%{location}%"))
     
     if search:
-        query = query.filter(
+        # Suche in Titel, Beschreibung, Ort UND Firmenname
+        from app.models.company import Company
+        query = query.join(JobPosting.company).filter(
             (JobPosting.title.ilike(f"%{search}%")) |
-            (JobPosting.description.ilike(f"%{search}%"))
+            (JobPosting.description.ilike(f"%{search}%")) |
+            (JobPosting.location.ilike(f"%{search}%")) |
+            (Company.company_name.ilike(f"%{search}%"))
         )
     
     jobs = query.order_by(JobPosting.created_at.desc()).offset(skip).limit(limit).all()
