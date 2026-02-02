@@ -279,12 +279,14 @@ async def get_my_applications(
     return result
 
 
-@router.get("/company", response_model=List[ApplicationWithDetails])
+@router.get("/company")
 async def get_company_applications(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Listet alle Bewerbungen für die Firma"""
+    """Listet alle Bewerbungen für die Firma mit Matching-Score"""
+    from app.services.matching_service import calculate_match_score
+    
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -304,19 +306,31 @@ async def get_company_applications(
     
     result = []
     for app in applications:
+        # Matching-Score berechnen
+        match_score = None
+        if app.applicant and app.job_posting:
+            try:
+                match_result = calculate_match_score(app.applicant, app.job_posting)
+                match_score = match_result.get("total_score", 0)
+            except:
+                pass
+        
         app_dict = {
             "id": app.id,
             "applicant_id": app.applicant_id,
             "job_posting_id": app.job_posting_id,
-            "status": app.status,
+            "job_id": app.job_posting_id,  # Alias für Frontend
+            "status": app.status.value if hasattr(app.status, 'value') else app.status,
             "applicant_message": app.applicant_message,
             "company_notes": app.company_notes,
             "applied_at": app.applied_at,
             "updated_at": app.updated_at,
             "job_title": app.job_posting.title if app.job_posting else None,
-            "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None
+            "job_slug": app.job_posting.slug if app.job_posting else None,
+            "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None,
+            "match_score": match_score
         }
-        result.append(ApplicationWithDetails(**app_dict))
+        result.append(app_dict)
     
     return result
 

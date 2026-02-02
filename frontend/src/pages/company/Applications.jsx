@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { applicationsAPI, documentsAPI, interviewAPI, downloadBlob } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
@@ -24,6 +25,33 @@ const positionTypeLabels = {
   workandholiday: 'Work & Holiday',
   fachkraft: 'Fachkraft',
   ausbildung: 'Ausbildung'
+};
+
+// Matching-Score Badge Komponente
+const MatchScoreBadge = ({ score }) => {
+  if (score === null || score === undefined) {
+    return <span className="text-gray-400 text-sm">-</span>;
+  }
+  
+  let colorClass = 'bg-red-100 text-red-700';
+  let icon = <TrendingDown className="h-3 w-3" />;
+  
+  if (score >= 80) {
+    colorClass = 'bg-green-100 text-green-700';
+    icon = <TrendingUp className="h-3 w-3" />;
+  } else if (score >= 60) {
+    colorClass = 'bg-yellow-100 text-yellow-700';
+    icon = <Minus className="h-3 w-3" />;
+  } else if (score >= 40) {
+    colorClass = 'bg-orange-100 text-orange-700';
+    icon = <TrendingDown className="h-3 w-3" />;
+  }
+  
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
+      {icon} {score}%
+    </span>
+  );
 };
 
 function CompanyApplications() {
@@ -130,6 +158,9 @@ function CompanyApplications() {
         case 'status':
           const statusOrder = statusOptions.map(s => s.value);
           comparison = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+          break;
+        case 'match_score':
+          comparison = (a.match_score || 0) - (b.match_score || 0);
           break;
         case 'applied_at':
         default:
@@ -675,6 +706,14 @@ function CompanyApplications() {
                   </th>
                   <th className="text-left px-4 py-3">
                     <button 
+                      onClick={() => handleSort('match_score')}
+                      className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
+                    >
+                      <Sparkles className="h-4 w-4" /> Match <SortIcon column="match_score" />
+                    </button>
+                  </th>
+                  <th className="text-left px-4 py-3">
+                    <button 
                       onClick={() => handleSort('applied_at')}
                       className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
                     >
@@ -717,7 +756,15 @@ function CompanyApplications() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-gray-900">{app.job_title}</p>
+                      <Link 
+                        to={`/jobs/${app.job_slug || app.job_id}`}
+                        className="text-primary-600 hover:text-primary-700 hover:underline font-medium"
+                      >
+                        {app.job_title}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <MatchScoreBadge score={app.match_score} />
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-sm">
                       {formatDate(app.applied_at)}
