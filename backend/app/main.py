@@ -40,6 +40,22 @@ def ensure_db_columns():
     from sqlalchemy import text
     db = SessionLocal()
     try:
+        # 0. Neuen Enum-Wert 'general' zu positiontype hinzufügen (PostgreSQL)
+        try:
+            result = db.execute(text("""
+                SELECT 1 FROM pg_enum 
+                WHERE enumlabel = 'general' 
+                AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'positiontype')
+            """))
+            if not result.fetchone():
+                logger.info("Adding 'general' to positiontype enum...")
+                db.execute(text("ALTER TYPE positiontype ADD VALUE IF NOT EXISTS 'general'"))
+                db.commit()
+                logger.info("'general' enum value added successfully")
+        except Exception as enum_error:
+            logger.warning(f"Could not add enum value (may already exist): {enum_error}")
+            db.rollback()
+        
         # 1. slug Spalte für SEO
         result = db.execute(text("""
             SELECT column_name 
@@ -64,13 +80,6 @@ def ensure_db_columns():
             db.execute(text("ALTER TABLE job_postings ADD COLUMN position_types JSON DEFAULT '[]'"))
             db.commit()
             logger.info("'position_types' column added successfully")
-        
-        # 3. position_type default auf 'general' setzen für NULL-Werte
-        db.execute(text("""
-            UPDATE job_postings SET position_type = 'general' 
-            WHERE position_type IS NULL
-        """))
-        db.commit()
             
     except Exception as e:
         logger.error(f"Error in database migration: {e}")
