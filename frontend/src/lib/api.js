@@ -106,6 +106,9 @@ export const jobsAPI = {
   getPublicSettings: () => api.get('/jobs/settings/public'),
   // SEO: Sitemap URLs
   getSitemapUrls: () => api.get('/jobs/sitemap/urls'),
+  // Übersetzung (DeepL)
+  translate: (data) => api.post('/jobs/translate', data),
+  getTranslationStatus: () => api.get('/jobs/translate/status'),
 };
 
 // Applications API

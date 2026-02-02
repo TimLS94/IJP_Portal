@@ -608,3 +608,75 @@ async def get_job_match_score(
         "job_id": job_id,
         **match
     }
+
+
+# ========== ÜBERSETZUNG ==========
+
+from pydantic import BaseModel
+
+class TranslationRequest(BaseModel):
+    title: str
+    description: str
+    tasks: Optional[str] = None
+    requirements: Optional[str] = None
+    benefits: Optional[str] = None
+    target_lang: str  # en, es, ru
+    source_lang: str = 'de'
+
+
+@router.post("/translate")
+async def translate_job_content(
+    request: TranslationRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Übersetzt Stelleninhalte mit DeepL Free API.
+    Nur für Firmen verfügbar.
+    """
+    from app.services.translation_service import translate_job_fields, get_deepl_status
+    
+    # Nur für Firmen
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Firmen können Übersetzungen anfordern"
+        )
+    
+    # Prüfen ob DeepL konfiguriert ist
+    deepl_status = get_deepl_status()
+    if not deepl_status['configured']:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Übersetzungsservice nicht konfiguriert. Bitte DEEPL_API_KEY setzen."
+        )
+    
+    # Übersetzen
+    translated = await translate_job_fields(
+        title=request.title,
+        description=request.description,
+        tasks=request.tasks,
+        requirements=request.requirements,
+        benefits=request.benefits,
+        target_lang=request.target_lang,
+        source_lang=request.source_lang
+    )
+    
+    return {
+        "success": True,
+        "target_lang": request.target_lang,
+        "translations": translated
+    }
+
+
+@router.get("/translate/status")
+async def get_translation_status(
+    current_user: User = Depends(get_current_user)
+):
+    """Prüft ob Übersetzungsservice verfügbar ist"""
+    from app.services.translation_service import get_deepl_status
+    
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    return get_deepl_status()

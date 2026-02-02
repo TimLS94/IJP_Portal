@@ -91,6 +91,8 @@ function CreateJob() {
   const [saving, setSaving] = useState(false);
   const [otherLanguages, setOtherLanguages] = useState([]);
   const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90, archive_deletion_days: 90 });
+  const [translating, setTranslating] = useState(false);
+  const [translationAvailable, setTranslationAvailable] = useState(false);
   
   // Mehrsprachige Inhalte
   const [activeLanguage, setActiveLanguage] = useState('de');
@@ -109,7 +111,7 @@ function CreateJob() {
     }
   });
 
-  // Job-Settings laden
+  // Job-Settings und Übersetzungsstatus laden
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -119,8 +121,51 @@ function CreateJob() {
         console.error('Fehler beim Laden der Job-Settings:', error);
       }
     };
+    const checkTranslation = async () => {
+      try {
+        const response = await jobsAPI.getTranslationStatus();
+        setTranslationAvailable(response.data.configured);
+      } catch (error) {
+        setTranslationAvailable(false);
+      }
+    };
     loadSettings();
+    checkTranslation();
   }, []);
+  
+  // Automatische Übersetzung
+  const handleAutoTranslate = async (targetLang) => {
+    if (!translations.de.title && !translations.de.description) {
+      toast.error('Bitte füllen Sie zuerst die deutschen Inhalte aus');
+      return;
+    }
+    
+    setTranslating(true);
+    try {
+      const response = await jobsAPI.translate({
+        title: translations.de.title,
+        description: translations.de.description,
+        tasks: translations.de.tasks,
+        requirements: translations.de.requirements,
+        benefits: translations.de.benefits,
+        target_lang: targetLang,
+        source_lang: 'de'
+      });
+      
+      if (response.data.success) {
+        setTranslations(prev => ({
+          ...prev,
+          [targetLang]: response.data.translations
+        }));
+        toast.success(`Übersetzung nach ${targetLang.toUpperCase()} erfolgreich!`);
+        setActiveLanguage(targetLang);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Übersetzung fehlgeschlagen');
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   // Position types with translations - "general" ist der Default wenn nichts ausgewählt
   const positionTypes = [
@@ -342,10 +387,43 @@ function CreateJob() {
           </div>
           
           {enabledLanguages.length > 1 && (
-            <p className="text-indigo-700 text-sm bg-indigo-50 rounded-lg p-3">
-              <Globe className="h-4 w-4 inline mr-1" />
-              <strong>{enabledLanguages.length} Sprachen aktiviert.</strong> Bewerber können zwischen den Sprachen wechseln, um die Stelle in ihrer bevorzugten Sprache zu lesen.
-            </p>
+            <div className="space-y-3">
+              <p className="text-indigo-700 text-sm bg-indigo-50 rounded-lg p-3">
+                <Globe className="h-4 w-4 inline mr-1" />
+                <strong>{enabledLanguages.length} Sprachen aktiviert.</strong> Bewerber können zwischen den Sprachen wechseln, um die Stelle in ihrer bevorzugten Sprache zu lesen.
+              </p>
+              
+              {/* Automatische Übersetzung */}
+              {translationAvailable && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-green-800 text-sm font-medium mb-2 flex items-center gap-2">
+                    <Languages className="h-4 w-4" />
+                    Automatische Übersetzung (DeepL)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {enabledLanguages.filter(l => l !== 'de').map(lang => (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => handleAutoTranslate(lang)}
+                        disabled={translating}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {translating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Languages className="h-4 w-4" />
+                        )}
+                        DE → {lang.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-green-600 text-xs mt-2">
+                    Übersetzt die deutschen Inhalte automatisch. Sie können die Übersetzung danach noch anpassen.
+                  </p>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
