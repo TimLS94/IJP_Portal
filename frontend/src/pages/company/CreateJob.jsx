@@ -124,9 +124,12 @@ function CreateJob() {
     const checkTranslation = async () => {
       try {
         const response = await jobsAPI.getTranslationStatus();
+        console.log('Translation status:', response.data);
         setTranslationAvailable(response.data.configured);
       } catch (error) {
-        setTranslationAvailable(false);
+        console.error('Translation status check failed:', error);
+        // Fallback: Zeige Button trotzdem an, Fehler wird beim Übersetzen angezeigt
+        setTranslationAvailable(true);
       }
     };
     loadSettings();
