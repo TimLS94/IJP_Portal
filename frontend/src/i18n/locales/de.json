@@ -186,6 +186,7 @@
     "ijpServiceButton": "IJP beauftragen"
   },
   "positionTypes": {
+    "general": "Arbeit (Allgemein)",
     "studentenferienjob": "Studentenferienjob",
     "saisonjob": "Saisonjob",
     "workandholiday": "Work & Holiday",

@@ -6,6 +6,7 @@ from app.core.database import Base
 
 
 class PositionType(str, enum.Enum):
+    GENERAL = "general"  # Arbeit (Allgemein) - für EU-Bürger, keine speziellen Anforderungen
     STUDENTENFERIENJOB = "studentenferienjob"
     SAISONJOB = "saisonjob"
     WORK_AND_HOLIDAY = "workandholiday"  # Working Holiday Visum (Südamerika)

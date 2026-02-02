@@ -122,14 +122,17 @@ function CreateJob() {
     loadSettings();
   }, []);
 
-  // Position types with translations (Ausbildung and Work & Holiday stay German)
+  // Position types with translations - "general" ist der Default wenn nichts ausgewählt
   const positionTypes = [
-    { value: 'studentenferienjob', label: t('positionTypes.studentenferienjob') },
-    { value: 'saisonjob', label: t('positionTypes.saisonjob') },
-    { value: 'workandholiday', label: 'Work & Holiday' },
-    { value: 'fachkraft', label: t('positionTypes.fachkraft') },
-    { value: 'ausbildung', label: 'Ausbildung' }
+    { value: 'studentenferienjob', label: t('positionTypes.studentenferienjob'), description: 'Für Studenten aus dem Ausland' },
+    { value: 'saisonjob', label: t('positionTypes.saisonjob'), description: 'Saisonarbeit (max. 90 Tage)' },
+    { value: 'workandholiday', label: 'Work & Holiday', description: 'Working Holiday Visum' },
+    { value: 'fachkraft', label: t('positionTypes.fachkraft'), description: 'Qualifizierte Fachkräfte' },
+    { value: 'ausbildung', label: 'Ausbildung', description: 'Berufsausbildung' }
   ];
+  
+  // State für Mehrfachauswahl der Stellenarten
+  const [selectedPositionTypes, setSelectedPositionTypes] = useState([]);
 
   const employmentTypes = [
     { value: 'fulltime', label: 'Vollzeit' },
@@ -267,6 +270,11 @@ function CreateJob() {
       cleanData.translations = translationsToSend;
       cleanData.available_languages = enabledLanguages;
       
+      // Stellenarten: Mehrfachauswahl oder Default "general"
+      cleanData.position_types = selectedPositionTypes;
+      // Haupttyp: erster ausgewählter oder "general"
+      cleanData.position_type = selectedPositionTypes.length > 0 ? selectedPositionTypes[0] : 'general';
+      
       await jobsAPI.create(cleanData);
       toast.success('Stellenangebot erstellt!');
       navigate('/company/jobs');
@@ -391,22 +399,45 @@ function CreateJob() {
             
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Stellenart *</label>
-                <div className="relative">
-                  <select
-                    className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
-                             focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
-                             transition-all cursor-pointer text-gray-700 font-medium"
-                    {...register('position_type', { required: 'Stellenart ist erforderlich' })}
-                  >
-                    <option value="">Stellenart wählen</option>
-                    {positionTypes.map((type) => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                <label className="label">Zielgruppe / Stellenart (optional)</label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Wählen Sie spezielle Zielgruppen. Ohne Auswahl gilt die Stelle für alle (EU-Bürger).
+                </p>
+                <div className="space-y-2">
+                  {positionTypes.map((type) => (
+                    <label 
+                      key={type.value}
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                        selectedPositionTypes.includes(type.value)
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedPositionTypes.includes(type.value)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPositionTypes([...selectedPositionTypes, type.value]);
+                          } else {
+                            setSelectedPositionTypes(selectedPositionTypes.filter(t => t !== type.value));
+                          }
+                        }}
+                        className="h-4 w-4 text-primary-600 rounded"
+                      />
+                      <div>
+                        <span className="font-medium text-gray-900">{type.label}</span>
+                        <p className="text-xs text-gray-500">{type.description}</p>
+                      </div>
+                    </label>
+                  ))}
                 </div>
-                {errors.position_type && <p className="text-red-500 text-sm mt-1">{errors.position_type.message}</p>}
+                {selectedPositionTypes.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                    Ohne Auswahl: Stelle gilt als "Arbeit (Allgemein)" für EU-Bürger
+                  </p>
+                )}
               </div>
 
               <div>

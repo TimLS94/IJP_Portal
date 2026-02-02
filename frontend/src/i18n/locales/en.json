@@ -186,6 +186,7 @@
     "ijpServiceButton": "Request IJP Service"
   },
   "positionTypes": {
+    "general": "General Employment",
     "studentenferienjob": "Student Summer Job",
     "saisonjob": "Seasonal Job",
     "workandholiday": "Work & Holiday",

@@ -34,13 +34,13 @@ logger.info("Creating database tables...")
 Base.metadata.create_all(bind=engine)
 logger.info("Database tables created")
 
-# SEO: Slug-Spalte hinzufügen falls nicht vorhanden
-def ensure_slug_column():
-    """Fügt die slug Spalte zur job_postings Tabelle hinzu falls nicht vorhanden"""
+# Datenbank-Migrationen: Neue Spalten hinzufügen falls nicht vorhanden
+def ensure_db_columns():
+    """Fügt neue Spalten zur Datenbank hinzu falls nicht vorhanden"""
     from sqlalchemy import text
     db = SessionLocal()
     try:
-        # Prüfen ob Spalte existiert
+        # 1. slug Spalte für SEO
         result = db.execute(text("""
             SELECT column_name 
             FROM information_schema.columns 
@@ -52,15 +52,33 @@ def ensure_slug_column():
             db.execute(text("CREATE INDEX IF NOT EXISTS ix_job_postings_slug ON job_postings (slug)"))
             db.commit()
             logger.info("'slug' column added successfully")
-        else:
-            logger.info("'slug' column already exists")
+        
+        # 2. position_types Spalte für Mehrfachauswahl
+        result = db.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'job_postings' AND column_name = 'position_types'
+        """))
+        if not result.fetchone():
+            logger.info("Adding 'position_types' column to job_postings table...")
+            db.execute(text("ALTER TABLE job_postings ADD COLUMN position_types JSON DEFAULT '[]'"))
+            db.commit()
+            logger.info("'position_types' column added successfully")
+        
+        # 3. position_type default auf 'general' setzen für NULL-Werte
+        db.execute(text("""
+            UPDATE job_postings SET position_type = 'general' 
+            WHERE position_type IS NULL
+        """))
+        db.commit()
+            
     except Exception as e:
-        logger.error(f"Error adding slug column: {e}")
+        logger.error(f"Error in database migration: {e}")
         db.rollback()
     finally:
         db.close()
 
-ensure_slug_column()
+ensure_db_columns()
 
 # Testdaten einfügen (nur in Entwicklung)
 if settings.DEBUG:

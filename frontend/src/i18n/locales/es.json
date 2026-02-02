@@ -186,7 +186,8 @@
     "ijpServiceButton": "Solicitar servicio IJP"
   },
   "positionTypes": {
-    "studentenferienjob": "Trabajo de verano estudiantil",
+    "general": "Empleo General",
+    "studentenferienjob": "Trabajo de verano para estudiantes",
     "saisonjob": "Trabajo de temporada",
     "workandholiday": "Work & Holiday",
     "fachkraft": "Profesional cualificado",

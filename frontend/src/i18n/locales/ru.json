@@ -186,6 +186,7 @@
     "ijpServiceButton": "Заказать IJP"
   },
   "positionTypes": {
+    "general": "Общая занятость",
     "studentenferienjob": "Студенческая работа",
     "saisonjob": "Сезонная работа",
     "workandholiday": "Work & Holiday",

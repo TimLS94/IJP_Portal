@@ -56,8 +56,9 @@ class JobPosting(Base):
     
     # Stelleninformationen
     title = Column(String(255), nullable=False)
-    position_type = Column(Enum(PositionType, values_callable=lambda x: [e.value for e in x]), nullable=False)
-    employment_type = Column(Enum(EmploymentType, values_callable=lambda x: [e.value for e in x]))  # NEU: Vollzeit/Teilzeit
+    position_type = Column(Enum(PositionType, values_callable=lambda x: [e.value for e in x]), default=PositionType.GENERAL)  # Haupttyp (Legacy, default: general)
+    position_types = Column(JSON, default=[])  # NEU: Mehrfachauswahl ["saisonjob", "workandholiday"]
+    employment_type = Column(Enum(EmploymentType, values_callable=lambda x: [e.value for e in x]))  # Vollzeit/Teilzeit
     description = Column(Text, nullable=False)
     tasks = Column(Text)  # NEU: Aufgaben
     requirements = Column(Text)
