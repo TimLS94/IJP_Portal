@@ -194,6 +194,7 @@
     "ausbildung": "Ausbildung"
   },
   "positionTypeDescriptions": {
+    "general": "General employment for EU citizens and persons with work permits. No special visa requirements. CV required, cover letter optional.",
     "studentenferienjob": "For students from abroad who want to work in Germany during semester breaks. Maximum 90 days (3 months) per year. Requirement: Active enrollment at a foreign university.",
     "saisonjob": "Short-term contingent employment for seasonal work in agriculture, hospitality or tourism. Maximum 90 days per year. Applies to persons from third countries with work permit.",
     "workandholiday": "Working Holiday Visa for young people (18-30 years) from partner countries like Argentina, Chile, Australia, etc. Allows working and traveling in Germany for up to 12 months.",

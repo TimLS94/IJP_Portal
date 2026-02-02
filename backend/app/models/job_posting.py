@@ -97,6 +97,9 @@ class JobPosting(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # Statistiken (anonym, nur Zähler)
+    view_count = Column(Integer, default=0)  # Anzahl der Aufrufe
+    
     # Deadline (dynamisch aus Admin-Settings)
     deadline = Column(Date)  # Bewerbungsschluss
     archived_at = Column(DateTime)  # Wann archiviert

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, BarChart2 } from 'lucide-react';
 
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
@@ -282,6 +282,11 @@ function CompanyJobs() {
                             Deadline: {formatDate(job.deadline)}
                           </span>
                         )}
+                        {/* View-Statistik */}
+                        <span className="flex items-center gap-1 text-indigo-600 font-medium" title="Anzahl der Aufrufe">
+                          <BarChart2 className="h-4 w-4" />
+                          {job.view_count || 0} Aufrufe
+                        </span>
                       </div>
                     </div>
 

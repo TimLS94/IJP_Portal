@@ -80,6 +80,18 @@ def ensure_db_columns():
             db.execute(text("ALTER TABLE job_postings ADD COLUMN position_types JSON DEFAULT '[]'"))
             db.commit()
             logger.info("'position_types' column added successfully")
+        
+        # 3. view_count Spalte für Statistiken
+        result = db.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'job_postings' AND column_name = 'view_count'
+        """))
+        if not result.fetchone():
+            logger.info("Adding 'view_count' column to job_postings table...")
+            db.execute(text("ALTER TABLE job_postings ADD COLUMN view_count INTEGER DEFAULT 0"))
+            db.commit()
+            logger.info("'view_count' column added successfully")
             
     except Exception as e:
         logger.error(f"Error in database migration: {e}")

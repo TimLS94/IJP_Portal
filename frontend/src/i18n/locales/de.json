@@ -194,6 +194,7 @@
     "ausbildung": "Ausbildung"
   },
   "positionTypeDescriptions": {
+    "general": "Allgemeine Arbeitsstellen für EU-Bürger und Personen mit Arbeitserlaubnis. Keine speziellen Visa-Anforderungen. Lebenslauf erforderlich, Motivationsschreiben optional.",
     "studentenferienjob": "Für Studenten aus dem Ausland, die in den Semesterferien in Deutschland arbeiten möchten. Maximal 90 Tage (3 Monate) pro Jahr. Voraussetzung: Aktive Immatrikulation an einer ausländischen Hochschule.",
     "saisonjob": "Kurzzeitige kontingentierte Beschäftigung für Saisonarbeit in der Landwirtschaft, Gastronomie oder Tourismus. Maximal 90 Tage pro Jahr. Gilt für Personen aus Drittstaaten mit Arbeitserlaubnis.",
     "workandholiday": "Working Holiday Visum für junge Menschen (18-30 Jahre) aus Partnerländern wie Argentinien, Chile, Australien, etc. Erlaubt Arbeiten und Reisen in Deutschland für bis zu 12 Monate.",

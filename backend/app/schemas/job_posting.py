@@ -147,6 +147,7 @@ class JobPostingResponse(JobPostingBase):
     created_at: datetime
     updated_at: datetime
     archived_at: Optional[datetime] = None
+    view_count: Optional[int] = 0  # Statistik: Anzahl Aufrufe
     company: Optional[CompanyResponse] = None
     
     class Config:

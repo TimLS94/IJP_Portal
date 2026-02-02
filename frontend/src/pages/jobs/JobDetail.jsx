@@ -256,6 +256,11 @@ function JobDetail() {
       
       // SEO: Meta Tags setzen
       updateMetaTags(jobData);
+      
+      // Statistik: View zählen (anonym, fire-and-forget)
+      if (jobData.id) {
+        jobsAPI.trackView(jobData.id).catch(() => {});
+      }
     } catch (error) {
       toast.error(t('jobDetail.jobNotFound'));
       navigate('/jobs');

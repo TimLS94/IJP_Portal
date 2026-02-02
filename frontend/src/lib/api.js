@@ -109,6 +109,8 @@ export const jobsAPI = {
   // Übersetzung (DeepL)
   translate: (data) => api.post('/jobs/translate', data),
   getTranslationStatus: () => api.get('/jobs/translate/status'),
+  // Statistik: View zählen (anonym)
+  trackView: (id) => api.post(`/jobs/${id}/view`),
 };
 
 // Applications API

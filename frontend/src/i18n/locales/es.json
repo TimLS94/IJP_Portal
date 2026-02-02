@@ -194,6 +194,7 @@
     "ausbildung": "Ausbildung"
   },
   "positionTypeDescriptions": {
+    "general": "Empleo general para ciudadanos de la UE y personas con permiso de trabajo. Sin requisitos especiales de visa. CV requerido, carta de motivación opcional.",
     "studentenferienjob": "Para estudiantes del extranjero que desean trabajar en Alemania durante las vacaciones del semestre. Máximo 90 días (3 meses) por año. Requisito: Matrícula activa en una universidad extranjera.",
     "saisonjob": "Empleo contingentado a corto plazo para trabajo de temporada en agricultura, hostelería o turismo. Máximo 90 días por año. Aplica a personas de terceros países con permiso de trabajo.",
     "workandholiday": "Visa Working Holiday para jóvenes (18-30 años) de países socios como Argentina, Chile, Australia, etc. Permite trabajar y viajar en Alemania hasta 12 meses.",

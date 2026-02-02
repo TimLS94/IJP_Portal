@@ -247,6 +247,24 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
     return job_data
 
 
+@router.post("/{job_id}/view")
+async def track_job_view(job_id: int, db: Session = Depends(get_db)):
+    """Zählt einen View für eine Stellenanzeige (anonym, nur Zähler)"""
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stellenangebot nicht gefunden"
+        )
+    
+    # View-Counter erhöhen
+    job.view_count = (job.view_count or 0) + 1
+    db.commit()
+    
+    return {"success": True, "view_count": job.view_count}
+
+
 @router.get("/{job_id}", response_model=JobPostingResponse)
 async def get_job(job_id: int, db: Session = Depends(get_db)):
     """Gibt ein Stellenangebot zurück (öffentlich) - Legacy-Endpoint für Rückwärtskompatibilität"""
