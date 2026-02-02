@@ -23,7 +23,8 @@ const positionTypeColors = {
   saisonjob: 'bg-orange-100 text-orange-800 border-orange-200',
   workandholiday: 'bg-pink-100 text-pink-800 border-pink-200',
   fachkraft: 'bg-purple-100 text-purple-800 border-purple-200',
-  ausbildung: 'bg-green-100 text-green-800 border-green-200'
+  ausbildung: 'bg-green-100 text-green-800 border-green-200',
+  general: 'bg-gray-100 text-gray-800 border-gray-200'
 };
 
 // Employment type labels werden jetzt über t() geladen
@@ -49,9 +50,10 @@ function JobDetail() {
   const positionTypeLabels = {
     studentenferienjob: t('positionTypes.studentenferienjob'),
     saisonjob: t('positionTypes.saisonjob'),
-    workandholiday: 'Work & Holiday',
+    workandholiday: t('positionTypes.workandholiday'),
     fachkraft: t('positionTypes.fachkraft'),
-    ausbildung: 'Ausbildung'
+    ausbildung: t('positionTypes.ausbildung'),
+    general: t('positionTypes.general')
   };
   
   // Translate backend matching texts

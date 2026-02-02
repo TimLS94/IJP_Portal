@@ -9,7 +9,8 @@ const positionTypeColors = {
   saisonjob: 'bg-orange-100 text-orange-800 border-orange-200',
   workandholiday: 'bg-pink-100 text-pink-800 border-pink-200',
   fachkraft: 'bg-purple-100 text-purple-800 border-purple-200',
-  ausbildung: 'bg-green-100 text-green-800 border-green-200'
+  ausbildung: 'bg-green-100 text-green-800 border-green-200',
+  general: 'bg-gray-100 text-gray-800 border-gray-200'
 };
 
 const languageLevelColors = {
@@ -54,7 +55,8 @@ function Jobs() {
     { value: 'saisonjob', label: t('positionTypes.saisonjob') },
     { value: 'workandholiday', label: t('positionTypes.workandholiday') },
     { value: 'fachkraft', label: t('positionTypes.fachkraft') },
-    { value: 'ausbildung', label: t('positionTypes.ausbildung') }
+    { value: 'ausbildung', label: t('positionTypes.ausbildung') },
+    { value: 'general', label: t('positionTypes.general') }
   ];
 
   const languageLevelLabels = {

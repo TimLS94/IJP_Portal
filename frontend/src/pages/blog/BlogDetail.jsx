@@ -114,12 +114,20 @@ function BlogDetail() {
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       // Links
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary-600 hover:underline" target="_blank" rel="noopener">$1</a>')
-      // Listen
-      .replace(/^\- (.*$)/gim, '<li class="ml-4">$1</li>')
       // Absätze
       .replace(/\n\n/g, '</p><p class="mb-4">')
       // Zeilenumbrüche
       .replace(/\n/g, '<br>');
+    
+    // Listen separat verarbeiten (um sie in <ul> zu wrappen)
+    html = html.replace(/((?:<br>)?- .+(?:<br>- .+)*)/g, (match) => {
+      const items = match
+        .split('<br>')
+        .filter(line => line.trim().startsWith('- '))
+        .map(line => `<li>${line.trim().substring(2)}</li>`)
+        .join('');
+      return `<ul class="list-disc list-inside my-4 space-y-1">${items}</ul>`;
+    });
     
     return `<p class="mb-4">${html}</p>`;
   };
@@ -277,7 +285,7 @@ function BlogDetail() {
 
         {/* Content */}
         <div 
-          className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
+          className="prose prose-lg max-w-none text-gray-700 leading-relaxed prose-ul:list-none"
           dangerouslySetInnerHTML={{ __html: renderContent(post.content) }}
         />
 
