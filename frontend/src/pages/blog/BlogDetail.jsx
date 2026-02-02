@@ -113,7 +113,7 @@ function BlogDetail() {
       
       if (isListItem) {
         if (!inList) {
-          processedLines.push('<ul class="list-disc ml-6 my-4 space-y-2">');
+          processedLines.push('<ul class="ml-6 my-4 space-y-2">');
           inList = true;
         }
         // Entferne das "- " und wrappe in <li>
@@ -304,7 +304,7 @@ function BlogDetail() {
 
         {/* Content */}
         <div 
-          className="prose prose-lg max-w-none text-gray-700 leading-relaxed prose-ul:list-none"
+          className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
           dangerouslySetInnerHTML={{ __html: renderContent(post.content) }}
         />
 
