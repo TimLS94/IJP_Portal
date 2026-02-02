@@ -10,11 +10,11 @@ import {
 } from 'lucide-react';
 
 const positionTypes = [
-  { value: 'studentenferienjob', label: 'Studentenferienjob' },
-  { value: 'saisonjob', label: 'Saisonjob (8 Monate)' },
-  { value: 'workandholiday', label: 'Work & Holiday' },
-  { value: 'fachkraft', label: 'Fachkraft' },
-  { value: 'ausbildung', label: 'Ausbildung' }
+  { value: 'studentenferienjob', label: 'Studentenferienjob', description: 'Für Studenten aus dem Ausland' },
+  { value: 'saisonjob', label: 'Saisonjob (8 Monate)', description: 'Saisonarbeit (max. 90 Tage)' },
+  { value: 'workandholiday', label: 'Work & Holiday', description: 'Working Holiday Visum' },
+  { value: 'fachkraft', label: 'Fachkraft', description: 'Qualifizierte Fachkräfte' },
+  { value: 'ausbildung', label: 'Ausbildung', description: 'Berufsausbildung' }
 ];
 
 const employmentTypes = [
@@ -111,6 +111,7 @@ function EditJob() {
   const [saving, setSaving] = useState(false);
   const [otherLanguages, setOtherLanguages] = useState([]);
   const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90, archive_deletion_days: 90 });
+  const [selectedPositionTypes, setSelectedPositionTypes] = useState([]);
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm();
 
   const germanRequired = watch('german_required') || 'not_required';
@@ -135,10 +136,13 @@ function EditJob() {
       const response = await jobsAPI.get(id);
       const job = response.data;
       
+      // Position Types laden (Mehrfachauswahl)
+      setSelectedPositionTypes(job.position_types || []);
+      
       // Formular mit bestehenden Daten füllen (inkl. neuer Felder)
       reset({
         title: job.title || '',
-        position_type: job.position_type || '',
+        position_type: job.position_type || 'general',
         employment_type: job.employment_type || '',
         description: job.description || '',
         tasks: job.tasks || '',
@@ -229,6 +233,10 @@ function EditJob() {
       // Sprachanforderungen hinzufügen
       cleanData.other_languages_required = otherLanguages.filter(l => l.language);
       
+      // Stellenarten: Mehrfachauswahl oder Default "general"
+      cleanData.position_types = selectedPositionTypes;
+      cleanData.position_type = selectedPositionTypes.length > 0 ? selectedPositionTypes[0] : 'general';
+      
       await jobsAPI.update(id, cleanData);
       toast.success('Stellenangebot aktualisiert!');
       navigate('/company/jobs');
@@ -313,22 +321,45 @@ function EditJob() {
             
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Stellenart *</label>
-                <div className="relative">
-                  <select
-                    className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
-                             focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
-                             transition-all cursor-pointer text-gray-700 font-medium"
-                    {...register('position_type', { required: 'Stellenart ist erforderlich' })}
-                  >
-                    <option value="">Stellenart wählen</option>
-                    {positionTypes.map((type) => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                <label className="label">Zielgruppe / Stellenart (optional)</label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Wählen Sie spezielle Zielgruppen. Ohne Auswahl gilt die Stelle für alle (EU-Bürger).
+                </p>
+                <div className="space-y-2">
+                  {positionTypes.map((type) => (
+                    <label 
+                      key={type.value}
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                        selectedPositionTypes.includes(type.value)
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedPositionTypes.includes(type.value)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPositionTypes([...selectedPositionTypes, type.value]);
+                          } else {
+                            setSelectedPositionTypes(selectedPositionTypes.filter(t => t !== type.value));
+                          }
+                        }}
+                        className="h-4 w-4 text-primary-600 rounded"
+                      />
+                      <div>
+                        <span className="font-medium text-gray-900">{type.label}</span>
+                        <p className="text-xs text-gray-500">{type.description}</p>
+                      </div>
+                    </label>
+                  ))}
                 </div>
-                {errors.position_type && <p className="text-red-500 text-sm mt-1">{errors.position_type.message}</p>}
+                {selectedPositionTypes.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                    Ohne Auswahl: Stelle gilt als "Arbeit (Allgemein)" für EU-Bürger
+                  </p>
+                )}
               </div>
 
               <div>
