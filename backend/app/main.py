@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import os
 import logging
@@ -200,6 +201,52 @@ async def lifespan(app: FastAPI):
         pass
 
 
+# ========== SECURITY MIDDLEWARE ==========
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Fügt wichtige Security Headers zu allen Responses hinzu.
+    Schützt vor XSS, Clickjacking, MIME-Sniffing und anderen Angriffen.
+    """
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Verhindert MIME-Type Sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        
+        # Verhindert Clickjacking (Einbetten in iframes)
+        response.headers["X-Frame-Options"] = "DENY"
+        
+        # XSS-Schutz (für ältere Browser)
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        
+        # Referrer-Policy: Nur Origin senden, keine vollständige URL
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        
+        # Permissions-Policy: Deaktiviert nicht benötigte Browser-Features
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        
+        # HSTS: Erzwingt HTTPS (nur in Produktion aktivieren)
+        if not settings.DEBUG:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        
+        # Content-Security-Policy: Verhindert XSS und Injection-Angriffe
+        # Erlaubt nur Ressourcen von eigener Domain und vertrauenswürdigen CDNs
+        csp_directives = [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Für React/Vite
+            "style-src 'self' 'unsafe-inline'",  # Für Tailwind
+            "img-src 'self' data: https: blob:",
+            "font-src 'self' data:",
+            "connect-src 'self' https://api-free.deepl.com",  # DeepL API
+            "frame-ancestors 'none'",
+            "base-uri 'self'",
+            "form-action 'self'"
+        ]
+        response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
+        
+        return response
+
+
 # FastAPI App erstellen
 app = FastAPI(
     title=settings.APP_NAME,
@@ -209,6 +256,9 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan
 )
+
+# Security Headers Middleware (muss vor CORS kommen)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS Middleware - Eingeschränkte Methods für bessere Sicherheit
 app.add_middleware(

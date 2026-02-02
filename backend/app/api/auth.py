@@ -12,7 +12,13 @@ from app.core.security import (
     check_password_strength
 )
 from app.core.config import settings
-from app.core.rate_limiter import rate_limit_login, rate_limit_registration
+from app.core.rate_limiter import (
+    rate_limit_login, 
+    rate_limit_registration,
+    check_account_lockout,
+    record_failed_login,
+    reset_failed_logins
+)
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant
 from app.models.company import Company
@@ -66,12 +72,17 @@ async def login(
     db: Session = Depends(get_db)
 ):
     """Login mit E-Mail und Passwort"""
-    # Rate Limiting: 5 Versuche pro Minute
+    # Rate Limiting: 5 Versuche pro Minute (IP-basiert)
     await rate_limit_login(request)
+    
+    # Account Lockout prüfen (E-Mail-basiert)
+    await check_account_lockout(form_data.username)
     
     user = db.query(User).filter(User.email == form_data.username).first()
     
     if not user or not verify_password(form_data.password, user.password_hash):
+        # Fehlversuch aufzeichnen für Account Lockout
+        await record_failed_login(form_data.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige E-Mail oder Passwort",
@@ -83,6 +94,9 @@ async def login(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Benutzer ist deaktiviert"
         )
+    
+    # Erfolgreicher Login - Fehlversuche zurücksetzen
+    await reset_failed_logins(form_data.username)
     
     access_token = create_access_token(
         data={"sub": str(user.id)},

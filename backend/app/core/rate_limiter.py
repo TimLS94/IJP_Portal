@@ -1,11 +1,11 @@
 """
-Simple In-Memory Rate Limiter
+Simple In-Memory Rate Limiter + Account Lockout
 
 Schützt kritische Endpoints vor Brute-Force-Angriffen.
 Hinweis: In Produktion mit mehreren Workern sollte Redis verwendet werden.
 """
 from datetime import datetime, timedelta
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 from fastapi import HTTPException, Request, status
 from functools import wraps
 import asyncio
@@ -17,6 +17,16 @@ logger = logging.getLogger(__name__)
 # Format: {ip_address: [(timestamp, endpoint), ...]}
 _rate_limit_storage: Dict[str, list] = {}
 _storage_lock = asyncio.Lock()
+
+# Account Lockout Storage
+# Format: {email: {"failed_attempts": int, "locked_until": datetime, "last_attempt": datetime}}
+_account_lockout_storage: Dict[str, dict] = {}
+_lockout_lock = asyncio.Lock()
+
+# Lockout Konfiguration
+LOCKOUT_THRESHOLD = 5  # Fehlversuche bis Sperre
+LOCKOUT_DURATION_MINUTES = 15  # Sperrdauer in Minuten
+FAILED_ATTEMPT_WINDOW_MINUTES = 30  # Zeitfenster für Fehlversuche
 
 
 class RateLimitExceeded(HTTPException):
@@ -137,4 +147,98 @@ async def rate_limit_registration(request: Request):
 async def rate_limit_contact(request: Request):
     """Rate Limit für Kontaktformular: 5 pro Stunde"""
     await check_rate_limit(request, "contact", max_requests=5, window_seconds=3600)
+
+
+# ========== ACCOUNT LOCKOUT ==========
+
+class AccountLockedException(HTTPException):
+    """Exception für gesperrten Account"""
+    def __init__(self, locked_until: datetime):
+        remaining_minutes = max(1, int((locked_until - datetime.utcnow()).total_seconds() / 60))
+        super().__init__(
+            status_code=status.HTTP_423_LOCKED,
+            detail=f"Account vorübergehend gesperrt wegen zu vieler Fehlversuche. Bitte versuchen Sie es in {remaining_minutes} Minuten erneut.",
+            headers={"Retry-After": str(remaining_minutes * 60)}
+        )
+
+
+async def check_account_lockout(email: str) -> None:
+    """
+    Prüft ob ein Account gesperrt ist.
+    
+    Args:
+        email: E-Mail-Adresse des Accounts
+        
+    Raises:
+        AccountLockedException: Wenn der Account gesperrt ist
+    """
+    email_lower = email.lower()
+    
+    async with _lockout_lock:
+        if email_lower not in _account_lockout_storage:
+            return
+        
+        account_data = _account_lockout_storage[email_lower]
+        
+        # Prüfe ob Sperre noch aktiv
+        if account_data.get("locked_until"):
+            if datetime.utcnow() < account_data["locked_until"]:
+                logger.warning(f"Login attempt on locked account: {email_lower}")
+                raise AccountLockedException(account_data["locked_until"])
+            else:
+                # Sperre abgelaufen - zurücksetzen
+                del _account_lockout_storage[email_lower]
+
+
+async def record_failed_login(email: str) -> None:
+    """
+    Zeichnet einen fehlgeschlagenen Login-Versuch auf.
+    Sperrt den Account nach LOCKOUT_THRESHOLD Fehlversuchen.
+    
+    Args:
+        email: E-Mail-Adresse des Accounts
+    """
+    email_lower = email.lower()
+    now = datetime.utcnow()
+    window_start = now - timedelta(minutes=FAILED_ATTEMPT_WINDOW_MINUTES)
+    
+    async with _lockout_lock:
+        if email_lower not in _account_lockout_storage:
+            _account_lockout_storage[email_lower] = {
+                "failed_attempts": 0,
+                "locked_until": None,
+                "last_attempt": None
+            }
+        
+        account_data = _account_lockout_storage[email_lower]
+        
+        # Reset wenn letzter Versuch außerhalb des Zeitfensters
+        if account_data["last_attempt"] and account_data["last_attempt"] < window_start:
+            account_data["failed_attempts"] = 0
+        
+        # Fehlversuch zählen
+        account_data["failed_attempts"] += 1
+        account_data["last_attempt"] = now
+        
+        logger.info(f"Failed login attempt {account_data['failed_attempts']}/{LOCKOUT_THRESHOLD} for {email_lower}")
+        
+        # Account sperren wenn Schwelle erreicht
+        if account_data["failed_attempts"] >= LOCKOUT_THRESHOLD:
+            account_data["locked_until"] = now + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+            logger.warning(f"Account locked: {email_lower} until {account_data['locked_until']}")
+
+
+async def reset_failed_logins(email: str) -> None:
+    """
+    Setzt die Fehlversuche nach erfolgreichem Login zurück.
+    
+    Args:
+        email: E-Mail-Adresse des Accounts
+    """
+    email_lower = email.lower()
+    
+    async with _lockout_lock:
+        if email_lower in _account_lockout_storage:
+            del _account_lockout_storage[email_lower]
+            logger.info(f"Failed login attempts reset for {email_lower}")
 
