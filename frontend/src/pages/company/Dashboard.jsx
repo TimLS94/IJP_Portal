@@ -3,6 +3,23 @@ import { Link } from 'react-router-dom';
 import { jobsAPI, applicationsAPI, companyAPI } from '../../lib/api';
 import { Building2, Briefcase, Users, Plus, FileText } from 'lucide-react';
 
+// Status-Labels Mapping
+const statusLabels = {
+  pending: 'Neu',
+  company_review: 'In Prüfung',
+  interview_scheduled: 'Interview',
+  accepted: 'Angenommen',
+  rejected: 'Abgelehnt'
+};
+
+const statusColors = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  company_review: 'bg-blue-100 text-blue-800',
+  interview_scheduled: 'bg-purple-100 text-purple-800',
+  accepted: 'bg-green-100 text-green-800',
+  rejected: 'bg-red-100 text-red-800'
+};
+
 function CompanyDashboard() {
   const [stats, setStats] = useState({
     jobs: 0,
@@ -168,10 +185,8 @@ function CompanyDashboard() {
                     <p className="font-medium text-gray-900">{app.applicant_name || 'Bewerber'}</p>
                     <p className="text-sm text-gray-600">{app.job_title}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {app.status === 'pending' ? 'Neu' : app.status}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[app.status] || 'bg-gray-100 text-gray-800'}`}>
+                    {statusLabels[app.status] || app.status}
                   </span>
                 </div>
               ))}
