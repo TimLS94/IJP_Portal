@@ -83,7 +83,8 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
     # 3. Englischkenntnisse (15 Punkte)
     english_match = _check_language_match(
         applicant.english_level.value if applicant.english_level else "keine",
-        job.english_required.value if job.english_required else "not_required"
+        job.english_required.value if job.english_required else "not_required",
+        max_score=15  # Englisch hat nur 15 Punkte max
     )
     scores["english_level"] = english_match["score"]
     if english_match["meets"] or english_match["exceeds"]:
@@ -94,8 +95,10 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
     # 4. Berufserfahrung (20 Punkte)
     exp_match = _check_experience_match(applicant, job)
     scores["experience"] = exp_match["score"]
-    if exp_match["has_experience"]:
-        details.append(f"✓ {applicant.work_experience_years or 0} Jahre Berufserfahrung")
+    if exp_match.get("has_relevant_experience"):
+        details.append(f"✓ Relevante Berufserfahrung: {', '.join(exp_match.get('relevant_entries', []))}")
+    elif exp_match["has_experience"]:
+        details.append(f"○ {applicant.work_experience_years or 0} Jahre Berufserfahrung (nicht stellenrelevant)")
     
     # 5. Verfügbarkeit (10 Punkte)
     availability_match = _check_availability_match(applicant, job)
@@ -130,10 +133,15 @@ def _check_position_match(applicant: Applicant, job: JobPosting) -> dict:
     return {"match": False, "score": 0}
 
 
-def _check_language_match(applicant_level: str, required_level: str) -> dict:
-    """Prüft Sprachkenntnisse (25/15 Punkte)"""
-    max_score = 25  # Wird für Englisch auf 15 skaliert
+def _check_language_match(applicant_level: str, required_level: str, max_score: int = 25) -> dict:
+    """
+    Prüft Sprachkenntnisse.
     
+    Args:
+        applicant_level: Sprachniveau des Bewerbers
+        required_level: Gefordertes Sprachniveau
+        max_score: Maximale Punktzahl (25 für Deutsch, 15 für Englisch)
+    """
     applicant_score = LANGUAGE_LEVEL_ORDER.get(applicant_level, 0)
     required_score = LANGUAGE_LEVEL_ORDER.get(required_level, 0)
     
@@ -146,38 +154,126 @@ def _check_language_match(applicant_level: str, required_level: str) -> dict:
         exceeds = applicant_score > required_score
         return {"meets": True, "exceeds": exceeds, "gap": 0, "score": max_score}
     else:
-        # Nicht erfüllt - proportional reduzieren
+        # Nicht erfüllt - proportional reduzieren basierend auf Gap
         gap = required_score - applicant_score
-        score = max(0, max_score - (gap * 5))
+        # Pro Stufe Unterschied: größerer Abzug (proportional zum max_score)
+        penalty_per_level = max_score / required_score  # Dynamische Strafe
+        score = max(0, int(max_score - (gap * penalty_per_level * 1.5)))
         return {"meets": False, "exceeds": False, "gap": gap, "score": score}
 
 
 def _check_experience_match(applicant: Applicant, job: JobPosting) -> dict:
-    """Prüft Berufserfahrung (20 Punkte)"""
-    years = applicant.work_experience_years or 0
+    """
+    Prüft Berufserfahrung (20 Punkte).
     
-    # Strukturierte Berufserfahrungen zählen
-    work_exp_count = 0
+    Bewertet:
+    - Relevante Berufserfahrung (passt zur Stelle): bis 15 Punkte
+    - Allgemeine Berufserfahrung: bis 5 Punkte
+    """
+    years = applicant.work_experience_years or 0
+    job_title = (job.title or "").lower()
+    
+    # Keywords aus dem Stellentitel extrahieren
+    job_keywords = _extract_keywords(job_title)
+    
+    # Strukturierte Berufserfahrungen analysieren
+    relevant_experience = 0
+    total_experience = 0
+    relevant_entries = []
+    
     if applicant.work_experiences:
         try:
-            work_exp_count = len(applicant.work_experiences)
+            for exp in applicant.work_experiences:
+                if isinstance(exp, dict):
+                    position = (exp.get("position", "") or "").lower()
+                    company = (exp.get("company", "") or "").lower()
+                    description = (exp.get("description", "") or "").lower()
+                    
+                    total_experience += 1
+                    
+                    # Prüfe ob Erfahrung relevant ist
+                    exp_text = f"{position} {company} {description}"
+                    exp_keywords = _extract_keywords(exp_text)
+                    
+                    # Berechne Übereinstimmung
+                    if job_keywords and exp_keywords:
+                        matches = len(job_keywords.intersection(exp_keywords))
+                        if matches > 0:
+                            relevant_experience += 1
+                            relevant_entries.append(exp.get("position", ""))
         except:
             pass
     
-    # Basis-Score für Erfahrung
+    # Score berechnen
     score = 0
-    if years > 0:
-        score = min(15, years * 3)  # Max 15 Punkte für Jahre
     
-    if work_exp_count > 0:
-        score += min(5, work_exp_count * 2)  # Max 5 Punkte für Einträge
+    # Relevante Erfahrung: bis 15 Punkte
+    if relevant_experience > 0:
+        score += min(15, relevant_experience * 5)  # 5 Punkte pro relevanter Erfahrung
+    elif years > 0:
+        # Fallback: Allgemeine Jahre (weniger Punkte)
+        score += min(8, years * 2)  # Max 8 Punkte für allgemeine Jahre
+    
+    # Bonus für viel Erfahrung: bis 5 Punkte
+    if total_experience > 0:
+        score += min(5, total_experience)  # 1 Punkt pro Eintrag, max 5
+    elif years > 3:
+        score += min(5, (years - 3))  # Bonus für >3 Jahre
     
     return {
-        "has_experience": years > 0 or work_exp_count > 0,
+        "has_experience": years > 0 or total_experience > 0,
+        "has_relevant_experience": relevant_experience > 0,
+        "relevant_entries": relevant_entries,
         "years": years,
-        "entries": work_exp_count,
+        "entries": total_experience,
         "score": min(20, score)
     }
+
+
+def _extract_keywords(text: str) -> set:
+    """
+    Extrahiert relevante Keywords aus einem Text für Matching.
+    Entfernt Stoppwörter und normalisiert.
+    """
+    if not text:
+        return set()
+    
+    # Stoppwörter (Deutsch/Englisch)
+    stopwords = {
+        'der', 'die', 'das', 'und', 'oder', 'für', 'in', 'bei', 'mit', 'von',
+        'zu', 'auf', 'ist', 'im', 'als', 'auch', 'an', 'nach', 'wie', 'aus',
+        'the', 'and', 'or', 'for', 'in', 'at', 'with', 'from', 'to', 'on',
+        'm', 'w', 'd', 'mwd', 'gmbh', 'ag', 'kg', 'ug', 'mbh', 'hotel', 'stelle'
+    }
+    
+    # Synonyme/verwandte Begriffe
+    synonyms = {
+        'housekeeping': {'reinigung', 'zimmerreinigung', 'zimmermädchen', 'roomkeeper', 'cleaning', 'hauswirtschaft'},
+        'reinigung': {'housekeeping', 'zimmerreinigung', 'cleaning', 'sauberkeit'},
+        'zimmerreinigung': {'housekeeping', 'reinigung', 'zimmermädchen'},
+        'küche': {'koch', 'kochen', 'kitchen', 'küchenhilfe', 'gastro'},
+        'koch': {'küche', 'kochen', 'kitchen', 'gastro', 'culinary'},
+        'service': {'kellner', 'bedienung', 'gastronomie', 'restaurant', 'waiter'},
+        'kellner': {'service', 'bedienung', 'gastronomie', 'waiter'},
+        'rezeption': {'empfang', 'reception', 'front', 'desk', 'gästebetreuung'},
+        'empfang': {'rezeption', 'reception', 'front', 'desk'},
+        'pflege': {'altenpflege', 'krankenpflege', 'care', 'betreuung'},
+        'lager': {'logistik', 'warehouse', 'kommissionierung', 'versand'},
+        'büro': {'office', 'verwaltung', 'administration', 'sekretariat'},
+    }
+    
+    # Text in Wörter aufteilen
+    words = set()
+    for word in text.lower().replace('-', ' ').replace('/', ' ').split():
+        # Nur Wörter mit mindestens 3 Zeichen
+        word = ''.join(c for c in word if c.isalnum())
+        if len(word) >= 3 and word not in stopwords:
+            words.add(word)
+            # Synonyme hinzufügen
+            if word in synonyms:
+                words.update(synonyms[word])
+    
+    return words
 
 
 def _check_availability_match(applicant: Applicant, job: JobPosting) -> dict:
