@@ -171,16 +171,40 @@ function BlogEditor() {
   const renderPreview = (content) => {
     if (!content) return '<p class="text-gray-400">Keine Vorschau verfügbar</p>';
     
-    return content
+    // Zuerst Listen verarbeiten
+    const lines = content.split('\n');
+    const processedLines = [];
+    let inList = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const isListItem = line.trim().startsWith('- ');
+      
+      if (isListItem) {
+        if (!inList) {
+          processedLines.push('<ul class="ml-6 my-4 space-y-2">');
+          inList = true;
+        }
+        processedLines.push(`<li>${line.trim().substring(2)}</li>`);
+      } else {
+        if (inList) {
+          processedLines.push('</ul>');
+          inList = false;
+        }
+        processedLines.push(line);
+      }
+    }
+    if (inList) processedLines.push('</ul>');
+    
+    return processedLines.join('\n')
       .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-6 mb-3">$1</h3>')
       .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-8 mb-4">$1</h2>')
       .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-10 mb-5">$1</h1>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary-600 underline">$1</a>')
-      .replace(/^\- (.*$)/gim, '<li class="ml-4">• $1</li>')
       .replace(/\n\n/g, '</p><p class="mb-4">')
-      .replace(/\n/g, '<br>');
+      .replace(/\n(?!<)/g, '<br>');
   };
 
   if (loading) {
