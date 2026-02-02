@@ -6,8 +6,16 @@ import toast from 'react-hot-toast';
 import { 
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
   Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
-  ListTodo, FileText
+  ListTodo, FileText, Globe
 } from 'lucide-react';
+
+// Verfügbare Sprachen für Stellenanzeigen
+const JOB_LANGUAGES = [
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+];
 
 const positionTypes = [
   { value: 'studentenferienjob', label: 'Studentenferienjob', description: 'Für Studenten aus dem Ausland' },
@@ -112,6 +120,19 @@ function EditJob() {
   const [otherLanguages, setOtherLanguages] = useState([]);
   const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90, archive_deletion_days: 90 });
   const [selectedPositionTypes, setSelectedPositionTypes] = useState([]);
+  const [translating, setTranslating] = useState(false);
+  const [translationAvailable, setTranslationAvailable] = useState(false);
+  
+  // Mehrsprachige Inhalte
+  const [activeLanguage, setActiveLanguage] = useState('de');
+  const [enabledLanguages, setEnabledLanguages] = useState(['de']);
+  const [translations, setTranslations] = useState({
+    de: { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+    en: { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+    es: { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+    ru: { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+  });
+  
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm();
 
   const germanRequired = watch('german_required') || 'not_required';
@@ -120,6 +141,7 @@ function EditJob() {
   useEffect(() => {
     loadJob();
     loadSettings();
+    checkTranslation();
   }, [id]);
 
   const loadSettings = async () => {
@@ -128,6 +150,68 @@ function EditJob() {
       setJobSettings(response.data);
     } catch (error) {
       console.error('Fehler beim Laden der Job-Settings:', error);
+    }
+  };
+  
+  const checkTranslation = async () => {
+    try {
+      const response = await jobsAPI.getTranslationStatus();
+      setTranslationAvailable(response.data.configured);
+    } catch (error) {
+      setTranslationAvailable(true); // Fallback
+    }
+  };
+  
+  // Sprache aktivieren/deaktivieren
+  const toggleLanguage = (langCode) => {
+    if (langCode === 'de') return; // Deutsch ist immer aktiviert
+    if (enabledLanguages.includes(langCode)) {
+      setEnabledLanguages(enabledLanguages.filter(l => l !== langCode));
+      if (activeLanguage === langCode) setActiveLanguage('de');
+    } else {
+      setEnabledLanguages([...enabledLanguages, langCode]);
+    }
+  };
+  
+  // Übersetzung für aktive Sprache aktualisieren
+  const updateTranslation = (field, value) => {
+    setTranslations(prev => ({
+      ...prev,
+      [activeLanguage]: { ...prev[activeLanguage], [field]: value }
+    }));
+  };
+  
+  // Automatische Übersetzung
+  const handleAutoTranslate = async (targetLang) => {
+    if (!translations.de.title && !translations.de.description) {
+      toast.error('Bitte füllen Sie zuerst die deutschen Inhalte aus');
+      return;
+    }
+    
+    setTranslating(true);
+    try {
+      const response = await jobsAPI.translate({
+        title: translations.de.title,
+        description: translations.de.description,
+        tasks: translations.de.tasks,
+        requirements: translations.de.requirements,
+        benefits: translations.de.benefits,
+        target_lang: targetLang,
+        source_lang: 'de'
+      });
+      
+      if (response.data.success) {
+        setTranslations(prev => ({
+          ...prev,
+          [targetLang]: response.data.translations
+        }));
+        toast.success(`Übersetzung nach ${targetLang.toUpperCase()} erfolgreich!`);
+        setActiveLanguage(targetLang);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Übersetzung fehlgeschlagen');
+    } finally {
+      setTranslating(false);
     }
   };
 
@@ -139,15 +223,29 @@ function EditJob() {
       // Position Types laden (Mehrfachauswahl)
       setSelectedPositionTypes(job.position_types || []);
       
+      // Mehrsprachige Inhalte laden
+      const jobTranslations = job.translations || {};
+      const availableLangs = job.available_languages || ['de'];
+      setEnabledLanguages(availableLangs);
+      
+      // Übersetzungen setzen
+      setTranslations({
+        de: {
+          title: job.title || '',
+          description: job.description || '',
+          tasks: job.tasks || '',
+          requirements: job.requirements || '',
+          benefits: job.benefits || ''
+        },
+        en: jobTranslations.en || { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+        es: jobTranslations.es || { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+        ru: jobTranslations.ru || { title: '', description: '', tasks: '', requirements: '', benefits: '' },
+      });
+      
       // Formular mit bestehenden Daten füllen (inkl. neuer Felder)
       reset({
-        title: job.title || '',
         position_type: job.position_type || 'general',
         employment_type: job.employment_type || '',
-        description: job.description || '',
-        tasks: job.tasks || '',
-        requirements: job.requirements || '',
-        benefits: job.benefits || '',
         location: job.location || '',
         address: job.address || '',
         postal_code: job.postal_code || '',
@@ -237,6 +335,23 @@ function EditJob() {
       cleanData.position_types = selectedPositionTypes;
       cleanData.position_type = selectedPositionTypes.length > 0 ? selectedPositionTypes[0] : 'general';
       
+      // Mehrsprachige Inhalte hinzufügen
+      cleanData.title = translations.de.title;
+      cleanData.description = translations.de.description;
+      cleanData.tasks = translations.de.tasks;
+      cleanData.requirements = translations.de.requirements;
+      cleanData.benefits = translations.de.benefits;
+      cleanData.available_languages = enabledLanguages;
+      
+      // Übersetzungen (ohne Deutsch)
+      const translationsToSave = {};
+      enabledLanguages.filter(l => l !== 'de').forEach(lang => {
+        if (translations[lang] && translations[lang].title) {
+          translationsToSave[lang] = translations[lang];
+        }
+      });
+      cleanData.translations = translationsToSave;
+      
       await jobsAPI.update(id, cleanData);
       toast.success('Stellenangebot aktualisiert!');
       navigate('/company/jobs');
@@ -301,22 +416,123 @@ function EditJob() {
           </div>
         </div>
 
+        {/* ========== 0. SPRACH-AUSWAHL ========== */}
+        <div className="card border-l-4 border-l-indigo-500">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <Globe className="h-5 w-5 text-indigo-600" />
+            Mehrsprachige Stellenausschreibung
+          </h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Bearbeiten Sie Ihre Stellenausschreibung in mehreren Sprachen.
+          </p>
+          
+          {/* Sprachen aktivieren/deaktivieren */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {JOB_LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => toggleLanguage(lang.code)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  enabledLanguages.includes(lang.code)
+                    ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-300'
+                    : 'bg-gray-100 text-gray-500 border-2 border-transparent hover:bg-gray-200'
+                } ${lang.code === 'de' ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                disabled={lang.code === 'de'}
+              >
+                <span className="text-xl">{lang.flag}</span>
+                <span>{lang.name}</span>
+                {enabledLanguages.includes(lang.code) && lang.code !== 'de' && (
+                  <span className="text-xs bg-indigo-200 px-1.5 py-0.5 rounded">✓</span>
+                )}
+              </button>
+            ))}
+          </div>
+          
+          {enabledLanguages.length > 1 && (
+            <div className="space-y-3">
+              <p className="text-indigo-700 text-sm bg-indigo-50 rounded-lg p-3">
+                <Globe className="h-4 w-4 inline mr-1" />
+                <strong>{enabledLanguages.length} Sprachen aktiviert.</strong>
+              </p>
+              
+              {/* Automatische Übersetzung */}
+              {translationAvailable && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-green-800 text-sm font-medium mb-2 flex items-center gap-2">
+                    <Languages className="h-4 w-4" />
+                    Automatische Übersetzung (DeepL)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {enabledLanguages.filter(l => l !== 'de').map(lang => (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => handleAutoTranslate(lang)}
+                        disabled={translating}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {translating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Languages className="h-4 w-4" />
+                        )}
+                        DE → {lang.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* ========== 1. GRUNDINFORMATIONEN ========== */}
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary-600" />
             Grundinformationen
           </h2>
+          
+          {/* Sprach-Tabs für Bearbeitung */}
+          {enabledLanguages.length > 1 && (
+            <div className="flex gap-1 mb-6 p-1 bg-gray-100 rounded-lg w-fit">
+              {enabledLanguages.map((langCode) => {
+                const lang = JOB_LANGUAGES.find(l => l.code === langCode);
+                return (
+                  <button
+                    key={langCode}
+                    type="button"
+                    onClick={() => setActiveLanguage(langCode)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      activeLanguage === langCode
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>{lang?.flag}</span>
+                    <span>{lang?.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          
           <div className="space-y-4">
+            {/* Stellentitel - mehrsprachig */}
             <div>
-              <label className="label">Stellentitel *</label>
+              <label className="label">
+                Stellentitel * 
+                {activeLanguage !== 'de' && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
+              </label>
               <input
                 type="text"
                 className="input-styled"
-                placeholder="z.B. Erntehelfer für Obstbau"
-                {...register('title', { required: 'Titel ist erforderlich' })}
+                placeholder={activeLanguage === 'de' ? 'z.B. Erntehelfer für Obstbau' : `Titel auf ${JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name}...`}
+                value={translations[activeLanguage].title}
+                onChange={(e) => updateTranslation('title', e.target.value)}
               />
-              {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
+              {activeLanguage === 'de' && !translations.de.title && <p className="text-red-500 text-sm mt-1">Titel ist erforderlich</p>}
             </div>
             
             <div className="grid md:grid-cols-2 gap-4">
@@ -373,15 +589,19 @@ function EditJob() {
             </div>
             
             <div>
-              <label className="label">Stellenbeschreibung *</label>
+              <label className="label">
+                Stellenbeschreibung *
+                {activeLanguage !== 'de' && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
+              </label>
               <textarea
                 className="input-styled"
                 rows={6}
                 placeholder="Beschreiben Sie die Stelle allgemein. Was erwartet die Bewerber?"
-                {...register('description', { required: 'Beschreibung ist erforderlich' })}
+                value={translations[activeLanguage].description}
+                onChange={(e) => updateTranslation('description', e.target.value)}
               />
               <p className="text-gray-500 text-xs mt-1">Absätze und Zeilenumbrüche werden übernommen.</p>
-              {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
+              {activeLanguage === 'de' && !translations.de.description && <p className="text-red-500 text-sm mt-1">Beschreibung ist erforderlich</p>}
             </div>
           </div>
         </div>
@@ -391,29 +611,42 @@ function EditJob() {
           <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
             <ListTodo className="h-5 w-5 text-purple-600" />
             Aufgaben & Anforderungen
+            {activeLanguage !== 'de' && <span className="text-indigo-600 text-sm ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
           </h2>
           <p className="text-gray-600 mb-6 text-sm">
             Beschreiben Sie die Aufgaben und welche Qualifikationen benötigt werden.
           </p>
           
           <div className="space-y-4">
-            <FormattedTextarea
-              label="Aufgaben"
-              name="tasks"
-              register={register}
-              rows={5}
-              placeholder="Was sind die Hauptaufgaben dieser Stelle?"
-              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
-            />
+            <div>
+              <label className="label">Aufgaben</label>
+              <textarea
+                className="input-styled"
+                rows={5}
+                placeholder="Was sind die Hauptaufgaben dieser Stelle?"
+                value={translations[activeLanguage].tasks}
+                onChange={(e) => updateTranslation('tasks', e.target.value)}
+              />
+              <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
+              </p>
+            </div>
             
-            <FormattedTextarea
-              label="Anforderungen"
-              name="requirements"
-              register={register}
-              rows={5}
-              placeholder="Welche Qualifikationen und Fähigkeiten werden benötigt?"
-              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
-            />
+            <div>
+              <label className="label">Anforderungen</label>
+              <textarea
+                className="input-styled"
+                rows={5}
+                placeholder="Welche Qualifikationen und Fähigkeiten werden benötigt?"
+                value={translations[activeLanguage].requirements}
+                onChange={(e) => updateTranslation('requirements', e.target.value)}
+              />
+              <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
+              </p>
+            </div>
           </div>
         </div>
 
@@ -717,14 +950,21 @@ function EditJob() {
 
           {/* Benefits */}
           <div className="border-t pt-4">
-            <FormattedTextarea
-              label="Benefits / Wir bieten"
-              name="benefits"
-              register={register}
+            <label className="label">
+              Benefits / Wir bieten
+              {activeLanguage !== 'de' && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
+            </label>
+            <textarea
+              className="input-styled"
               rows={4}
               placeholder="Was bieten Sie den Bewerbern? (Unterkunft, Verpflegung, etc.)"
-              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
+              value={translations[activeLanguage].benefits}
+              onChange={(e) => updateTranslation('benefits', e.target.value)}
             />
+            <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
+            </p>
           </div>
         </div>
 
