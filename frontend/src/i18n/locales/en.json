@@ -707,6 +707,7 @@
     "documentTypes": {
       "passport": "Passport",
       "cv": "Resume/CV",
+      "cover_letter": "Cover Letter",
       "photo": "Application Photo",
       "enrollment_cert": "Enrollment Certificate (Original)",
       "enrollment_trans": "Enrollment Certificate (Translation DE/EN)",
@@ -721,6 +722,7 @@
     "documentDescriptions": {
       "passport": "Valid passport (all pages with stamps)",
       "cv": "Resume (optional)",
+      "cover_letter": "Cover letter / motivation letter (optional)",
       "photo": "Application photo (optional)",
       "enrollment_cert": "Original enrollment certificate",
       "enrollment_trans": "Certified German or English translation of enrollment certificate",

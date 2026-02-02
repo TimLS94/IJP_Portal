@@ -693,6 +693,46 @@
       "pdfFormat": "Formato PDF, máx. 10 MB",
       "noOverwrite": "Los datos existentes no se sobrescribirán"
     },
+    "documents": {
+      "title": "Documentos requeridos",
+      "subtitle": "Suba los siguientes documentos para su solicitud como <strong>{{position}}</strong>.",
+      "required": "Requerido",
+      "optional": "Opcional",
+      "upload": "Subir",
+      "uploading": "Subiendo...",
+      "uploaded": "¡Documento subido!",
+      "allUploaded": "¡Todos los documentos requeridos han sido subidos!",
+      "progress": "{{uploaded}} de {{total}} documentos requeridos subidos"
+    },
+    "documentTypes": {
+      "passport": "Pasaporte",
+      "cv": "Currículum",
+      "cover_letter": "Carta de presentación",
+      "photo": "Foto de solicitud",
+      "enrollment_cert": "Certificado de matrícula (Original)",
+      "enrollment_trans": "Certificado de matrícula (Traducción DE/EN)",
+      "ba_declaration": "Declaración de matrícula (BA)",
+      "language_cert": "Certificado de idioma",
+      "diploma": "Diploma/Título",
+      "school_cert": "Certificado escolar",
+      "work_reference": "Referencia laboral",
+      "visa": "Visa",
+      "other": "Otro"
+    },
+    "documentDescriptions": {
+      "passport": "Pasaporte válido (todas las páginas con sellos)",
+      "cv": "Currículum",
+      "cover_letter": "Carta de presentación / motivación (opcional)",
+      "photo": "Foto de solicitud (opcional)",
+      "enrollment_cert": "Certificado de matrícula original",
+      "enrollment_trans": "Traducción certificada al alemán o inglés del certificado de matrícula",
+      "ba_declaration": "Declaración para certificado de matrícula (Agencia Federal de Empleo)",
+      "language_cert": "Certificado de idioma (mínimo B1 alemán)",
+      "diploma": "Título universitario / cualificación profesional",
+      "school_cert": "Certificado escolar",
+      "work_reference": "Referencias laborales",
+      "visa": "Visa (si ya está disponible)"
+    },
     "errors": {
       "positionRequired": "Por favor seleccione un tipo de empleo",
       "firstNameRequired": "El nombre es requerido",

@@ -45,6 +45,7 @@ class DocumentRequirementsResponse(BaseModel):
 DOCUMENT_TYPE_LABELS = {
     DocumentType.PASSPORT: "Reisepass",
     DocumentType.CV: "Lebenslauf",
+    DocumentType.COVER_LETTER: "Anschreiben",
     DocumentType.PHOTO: "Bewerbungsfoto",
     DocumentType.ENROLLMENT_CERT: "Immatrikulationsbescheinigung (Original)",
     DocumentType.ENROLLMENT_TRANSLATION: "Immatrikulation (Übersetzung DE/EN)",

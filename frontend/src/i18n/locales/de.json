@@ -707,6 +707,7 @@
     "documentTypes": {
       "passport": "Reisepass",
       "cv": "Lebenslauf",
+      "cover_letter": "Anschreiben",
       "photo": "Bewerbungsfoto",
       "enrollment_cert": "Immatrikulationsbescheinigung (Original)",
       "enrollment_trans": "Immatrikulation (Übersetzung DE/EN)",
@@ -721,6 +722,7 @@
     "documentDescriptions": {
       "passport": "Gültiger Reisepass (alle Seiten mit Stempeln)",
       "cv": "Lebenslauf",
+      "cover_letter": "Motivationsschreiben / Anschreiben (optional)",
       "photo": "Bewerbungsfoto (optional)",
       "enrollment_cert": "Immatrikulationsbescheinigung im Original",
       "enrollment_trans": "Beglaubigte deutsche oder englische Übersetzung der Immatrikulation",
