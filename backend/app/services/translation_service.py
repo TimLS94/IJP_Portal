@@ -62,12 +62,15 @@ async def translate_text(
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 DEEPL_API_URL,
-                data={
-                    'auth_key': api_key,
-                    'text': text,
+                headers={
+                    'Authorization': f'DeepL-Auth-Key {api_key}',
+                    'Content-Type': 'application/json',
+                },
+                json={
+                    'text': [text],
                     'source_lang': source,
                     'target_lang': target,
-                    'preserve_formatting': '1',
+                    'preserve_formatting': True,
                 },
             )
             
