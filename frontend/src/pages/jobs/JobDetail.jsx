@@ -328,19 +328,31 @@ function JobDetail() {
     const existingScript = document.querySelector('script[type="application/ld+json"][data-job-posting]');
     if (existingScript) existingScript.remove();
     
+    // validThrough: Deadline oder 60 Tage nach Erstellung als Fallback
+    const getValidThrough = () => {
+      if (jobData.deadline) {
+        return new Date(jobData.deadline).toISOString();
+      }
+      // Fallback: 60 Tage nach Erstellung
+      const created = jobData.created_at ? new Date(jobData.created_at) : new Date();
+      created.setDate(created.getDate() + 60);
+      return created.toISOString();
+    };
+    
     const schema = {
       '@context': 'https://schema.org',
       '@type': 'JobPosting',
       'title': jobData.title,
       'description': jobData.description?.replace(/<[^>]*>/g, '') || '',
-      'datePosted': jobData.created_at ? new Date(jobData.created_at).toISOString().split('T')[0] : undefined,
-      'validThrough': jobData.deadline ? new Date(jobData.deadline).toISOString() : undefined,
+      'datePosted': jobData.created_at ? new Date(jobData.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      'validThrough': getValidThrough(),
       'employmentType': mapEmploymentType(jobData.employment_type),
       'jobLocation': {
         '@type': 'Place',
         'address': {
           '@type': 'PostalAddress',
           'addressLocality': jobData.location || 'Deutschland',
+          'addressRegion': 'Deutschland',
           'addressCountry': 'DE',
           ...(jobData.postal_code && { 'postalCode': jobData.postal_code }),
           ...(jobData.address && { 'streetAddress': jobData.address }),
@@ -348,7 +360,7 @@ function JobDetail() {
       },
       'hiringOrganization': {
         '@type': 'Organization',
-        'name': jobData.company_name || jobData.company?.name || 'Unbekannt',
+        'name': jobData.company_name || jobData.company?.company_name || 'Unbekannt',
         'sameAs': 'https://www.jobon.work',
       },
       'url': `https://www.jobon.work/jobs/${jobData.url_slug || slug}`,

@@ -102,32 +102,51 @@ function BlogDetail() {
   const renderContent = (content) => {
     if (!content) return '';
     
-    // Sehr einfache Markdown-Unterstützung
-    let html = content
+    // Zuerst Listen verarbeiten (vor anderen Transformationen)
+    const lines = content.split('\n');
+    const processedLines = [];
+    let inList = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const isListItem = line.trim().startsWith('- ');
+      
+      if (isListItem) {
+        if (!inList) {
+          processedLines.push('<ul class="list-disc ml-6 my-4 space-y-2">');
+          inList = true;
+        }
+        // Entferne das "- " und wrappe in <li>
+        processedLines.push(`<li>${line.trim().substring(2)}</li>`);
+      } else {
+        if (inList) {
+          processedLines.push('</ul>');
+          inList = false;
+        }
+        processedLines.push(line);
+      }
+    }
+    
+    // Liste am Ende schließen falls nötig
+    if (inList) {
+      processedLines.push('</ul>');
+    }
+    
+    let html = processedLines.join('\n')
       // Überschriften
       .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-8 mb-4">$1</h3>')
       .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-10 mb-4">$1</h2>')
       .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-12 mb-6">$1</h1>')
       // Fett
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      // Kursiv
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Kursiv (aber nicht innerhalb von Listen-Tags)
+      .replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
       // Links
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary-600 hover:underline" target="_blank" rel="noopener">$1</a>')
-      // Absätze
+      // Absätze (doppelte Zeilenumbrüche)
       .replace(/\n\n/g, '</p><p class="mb-4">')
-      // Zeilenumbrüche
-      .replace(/\n/g, '<br>');
-    
-    // Listen separat verarbeiten (um sie in <ul> zu wrappen)
-    html = html.replace(/((?:<br>)?- .+(?:<br>- .+)*)/g, (match) => {
-      const items = match
-        .split('<br>')
-        .filter(line => line.trim().startsWith('- '))
-        .map(line => `<li>${line.trim().substring(2)}</li>`)
-        .join('');
-      return `<ul class="list-disc list-inside my-4 space-y-1">${items}</ul>`;
-    });
+      // Einfache Zeilenumbrüche (außer in Listen)
+      .replace(/\n(?!<)/g, '<br>');
     
     return `<p class="mb-4">${html}</p>`;
   };
