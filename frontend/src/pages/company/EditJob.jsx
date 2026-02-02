@@ -321,45 +321,36 @@ function EditJob() {
             
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Zielgruppe / Stellenart (optional)</label>
+                <label className="label">Zielgruppe (optional)</label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Wählen Sie spezielle Zielgruppen. Ohne Auswahl gilt die Stelle für alle (EU-Bürger).
+                  Für spezielle Visa-Programme. Ohne Auswahl: Allgemeine Stelle für EU-Bürger.
                 </p>
-                <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
                   {positionTypes.map((type) => (
-                    <label 
+                    <button
                       key={type.value}
-                      className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      type="button"
+                      onClick={() => {
+                        if (selectedPositionTypes.includes(type.value)) {
+                          setSelectedPositionTypes(selectedPositionTypes.filter(t => t !== type.value));
+                        } else {
+                          setSelectedPositionTypes([...selectedPositionTypes, type.value]);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                         selectedPositionTypes.includes(type.value)
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
+                      title={type.description}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedPositionTypes.includes(type.value)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedPositionTypes([...selectedPositionTypes, type.value]);
-                          } else {
-                            setSelectedPositionTypes(selectedPositionTypes.filter(t => t !== type.value));
-                          }
-                        }}
-                        className="h-4 w-4 text-primary-600 rounded"
-                      />
-                      <div>
-                        <span className="font-medium text-gray-900">{type.label}</span>
-                        <p className="text-xs text-gray-500">{type.description}</p>
-                      </div>
-                    </label>
+                      {type.label}
+                      {selectedPositionTypes.includes(type.value) && (
+                        <span className="ml-1">✓</span>
+                      )}
+                    </button>
                   ))}
                 </div>
-                {selectedPositionTypes.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">
-                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                    Ohne Auswahl: Stelle gilt als "Arbeit (Allgemein)" für EU-Bürger
-                  </p>
-                )}
               </div>
 
               <div>
