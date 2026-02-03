@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { applicationsAPI, documentsAPI, interviewAPI, downloadBlob } from '../../lib/api';
+import { getNationalityLabel } from '../../data/nationalities';
 import toast from 'react-hot-toast';
 import { 
   Users, User, Briefcase, Calendar, MessageSquare, Check, X, 
@@ -1072,7 +1073,7 @@ function CompanyApplications() {
                       </div>
                       <div className="flex justify-between p-2 bg-white rounded">
                         <span className="text-gray-500">Nationalität</span>
-                        <span className="font-medium">{applicantDetails.applicant.nationality || '-'}</span>
+                        <span className="font-medium">{getNationalityLabel(applicantDetails.applicant.nationality, 'de') || '-'}</span>
                       </div>
                       <div className="flex justify-between p-2 bg-white rounded">
                         <span className="text-gray-500">Stellenart</span>
