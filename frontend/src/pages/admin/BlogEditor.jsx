@@ -545,13 +545,15 @@ function BlogEditor() {
                           type="button"
                           onClick={() => setImagePosition({ x: 50, y: 0 })}
                           className={`px-2 py-1 text-xs rounded ${imagePosition.y === 0 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          title="Zeigt den oberen Teil des Bildes (für Gesichter oben)"
                         >
-                          Oben
+                          ⬆ Oben zeigen
                         </button>
                         <button
                           type="button"
                           onClick={() => setImagePosition({ x: 50, y: 50 })}
                           className={`px-2 py-1 text-xs rounded ${imagePosition.y === 50 && imagePosition.x === 50 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          title="Zeigt die Mitte des Bildes"
                         >
                           Mitte
                         </button>
@@ -559,8 +561,9 @@ function BlogEditor() {
                           type="button"
                           onClick={() => setImagePosition({ x: 50, y: 100 })}
                           className={`px-2 py-1 text-xs rounded ${imagePosition.y === 100 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          title="Zeigt den unteren Teil des Bildes (für Gesichter unten)"
                         >
-                          Unten
+                          ⬇ Unten zeigen
                         </button>
                       </div>
                       <button
@@ -574,7 +577,7 @@ function BlogEditor() {
                     
                     {/* Position-Info */}
                     <p className="text-xs text-gray-400 text-center">
-                      Position: {Math.round(imagePosition.x)}% / {Math.round(imagePosition.y)}%
+                      Fokus: {imagePosition.y === 0 ? 'Oberer Bildbereich' : imagePosition.y === 100 ? 'Unterer Bildbereich' : `${Math.round(imagePosition.y)}% von oben`}
                     </p>
                   </div>
                 ) : watch('featured_image') && imageError ? (
