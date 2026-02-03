@@ -4,7 +4,8 @@ import { adminAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   Shield, Users, Briefcase, FileText, TrendingUp,
-  UserCheck, Building2, Clock, BookOpen, ClipboardList
+  UserCheck, Building2, Clock, BookOpen, ClipboardList,
+  Lock, Unlock, AlertTriangle
 } from 'lucide-react';
 
 const positionTypeLabels = {
@@ -12,15 +13,19 @@ const positionTypeLabels = {
   saisonjob: 'Saisonjob',
   workandholiday: 'Work & Holiday',
   fachkraft: 'Fachkräfte',
-  ausbildung: 'Ausbildung'
+  ausbildung: 'Ausbildung',
+  general: 'Arbeit (Allgemein)'
 };
 
 function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [lockedAccounts, setLockedAccounts] = useState([]);
+  const [unlocking, setUnlocking] = useState(null);
 
   useEffect(() => {
     loadStats();
+    loadLockedAccounts();
   }, []);
 
   const loadStats = async () => {
@@ -31,6 +36,28 @@ function AdminDashboard() {
       toast.error('Fehler beim Laden der Statistiken');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLockedAccounts = async () => {
+    try {
+      const response = await adminAPI.getLockedAccounts();
+      setLockedAccounts(response.data.locked_accounts || []);
+    } catch (error) {
+      console.error('Fehler beim Laden gesperrter Accounts');
+    }
+  };
+
+  const handleUnlock = async (email) => {
+    setUnlocking(email);
+    try {
+      await adminAPI.unlockAccount(email);
+      toast.success(`Account ${email} entsperrt`);
+      loadLockedAccounts();
+    } catch (error) {
+      toast.error('Fehler beim Entsperren');
+    } finally {
+      setUnlocking(null);
     }
   };
 
@@ -179,6 +206,52 @@ function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Gesperrte Accounts */}
+      {lockedAccounts.length > 0 && (
+        <div className="card mb-8 border-2 border-red-200 bg-red-50">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertTriangle className="h-6 w-6 text-red-600" />
+            <h2 className="text-xl font-semibold text-red-900">
+              Gesperrte Accounts ({lockedAccounts.length})
+            </h2>
+          </div>
+          <p className="text-sm text-red-700 mb-4">
+            Diese Accounts wurden wegen zu vieler fehlgeschlagener Login-Versuche vorübergehend gesperrt.
+          </p>
+          <div className="space-y-3">
+            {lockedAccounts.map((account) => (
+              <div 
+                key={account.email} 
+                className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200"
+              >
+                <div className="flex items-center gap-3">
+                  <Lock className="h-5 w-5 text-red-500" />
+                  <div>
+                    <p className="font-medium text-gray-900">{account.email}</p>
+                    <p className="text-sm text-gray-500">
+                      {account.failed_attempts} Fehlversuche • 
+                      Entsperrt in {account.remaining_minutes} Min.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleUnlock(account.email)}
+                  disabled={unlocking === account.email}
+                  className="btn-secondary text-sm flex items-center gap-2"
+                >
+                  {unlocking === account.email ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600" />
+                  ) : (
+                    <Unlock className="h-4 w-4" />
+                  )}
+                  Entsperren
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Schnellzugriff */}
       <div className="card">

@@ -294,6 +294,10 @@ export const adminAPI = {
   getAnabinPdfStatus: (applicantId) => api.get(`/anabin/pdf-status/${applicantId}`),
   getAnabinPdf: (applicantId, refresh = false) => api.get(`/anabin/pdf/${applicantId}${refresh ? '?refresh=true' : ''}`, { responseType: 'blob' }),
   getCachedPdfs: () => api.get('/anabin/cached-pdfs'),
+  
+  // Account Lockout Management
+  getLockedAccounts: () => api.get('/admin/locked-accounts'),
+  unlockAccount: (email) => api.post(`/admin/unlock-account/${encodeURIComponent(email)}`),
 };
 
 export default api;

@@ -242,3 +242,47 @@ async def reset_failed_logins(email: str) -> None:
             del _account_lockout_storage[email_lower]
             logger.info(f"Failed login attempts reset for {email_lower}")
 
+
+async def get_locked_accounts() -> list:
+    """
+    Gibt alle aktuell gesperrten Accounts zurück.
+    
+    Returns:
+        Liste mit gesperrten Account-Infos
+    """
+    now = datetime.utcnow()
+    locked = []
+    
+    async with _lockout_lock:
+        for email, data in _account_lockout_storage.items():
+            if data.get("locked_until") and data["locked_until"] > now:
+                remaining_minutes = max(1, int((data["locked_until"] - now).total_seconds() / 60))
+                locked.append({
+                    "email": email,
+                    "failed_attempts": data.get("failed_attempts", 0),
+                    "locked_until": data["locked_until"].isoformat(),
+                    "remaining_minutes": remaining_minutes
+                })
+    
+    return locked
+
+
+async def unlock_account(email: str) -> bool:
+    """
+    Entsperrt einen Account manuell.
+    
+    Args:
+        email: E-Mail-Adresse des Accounts
+        
+    Returns:
+        True wenn erfolgreich entsperrt, False wenn nicht gefunden
+    """
+    email_lower = email.lower()
+    
+    async with _lockout_lock:
+        if email_lower in _account_lockout_storage:
+            del _account_lockout_storage[email_lower]
+            logger.info(f"Account manually unlocked: {email_lower}")
+            return True
+    return False
+

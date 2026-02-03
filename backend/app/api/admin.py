@@ -7,6 +7,7 @@ from pydantic import BaseModel, EmailStr
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.rate_limiter import get_locked_accounts, unlock_account
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant, PositionType
 from app.models.company import Company
@@ -198,7 +199,9 @@ async def list_all_jobs(
             "is_active": job.is_active,
             "created_at": job.created_at,
             "company_name": company.company_name if company else "Unbekannt",
-            "application_count": app_count
+            "application_count": app_count,
+            "view_count": job.view_count or 0,
+            "slug": job.url_slug
         })
     
     return {"total": total, "jobs": result}
@@ -1218,3 +1221,29 @@ async def get_applicant_matches(
     
     matches = get_top_matches_for_applicant(db, applicant_id, limit)
     return {"matches": matches, "total": len(matches)}
+
+
+# ========== ACCOUNT LOCKOUT MANAGEMENT ==========
+
+@router.get("/locked-accounts")
+async def get_locked_accounts_list(
+    current_user: User = Depends(require_admin)
+):
+    """Gibt alle aktuell gesperrten Accounts zurück"""
+    locked = await get_locked_accounts()
+    return {"locked_accounts": locked, "total": len(locked)}
+
+
+@router.post("/unlock-account/{email}")
+async def admin_unlock_account(
+    email: str,
+    current_user: User = Depends(require_admin)
+):
+    """Entsperrt einen Account manuell"""
+    success = await unlock_account(email)
+    if success:
+        return {"message": f"Account {email} wurde entsperrt"}
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Account {email} ist nicht gesperrt"
+    )
