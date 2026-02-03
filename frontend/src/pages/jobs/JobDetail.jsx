@@ -7,7 +7,8 @@ import toast from 'react-hot-toast';
 import { 
   MapPin, Calendar, Building2, Euro, Clock, Globe, 
   ArrowLeft, Send, CheckCircle, Languages, AlertTriangle, FileText, Loader2, ClipboardList,
-  Sparkles, TrendingUp, TrendingDown, Minus, User, Phone, Mail, Briefcase, ListTodo, Globe2
+  Sparkles, TrendingUp, TrendingDown, Minus, User, Phone, Mail, Briefcase, ListTodo, Globe2,
+  Share2, Facebook, Linkedin, MessageCircle, Copy, Check
 } from 'lucide-react';
 
 // Verfügbare Sprachen
@@ -189,6 +190,10 @@ function JobDetail() {
   const [myDocuments, setMyDocuments] = useState([]);
   const [selectedDocIds, setSelectedDocIds] = useState([]);
   const [showDocumentSelection, setShowDocumentSelection] = useState(false);
+  
+  // Share-Menü
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   
   // Helper: Text in der gewählten Sprache abrufen (mit Fallback auf Deutsch)
   const getTranslatedText = (field) => {
@@ -436,6 +441,49 @@ function JobDetail() {
     }
   };
 
+  // Share-Funktionen
+  const getShareUrl = () => {
+    // OG-URL für Social Media mit korrekten Meta-Tags
+    const baseApiUrl = import.meta.env.VITE_API_URL || 'https://api.jobon.work';
+    return `${baseApiUrl}/jobs/og/${slug}`;
+  };
+
+  const getNormalUrl = () => {
+    return `https://www.jobon.work/jobs/${slug}`;
+  };
+
+  const shareOnFacebook = () => {
+    const url = encodeURIComponent(getShareUrl());
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
+    setShowShareMenu(false);
+  };
+
+  const shareOnLinkedIn = () => {
+    const url = encodeURIComponent(getShareUrl());
+    const title = encodeURIComponent(job?.title || 'Stellenangebot');
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=400');
+    setShowShareMenu(false);
+  };
+
+  const shareOnWhatsApp = () => {
+    const url = getShareUrl();
+    const text = encodeURIComponent(`${job?.title} - ${job?.location}\n${url}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getNormalUrl());
+      setLinkCopied(true);
+      toast.success(t('jobDetail.linkCopied', 'Link kopiert!'));
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      toast.error('Fehler beim Kopieren');
+    }
+    setShowShareMenu(false);
+  };
+
   const handleApply = async () => {
     if (!isAuthenticated) {
       toast.error('Bitte melden Sie sich an, um sich zu bewerben');
@@ -543,9 +591,71 @@ function JobDetail() {
             
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{getTranslatedText('title')}</h1>
-              <span className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border self-start ${positionTypeColors[job.position_type]}`}>
-                {positionTypeLabels[job.position_type]}
-              </span>
+              <div className="flex items-center gap-2 self-start">
+                {/* Share Button */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowShareMenu(!showShareMenu)}
+                    className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                    title={t('jobDetail.share', 'Teilen')}
+                  >
+                    <Share2 className="h-5 w-5" />
+                  </button>
+                  
+                  {/* Share Dropdown */}
+                  {showShareMenu && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowShareMenu(false)}
+                      />
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border z-50 py-2">
+                        <button
+                          onClick={shareOnFacebook}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
+                        >
+                          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <Facebook className="h-4 w-4 text-white" />
+                          </div>
+                          Facebook
+                        </button>
+                        <button
+                          onClick={shareOnLinkedIn}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
+                        >
+                          <div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center">
+                            <Linkedin className="h-4 w-4 text-white" />
+                          </div>
+                          LinkedIn
+                        </button>
+                        <button
+                          onClick={shareOnWhatsApp}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
+                        >
+                          <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                            <MessageCircle className="h-4 w-4 text-white" />
+                          </div>
+                          WhatsApp
+                        </button>
+                        <hr className="my-2" />
+                        <button
+                          onClick={copyLink}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
+                        >
+                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            {linkCopied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4 text-gray-600" />}
+                          </div>
+                          {linkCopied ? t('jobDetail.copied', 'Kopiert!') : t('jobDetail.copyLink', 'Link kopieren')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                <span className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${positionTypeColors[job.position_type]}`}>
+                  {positionTypeLabels[job.position_type]}
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-6">
