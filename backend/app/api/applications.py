@@ -299,7 +299,8 @@ async def get_company_applications(
     
     applications = db.query(Application).options(
         joinedload(Application.applicant),
-        joinedload(Application.job_posting)
+        joinedload(Application.job_posting),
+        joinedload(Application.interviews)
     ).join(JobPosting).filter(
         JobPosting.company_id == company.id
     ).order_by(Application.applied_at.desc()).all()
@@ -315,6 +316,20 @@ async def get_company_applications(
             except:
                 pass
         
+        # Interview-Status ermitteln (neuestes relevantes Interview)
+        interview_info = None
+        if app.interviews:
+            # Sortiere nach Erstellungsdatum (neuestes zuerst)
+            sorted_interviews = sorted(app.interviews, key=lambda x: x.created_at, reverse=True)
+            for interview in sorted_interviews:
+                if interview.status.value in ['confirmed', 'proposed', 'declined']:
+                    interview_info = {
+                        "status": interview.status.value,
+                        "confirmed_date": interview.confirmed_date.isoformat() if interview.confirmed_date else None,
+                        "proposed_date_1": interview.proposed_date_1.isoformat() if interview.proposed_date_1 else None,
+                    }
+                    break
+        
         app_dict = {
             "id": app.id,
             "applicant_id": app.applicant_id,
@@ -328,7 +343,8 @@ async def get_company_applications(
             "job_title": app.job_posting.title if app.job_posting else None,
             "job_slug": app.job_posting.slug if app.job_posting else None,
             "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None,
-            "match_score": match_score
+            "match_score": match_score,
+            "interview_info": interview_info
         }
         result.append(app_dict)
     

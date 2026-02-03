@@ -66,6 +66,105 @@ async def get_sitemap_urls(db: Session = Depends(get_db)):
     return {"urls": urls, "count": len(urls)}
 
 
+@router.get("/og/{slug_with_id}")
+async def get_job_og_preview(slug_with_id: str, db: Session = Depends(get_db)):
+    """
+    Gibt eine HTML-Seite mit Open Graph Meta-Tags für Social Media Crawler zurück.
+    Diese Seite leitet dann per JavaScript zur echten Job-Seite weiter.
+    """
+    from fastapi.responses import HTMLResponse
+    
+    # ID aus Slug extrahieren
+    job_id = extract_id_from_slug(slug_with_id)
+    if not job_id:
+        raise HTTPException(status_code=404, detail="Job nicht gefunden")
+    
+    job = db.query(JobPosting).options(
+        joinedload(JobPosting.company)
+    ).filter(JobPosting.id == job_id).first()
+    
+    if not job or not job.is_active:
+        raise HTTPException(status_code=404, detail="Stellenangebot nicht gefunden")
+    
+    # Position Type Labels
+    position_labels = {
+        "studentenferienjob": "Studentenferienjob",
+        "saisonjob": "Saisonjob",
+        "fachkraft": "Fachkräfte",
+        "ausbildung": "Ausbildung",
+        "general": "Arbeit (Allgemein)"
+    }
+    
+    position_type = job.position_type.value if job.position_type else "general"
+    position_label = position_labels.get(position_type, "Stellenangebot")
+    
+    # URL und Beschreibung
+    base_url = "https://www.jobon.work"
+    job_url = f"{base_url}/jobs/{slug_with_id}"
+    company_name = job.company.company_name if job.company else "JobOn Partner"
+    
+    # Kurze Beschreibung für OG
+    description = job.description[:200] + "..." if job.description and len(job.description) > 200 else (job.description or "")
+    description = description.replace('"', '&quot;').replace('\n', ' ')
+    
+    # OG Image - Firmenlogo oder Standard
+    og_image = f"{base_url}/og-image.png"
+    if job.company and job.company.logo and job.company.logo.startswith('http'):
+        og_image = job.company.logo
+    
+    # Titel
+    title = f"{job.title} | {position_label} in {job.location}"
+    
+    html_content = f"""<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title} | JobOn</title>
+    <meta name="description" content="{description}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{job_url}">
+    <meta property="og:title" content="{title}">
+    <meta property="og:description" content="{description}">
+    <meta property="og:image" content="{og_image}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="JobOn">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{job_url}">
+    <meta name="twitter:title" content="{title}">
+    <meta name="twitter:description" content="{description}">
+    <meta name="twitter:image" content="{og_image}">
+    
+    <!-- Redirect für normale Browser -->
+    <meta http-equiv="refresh" content="0; url={job_url}">
+    <link rel="canonical" href="{job_url}">
+    
+    <style>
+        body {{ font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f3f4f6; }}
+        .container {{ text-align: center; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; }}
+        h1 {{ color: #1f2937; margin-bottom: 10px; }}
+        p {{ color: #6b7280; }}
+        a {{ color: #2563eb; text-decoration: none; font-weight: bold; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Weiterleitung...</h1>
+        <p>Sie werden zu <strong>{job.title}</strong> weitergeleitet.</p>
+        <p><a href="{job_url}">Hier klicken falls die Weiterleitung nicht funktioniert</a></p>
+    </div>
+    <script>window.location.href = "{job_url}";</script>
+</body>
+</html>"""
+    
+    return HTMLResponse(content=html_content, status_code=200)
+
+
 @router.get("/sitemap.xml")
 async def get_sitemap_xml(db: Session = Depends(get_db)):
     """

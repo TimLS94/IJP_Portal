@@ -770,7 +770,27 @@ function CompanyApplications() {
                       {formatDate(app.applied_at)}
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={app.status} />
+                      <div className="flex flex-col gap-1">
+                        <StatusBadge status={app.status} />
+                        {app.interview_info && (
+                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+                            app.interview_info.status === 'confirmed' 
+                              ? 'bg-green-100 text-green-700' 
+                              : app.interview_info.status === 'declined'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {app.interview_info.status === 'confirmed' && <CheckCircle className="h-3 w-3" />}
+                            {app.interview_info.status === 'declined' && <XCircle className="h-3 w-3" />}
+                            {app.interview_info.status === 'proposed' && <Clock className="h-3 w-3" />}
+                            {app.interview_info.status === 'confirmed' 
+                              ? `✓ ${new Date(app.interview_info.confirmed_date).toLocaleDateString('de-DE')}`
+                              : app.interview_info.status === 'declined'
+                                ? 'Abgelehnt'
+                                : 'Wartet auf Antwort'}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <StatusDropdown app={app} />
@@ -817,6 +837,28 @@ function CompanyApplications() {
                 <Calendar className="h-4 w-4 inline mr-1" />
                 Beworben am {formatDate(app.applied_at)}
               </div>
+
+              {/* Interview-Status Anzeige */}
+              {app.interview_info && (
+                <div className={`rounded-lg p-2 mb-3 text-sm flex items-center gap-2 ${
+                  app.interview_info.status === 'confirmed' 
+                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                    : app.interview_info.status === 'declined'
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                }`}>
+                  {app.interview_info.status === 'confirmed' && <CheckCircle className="h-4 w-4" />}
+                  {app.interview_info.status === 'declined' && <XCircle className="h-4 w-4" />}
+                  {app.interview_info.status === 'proposed' && <Clock className="h-4 w-4" />}
+                  <span>
+                    {app.interview_info.status === 'confirmed' 
+                      ? `Termin bestätigt: ${new Date(app.interview_info.confirmed_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                      : app.interview_info.status === 'declined'
+                        ? 'Termine abgelehnt - neue nötig'
+                        : 'Wartet auf Terminbestätigung'}
+                  </span>
+                </div>
+              )}
 
               {app.applicant_message && (
                 <div className="bg-gray-50 rounded-lg p-2 mb-3 text-sm text-gray-600">
