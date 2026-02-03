@@ -1254,6 +1254,19 @@ function CompanyApplications() {
                                   </div>
                                 )}
                                 
+                                {/* Wartet auf Antwort Hinweis */}
+                                {interview.status === 'proposed' && (
+                                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
+                                      <Clock className="h-4 w-4 animate-pulse" />
+                                      ⏳ Wartet auf Antwort des Bewerbers
+                                    </p>
+                                    <p className="text-xs text-amber-600 mt-1">
+                                      Der Bewerber wurde per E-Mail über die Terminvorschläge informiert.
+                                    </p>
+                                  </div>
+                                )}
+                                
                                 {interview.location && (
                                   <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
                                     <MapPinned className="h-4 w-4" />
