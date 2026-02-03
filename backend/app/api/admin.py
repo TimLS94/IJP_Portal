@@ -201,7 +201,7 @@ async def list_all_jobs(
             "company_name": company.company_name if company else "Unbekannt",
             "application_count": app_count,
             "view_count": job.view_count or 0,
-            "slug": job.url_slug
+            "slug": job.slug
         })
     
     return {"total": total, "jobs": result}
