@@ -52,6 +52,7 @@ class BlogPost(Base):
     
     # Medien
     featured_image = Column(Text)  # Hauptbild URL oder Base64 Data-URL
+    image_position = Column(String(20), default="50,50")  # Bildposition als "x,y" in Prozent
     
     # Status
     is_published = Column(Boolean, default=False)

@@ -193,6 +193,11 @@ function BlogList() {
                       src={post.featured_image} 
                       alt={post.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      style={{ 
+                        objectPosition: post.image_position 
+                          ? `${post.image_position.split(',')[0]}% ${post.image_position.split(',')[1]}%`
+                          : '50% 50%'
+                      }}
                     />
                   </div>
                 ) : (

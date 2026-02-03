@@ -21,7 +21,10 @@ function BlogEditor() {
   const [imageMode, setImageMode] = useState('upload'); // 'url' oder 'upload' - Default: upload
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imagePosition, setImagePosition] = useState({ x: 50, y: 50 }); // Bildposition in %
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const imageContainerRef = useRef(null);
   
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
     defaultValues: {
@@ -35,6 +38,7 @@ function BlogEditor() {
       meta_description: '',
       meta_keywords: '',
       featured_image: '',
+      image_position: '50,50',
       is_published: false,
       is_featured: false,
     }
@@ -67,6 +71,11 @@ function BlogEditor() {
     }
   }, [watchTitle, isEdit, setValue]);
 
+  // Bildposition im Form-State aktualisieren
+  useEffect(() => {
+    setValue('image_position', `${Math.round(imagePosition.x)},${Math.round(imagePosition.y)}`);
+  }, [imagePosition, setValue]);
+
   const loadCategories = async () => {
     try {
       const response = await blogAPI.getCategories();
@@ -91,9 +100,15 @@ function BlogEditor() {
         meta_description: post.meta_description || '',
         meta_keywords: post.meta_keywords || '',
         featured_image: post.featured_image || '',
+        image_position: post.image_position || '50,50',
         is_published: post.is_published,
         is_featured: post.is_featured,
       });
+      // Bildposition aus gespeichertem String laden
+      if (post.image_position) {
+        const [x, y] = post.image_position.split(',').map(Number);
+        setImagePosition({ x: x || 50, y: y || 50 });
+      }
     } catch (error) {
       toast.error('Fehler beim Laden des Posts');
       navigate('/admin/blog');
@@ -165,6 +180,37 @@ function BlogEditor() {
     setValue('featured_image', '');
     setImageError(false);
     setImageLoaded(false);
+    setImagePosition({ x: 50, y: 50 });
+  };
+
+  // Bild-Positionierung per Drag
+  const handleImageMouseDown = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleImageMouseMove = (e) => {
+    if (!isDragging || !imageContainerRef.current) return;
+    
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    
+    setImagePosition({ x, y });
+  };
+
+  const handleImageMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Touch-Events für Mobile
+  const handleImageTouchMove = (e) => {
+    if (!imageContainerRef.current) return;
+    const touch = e.touches[0];
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((touch.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((touch.clientY - rect.top) / rect.height) * 100));
+    setImagePosition({ x, y });
   };
 
   // Einfacher Markdown Preview
@@ -443,43 +489,97 @@ function BlogEditor() {
                 Featured Image
               </h3>
               
-              {/* Bild-Vorschau */}
-              <div className="mb-4 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50">
+              {/* Bild-Vorschau mit Positionierung */}
+              <div className="mb-4">
                 {watch('featured_image') && !imageError ? (
-                  <div className="relative group">
-                    <img 
-                      src={watch('featured_image')} 
-                      alt="Vorschau"
-                      className="w-full h-48 object-cover"
-                      onLoad={() => {
-                        setImageLoaded(true);
-                        setImageError(false);
-                      }}
-                      onError={() => {
-                        setImageError(true);
-                        setImageLoaded(false);
-                      }}
-                    />
-                    {/* Erfolgs-Badge */}
-                    {imageLoaded && (
-                      <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs font-medium rounded-lg flex items-center gap-1">
-                        ✓ Bild geladen
+                  <div className="space-y-3">
+                    {/* Frame-Vorschau (wie Blog-Karte) */}
+                    <div className="relative">
+                      <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                        <Info className="h-3 w-3" />
+                        Ziehen Sie das Bild um die Position anzupassen
+                      </p>
+                      <div 
+                        ref={imageContainerRef}
+                        className={`relative w-full aspect-[16/9] rounded-xl overflow-hidden border-2 ${isDragging ? 'border-primary-500 cursor-grabbing' : 'border-gray-300 cursor-grab'} bg-gray-100`}
+                        onMouseDown={handleImageMouseDown}
+                        onMouseMove={handleImageMouseMove}
+                        onMouseUp={handleImageMouseUp}
+                        onMouseLeave={handleImageMouseUp}
+                        onTouchMove={handleImageTouchMove}
+                      >
+                        <img 
+                          src={watch('featured_image')} 
+                          alt="Vorschau"
+                          className="absolute w-full h-full object-cover select-none pointer-events-none"
+                          style={{ 
+                            objectPosition: `${imagePosition.x}% ${imagePosition.y}%`
+                          }}
+                          onLoad={() => {
+                            setImageLoaded(true);
+                            setImageError(false);
+                          }}
+                          onError={() => {
+                            setImageError(true);
+                            setImageLoaded(false);
+                          }}
+                          draggable={false}
+                        />
+                        {/* Fadenkreuz in der Mitte */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
+                          <div className="w-8 h-8 border-2 border-white rounded-full shadow-lg" />
+                        </div>
+                        {/* Erfolgs-Badge */}
+                        {imageLoaded && (
+                          <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs font-medium rounded-lg flex items-center gap-1 pointer-events-none">
+                            ✓ Bild geladen
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {/* Hover Overlay mit Entfernen-Button */}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    </div>
+                    
+                    {/* Position-Buttons */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setImagePosition({ x: 50, y: 0 })}
+                          className={`px-2 py-1 text-xs rounded ${imagePosition.y === 0 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                          Oben
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setImagePosition({ x: 50, y: 50 })}
+                          className={`px-2 py-1 text-xs rounded ${imagePosition.y === 50 && imagePosition.x === 50 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                          Mitte
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setImagePosition({ x: 50, y: 100 })}
+                          className={`px-2 py-1 text-xs rounded ${imagePosition.y === 100 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                          Unten
+                        </button>
+                      </div>
                       <button
                         type="button"
                         onClick={handleRemoveImage}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700"
+                        className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded"
                       >
-                        Bild entfernen
+                        × Entfernen
                       </button>
                     </div>
+                    
+                    {/* Position-Info */}
+                    <p className="text-xs text-gray-400 text-center">
+                      Position: {Math.round(imagePosition.x)}% / {Math.round(imagePosition.y)}%
+                    </p>
                   </div>
                 ) : watch('featured_image') && imageError ? (
                   // Fehler-Anzeige
-                  <div className="h-48 flex flex-col items-center justify-center text-red-500 bg-red-50">
+                  <div className="h-48 flex flex-col items-center justify-center text-red-500 bg-red-50 rounded-xl border-2 border-dashed border-red-200">
                     <svg className="h-12 w-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>

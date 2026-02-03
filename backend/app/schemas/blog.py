@@ -19,6 +19,7 @@ class BlogPostBase(BaseModel):
     
     # Medien
     featured_image: Optional[str] = None
+    image_position: Optional[str] = "50,50"  # Bildposition als "x,y" in Prozent
     
     # Status
     is_published: bool = False
@@ -42,6 +43,7 @@ class BlogPostUpdate(BaseModel):
     meta_keywords: Optional[str] = None
     
     featured_image: Optional[str] = None
+    image_position: Optional[str] = None
     
     is_published: Optional[bool] = None
     is_featured: Optional[bool] = None
@@ -77,6 +79,7 @@ class BlogPostListResponse(BaseModel):
     category: BlogCategory
     category_label: str
     featured_image: Optional[str] = None
+    image_position: Optional[str] = "50,50"
     is_published: bool = False  # Hinzugefügt für Admin-Übersicht
     is_featured: bool
     view_count: int
