@@ -443,9 +443,8 @@ function JobDetail() {
 
   // Share-Funktionen
   const getShareUrl = () => {
-    // OG-URL für Social Media mit korrekten Meta-Tags
-    const baseApiUrl = import.meta.env.VITE_API_URL || 'https://api.jobon.work';
-    return `${baseApiUrl}/jobs/og/${slug}`;
+    // OG-URL für Social Media mit korrekten Meta-Tags - immer jobon.work verwenden
+    return `https://www.jobon.work/api/jobs/og/${slug}`;
   };
 
   const getNormalUrl = () => {
