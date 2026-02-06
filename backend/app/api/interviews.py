@@ -29,8 +29,8 @@ router = APIRouter(prefix="/interviews", tags=["interviews"])
 class InterviewPropose(BaseModel):
     """Firma schlägt Termine vor"""
     application_id: int
-    proposed_date_1: datetime
-    proposed_date_2: Optional[datetime] = None
+    proposed_date_1: str  # ISO-Format String ohne Timezone (z.B. "2026-02-10T13:00:00")
+    proposed_date_2: Optional[str] = None
     location: Optional[str] = None
     meeting_link: Optional[str] = None
     notes: Optional[str] = None
@@ -149,12 +149,19 @@ async def propose_interview(
         old.status = InterviewStatus.CANCELLED
         old.updated_at = datetime.utcnow()
     
+    # Parse die Datum-Strings zu datetime (ohne Timezone-Konvertierung)
+    # Format: "2026-02-10T13:00:00" - wird als lokale deutsche Zeit behandelt
+    proposed_date_1 = datetime.fromisoformat(data.proposed_date_1.replace('Z', ''))
+    proposed_date_2 = None
+    if data.proposed_date_2:
+        proposed_date_2 = datetime.fromisoformat(data.proposed_date_2.replace('Z', ''))
+    
     # Erstelle neuen Interview-Vorschlag
     interview = Interview(
         application_id=data.application_id,
         status=InterviewStatus.PROPOSED,
-        proposed_date_1=data.proposed_date_1,
-        proposed_date_2=data.proposed_date_2,
+        proposed_date_1=proposed_date_1,
+        proposed_date_2=proposed_date_2,
         location=data.location,
         meeting_link=data.meeting_link,
         notes_company=data.notes,
@@ -180,8 +187,8 @@ async def propose_interview(
                 applicant_name=f"{applicant.first_name} {applicant.last_name}",
                 job_title=job_title,
                 company_name=company_name,
-                date_1=data.proposed_date_1.strftime("%d.%m.%Y um %H:%M Uhr"),
-                date_2=data.proposed_date_2.strftime("%d.%m.%Y um %H:%M Uhr") if data.proposed_date_2 else None,
+                date_1=proposed_date_1.strftime("%d.%m.%Y um %H:%M Uhr"),
+                date_2=proposed_date_2.strftime("%d.%m.%Y um %H:%M Uhr") if proposed_date_2 else None,
                 location=data.location,
                 meeting_link=data.meeting_link,
                 notes=data.notes,

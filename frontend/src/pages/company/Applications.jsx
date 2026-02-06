@@ -284,12 +284,31 @@ function CompanyApplications() {
 
   const formatDateTime = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleString('de-DE', {
+    // Parse das Datum ohne Timezone-Konvertierung
+    // Das Backend speichert deutsche Zeit, also zeigen wir sie direkt an
+    const date = new Date(dateString);
+    // Wenn das Datum ein Z (UTC) am Ende hat, korrigieren wir die Timezone
+    if (dateString.endsWith('Z') || dateString.includes('+')) {
+      // UTC-Datum: Addiere 1 Stunde für deutsche Zeit (MEZ)
+      // Im Sommer (MESZ) wären es 2 Stunden, aber wir nehmen 1 als Standard
+      const germanDate = new Date(date.getTime() + (1 * 60 * 60 * 1000));
+      return germanDate.toLocaleString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Europe/Berlin'
+      });
+    }
+    // Lokales Datum ohne Z: Direkt anzeigen
+    return date.toLocaleString('de-DE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'Europe/Berlin'
     });
   };
 

@@ -153,13 +153,16 @@ function ApplicantApplications() {
   };
 
   const formatDateTime = (dateString) => {
+    if (!dateString) return '-';
+    // Zeige das Datum in deutscher Zeit an
     return new Date(dateString).toLocaleString('de-DE', {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'Europe/Berlin'
     });
   };
 
