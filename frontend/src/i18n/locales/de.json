@@ -262,7 +262,8 @@
     "declineAndRequest": "Ablehnen & neue Termine anfordern",
     "cancelAppointmentTitle": "Termin absagen",
     "cancelAppointmentText": "Möchten Sie diesen bestätigten Termin wirklich absagen? Die Firma wird per E-Mail benachrichtigt.",
-    "cancelReasonPlaceholder": "z.B. Krankheit, familiärer Notfall..."
+    "cancelReasonPlaceholder": "z.B. Krankheit, familiärer Notfall...",
+    "germanTime": "Alle Zeiten in deutscher Zeit (MEZ/MESZ)"
   },
   "applicant": {
     "profile": "Mein Profil",

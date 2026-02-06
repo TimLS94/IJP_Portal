@@ -262,7 +262,8 @@
     "declineAndRequest": "Отклонить и запросить новые даты",
     "cancelAppointmentTitle": "Отменить встречу",
     "cancelAppointmentText": "Вы действительно хотите отменить эту подтвержденную встречу? Компания будет уведомлена по электронной почте.",
-    "cancelReasonPlaceholder": "напр. Болезнь, семейная ситуация..."
+    "cancelReasonPlaceholder": "напр. Болезнь, семейная ситуация...",
+    "germanTime": "Все время указано по немецкому времени (CET/CEST)"
   },
   "applicant": {
     "profile": "Мой профиль",

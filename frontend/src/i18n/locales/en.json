@@ -262,7 +262,8 @@
     "declineAndRequest": "Decline & request new dates",
     "cancelAppointmentTitle": "Cancel appointment",
     "cancelAppointmentText": "Do you really want to cancel this confirmed appointment? The company will be notified by email.",
-    "cancelReasonPlaceholder": "e.g. Illness, family emergency..."
+    "cancelReasonPlaceholder": "e.g. Illness, family emergency...",
+    "germanTime": "All times in German time (CET/CEST)"
   },
   "applicant": {
     "profile": "My Profile",

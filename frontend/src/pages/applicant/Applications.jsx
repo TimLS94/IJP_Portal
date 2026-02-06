@@ -491,6 +491,12 @@ function ApplicantApplications() {
                                 </p>
                               )}
 
+                              {/* Hinweis zur deutschen Zeitzone */}
+                              <p className="text-xs text-amber-600 mb-3 flex items-center gap-1 bg-amber-50 px-3 py-2 rounded-lg">
+                                <Clock className="h-3 w-3" />
+                                {t('applicantApplications.germanTime', 'Alle Zeiten in deutscher Zeit (MEZ/MESZ)')}
+                              </p>
+
                               <div className="grid sm:grid-cols-2 gap-3 mb-4">
                                 {/* Option 1 */}
                                 <button

@@ -262,7 +262,8 @@
     "declineAndRequest": "Rechazar y solicitar nuevas fechas",
     "cancelAppointmentTitle": "Cancelar cita",
     "cancelAppointmentText": "¿Realmente desea cancelar esta cita confirmada? La empresa será notificada por correo electrónico.",
-    "cancelReasonPlaceholder": "p.ej. Enfermedad, emergencia familiar..."
+    "cancelReasonPlaceholder": "p.ej. Enfermedad, emergencia familiar...",
+    "germanTime": "Todas las horas en hora alemana (CET/CEST)"
   },
   "applicant": {
     "profile": "Mi perfil",

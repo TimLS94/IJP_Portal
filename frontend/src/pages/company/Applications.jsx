@@ -254,24 +254,25 @@ function CompanyApplications() {
       return;
     }
 
-    // Kombiniere Datum und Uhrzeit
-    const date1 = new Date(`${interviewData.proposed_date_1}T${interviewData.proposed_time_1}`);
-    let date2 = null;
+    // Kombiniere Datum und Uhrzeit - als lokale deutsche Zeit speichern (ohne UTC-Konvertierung)
+    const dateTime1 = `${interviewData.proposed_date_1}T${interviewData.proposed_time_1}:00`;
+    let dateTime2 = null;
     if (interviewData.proposed_date_2 && interviewData.proposed_time_2) {
-      date2 = new Date(`${interviewData.proposed_date_2}T${interviewData.proposed_time_2}`);
+      dateTime2 = `${interviewData.proposed_date_2}T${interviewData.proposed_time_2}:00`;
     }
 
     // Speichere nur lokal - wird erst beim "Speichern" gesendet
+    // Wichtig: Wir speichern das Datum als String ohne Timezone-Konvertierung
     setPendingInterview({
       application_id: selectedApp,
-      proposed_date_1: date1.toISOString(),
-      proposed_date_2: date2 ? date2.toISOString() : null,
+      proposed_date_1: dateTime1,
+      proposed_date_2: dateTime2,
       location: interviewData.location || null,
       meeting_link: interviewData.meeting_link || null,
       notes: interviewData.notes || null,
       // Für Anzeige
-      display_date_1: date1,
-      display_date_2: date2,
+      display_date_1: dateTime1,
+      display_date_2: dateTime2,
     });
 
     // Status auf "Vorstellungsgespräch" setzen
@@ -1440,6 +1441,10 @@ function CompanyApplications() {
               </h2>
               <p className="text-gray-600 text-sm mt-1">
                 Schlagen Sie dem Bewerber 2 Terminoptionen vor. Die E-Mail wird erst nach dem Speichern gesendet.
+              </p>
+              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Alle Zeiten in deutscher Zeit (MEZ/MESZ)
               </p>
             </div>
 
