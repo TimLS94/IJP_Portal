@@ -802,6 +802,66 @@ class EmailService:
         """
         return self.send_email(to_email, subject, html_content)
 
+    @_safe_email_call
+    def send_job_notification(
+        self,
+        to_email: str,
+        applicant_name: str,
+        job_title: str,
+        company_name: str,
+        location: str,
+        match_score: int,
+        job_url: str
+    ) -> bool:
+        """Benachrichtigt Bewerber über passende neue Stelle"""
+        subject = f"Neue passende Stelle: {job_title}"
+        
+        # Match-Score Farbe
+        if match_score >= 90:
+            score_color = "#22c55e"  # Grün
+            score_text = "Sehr gut"
+        elif match_score >= 80:
+            score_color = "#3b82f6"  # Blau
+            score_text = "Gut"
+        else:
+            score_color = "#f59e0b"  # Orange
+            score_text = "Passend"
+        
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>🎯 Passende Stelle gefunden!</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {applicant_name},</p>
+                <p>wir haben eine neue Stelle gefunden, die gut zu Ihrem Profil passt:</p>
+                
+                <div style="background: white; border-radius: 12px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <h2 style="color: #1f2937; margin-top: 0;">{job_title}</h2>
+                    <p style="color: #6b7280; margin: 5px 0;">🏢 {company_name}</p>
+                    <p style="color: #6b7280; margin: 5px 0;">📍 {location}</p>
+                    <div style="margin-top: 15px;">
+                        <span style="background: {score_color}; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold;">
+                            {match_score}% {score_text}
+                        </span>
+                    </div>
+                </div>
+                
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{job_url}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                        Stelle ansehen →
+                    </a>
+                </p>
+                
+                <p style="color: #6b7280; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    Sie erhalten diese E-Mail, weil Sie Job-Benachrichtigungen aktiviert haben. 
+                    Sie können diese in Ihren <a href="https://jobon.work/einstellungen">Einstellungen</a> deaktivieren.
+                </p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
+
 
 # Singleton - CRASH-SAFE initialisiert
 try:

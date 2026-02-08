@@ -13,6 +13,7 @@ from app.models.applicant import PositionType
 from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPostingResponse, JobPostingListResponse
 from app.services.settings_service import get_setting
 from app.services.slug_service import generate_job_slug, extract_id_from_slug
+from app.services.job_notification_service import notify_matching_applicants
 
 # Standard-Wert falls Setting nicht existiert (wird aus DB überschrieben)
 DEFAULT_MAX_DEADLINE_DAYS = 90
@@ -437,6 +438,15 @@ async def create_job(
     update_job_slug(job, db)
     db.refresh(job)
     
+    # Job-Benachrichtigungen an passende Bewerber senden (wenn Stelle aktiv)
+    if job.is_active:
+        try:
+            notify_matching_applicants(db, job)
+        except Exception as e:
+            # Fehler beim Benachrichtigen soll Job-Erstellung nicht blockieren
+            import logging
+            logging.getLogger(__name__).error(f"Fehler bei Job-Benachrichtigungen: {e}")
+    
     return job
 
 
@@ -468,6 +478,11 @@ async def update_job(
     
     update_data = job_data.model_dump(exclude_unset=True)
     
+    # Prüfen ob Stelle gerade aktiviert wird (war inaktiv, wird aktiv)
+    was_inactive = not job.is_active
+    will_be_active = update_data.get('is_active', job.is_active)
+    is_being_activated = was_inactive and will_be_active
+    
     # Prüfen ob Slug-relevante Felder geändert werden
     slug_fields_changed = any(
         field in update_data and getattr(job, field) != update_data[field]
@@ -484,6 +499,15 @@ async def update_job(
         update_job_slug(job, db)
     
     db.refresh(job)
+    
+    # Job-Benachrichtigungen senden wenn Stelle gerade aktiviert wurde
+    if is_being_activated:
+        try:
+            notify_matching_applicants(db, job)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Fehler bei Job-Benachrichtigungen: {e}")
+    
     return job
 
 
