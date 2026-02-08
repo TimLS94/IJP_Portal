@@ -1369,6 +1369,14 @@
     "deleteAccount": "Удалить аккаунт",
     "deleteAccountWarning": "Это действие нельзя отменить. Все ваши данные будут безвозвратно удалены.",
     "deleteAccountConfirm": "Введите 'УДАЛИТЬ' для подтверждения",
-    "accountDeleted": "Аккаунт удалён"
+    "accountDeleted": "Аккаунт удалён",
+    "notifications": "Уведомления",
+    "jobNotifications": "Подходящие вакансии",
+    "jobNotificationsDesc": "Получать email при публикации новых подходящих вакансий",
+    "notificationsEnabled": "Уведомления включены",
+    "notificationsDisabled": "Уведомления отключены",
+    "errors": {
+      "saveNotifications": "Ошибка при сохранении настроек уведомлений"
+    }
   }
 }

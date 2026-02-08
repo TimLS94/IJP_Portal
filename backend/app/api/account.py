@@ -372,3 +372,57 @@ async def get_account_info(
             }
     
     return info
+
+
+# ==================== BENACHRICHTIGUNGS-EINSTELLUNGEN ====================
+
+class NotificationSettingsUpdate(BaseModel):
+    job_notifications_enabled: bool
+
+
+@router.get("/notification-settings")
+async def get_notification_settings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Holt die Benachrichtigungseinstellungen des Benutzers"""
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur für Bewerber verfügbar"
+        )
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber-Profil nicht gefunden")
+    
+    return {
+        "job_notifications_enabled": applicant.job_notifications_enabled if applicant.job_notifications_enabled is not None else True
+    }
+
+
+@router.put("/notification-settings")
+async def update_notification_settings(
+    settings: NotificationSettingsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert die Benachrichtigungseinstellungen des Benutzers"""
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur für Bewerber verfügbar"
+        )
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber-Profil nicht gefunden")
+    
+    applicant.job_notifications_enabled = settings.job_notifications_enabled
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "Einstellungen gespeichert",
+        "job_notifications_enabled": applicant.job_notifications_enabled
+    }

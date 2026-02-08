@@ -1393,6 +1393,11 @@
     "password": "Password",
     "passwordHint": "Change your password regularly",
     "dangerZone": "Danger Zone",
+    "notifications": "Notifications",
+    "jobNotifications": "Matching Job Offers",
+    "jobNotificationsDesc": "Receive email when new matching jobs are published",
+    "notificationsEnabled": "Notifications enabled",
+    "notificationsDisabled": "Notifications disabled",
     "changeEmail": "Change Email",
     "currentEmail": "Current Email",
     "newEmail": "New Email Address",
@@ -1427,7 +1432,8 @@
       "loadAccountData": "Error loading account data",
       "changePassword": "Error changing password",
       "changeEmail": "Error changing email",
-      "deleteAccount": "Error deleting account"
+      "deleteAccount": "Error deleting account",
+      "saveNotifications": "Error saving notification settings"
     }
   }
 }

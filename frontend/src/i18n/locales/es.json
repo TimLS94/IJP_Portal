@@ -1369,7 +1369,15 @@
     "deleteAccount": "Eliminar cuenta",
     "deleteAccountWarning": "Esta acción no se puede deshacer. Todos sus datos serán eliminados permanentemente.",
     "deleteAccountConfirm": "Escriba 'ELIMINAR' para confirmar",
-    "accountDeleted": "La cuenta ha sido eliminada"
+    "accountDeleted": "La cuenta ha sido eliminada",
+    "notifications": "Notificaciones",
+    "jobNotifications": "Ofertas de trabajo coincidentes",
+    "jobNotificationsDesc": "Recibir correo cuando se publiquen nuevos trabajos coincidentes",
+    "notificationsEnabled": "Notificaciones activadas",
+    "notificationsDisabled": "Notificaciones desactivadas",
+    "errors": {
+      "saveNotifications": "Error al guardar la configuración de notificaciones"
+    }
   }
 }
 

@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { 
   Settings as SettingsIcon, ToggleLeft, ToggleRight, Save, Loader2, 
   Sparkles, Building2, Users, AlertTriangle, RefreshCw, Clock, Trash2,
-  ChevronDown, ChevronUp, Calendar
+  ChevronDown, ChevronUp, Calendar, Bell, Mail
 } from 'lucide-react';
 
 function AdminSettings() {
@@ -21,6 +21,10 @@ function AdminSettings() {
   // Max. Stellenlaufzeit State
   const [maxDeadlineDays, setMaxDeadlineDays] = useState(90);
   const [showDeadlineSection, setShowDeadlineSection] = useState(false);
+  
+  // Job-Benachrichtigungen State
+  const [notificationThreshold, setNotificationThreshold] = useState(85);
+  const [showNotificationSection, setShowNotificationSection] = useState(false);
 
   useEffect(() => {
     loadFlags();
@@ -35,6 +39,9 @@ function AdminSettings() {
       }
       if (response.data.max_job_deadline_days) {
         setMaxDeadlineDays(response.data.max_job_deadline_days);
+      }
+      if (response.data.job_notifications_threshold) {
+        setNotificationThreshold(response.data.job_notifications_threshold);
       }
     } catch (error) {
       console.error('Fehler beim Laden:', error);
@@ -64,7 +71,8 @@ function AdminSettings() {
       const labels = {
         'matching_enabled_for_companies': 'Firmen-Matching',
         'matching_enabled_for_applicants': 'Bewerber-Matching',
-        'auto_deactivate_expired_jobs': 'Auto-Deaktivierung'
+        'auto_deactivate_expired_jobs': 'Auto-Deaktivierung',
+        'job_notifications_enabled': 'Job-Benachrichtigungen'
       };
       toast.success(`${labels[key] || key} ${!currentValue ? 'aktiviert' : 'deaktiviert'}`);
     } catch (error) {
@@ -131,6 +139,28 @@ function AdminSettings() {
       description: 'Bewerber können sehen, wie gut Stellenangebote zu ihrem Profil passen',
       icon: Users,
       color: 'green'
+    },
+    job_notifications_enabled: {
+      title: 'Job-Benachrichtigungen',
+      description: 'Bewerber erhalten E-Mails wenn neue passende Stellen veröffentlicht werden',
+      icon: Bell,
+      color: 'amber'
+    }
+  };
+  
+  const saveNotificationThreshold = async () => {
+    setSaving('job_notifications_threshold');
+    try {
+      await adminAPI.setSetting('job_notifications_threshold', notificationThreshold);
+      setFlags(prev => ({
+        ...prev,
+        job_notifications_threshold: notificationThreshold
+      }));
+      toast.success(`Matching-Schwelle auf ${notificationThreshold}% gesetzt`);
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+    } finally {
+      setSaving(null);
     }
   };
 
@@ -237,6 +267,88 @@ function AdminSettings() {
             );
           })}
         </div>
+      </div>
+
+      {/* Job-Benachrichtigungen Threshold */}
+      <div className="card mb-8">
+        <button
+          onClick={() => setShowNotificationSection(!showNotificationSection)}
+          className="w-full flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <Mail className="h-5 w-5 text-amber-600" />
+            </div>
+            <div className="text-left">
+              <h2 className="text-xl font-semibold text-gray-900">Job-Benachrichtigungen</h2>
+              <p className="text-sm text-gray-600">Matching-Schwelle für automatische E-Mails an Bewerber</p>
+            </div>
+          </div>
+          {showNotificationSection ? (
+            <ChevronUp className="h-5 w-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-gray-500" />
+          )}
+        </button>
+
+        {showNotificationSection && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="bg-amber-50 rounded-xl p-4 mb-4">
+              <p className="text-sm text-amber-800">
+                <strong>Hinweis:</strong> Bewerber erhalten nur E-Mails, wenn sie die Benachrichtigungen in ihren Einstellungen aktiviert haben 
+                UND das Feature "Job-Benachrichtigungen" oben aktiviert ist.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mindest-Matching-Score für Benachrichtigungen
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="50"
+                    max="100"
+                    step="5"
+                    value={notificationThreshold}
+                    onChange={(e) => setNotificationThreshold(parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="50"
+                      max="100"
+                      value={notificationThreshold}
+                      onChange={(e) => setNotificationThreshold(Math.min(100, Math.max(50, parseInt(e.target.value) || 50)))}
+                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-medium"
+                    />
+                    <span className="text-gray-600">%</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Nur Stellen mit einem Matching-Score von mindestens {notificationThreshold}% werden per E-Mail an passende Bewerber gesendet.
+                </p>
+              </div>
+              
+              <div className="flex justify-end">
+                <button
+                  onClick={saveNotificationThreshold}
+                  disabled={saving === 'job_notifications_threshold'}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  {saving === 'job_notifications_threshold' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Speichern
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Max. Stellenlaufzeit */}

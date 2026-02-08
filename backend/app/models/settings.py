@@ -44,6 +44,17 @@ DEFAULT_SETTINGS = {
         "value": "90",
         "value_type": "integer",
         "description": "Nach wie vielen Tagen archivierte Stellen endgültig gelöscht werden (Standard: 90 Tage = 3 Monate)"
+    },
+    # Job-Benachrichtigungen
+    "job_notifications_enabled": {
+        "value": "true",
+        "value_type": "boolean",
+        "description": "Aktiviert automatische E-Mail-Benachrichtigungen für passende Stellen an Bewerber"
+    },
+    "job_notifications_threshold": {
+        "value": "85",
+        "value_type": "integer",
+        "description": "Mindest-Matching-Score (%) für Job-Benachrichtigungen (Standard: 85%)"
     }
 }
 

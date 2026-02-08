@@ -7,7 +7,7 @@ import { accountAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   Settings as SettingsIcon, Lock, Mail, Trash2, Eye, EyeOff, 
-  Loader2, AlertTriangle, CheckCircle, User, Shield
+  Loader2, AlertTriangle, CheckCircle, User, Shield, Bell
 } from 'lucide-react';
 
 function Settings() {
@@ -27,6 +27,10 @@ function Settings() {
   const [changingEmail, setChangingEmail] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   
+  // Notification settings (nur für Bewerber)
+  const [notificationSettings, setNotificationSettings] = useState({ job_notifications_enabled: true });
+  const [savingNotifications, setSavingNotifications] = useState(false);
+  
   // Password visibility
   const [showPasswords, setShowPasswords] = useState({
     current: false,
@@ -43,6 +47,7 @@ function Settings() {
 
   useEffect(() => {
     loadAccountInfo();
+    loadNotificationSettings();
   }, []);
 
   const loadAccountInfo = async () => {
@@ -53,6 +58,29 @@ function Settings() {
       toast.error(t('settings.errors.loadAccountData'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadNotificationSettings = async () => {
+    try {
+      const response = await accountAPI.getNotificationSettings();
+      setNotificationSettings(response.data);
+    } catch (error) {
+      // Ignorieren wenn nicht Bewerber
+    }
+  };
+
+  const handleToggleJobNotifications = async () => {
+    setSavingNotifications(true);
+    try {
+      const newValue = !notificationSettings.job_notifications_enabled;
+      await accountAPI.updateNotificationSettings({ job_notifications_enabled: newValue });
+      setNotificationSettings({ ...notificationSettings, job_notifications_enabled: newValue });
+      toast.success(newValue ? t('settings.notificationsEnabled') : t('settings.notificationsDisabled'));
+    } catch (error) {
+      toast.error(t('settings.errors.saveNotifications'));
+    } finally {
+      setSavingNotifications(false);
     }
   };
 
@@ -234,6 +262,44 @@ function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Benachrichtigungen (nur für Bewerber) */}
+      {accountInfo?.role === 'applicant' && (
+        <div className="card mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Bell className="h-6 w-6 text-primary-600" />
+            {t('settings.notifications')}
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900">{t('settings.jobNotifications')}</p>
+                  <p className="text-sm text-gray-500">{t('settings.jobNotificationsDesc')}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleToggleJobNotifications}
+                disabled={savingNotifications}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  notificationSettings.job_notifications_enabled ? 'bg-primary-600' : 'bg-gray-300'
+                }`}
+              >
+                {savingNotifications ? (
+                  <Loader2 className="h-4 w-4 animate-spin mx-auto text-white" />
+                ) : (
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      notificationSettings.job_notifications_enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Gefahrenzone */}
       <div className="card border-2 border-red-200">

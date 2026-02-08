@@ -1393,6 +1393,11 @@
     "password": "Passwort",
     "passwordHint": "Ändern Sie Ihr Passwort regelmäßig",
     "dangerZone": "Gefahrenzone",
+    "notifications": "Benachrichtigungen",
+    "jobNotifications": "Passende Stellenangebote",
+    "jobNotificationsDesc": "E-Mail erhalten, wenn neue passende Stellen veröffentlicht werden",
+    "notificationsEnabled": "Benachrichtigungen aktiviert",
+    "notificationsDisabled": "Benachrichtigungen deaktiviert",
     "changeEmail": "E-Mail ändern",
     "currentEmail": "Aktuelle E-Mail",
     "newEmail": "Neue E-Mail-Adresse",
@@ -1427,7 +1432,8 @@
       "loadAccountData": "Fehler beim Laden der Account-Daten",
       "changePassword": "Fehler beim Ändern des Passworts",
       "changeEmail": "Fehler beim Ändern der E-Mail",
-      "deleteAccount": "Fehler beim Löschen des Accounts"
+      "deleteAccount": "Fehler beim Löschen des Accounts",
+      "saveNotifications": "Fehler beim Speichern der Benachrichtigungseinstellungen"
     }
   }
 }

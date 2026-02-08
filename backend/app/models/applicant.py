@@ -118,6 +118,9 @@ class Applicant(Base):
     additional_info = Column(Text)  # Sonstige Informationen
     profile_image = Column(String(255))
     
+    # ========== BENACHRICHTIGUNGEN ==========
+    job_notifications_enabled = Column(Boolean, default=True)  # E-Mail bei passenden Stellen
+    
     # ========== ANABIN UNI-VERIFIZIERUNG ==========
     anabin_verified = Column(String(50), default="not_checked")  # not_checked, verified, not_found, uncertain, error
     anabin_match_score = Column(Integer)  # 0-100

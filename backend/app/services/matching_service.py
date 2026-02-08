@@ -2,10 +2,10 @@
 Matching-Service für Bewerber und Stellen
 
 Berechnet einen Matching-Score basierend auf:
-- Sprachkenntnisse
-- Positionstyp
-- Berufserfahrung
-- Qualifikationen
+- Sprachkenntnisse (40 Punkte: 28 Deutsch, 12 Englisch)
+- Berufserfahrung (30 Punkte)
+- Positionstyp (15 Punkte)
+- Verfügbarkeit (15 Punkte)
 
 WICHTIG: Keine Berücksichtigung von:
 - Geschlecht
@@ -59,18 +59,11 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
     }
     details = []
     
-    # 1. Positionstyp-Match (30 Punkte)
-    position_match = _check_position_match(applicant, job)
-    scores["position_type"] = position_match["score"]
-    if position_match["match"]:
-        details.append(f"✓ Positionstyp passt: {job.position_type.value}")
-    else:
-        details.append(f"✗ Positionstyp stimmt nicht überein")
-    
-    # 2. Deutschkenntnisse (25 Punkte)
+    # 1. Deutschkenntnisse (28 Punkte) - WICHTIGSTER FAKTOR
     german_match = _check_language_match(
         applicant.german_level.value if applicant.german_level else "keine",
-        job.german_required.value if job.german_required else "not_required"
+        job.german_required.value if job.german_required else "not_required",
+        max_score=28
     )
     scores["german_level"] = german_match["score"]
     if german_match["exceeds"]:
@@ -80,19 +73,7 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
     else:
         details.append(f"✗ Deutschkenntnisse unter Anforderungen ({german_match['gap']} Stufen)")
     
-    # 3. Englischkenntnisse (15 Punkte)
-    english_match = _check_language_match(
-        applicant.english_level.value if applicant.english_level else "keine",
-        job.english_required.value if job.english_required else "not_required",
-        max_score=15  # Englisch hat nur 15 Punkte max
-    )
-    scores["english_level"] = english_match["score"]
-    if english_match["meets"] or english_match["exceeds"]:
-        details.append(f"✓ Englischkenntnisse erfüllen Anforderungen")
-    elif job.english_required and job.english_required.value != "not_required":
-        details.append(f"✗ Englischkenntnisse unter Anforderungen")
-    
-    # 4. Berufserfahrung (20 Punkte)
+    # 2. Berufserfahrung (30 Punkte) - SEHR WICHTIG
     exp_match = _check_experience_match(applicant, job)
     scores["experience"] = exp_match["score"]
     if exp_match.get("has_relevant_experience"):
@@ -100,7 +81,27 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
     elif exp_match["has_experience"]:
         details.append(f"○ {applicant.work_experience_years or 0} Jahre Berufserfahrung (nicht stellenrelevant)")
     
-    # 5. Verfügbarkeit (10 Punkte)
+    # 3. Englischkenntnisse (12 Punkte)
+    english_match = _check_language_match(
+        applicant.english_level.value if applicant.english_level else "keine",
+        job.english_required.value if job.english_required else "not_required",
+        max_score=12
+    )
+    scores["english_level"] = english_match["score"]
+    if english_match["meets"] or english_match["exceeds"]:
+        details.append(f"✓ Englischkenntnisse erfüllen Anforderungen")
+    elif job.english_required and job.english_required.value != "not_required":
+        details.append(f"✗ Englischkenntnisse unter Anforderungen")
+    
+    # 4. Positionstyp-Match (15 Punkte) - WENIGER WICHTIG
+    position_match = _check_position_match(applicant, job)
+    scores["position_type"] = position_match["score"]
+    if position_match["match"]:
+        details.append(f"✓ Positionstyp passt: {job.position_type.value}")
+    else:
+        details.append(f"○ Positionstyp stimmt nicht überein")
+    
+    # 5. Verfügbarkeit (15 Punkte)
     availability_match = _check_availability_match(applicant, job)
     scores["availability"] = availability_match["score"]
     if availability_match["available"]:
@@ -118,17 +119,21 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
 
 
 def _check_position_match(applicant: Applicant, job: JobPosting) -> dict:
-    """Prüft ob der Positionstyp passt (30 Punkte)"""
+    """Prüft ob der Positionstyp passt (15 Punkte)"""
     job_type = job.position_type.value if job.position_type else None
     
     # Prüfe position_types Array (Mehrfachauswahl)
     applicant_types = applicant.position_types or []
     if isinstance(applicant_types, list) and job_type in applicant_types:
-        return {"match": True, "score": 30}
+        return {"match": True, "score": 15}
     
     # Fallback auf einzelnes position_type
     if applicant.position_type and applicant.position_type.value == job_type:
-        return {"match": True, "score": 30}
+        return {"match": True, "score": 15}
+    
+    # Kein Match, aber trotzdem ein paar Punkte wenn Bewerber flexibel ist
+    if len(applicant_types) >= 3:
+        return {"match": False, "score": 5}  # Flexibler Bewerber
     
     return {"match": False, "score": 0}
 
@@ -164,11 +169,11 @@ def _check_language_match(applicant_level: str, required_level: str, max_score: 
 
 def _check_experience_match(applicant: Applicant, job: JobPosting) -> dict:
     """
-    Prüft Berufserfahrung (20 Punkte).
+    Prüft Berufserfahrung (30 Punkte) - WICHTIGER FAKTOR.
     
     Bewertet:
-    - Relevante Berufserfahrung (passt zur Stelle): bis 15 Punkte
-    - Allgemeine Berufserfahrung: bis 5 Punkte
+    - Relevante Berufserfahrung (passt zur Stelle): bis 22 Punkte
+    - Allgemeine Berufserfahrung: bis 8 Punkte
     """
     years = applicant.work_experience_years or 0
     job_title = (job.title or "").lower()
@@ -207,18 +212,18 @@ def _check_experience_match(applicant: Applicant, job: JobPosting) -> dict:
     # Score berechnen
     score = 0
     
-    # Relevante Erfahrung: bis 15 Punkte
+    # Relevante Erfahrung: bis 22 Punkte
     if relevant_experience > 0:
-        score += min(15, relevant_experience * 5)  # 5 Punkte pro relevanter Erfahrung
+        score += min(22, relevant_experience * 7)  # 7 Punkte pro relevanter Erfahrung
     elif years > 0:
         # Fallback: Allgemeine Jahre (weniger Punkte)
-        score += min(8, years * 2)  # Max 8 Punkte für allgemeine Jahre
+        score += min(12, years * 3)  # Max 12 Punkte für allgemeine Jahre
     
-    # Bonus für viel Erfahrung: bis 5 Punkte
+    # Bonus für viel Erfahrung: bis 8 Punkte
     if total_experience > 0:
-        score += min(5, total_experience)  # 1 Punkt pro Eintrag, max 5
+        score += min(8, total_experience * 2)  # 2 Punkte pro Eintrag, max 8
     elif years > 3:
-        score += min(5, (years - 3))  # Bonus für >3 Jahre
+        score += min(8, (years - 3) * 2)  # Bonus für >3 Jahre
     
     return {
         "has_experience": years > 0 or total_experience > 0,
@@ -226,7 +231,7 @@ def _check_experience_match(applicant: Applicant, job: JobPosting) -> dict:
         "relevant_entries": relevant_entries,
         "years": years,
         "entries": total_experience,
-        "score": min(20, score)
+        "score": min(30, score)
     }
 
 
@@ -277,24 +282,24 @@ def _extract_keywords(text: str) -> set:
 
 
 def _check_availability_match(applicant: Applicant, job: JobPosting) -> dict:
-    """Prüft Verfügbarkeit (10 Punkte)"""
+    """Prüft Verfügbarkeit (15 Punkte)"""
     # Für Studentenferienjobs: Semesterferien prüfen
     if job.position_type and job.position_type.value == "studentenferienjob":
         if applicant.semester_break_start and applicant.semester_break_end:
             if job.start_date:
                 if applicant.semester_break_start <= job.start_date <= applicant.semester_break_end:
-                    return {"available": True, "score": 10}
-            return {"available": True, "score": 8}  # Hat Semesterferien angegeben
+                    return {"available": True, "score": 15}
+            return {"available": True, "score": 12}  # Hat Semesterferien angegeben
     
     # Für Saisonjobs: available_from/until prüfen
     if job.position_type and job.position_type.value == "saisonjob":
         if applicant.available_from:
             if job.start_date and applicant.available_from <= job.start_date:
-                return {"available": True, "score": 10}
-            return {"available": True, "score": 7}
+                return {"available": True, "score": 15}
+            return {"available": True, "score": 10}
     
     # Standard: Verfügbar
-    return {"available": True, "score": 5}
+    return {"available": True, "score": 8}
 
 
 def _get_recommendation(score: int) -> str:

@@ -203,6 +203,9 @@ export const accountAPI = {
   changeEmail: (new_email, password) => api.post('/account/change-email', { new_email, password }),
   deleteAccount: (password, confirmation) => api.post('/account/delete-account', { password, confirmation }),
   getAccountInfo: () => api.get('/account/me'),
+  // Benachrichtigungseinstellungen
+  getNotificationSettings: () => api.get('/account/notification-settings'),
+  updateNotificationSettings: (settings) => api.put('/account/notification-settings', settings),
 };
 
 // Admin API
