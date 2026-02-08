@@ -341,7 +341,7 @@ async def get_company_applications(
             "applied_at": app.applied_at,
             "updated_at": app.updated_at,
             "job_title": app.job_posting.title if app.job_posting else None,
-            "job_slug": app.job_posting.slug if app.job_posting else None,
+            "job_slug": f"{app.job_posting.slug}-{app.job_posting.id}" if app.job_posting and app.job_posting.slug else str(app.job_posting_id),
             "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None,
             "match_score": match_score,
             "interview_info": interview_info
