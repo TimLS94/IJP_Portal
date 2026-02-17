@@ -938,7 +938,7 @@ async def export_user_data(
                     "company": app.job_posting.company.company_name if app.job_posting and app.job_posting.company else None,
                     "status": app.status.value,
                     "applied_at": app.applied_at.isoformat() if app.applied_at else None,
-                    "cover_letter": app.cover_letter,
+                    "applicant_message": app.applicant_message,
                 }
                 for app in applications
             ]
