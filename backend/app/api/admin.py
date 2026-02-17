@@ -974,7 +974,6 @@ async def export_user_data(
                 "industry": company.industry,
                 "company_size": company.company_size,
                 "contact_person": company.contact_person,
-                "contact_email": company.contact_email,
             }
             
             # Stellenangebote
