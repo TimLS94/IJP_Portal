@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { adminAPI, applicationsAPI } from '../../lib/api';
+import { adminAPI, applicationsAPI, documentsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   FileText, User, Briefcase, Building2, Calendar, Search, Download,
@@ -170,6 +170,23 @@ function AdminApplications() {
       link.remove();
       
       toast.success('Dokumente heruntergeladen');
+    } catch (error) {
+      toast.error('Fehler beim Download');
+    }
+  };
+
+  const handleDownloadSingleDocument = async (documentId, fileName) => {
+    try {
+      const response = await documentsAPI.download(documentId);
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       toast.error('Fehler beim Download');
     }
@@ -694,19 +711,17 @@ function AdminApplications() {
                       ) : (
                         <div className="space-y-2">
                           {applicationDetails.documents.map((doc) => (
-                            <a
+                            <button
                               key={doc.id}
-                              href={`/uploads/${doc.file_path.split('/').pop()}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-between p-2 bg-white rounded-lg hover:bg-gray-100"
+                              onClick={() => handleDownloadSingleDocument(doc.id, doc.original_name)}
+                              className="w-full flex items-center justify-between p-2 bg-white rounded-lg hover:bg-gray-100 text-left"
                             >
                               <div className="flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-gray-400" />
                                 <span className="text-sm">{doc.original_name}</span>
                               </div>
                               <span className="text-xs text-gray-500">{doc.document_type}</span>
-                            </a>
+                            </button>
                           ))}
                         </div>
                       )}
