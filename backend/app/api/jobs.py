@@ -14,6 +14,7 @@ from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPosti
 from app.services.settings_service import get_setting
 from app.services.slug_service import generate_job_slug, extract_id_from_slug
 from app.services.job_notification_service import notify_matching_applicants
+from app.services.google_indexing_service import google_indexing_service
 
 # Standard-Wert falls Setting nicht existiert (wird aus DB überschrieben)
 DEFAULT_MAX_DEADLINE_DAYS = 90
@@ -446,6 +447,14 @@ async def create_job(
             # Fehler beim Benachrichtigen soll Job-Erstellung nicht blockieren
             import logging
             logging.getLogger(__name__).error(f"Fehler bei Job-Benachrichtigungen: {e}")
+        
+        # Google Indexierung beantragen (async, fire-and-forget)
+        try:
+            import asyncio
+            asyncio.create_task(google_indexing_service.index_job(job.slug, job.id))
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug(f"Google Indexierung übersprungen: {e}")
     
     return job
 
@@ -507,6 +516,14 @@ async def update_job(
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"Fehler bei Job-Benachrichtigungen: {e}")
+        
+        # Google Indexierung beantragen (async, fire-and-forget)
+        try:
+            import asyncio
+            asyncio.create_task(google_indexing_service.index_job(job.slug, job.id))
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug(f"Google Indexierung übersprungen: {e}")
     
     return job
 
