@@ -1,11 +1,14 @@
 # robots.txt für jobon.work
 User-agent: *
 Allow: /
+Allow: /jobs/
+Allow: /blog/
+Allow: /stellenarten
+Allow: /about
+Allow: /contact
+Allow: /faq
 
-# Sitemap
-Sitemap: https://www.jobon.work/api/v1/jobs/sitemap.xml
-
-# Nicht indexieren
+# Nicht indexieren (private Bereiche)
 Disallow: /admin/
 Disallow: /applicant/
 Disallow: /company/
@@ -13,3 +16,10 @@ Disallow: /login
 Disallow: /register
 Disallow: /forgot-password
 Disallow: /reset-password
+Disallow: /account/
+
+# Sitemap
+Sitemap: https://www.jobon.work/api/v1/jobs/sitemap.xml
+
+# Crawl-Delay für höfliches Crawling
+Crawl-delay: 1
