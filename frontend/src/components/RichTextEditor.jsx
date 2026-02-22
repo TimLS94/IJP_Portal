@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Bold, Italic, List, HelpCircle } from 'lucide-react';
 
 /**
@@ -15,14 +15,32 @@ export default function RichTextEditor({
 }) {
   const editorRef = useRef(null);
   const [showHelp, setShowHelp] = useState(false);
+  const isInitializedRef = useRef(false);
+  const lastValueRef = useRef(value);
+
+  // Initialen Wert setzen (nur einmal beim Mount oder wenn sich der Wert extern ändert)
+  useEffect(() => {
+    if (editorRef.current) {
+      // Nur setzen wenn: 
+      // 1. Noch nicht initialisiert ODER
+      // 2. Der Wert sich extern geändert hat (nicht durch Eingabe)
+      if (!isInitializedRef.current || (value !== lastValueRef.current && value !== editorRef.current.innerHTML)) {
+        editorRef.current.innerHTML = value || '';
+        isInitializedRef.current = true;
+        lastValueRef.current = value;
+      }
+    }
+  }, [value]);
 
   // Formatierung anwenden
-  const applyFormat = useCallback((command, value = null) => {
-    document.execCommand(command, false, value);
+  const applyFormat = useCallback((command, val = null) => {
+    document.execCommand(command, false, val);
     editorRef.current?.focus();
     // Änderung triggern
     if (editorRef.current && onChange) {
-      onChange(editorRef.current.innerHTML);
+      const newValue = editorRef.current.innerHTML;
+      lastValueRef.current = newValue;
+      onChange(newValue);
     }
   }, [onChange]);
 
@@ -47,7 +65,9 @@ export default function RichTextEditor({
   // Input-Handler
   const handleInput = () => {
     if (editorRef.current && onChange) {
-      onChange(editorRef.current.innerHTML);
+      const newValue = editorRef.current.innerHTML;
+      lastValueRef.current = newValue;
+      onChange(newValue);
     }
   };
 
@@ -139,7 +159,6 @@ export default function RichTextEditor({
         onInput={handleInput}
         onPaste={handlePaste}
         onKeyDown={handleKeyDown}
-        dangerouslySetInnerHTML={{ __html: value }}
         data-placeholder={placeholder}
         suppressContentEditableWarning
       />
