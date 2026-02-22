@@ -235,10 +235,28 @@ function JobDetail() {
     if (!text) return null;
     
     return (
-      <div 
-        className="text-gray-600 prose prose-sm max-w-none"
-        dangerouslySetInnerHTML={{ __html: textToHtml(text) }}
-      />
+      <>
+        <div 
+          className="text-gray-600 prose prose-sm max-w-none job-content"
+          dangerouslySetInnerHTML={{ __html: textToHtml(text) }}
+        />
+        <style>{`
+          .job-content ul {
+            list-style-type: disc !important;
+            padding-left: 1.5rem !important;
+            margin: 0.5rem 0 !important;
+          }
+          .job-content ol {
+            list-style-type: decimal !important;
+            padding-left: 1.5rem !important;
+            margin: 0.5rem 0 !important;
+          }
+          .job-content li {
+            margin: 0.25rem 0 !important;
+            display: list-item !important;
+          }
+        `}</style>
+      </>
     );
   };
   
