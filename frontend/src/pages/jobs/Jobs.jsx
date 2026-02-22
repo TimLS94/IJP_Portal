@@ -30,6 +30,17 @@ const languageLevelColors = {
 function Jobs() {
   const { t, i18n } = useTranslation();
   
+  // Helper: HTML-Tags und Entities entfernen für Plain-Text Anzeige
+  const stripHtml = (text) => {
+    if (!text) return '';
+    // Erst HTML-Entities dekodieren
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    const decoded = textarea.value;
+    // Dann HTML-Tags entfernen
+    return decoded.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+  
   // Helper: Übersetzten Text holen (mit Fallback auf Deutsch)
   const getJobText = (job, field) => {
     const currentLang = i18n.language;
@@ -47,6 +58,11 @@ function Jobs() {
     
     // Fallback auf Deutsch
     return job[field] || '';
+  };
+  
+  // Helper: Plain-Text Version für Kacheln (ohne HTML)
+  const getJobTextPlain = (job, field) => {
+    return stripHtml(getJobText(job, field));
   };
   
   const positionTypes = [
@@ -397,7 +413,7 @@ function Jobs() {
                   
                   {(job.description || job.translations?.[i18n.language]?.description) && (
                     <p className="text-gray-600 line-clamp-2">
-                      {getJobText(job, 'description').substring(0, 200)}...
+                      {getJobTextPlain(job, 'description').substring(0, 200)}...
                     </p>
                   )}
                 </div>
