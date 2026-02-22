@@ -214,19 +214,33 @@ function JobDetail() {
     return job[field] || '';
   };
   
-  // Helper: Prüft ob Text HTML-Tags enthält
+  // Helper: Dekodiert HTML-Entities (falls escaped)
+  const decodeHtmlEntities = (text) => {
+    if (!text) return '';
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  };
+  
+  // Helper: Prüft ob Text HTML-Tags enthält (auch escaped)
   const isHtmlContent = (text) => {
     if (!text) return false;
-    return /<[a-z][\s\S]*>/i.test(text);
+    // Prüfe sowohl normale als auch escaped HTML-Tags
+    return /<[a-z][\s\S]*>/i.test(text) || /&lt;[a-z][\s\S]*&gt;/i.test(text);
   };
   
   // Helper: Konvertiert Plain-Text zu HTML (für Abwärtskompatibilität)
   const textToHtml = (text) => {
     if (!text) return '';
+    
+    // Erst HTML-Entities dekodieren (falls escaped)
+    let decoded = decodeHtmlEntities(text);
+    
     // Wenn bereits HTML, direkt zurückgeben
-    if (isHtmlContent(text)) return text;
+    if (/<[a-z][\s\S]*>/i.test(decoded)) return decoded;
+    
     // Plain-Text: Zeilenumbrüche zu <br> konvertieren
-    return text.replace(/\n/g, '<br>');
+    return decoded.replace(/\n/g, '<br>');
   };
   
   // Helper: Rendert formatierten Content (HTML oder Plain-Text)
