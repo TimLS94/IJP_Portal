@@ -10,6 +10,7 @@ import {
   ListTodo, Award, Gift, FileText, Globe
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import RichTextEditor from '../../components/RichTextEditor';
 
 // Verfügbare Sprachen für Stellenausschreibungen
 const JOB_LANGUAGES = [
@@ -537,14 +538,13 @@ function CreateJob() {
                 Stellenbeschreibung *
                 {activeLanguage !== 'de' && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
               </label>
-              <textarea
-                className="input-styled"
+              <RichTextEditor
                 rows={6}
                 placeholder={activeLanguage === 'de' ? 'Beschreiben Sie die Stelle allgemein. Was erwartet die Bewerber?' : `Beschreibung auf ${JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name}...`}
                 value={translations[activeLanguage].description}
-                onChange={(e) => updateTranslation('description', e.target.value)}
+                onChange={(val) => updateTranslation('description', val)}
+                helpText="Nutzen Sie die Formatierungsoptionen für Fett, Kursiv und Aufzählungen."
               />
-              <p className="text-gray-500 text-xs mt-1">Absätze und Zeilenumbrüche werden übernommen.</p>
               {activeLanguage === 'de' && !translations.de.description && <p className="text-red-500 text-sm mt-1">Beschreibung ist erforderlich</p>}
             </div>
           </div>
@@ -589,37 +589,29 @@ function CreateJob() {
             {/* Aufgaben - mehrsprachig */}
             <div>
               <label className="label">Aufgaben</label>
-              <textarea
-                className="input-styled"
+              <RichTextEditor
                 rows={5}
                 placeholder={activeLanguage === 'de' 
-                  ? "Was sind die Hauptaufgaben dieser Stelle?\n\n- Aufgabe 1\n- Aufgabe 2\n- Aufgabe 3"
+                  ? "Was sind die Hauptaufgaben dieser Stelle?"
                   : `Aufgaben auf ${JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name}...`}
                 value={translations[activeLanguage].tasks}
-                onChange={(e) => updateTranslation('tasks', e.target.value)}
+                onChange={(val) => updateTranslation('tasks', val)}
+                helpText="Nutzen Sie die Listen-Funktion für eine übersichtliche Auflistung."
               />
-              <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
-              </p>
             </div>
             
             {/* Anforderungen - mehrsprachig */}
             <div>
               <label className="label">Anforderungen</label>
-              <textarea
-                className="input-styled"
+              <RichTextEditor
                 rows={5}
                 placeholder={activeLanguage === 'de' 
-                  ? "Welche Qualifikationen und Fähigkeiten werden benötigt?\n\n- Körperliche Belastbarkeit\n- Teamfähigkeit\n- Zuverlässigkeit"
+                  ? "Welche Qualifikationen und Fähigkeiten werden benötigt?"
                   : `Anforderungen auf ${JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name}...`}
                 value={translations[activeLanguage].requirements}
-                onChange={(e) => updateTranslation('requirements', e.target.value)}
+                onChange={(val) => updateTranslation('requirements', val)}
+                helpText="Nutzen Sie die Listen-Funktion für eine übersichtliche Auflistung."
               />
-              <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
-              </p>
             </div>
           </div>
         </div>
@@ -956,19 +948,15 @@ function CreateJob() {
                 Benefits / Wir bieten
                 {activeLanguage !== 'de' && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
               </label>
-              <textarea
-                className="input-styled"
+              <RichTextEditor
                 rows={4}
                 placeholder={activeLanguage === 'de' 
-                  ? "Was bieten Sie den Bewerbern?\n\n- Unterkunft\n- Verpflegung\n- Fahrtkostenzuschuss\n- Flexible Arbeitszeiten"
+                  ? "Was bieten Sie den Bewerbern?"
                   : `Benefits auf ${JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name}...`}
                 value={translations[activeLanguage].benefits}
-                onChange={(e) => updateTranslation('benefits', e.target.value)}
+                onChange={(val) => updateTranslation('benefits', val)}
+                helpText="Nutzen Sie die Listen-Funktion für eine übersichtliche Auflistung."
               />
-              <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
-              </p>
             </div>
           </div>
         </div>

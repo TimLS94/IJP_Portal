@@ -8,6 +8,7 @@ import {
   Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
   ListTodo, FileText, Globe
 } from 'lucide-react';
+import RichTextEditor from '../../components/RichTextEditor';
 
 // Verfügbare Sprachen für Stellenanzeigen
 const JOB_LANGUAGES = [
@@ -593,14 +594,13 @@ function EditJob() {
                 Stellenbeschreibung *
                 {activeLanguage !== 'de' && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
               </label>
-              <textarea
-                className="input-styled"
+              <RichTextEditor
                 rows={6}
                 placeholder="Beschreiben Sie die Stelle allgemein. Was erwartet die Bewerber?"
                 value={translations[activeLanguage].description}
-                onChange={(e) => updateTranslation('description', e.target.value)}
+                onChange={(val) => updateTranslation('description', val)}
+                helpText="Nutzen Sie die Formatierungsoptionen für Fett, Kursiv und Aufzählungen."
               />
-              <p className="text-gray-500 text-xs mt-1">Absätze und Zeilenumbrüche werden übernommen.</p>
               {activeLanguage === 'de' && !translations.de.description && <p className="text-red-500 text-sm mt-1">Beschreibung ist erforderlich</p>}
             </div>
           </div>
@@ -620,32 +620,24 @@ function EditJob() {
           <div className="space-y-4">
             <div>
               <label className="label">Aufgaben</label>
-              <textarea
-                className="input-styled"
+              <RichTextEditor
                 rows={5}
                 placeholder="Was sind die Hauptaufgaben dieser Stelle?"
                 value={translations[activeLanguage].tasks}
-                onChange={(e) => updateTranslation('tasks', e.target.value)}
+                onChange={(val) => updateTranslation('tasks', val)}
+                helpText="Nutzen Sie die Listen-Funktion für eine übersichtliche Auflistung."
               />
-              <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
-              </p>
             </div>
             
             <div>
               <label className="label">Anforderungen</label>
-              <textarea
-                className="input-styled"
+              <RichTextEditor
                 rows={5}
                 placeholder="Welche Qualifikationen und Fähigkeiten werden benötigt?"
                 value={translations[activeLanguage].requirements}
-                onChange={(e) => updateTranslation('requirements', e.target.value)}
+                onChange={(val) => updateTranslation('requirements', val)}
+                helpText="Nutzen Sie die Listen-Funktion für eine übersichtliche Auflistung."
               />
-              <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
-              </p>
             </div>
           </div>
         </div>
@@ -954,17 +946,13 @@ function EditJob() {
               Benefits / Wir bieten
               {activeLanguage !== 'de' && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}
             </label>
-            <textarea
-              className="input-styled"
+            <RichTextEditor
               rows={4}
               placeholder="Was bieten Sie den Bewerbern? (Unterkunft, Verpflegung, etc.)"
               value={translations[activeLanguage].benefits}
-              onChange={(e) => updateTranslation('benefits', e.target.value)}
+              onChange={(val) => updateTranslation('benefits', val)}
+              helpText="Nutzen Sie die Listen-Funktion für eine übersichtliche Auflistung."
             />
-            <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
-              <FileText className="h-3 w-3" />
-              Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung
-            </p>
           </div>
         </div>
 

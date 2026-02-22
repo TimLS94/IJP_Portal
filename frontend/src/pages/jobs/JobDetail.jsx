@@ -214,6 +214,34 @@ function JobDetail() {
     return job[field] || '';
   };
   
+  // Helper: Prüft ob Text HTML-Tags enthält
+  const isHtmlContent = (text) => {
+    if (!text) return false;
+    return /<[a-z][\s\S]*>/i.test(text);
+  };
+  
+  // Helper: Konvertiert Plain-Text zu HTML (für Abwärtskompatibilität)
+  const textToHtml = (text) => {
+    if (!text) return '';
+    // Wenn bereits HTML, direkt zurückgeben
+    if (isHtmlContent(text)) return text;
+    // Plain-Text: Zeilenumbrüche zu <br> konvertieren
+    return text.replace(/\n/g, '<br>');
+  };
+  
+  // Helper: Rendert formatierten Content (HTML oder Plain-Text)
+  const renderFormattedContent = (field) => {
+    const text = getTranslatedText(field);
+    if (!text) return null;
+    
+    return (
+      <div 
+        className="text-gray-600 prose prose-sm max-w-none"
+        dangerouslySetInnerHTML={{ __html: textToHtml(text) }}
+      />
+    );
+  };
+  
   // Sprache beim Laden basierend auf Browser-Sprache setzen
   useEffect(() => {
     if (job?.available_languages?.includes(i18n.language)) {
@@ -692,7 +720,7 @@ function JobDetail() {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t('jobDetail.description', 'Beschreibung')}
               </h3>
-              <p className="text-gray-600 whitespace-pre-wrap break-words">{getTranslatedText('description')}</p>
+              {renderFormattedContent('description')}
 
               {(job.tasks || job.translations?.[displayLanguage]?.tasks) && (
                 <>
@@ -700,7 +728,7 @@ function JobDetail() {
                     <ListTodo className="h-5 w-5 text-purple-600" />
                     {t('jobDetail.tasks', 'Aufgaben')}
                   </h3>
-                  <p className="text-gray-600 whitespace-pre-wrap">{getTranslatedText('tasks')}</p>
+                  {renderFormattedContent('tasks')}
                 </>
               )}
 
@@ -709,7 +737,7 @@ function JobDetail() {
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2">
                     {t('jobDetail.requirements', 'Anforderungen')}
                   </h3>
-                  <p className="text-gray-600 whitespace-pre-wrap">{getTranslatedText('requirements')}</p>
+                  {renderFormattedContent('requirements')}
                 </>
               )}
 
@@ -718,7 +746,7 @@ function JobDetail() {
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-2">
                     {t('jobDetail.benefits', 'Wir bieten')}
                   </h3>
-                  <p className="text-gray-600 whitespace-pre-wrap">{getTranslatedText('benefits')}</p>
+                  {renderFormattedContent('benefits')}
                 </>
               )}
 
