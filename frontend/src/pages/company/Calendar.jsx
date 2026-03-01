@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { interviewsAPI } from '../../lib/api';
+import { interviewsAPI, applicationsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import {
   Calendar as CalendarIcon, Clock, MapPin, User, Briefcase, Download,
   Video, CheckCircle, AlertCircle, Loader2, ChevronLeft, ChevronRight,
-  ExternalLink, List, LayoutGrid, History
+  ExternalLink, List, LayoutGrid, History, X, Mail, Phone, FileText,
+  GraduationCap, Globe, Building2
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -26,10 +27,25 @@ function CompanyCalendar() {
   const [viewMode, setViewMode] = useState('list'); // 'list' oder 'calendar'
   const [filterTab, setFilterTab] = useState('upcoming'); // 'upcoming', 'past', 'all'
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedApplicant, setSelectedApplicant] = useState(null);
+  const [applicantLoading, setApplicantLoading] = useState(false);
 
   useEffect(() => {
     loadCalendar();
   }, []);
+
+  const loadApplicantDetails = async (applicationId, event) => {
+    setApplicantLoading(true);
+    try {
+      const response = await applicationsAPI.getApplicantDetails(applicationId);
+      setSelectedApplicant({ ...response.data, event });
+    } catch (error) {
+      console.error('Fehler beim Laden der Bewerber-Details:', error);
+      toast.error('Bewerber-Details konnten nicht geladen werden');
+    } finally {
+      setApplicantLoading(false);
+    }
+  };
 
   const loadCalendar = async () => {
     try {
@@ -378,12 +394,12 @@ function CompanyCalendar() {
                             <Download className="h-4 w-4" />
                           </button>
                         )}
-                        <Link
-                          to={`/company/applications?highlight=${event.application_id}`}
+                        <button
+                          onClick={() => loadApplicantDetails(event.application_id, event)}
                           className="text-primary-600 hover:text-primary-700 text-sm"
                         >
                           Details →
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   );
@@ -534,12 +550,12 @@ function CompanyCalendar() {
                                 <span className="hidden sm:inline">Kalender</span>
                               </button>
                             )}
-                            <Link
-                              to={`/company/applications?highlight=${event.application_id}`}
+                            <button
+                              onClick={() => loadApplicantDetails(event.application_id, event)}
                               className="btn-primary text-sm flex items-center gap-1"
                             >
                               Details
-                            </Link>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -550,6 +566,219 @@ function CompanyCalendar() {
             </div>
           )}
         </>
+      )}
+
+      {/* Bewerber-Detail-Modal */}
+      {(selectedApplicant || applicantLoading) && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {applicantLoading ? (
+              <div className="p-12 text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary-600 mx-auto mb-4" />
+                <p className="text-gray-600">Lade Bewerber-Details...</p>
+              </div>
+            ) : selectedApplicant && (
+              <>
+                {/* Header */}
+                <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      {selectedApplicant.first_name} {selectedApplicant.last_name}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      Interview: {selectedApplicant.event?.job_title}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedApplicant(null)}
+                    className="p-2 hover:bg-gray-100 rounded-lg"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                  {/* Interview-Info */}
+                  {selectedApplicant.event && (
+                    <div className="bg-primary-50 rounded-xl p-4">
+                      <h3 className="font-medium text-primary-900 mb-2 flex items-center gap-2">
+                        <CalendarIcon className="h-5 w-5" />
+                        Interview-Termin
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Datum:</span>
+                          <p className="font-medium">
+                            {formatDateTime(selectedApplicant.event.confirmed_date || selectedApplicant.event.proposed_date_1)}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Status:</span>
+                          <p className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CONFIG[selectedApplicant.event.status]?.color}`}>
+                            {STATUS_CONFIG[selectedApplicant.event.status]?.label}
+                          </p>
+                        </div>
+                        {selectedApplicant.event.location && (
+                          <div>
+                            <span className="text-gray-500">Ort:</span>
+                            <p className="font-medium">{selectedApplicant.event.location}</p>
+                          </div>
+                        )}
+                        {selectedApplicant.event.meeting_link && (
+                          <div>
+                            <span className="text-gray-500">Meeting:</span>
+                            <a 
+                              href={selectedApplicant.event.meeting_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                            >
+                              <Video className="h-4 w-4" />
+                              Link öffnen
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                      {selectedApplicant.event.status === 'confirmed' && (
+                        <button
+                          onClick={() => downloadICS(selectedApplicant.event.id, selectedApplicant.event.applicant_name)}
+                          className="mt-3 btn-secondary text-sm flex items-center gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          Zum Kalender hinzufügen
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Kontaktdaten */}
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <User className="h-5 w-5 text-gray-400" />
+                      Kontaktdaten
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedApplicant.email && (
+                        <a 
+                          href={`mailto:${selectedApplicant.email}`}
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
+                        >
+                          <Mail className="h-5 w-5 text-gray-400" />
+                          <span className="text-sm">{selectedApplicant.email}</span>
+                        </a>
+                      )}
+                      {selectedApplicant.phone && (
+                        <a 
+                          href={`tel:${selectedApplicant.phone}`}
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
+                        >
+                          <Phone className="h-5 w-5 text-gray-400" />
+                          <span className="text-sm">{selectedApplicant.phone}</span>
+                        </a>
+                      )}
+                      {selectedApplicant.location && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <MapPin className="h-5 w-5 text-gray-400" />
+                          <span className="text-sm">{selectedApplicant.location}</span>
+                        </div>
+                      )}
+                      {selectedApplicant.nationality && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <Globe className="h-5 w-5 text-gray-400" />
+                          <span className="text-sm">{selectedApplicant.nationality}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Qualifikationen */}
+                  {(selectedApplicant.education || selectedApplicant.experience) && (
+                    <div>
+                      <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                        <GraduationCap className="h-5 w-5 text-gray-400" />
+                        Qualifikationen
+                      </h3>
+                      <div className="space-y-3">
+                        {selectedApplicant.education && (
+                          <div className="p-3 bg-gray-50 rounded-lg">
+                            <p className="text-xs text-gray-500 mb-1">Ausbildung</p>
+                            <p className="text-sm">{selectedApplicant.education}</p>
+                          </div>
+                        )}
+                        {selectedApplicant.experience && (
+                          <div className="p-3 bg-gray-50 rounded-lg">
+                            <p className="text-xs text-gray-500 mb-1">Berufserfahrung</p>
+                            <p className="text-sm">{selectedApplicant.experience}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sprachkenntnisse */}
+                  {selectedApplicant.languages && selectedApplicant.languages.length > 0 && (
+                    <div>
+                      <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                        <Globe className="h-5 w-5 text-gray-400" />
+                        Sprachen
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedApplicant.languages.map((lang, i) => (
+                          <span key={i} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                            {lang.language}: {lang.level}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dokumente */}
+                  {selectedApplicant.documents && selectedApplicant.documents.length > 0 && (
+                    <div>
+                      <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-gray-400" />
+                        Dokumente
+                      </h3>
+                      <div className="space-y-2">
+                        {selectedApplicant.documents.map((doc, i) => (
+                          <a
+                            key={i}
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
+                          >
+                            <FileText className="h-5 w-5 text-primary-600" />
+                            <span className="text-sm flex-1">{doc.name || doc.type}</span>
+                            <ExternalLink className="h-4 w-4 text-gray-400" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="sticky bottom-0 bg-gray-50 border-t px-6 py-4 flex justify-between">
+                  <Link
+                    to={`/company/applications?highlight=${selectedApplicant.event?.application_id}`}
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    Zur Bewerbung
+                  </Link>
+                  <button
+                    onClick={() => setSelectedApplicant(null)}
+                    className="btn-primary"
+                  >
+                    Schließen
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
