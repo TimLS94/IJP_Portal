@@ -900,30 +900,41 @@ async def create_job_template(
     if not template_data.get('name'):
         raise HTTPException(status_code=400, detail="Vorlagenname ist erforderlich")
     
+    # Hilfsfunktion: Leere Strings zu None konvertieren
+    def clean_value(val, is_int=False):
+        if val == '' or val is None:
+            return None
+        if is_int:
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                return None
+        return val
+    
     template = JobTemplate(
         company_id=company.id,
         name=template_data.get('name'),
-        title=template_data.get('title'),
-        position_type=template_data.get('position_type'),
+        title=clean_value(template_data.get('title')),
+        position_type=clean_value(template_data.get('position_type')) or 'general',
         position_types=template_data.get('position_types', []),
-        employment_type=template_data.get('employment_type'),
-        description=template_data.get('description'),
-        tasks=template_data.get('tasks'),
-        requirements=template_data.get('requirements'),
-        benefits=template_data.get('benefits'),
-        location=template_data.get('location'),
-        address=template_data.get('address'),
-        postal_code=template_data.get('postal_code'),
+        employment_type=clean_value(template_data.get('employment_type')),
+        description=clean_value(template_data.get('description')),
+        tasks=clean_value(template_data.get('tasks')),
+        requirements=clean_value(template_data.get('requirements')),
+        benefits=clean_value(template_data.get('benefits')),
+        location=clean_value(template_data.get('location')),
+        address=clean_value(template_data.get('address')),
+        postal_code=clean_value(template_data.get('postal_code')),
         remote_possible=template_data.get('remote_possible', False),
         accommodation_provided=template_data.get('accommodation_provided', False),
-        contact_person=template_data.get('contact_person'),
-        contact_phone=template_data.get('contact_phone'),
-        contact_email=template_data.get('contact_email'),
-        salary_min=template_data.get('salary_min'),
-        salary_max=template_data.get('salary_max'),
-        salary_type=template_data.get('salary_type'),
-        german_required=template_data.get('german_required'),
-        english_required=template_data.get('english_required'),
+        contact_person=clean_value(template_data.get('contact_person')),
+        contact_phone=clean_value(template_data.get('contact_phone')),
+        contact_email=clean_value(template_data.get('contact_email')),
+        salary_min=clean_value(template_data.get('salary_min'), is_int=True),
+        salary_max=clean_value(template_data.get('salary_max'), is_int=True),
+        salary_type=clean_value(template_data.get('salary_type')),
+        german_required=clean_value(template_data.get('german_required')),
+        english_required=clean_value(template_data.get('english_required')),
         other_languages_required=template_data.get('other_languages_required', []),
         additional_requirements=template_data.get('additional_requirements', {}),
         translations=template_data.get('translations', {}),
