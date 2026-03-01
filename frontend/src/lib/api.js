@@ -301,6 +301,10 @@ export const adminAPI = {
   // Account Lockout Management
   getLockedAccounts: () => api.get('/admin/locked-accounts'),
   unlockAccount: (email) => api.post(`/admin/unlock-account/${encodeURIComponent(email)}`),
+  
+  // Job Translation
+  translateJob: (jobId, languages) => api.post(`/admin/jobs/${jobId}/translate`, { languages }),
+  getJobTranslationStatus: (jobId) => api.get(`/admin/jobs/${jobId}/translation-status`),
 };
 
 export default api;

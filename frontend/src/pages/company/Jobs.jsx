@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, BarChart2 } from 'lucide-react';
+import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, BarChart2, Languages } from 'lucide-react';
 
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
@@ -259,6 +259,13 @@ function CompanyJobs() {
                         {!job.is_active && (
                           <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
                             Inaktiv
+                          </span>
+                        )}
+                        {/* Admin-Übersetzung Badge */}
+                        {job.admin_translated && (
+                          <span className="flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium" title={`Übersetzt in: ${job.admin_translated_languages?.join(', ')}`}>
+                            <Languages className="h-3 w-3" />
+                            Automatisch übersetzt
                           </span>
                         )}
                         {/* Deadline-Badge */}

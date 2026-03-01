@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { jobsAPI, applicationsAPI, companyAPI } from '../../lib/api';
-import { Building2, Briefcase, Users, Plus, FileText } from 'lucide-react';
+import { Building2, Briefcase, Users, Plus, FileText, Languages, X } from 'lucide-react';
 
 // Status-Labels Mapping
 const statusLabels = {
@@ -30,6 +30,8 @@ function CompanyDashboard() {
   const [company, setCompany] = useState(null);
   const [recentApplications, setRecentApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [translatedJobs, setTranslatedJobs] = useState([]);
+  const [showTranslationBanner, setShowTranslationBanner] = useState(true);
 
   useEffect(() => {
     loadDashboard();
@@ -55,6 +57,10 @@ function CompanyDashboard() {
         pendingApplications: apps.filter(a => a.status === 'pending').length
       });
 
+      // Übersetzte Stellen finden
+      const adminTranslatedJobs = jobs.filter(j => j.admin_translated);
+      setTranslatedJobs(adminTranslatedJobs);
+
       setRecentApplications(apps.slice(0, 5));
     } catch (error) {
       console.error('Dashboard laden fehlgeschlagen:', error);
@@ -73,6 +79,46 @@ function CompanyDashboard() {
 
   return (
     <div>
+      {/* Banner für automatisch übersetzte Stellen */}
+      {showTranslationBanner && translatedJobs.length > 0 && (
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4 mb-6 relative">
+          <button 
+            onClick={() => setShowTranslationBanner(false)}
+            className="absolute top-3 right-3 text-indigo-400 hover:text-indigo-600"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="flex items-start gap-3">
+            <div className="bg-indigo-100 p-2 rounded-lg">
+              <Languages className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-indigo-800">
+                🎉 Gute Neuigkeiten! {translatedJobs.length === 1 ? 'Ihre Stelle wurde' : `${translatedJobs.length} Ihrer Stellen wurden`} automatisch übersetzt
+              </p>
+              <p className="text-sm text-indigo-700 mt-1">
+                Das IJP-Team hat {translatedJobs.length === 1 ? 'Ihre Stellenanzeige' : 'Ihre Stellenanzeigen'} in weitere Sprachen übersetzt, 
+                um mehr internationale Bewerber zu erreichen. Die Übersetzungen sind bereits für Bewerber sichtbar.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {translatedJobs.slice(0, 3).map(job => (
+                  <Link 
+                    key={job.id}
+                    to={`/company/jobs/${job.id}/edit`}
+                    className="text-xs bg-white px-2 py-1 rounded border border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                  >
+                    {job.title}
+                  </Link>
+                ))}
+                {translatedJobs.length > 3 && (
+                  <span className="text-xs text-indigo-600">+{translatedJobs.length - 3} weitere</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <Building2 className="h-8 w-8 text-primary-600" />

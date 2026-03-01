@@ -123,6 +123,8 @@ function EditJob() {
   const [selectedPositionTypes, setSelectedPositionTypes] = useState([]);
   const [translating, setTranslating] = useState(false);
   const [translationAvailable, setTranslationAvailable] = useState(false);
+  const [adminTranslated, setAdminTranslated] = useState(false);
+  const [adminTranslatedLanguages, setAdminTranslatedLanguages] = useState([]);
   
   // Mehrsprachige Inhalte
   const [activeLanguage, setActiveLanguage] = useState('de');
@@ -242,6 +244,10 @@ function EditJob() {
         es: jobTranslations.es || { title: '', description: '', tasks: '', requirements: '', benefits: '' },
         ru: jobTranslations.ru || { title: '', description: '', tasks: '', requirements: '', benefits: '' },
       });
+      
+      // Admin-Übersetzung Status
+      setAdminTranslated(job.admin_translated || false);
+      setAdminTranslatedLanguages(job.admin_translated_languages || []);
       
       // Formular mit bestehenden Daten füllen (inkl. neuer Felder)
       reset({
@@ -390,6 +396,23 @@ function EditJob() {
           <p className="text-gray-600">Ändern Sie die Details Ihres Stellenangebots</p>
         </div>
       </div>
+
+      {/* Admin-Übersetzung Hinweis */}
+      {adminTranslated && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <Languages className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-indigo-800">Automatisch übersetzt</p>
+            <p className="text-sm text-indigo-700">
+              Diese Stelle wurde vom IJP-Team automatisch in folgende Sprachen übersetzt: {' '}
+              <strong>{adminTranslatedLanguages.map(l => 
+                l === 'en' ? 'Englisch' : l === 'es' ? 'Spanisch' : l === 'ru' ? 'Russisch' : l
+              ).join(', ')}</strong>.
+              Die Übersetzungen sind für internationale Bewerber sichtbar.
+            </p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* Status */}

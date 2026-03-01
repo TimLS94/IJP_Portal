@@ -109,6 +109,9 @@ class JobPosting(Base):
     # Die Hauptfelder (title, description etc.) sind der deutsche Fallback
     translations = Column(JSON, default={})
     available_languages = Column(JSON, default=["de"])  # Liste der verfügbaren Sprachen für diese Stelle
+    admin_translated = Column(Boolean, default=False)  # True wenn vom Admin übersetzt
+    admin_translated_at = Column(DateTime)  # Wann vom Admin übersetzt
+    admin_translated_languages = Column(JSON, default=[])  # Welche Sprachen vom Admin übersetzt wurden
     
     # Relationships
     company = relationship("Company", back_populates="job_postings")

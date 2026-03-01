@@ -1246,3 +1246,115 @@ async def admin_unlock_account(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Account {email} ist nicht gesperrt"
     )
+
+
+# ========== ADMIN JOB TRANSLATION ==========
+
+class AdminTranslateJobRequest(BaseModel):
+    languages: List[str]  # z.B. ["en", "es", "ru"]
+
+
+@router.post("/jobs/{job_id}/translate")
+async def admin_translate_job(
+    job_id: int,
+    request: AdminTranslateJobRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Admin übersetzt eine Stellenanzeige in die gewählten Sprachen.
+    Markiert die Stelle als 'admin_translated'.
+    """
+    from app.services.translation_service import translate_job_fields, get_deepl_status
+    
+    # Job laden
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
+    
+    # DeepL Status prüfen
+    deepl_status = await get_deepl_status()
+    if not deepl_status.get("available"):
+        raise HTTPException(
+            status_code=503, 
+            detail="Übersetzungsservice nicht verfügbar. Bitte DEEPL_API_KEY konfigurieren."
+        )
+    
+    # Verfügbare Sprachen
+    valid_languages = ["en", "es", "ru"]
+    languages_to_translate = [lang for lang in request.languages if lang in valid_languages]
+    
+    if not languages_to_translate:
+        raise HTTPException(status_code=400, detail="Keine gültigen Sprachen angegeben")
+    
+    # Bestehende Übersetzungen laden oder initialisieren
+    translations = job.translations or {}
+    available_languages = job.available_languages or ["de"]
+    admin_translated_languages = job.admin_translated_languages or []
+    
+    translated_languages = []
+    errors = []
+    
+    for target_lang in languages_to_translate:
+        try:
+            # Übersetzen
+            translated = await translate_job_fields(
+                title=job.title,
+                description=job.description,
+                tasks=job.tasks,
+                requirements=job.requirements,
+                benefits=job.benefits,
+                target_lang=target_lang,
+                source_lang='de'
+            )
+            
+            if translated and translated.get('title'):
+                translations[target_lang] = translated
+                if target_lang not in available_languages:
+                    available_languages.append(target_lang)
+                if target_lang not in admin_translated_languages:
+                    admin_translated_languages.append(target_lang)
+                translated_languages.append(target_lang)
+            else:
+                errors.append(f"{target_lang}: Übersetzung fehlgeschlagen")
+                
+        except Exception as e:
+            errors.append(f"{target_lang}: {str(e)}")
+    
+    # Job aktualisieren
+    if translated_languages:
+        job.translations = translations
+        job.available_languages = available_languages
+        job.admin_translated = True
+        job.admin_translated_at = datetime.utcnow()
+        job.admin_translated_languages = admin_translated_languages
+        db.commit()
+    
+    return {
+        "success": len(translated_languages) > 0,
+        "job_id": job_id,
+        "translated_languages": translated_languages,
+        "errors": errors,
+        "message": f"Stelle in {len(translated_languages)} Sprache(n) übersetzt" if translated_languages else "Keine Übersetzungen erstellt"
+    }
+
+
+@router.get("/jobs/{job_id}/translation-status")
+async def get_job_translation_status(
+    job_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Gibt den Übersetzungsstatus einer Stelle zurück"""
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
+    
+    return {
+        "job_id": job_id,
+        "available_languages": job.available_languages or ["de"],
+        "admin_translated": job.admin_translated or False,
+        "admin_translated_at": job.admin_translated_at,
+        "admin_translated_languages": job.admin_translated_languages or [],
+        "has_translations": bool(job.translations)
+    }
