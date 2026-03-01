@@ -153,6 +153,10 @@ class JobPostingResponse(JobPostingBase):
     archived_at: Optional[datetime] = None
     view_count: Optional[int] = 0  # Statistik: Anzahl Aufrufe
     company: Optional[CompanyResponse] = None
+    # Admin-Übersetzung
+    admin_translated: Optional[bool] = False
+    admin_translated_at: Optional[datetime] = None
+    admin_translated_languages: Optional[List[str]] = None
     
     class Config:
         from_attributes = True

@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { 
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
   Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
-  ListTodo, Award, Gift, FileText, Globe, Eye, X
+  ListTodo, Award, Gift, FileText, Globe, Eye, X, Copy
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RichTextEditor from '../../components/RichTextEditor';
@@ -134,9 +134,49 @@ function CreateJob() {
         setTranslationAvailable(true);
       }
     };
+    
+    // Template aus sessionStorage laden (wenn von JobManager kommend)
+    const loadTemplate = () => {
+      const templateData = sessionStorage.getItem('jobTemplate');
+      if (templateData) {
+        try {
+          const template = JSON.parse(templateData);
+          // Formularfelder setzen
+          if (template.title) setTranslations(prev => ({ ...prev, de: { ...prev.de, title: template.title } }));
+          if (template.description) setTranslations(prev => ({ ...prev, de: { ...prev.de, description: template.description } }));
+          if (template.tasks) setTranslations(prev => ({ ...prev, de: { ...prev.de, tasks: template.tasks } }));
+          if (template.requirements) setTranslations(prev => ({ ...prev, de: { ...prev.de, requirements: template.requirements } }));
+          if (template.benefits) setTranslations(prev => ({ ...prev, de: { ...prev.de, benefits: template.benefits } }));
+          if (template.position_types) setSelectedPositionTypes(template.position_types);
+          if (template.location) setValue('location', template.location);
+          if (template.address) setValue('address', template.address);
+          if (template.postal_code) setValue('postal_code', template.postal_code);
+          if (template.employment_type) setValue('employment_type', template.employment_type);
+          if (template.remote_possible) setValue('remote_possible', template.remote_possible);
+          if (template.accommodation_provided) setValue('accommodation_provided', template.accommodation_provided);
+          if (template.contact_person) setValue('contact_person', template.contact_person);
+          if (template.contact_email) setValue('contact_email', template.contact_email);
+          if (template.contact_phone) setValue('contact_phone', template.contact_phone);
+          if (template.salary_min) setValue('salary_min', template.salary_min);
+          if (template.salary_max) setValue('salary_max', template.salary_max);
+          if (template.salary_type) setValue('salary_type', template.salary_type);
+          if (template.german_required) setValue('german_required', template.german_required);
+          if (template.english_required) setValue('english_required', template.english_required);
+          if (template.translations) setTranslations(prev => ({ ...prev, ...template.translations }));
+          if (template.available_languages) setEnabledLanguages(template.available_languages);
+          
+          toast.success(`Vorlage "${template.name}" geladen`);
+          sessionStorage.removeItem('jobTemplate');
+        } catch (e) {
+          console.error('Fehler beim Laden der Vorlage:', e);
+        }
+      }
+    };
+    
     loadSettings();
     checkTranslation();
-  }, []);
+    loadTemplate();
+  }, [setValue]);
   
   // Automatische Übersetzung
   const handleAutoTranslate = async (targetLang) => {
@@ -342,6 +382,58 @@ function CreateJob() {
     }
   };
 
+  // Als Vorlage speichern
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  const saveAsTemplate = async () => {
+    if (!templateName.trim()) {
+      toast.error('Bitte geben Sie einen Namen für die Vorlage ein');
+      return;
+    }
+    
+    setSavingTemplate(true);
+    try {
+      const templateData = {
+        name: templateName,
+        title: translations.de.title,
+        description: translations.de.description,
+        tasks: translations.de.tasks,
+        requirements: translations.de.requirements,
+        benefits: translations.de.benefits,
+        position_type: selectedPositionTypes.length > 0 ? selectedPositionTypes[0] : 'general',
+        position_types: selectedPositionTypes,
+        location: watch('location'),
+        address: watch('address'),
+        postal_code: watch('postal_code'),
+        employment_type: watch('employment_type'),
+        remote_possible: watch('remote_possible'),
+        accommodation_provided: watch('accommodation_provided'),
+        contact_person: watch('contact_person'),
+        contact_email: watch('contact_email'),
+        contact_phone: watch('contact_phone'),
+        salary_min: watch('salary_min'),
+        salary_max: watch('salary_max'),
+        salary_type: watch('salary_type'),
+        german_required: watch('german_required'),
+        english_required: watch('english_required'),
+        translations: translations,
+        available_languages: enabledLanguages
+      };
+      
+      await jobsAPI.createTemplate(templateData);
+      toast.success('Vorlage gespeichert!');
+      setShowTemplateModal(false);
+      setTemplateName('');
+    } catch (error) {
+      console.error('Fehler beim Speichern der Vorlage:', error);
+      toast.error('Fehler beim Speichern der Vorlage');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
   // Berechne max Deadline-Datum
   const maxDeadlineDate = new Date(Date.now() + jobSettings.max_job_deadline_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
@@ -352,14 +444,23 @@ function CreateJob() {
         Zurück zu meinen Stellen
       </Link>
 
-      <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-primary-100 rounded-xl">
-          <Briefcase className="h-8 w-8 text-primary-600" />
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-primary-100 rounded-xl">
+            <Briefcase className="h-8 w-8 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Neue Stelle erstellen</h1>
+            <p className="text-gray-600">Veröffentlichen Sie ein neues Stellenangebot</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Neue Stelle erstellen</h1>
-          <p className="text-gray-600">Veröffentlichen Sie ein neues Stellenangebot</p>
-        </div>
+        <Link 
+          to="/company/jobs/templates" 
+          className="btn-secondary flex items-center gap-2"
+        >
+          <FileText className="h-5 w-5" />
+          Vorlagen & Entwürfe
+        </Link>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -1008,42 +1109,52 @@ function CreateJob() {
 
         {/* Speichern Button */}
         <div className="flex justify-between items-center sticky bottom-4 bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border">
-          <Link to="/company/jobs" className="btn-secondary">
+          <Link to="/company/jobs" className="btn-secondary px-6 py-2.5">
             Abbrechen
           </Link>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setShowPreview(true)}
-              className="btn-secondary flex items-center gap-2"
+              className="btn-secondary px-4 py-2.5 flex items-center gap-2"
             >
-              <Eye className="h-5 w-5" />
-              Vorschau
+              <Eye className="h-4 w-4" />
+              <span className="hidden sm:inline">Vorschau</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTemplateModal(true)}
+              className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+              title="Als Vorlage speichern"
+            >
+              <Copy className="h-4 w-4" />
+              <span className="hidden sm:inline">Vorlage</span>
             </button>
             <button
               type="button"
               disabled={saving}
               onClick={handleSubmit((data) => onSubmit(data, true))}
-              className="btn-secondary flex items-center gap-2"
+              className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+              title="Als Entwurf speichern"
             >
               {saving ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <FileText className="h-5 w-5" />
+                <FileText className="h-4 w-4" />
               )}
-              Als Entwurf speichern
+              <span className="hidden sm:inline">Entwurf</span>
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="btn-primary flex items-center gap-2 px-8"
+              className="btn-primary px-6 py-2.5 flex items-center gap-2"
             >
               {saving ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Save className="h-5 w-5" />
+                <Save className="h-4 w-4" />
               )}
-              Stelle veröffentlichen
+              Veröffentlichen
             </button>
           </div>
         </div>
@@ -1240,6 +1351,55 @@ function CreateJob() {
               >
                 <Save className="h-5 w-5" />
                 Stelle veröffentlichen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template speichern Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Copy className="h-5 w-5 text-primary-600" />
+              Als Vorlage speichern
+            </h2>
+            <p className="text-gray-600 text-sm mb-4">
+              Speichern Sie diese Stelle als Vorlage, um sie später für ähnliche Stellenanzeigen wiederzuverwenden.
+            </p>
+            <div className="mb-6">
+              <label className="label">Vorlagenname *</label>
+              <input
+                type="text"
+                className="input-styled"
+                placeholder="z.B. Servicekraft Sommer, Fahrer Standard..."
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowTemplateModal(false);
+                  setTemplateName('');
+                }}
+                className="btn-secondary"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={saveAsTemplate}
+                disabled={savingTemplate || !templateName.trim()}
+                className="btn-primary flex items-center gap-2"
+              >
+                {savingTemplate ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Save className="h-5 w-5" />
+                )}
+                Vorlage speichern
               </button>
             </div>
           </div>
