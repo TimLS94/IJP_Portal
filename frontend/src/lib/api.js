@@ -265,7 +265,14 @@ export const interviewAPI = {
   getPending: () => api.get('/interviews/pending'),
   // Kombinierte Update-Email senden
   sendUpdateEmail: (data) => api.post('/interviews/send-update-email', data),
+  // Kalender-Ansicht für Firma
+  getCompanyCalendar: () => api.get('/interviews/company/calendar'),
+  // ICS-Download für einen Termin
+  downloadICS: (interviewId) => api.get(`/interviews/${interviewId}/calendar.ics`, { responseType: 'text' }),
 };
+
+// Alias für Kalender-Seite
+export const interviewsAPI = interviewAPI;
 
 export const adminAPI = {
   getStats: () => api.get('/admin/stats'),

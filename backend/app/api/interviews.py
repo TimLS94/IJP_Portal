@@ -8,11 +8,13 @@ Workflow:
 4. Bei Absage: Firma bekommt Email und muss neue Termine vorschlagen
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
+import uuid
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -559,4 +561,172 @@ async def get_pending_interviews(
         ).all()
     
     return [get_interview_response(i) for i in interviews]
+
+
+# === ICS Calendar Download ===
+
+def generate_ics_content(interview: Interview, applicant_name: str, job_title: str, company_name: str) -> str:
+    """Generiert ICS-Dateiinhalt für einen Interview-Termin"""
+    if not interview.confirmed_date:
+        return None
+    
+    # Termin-Daten
+    start_dt = interview.confirmed_date
+    end_dt = start_dt + timedelta(hours=1)  # Standard: 1 Stunde
+    
+    # Unique ID für den Termin
+    uid = f"interview-{interview.id}@ijp-portal.com"
+    
+    # Location
+    location = interview.location or "Wird noch bekannt gegeben"
+    if interview.meeting_link:
+        location = f"{location} - {interview.meeting_link}"
+    
+    # Beschreibung
+    description = f"Interview mit {applicant_name}\\nPosition: {job_title}\\n"
+    if interview.meeting_link:
+        description += f"Meeting-Link: {interview.meeting_link}\\n"
+    if interview.notes_company:
+        description += f"Notizen: {interview.notes_company}"
+    
+    # ICS Format (RFC 5545)
+    ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//IJP Portal//Interview Calendar//DE
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:{uid}
+DTSTAMP:{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}
+DTSTART:{start_dt.strftime('%Y%m%dT%H%M%S')}
+DTEND:{end_dt.strftime('%Y%m%dT%H%M%S')}
+SUMMARY:Interview: {applicant_name} - {job_title}
+DESCRIPTION:{description}
+LOCATION:{location}
+STATUS:CONFIRMED
+SEQUENCE:0
+END:VEVENT
+END:VCALENDAR"""
+    
+    return ics_content
+
+
+@router.get("/{interview_id}/calendar.ics")
+async def download_interview_ics(
+    interview_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Lädt einen Interview-Termin als ICS-Datei herunter.
+    Die Datei kann in jeden Kalender importiert werden (Apple, Google, Outlook).
+    """
+    from app.models.job_posting import JobPosting
+    from app.models.company import Company
+    from app.models.applicant import Applicant
+    
+    # Interview laden
+    interview = db.query(Interview).filter(Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview nicht gefunden")
+    
+    # Zugriffsprüfung
+    application = interview.application
+    job = application.job_posting
+    
+    # Firma oder Bewerber darf zugreifen
+    is_company = hasattr(current_user, 'company') and current_user.company and job.company_id == current_user.company.id
+    is_applicant = hasattr(current_user, 'applicant') and current_user.applicant and application.applicant_id == current_user.applicant.id
+    is_admin = current_user.role.value == 'admin'
+    
+    if not (is_company or is_applicant or is_admin):
+        raise HTTPException(status_code=403, detail="Kein Zugriff")
+    
+    # Nur bestätigte Termine können heruntergeladen werden
+    if not interview.confirmed_date:
+        raise HTTPException(status_code=400, detail="Nur bestätigte Termine können heruntergeladen werden")
+    
+    # Bewerber-Name
+    applicant = application.applicant
+    applicant_name = f"{applicant.first_name} {applicant.last_name}" if applicant else "Bewerber"
+    
+    # Job-Titel und Firma
+    job_title = job.title if job else "Position"
+    company_name = job.company.company_name if job and job.company else "Firma"
+    
+    # ICS generieren
+    ics_content = generate_ics_content(interview, applicant_name, job_title, company_name)
+    
+    # Dateiname
+    filename = f"interview_{applicant_name.replace(' ', '_')}_{interview.confirmed_date.strftime('%Y%m%d')}.ics"
+    
+    return Response(
+        content=ics_content,
+        media_type="text/calendar",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
+
+@router.get("/company/calendar")
+async def get_company_calendar(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Gibt alle Interview-Termine der Firma für den Kalender zurück.
+    Enthält sowohl bestätigte als auch vorgeschlagene Termine.
+    """
+    from app.models.job_posting import JobPosting
+    from app.models.company import Company
+    from app.models.applicant import Applicant
+    
+    if not hasattr(current_user, 'company') or not current_user.company:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    # Alle Interviews der Firma laden
+    interviews = db.query(Interview).join(
+        Application, Interview.application_id == Application.id
+    ).join(
+        JobPosting, Application.job_posting_id == JobPosting.id
+    ).filter(
+        JobPosting.company_id == current_user.company.id,
+        Interview.status.in_([
+            InterviewStatus.PROPOSED,
+            InterviewStatus.CONFIRMED,
+            InterviewStatus.COMPLETED
+        ])
+    ).order_by(Interview.confirmed_date.desc().nullsfirst()).all()
+    
+    # Formatierte Antwort
+    calendar_events = []
+    for interview in interviews:
+        application = interview.application
+        applicant = application.applicant
+        job = application.job_posting
+        
+        applicant_name = f"{applicant.first_name} {applicant.last_name}" if applicant else "Bewerber"
+        
+        event = {
+            "id": interview.id,
+            "application_id": interview.application_id,
+            "status": interview.status.value,
+            "applicant_name": applicant_name,
+            "applicant_email": applicant.user.email if applicant and applicant.user else None,
+            "job_title": job.title if job else None,
+            "proposed_date_1": interview.proposed_date_1.isoformat() if interview.proposed_date_1 else None,
+            "proposed_date_2": interview.proposed_date_2.isoformat() if interview.proposed_date_2 else None,
+            "confirmed_date": interview.confirmed_date.isoformat() if interview.confirmed_date else None,
+            "location": interview.location,
+            "meeting_link": interview.meeting_link,
+            "notes": interview.notes_company,
+            "created_at": interview.created_at.isoformat() if interview.created_at else None,
+        }
+        calendar_events.append(event)
+    
+    return {
+        "events": calendar_events,
+        "total": len(calendar_events)
+    }
 

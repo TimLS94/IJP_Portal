@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Briefcase, User, Building2, LogOut, Menu, X, FileText, Shield, 
   BookOpen, Settings, ClipboardList, Users, ChevronDown, Home,
-  LayoutDashboard, FolderOpen, GraduationCap, Info, Mail
+  LayoutDashboard, FolderOpen, GraduationCap, Info, Mail, Calendar
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -52,6 +52,7 @@ function Navbar() {
         { to: '/company/profile', icon: Building2, label: t('nav.companyProfile') },
         { to: '/company/jobs', icon: Briefcase, label: t('nav.jobs') },
         { to: '/company/applications', icon: FileText, label: t('nav.companyApplications') },
+        { to: '/company/calendar', icon: Calendar, label: 'Kalender' },
         { to: '/company/team', icon: Users, label: 'Team' },
         { to: '/company/ijp-auftrag', icon: Briefcase, label: 'IJP beauftragen' },
         { to: '/company/rejection-settings', icon: Mail, label: 'Absage-E-Mail' },
