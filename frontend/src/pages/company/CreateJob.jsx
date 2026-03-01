@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { jobsAPI } from '../../lib/api';
@@ -88,6 +88,8 @@ function FormattedTextarea({ label, placeholder, register, name, rows = 4, helpT
 
 function CreateJob() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isTemplateMode = searchParams.get('saveAsTemplate') === 'true';
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [otherLanguages, setOtherLanguages] = useState([]);
@@ -446,12 +448,18 @@ function CreateJob() {
 
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary-100 rounded-xl">
-            <Briefcase className="h-8 w-8 text-primary-600" />
+          <div className={`p-3 rounded-xl ${isTemplateMode ? 'bg-indigo-100' : 'bg-primary-100'}`}>
+            {isTemplateMode ? <FileText className="h-8 w-8 text-indigo-600" /> : <Briefcase className="h-8 w-8 text-primary-600" />}
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Neue Stelle erstellen</h1>
-            <p className="text-gray-600">Veröffentlichen Sie ein neues Stellenangebot</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {isTemplateMode ? 'Vorlage erstellen' : 'Neue Stelle erstellen'}
+            </h1>
+            <p className="text-gray-600">
+              {isTemplateMode 
+                ? 'Erstellen Sie eine wiederverwendbare Vorlage für Stellenanzeigen' 
+                : 'Veröffentlichen Sie ein neues Stellenangebot'}
+            </p>
           </div>
         </div>
         <Link 
@@ -462,6 +470,18 @@ function CreateJob() {
           Vorlagen
         </Link>
       </div>
+
+      {isTemplateMode && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
+          <p className="text-indigo-800 text-sm flex items-center gap-2">
+            <FileText className="h-5 w-5 flex-shrink-0" />
+            <span>
+              <strong>Vorlagen-Modus:</strong> Füllen Sie die Felder aus und klicken Sie auf "Als Vorlage speichern". 
+              Die Vorlage wird nicht als Stelle veröffentlicht, sondern kann später wiederverwendet werden.
+            </span>
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* ========== 0. SPRACH-AUSWAHL ========== */}
@@ -1121,41 +1141,54 @@ function CreateJob() {
               <Eye className="h-4 w-4" />
               <span className="hidden sm:inline">Vorschau</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setShowTemplateModal(true)}
-              className="btn-secondary px-4 py-2.5 flex items-center gap-2"
-              title="Als Vorlage speichern"
-            >
-              <Copy className="h-4 w-4" />
-              <span className="hidden sm:inline">Vorlage</span>
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleSubmit((data) => onSubmit(data, true))}
-              className="btn-secondary px-4 py-2.5 flex items-center gap-2"
-              title="Als Entwurf speichern"
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <FileText className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">Entwurf</span>
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn-primary px-6 py-2.5 flex items-center gap-2"
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Veröffentlichen
-            </button>
+            {isTemplateMode ? (
+              <button
+                type="button"
+                onClick={() => setShowTemplateModal(true)}
+                className="btn-primary px-6 py-2.5 flex items-center gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Als Vorlage speichern
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowTemplateModal(true)}
+                  className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+                  title="Als Vorlage speichern"
+                >
+                  <Copy className="h-4 w-4" />
+                  <span className="hidden sm:inline">Vorlage</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleSubmit((data) => onSubmit(data, true))}
+                  className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+                  title="Als Entwurf speichern"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline">Entwurf</span>
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary px-6 py-2.5 flex items-center gap-2"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Veröffentlichen
+                </button>
+              </>
+            )}
           </div>
         </div>
       </form>

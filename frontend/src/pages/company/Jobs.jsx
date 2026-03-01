@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { 
   Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, 
   RotateCcw, AlertTriangle, BarChart2, Languages, Lock, Unlock, FileText, Copy,
-  LayoutGrid, List, Filter, ChevronDown, Search, X
+  LayoutGrid, List, Filter, ChevronDown, Search, X, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 const positionTypeLabels = {
@@ -408,16 +408,40 @@ function CompanyJobs() {
                         <th className="pb-3 font-semibold">Titel</th>
                         <th className="pb-3 font-semibold">Status</th>
                         <th className="pb-3 font-semibold">Ort</th>
-                        <th className="pb-3 font-semibold">Erstellt</th>
-                        <th className="pb-3 font-semibold">Deadline</th>
-                        <th className="pb-3 font-semibold text-right">Aufrufe</th>
+                        <th 
+                          className="pb-3 font-semibold cursor-pointer hover:text-primary-600 select-none"
+                          onClick={() => setSortBy(sortBy === 'created_desc' ? 'created_asc' : 'created_desc')}
+                        >
+                          <span className="flex items-center gap-1">
+                            Erstellt
+                            {sortBy === 'created_desc' ? <ArrowDown className="h-3 w-3" /> : sortBy === 'created_asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 text-gray-400" />}
+                          </span>
+                        </th>
+                        <th 
+                          className="pb-3 font-semibold cursor-pointer hover:text-primary-600 select-none"
+                          onClick={() => setSortBy(sortBy === 'deadline' ? 'created_desc' : 'deadline')}
+                        >
+                          <span className="flex items-center gap-1">
+                            Deadline
+                            {sortBy === 'deadline' ? <ArrowUp className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 text-gray-400" />}
+                          </span>
+                        </th>
+                        <th 
+                          className="pb-3 font-semibold text-right cursor-pointer hover:text-primary-600 select-none"
+                          onClick={() => setSortBy(sortBy === 'views' ? 'created_desc' : 'views')}
+                        >
+                          <span className="flex items-center justify-end gap-1">
+                            Aufrufe
+                            {sortBy === 'views' ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 text-gray-400" />}
+                          </span>
+                        </th>
                         <th className="pb-3 font-semibold text-right">Aktionen</th>
                       </tr>
                     </thead>
                     <tbody>
                       {getFilteredJobs().map((job) => (
-                        <tr key={job.id} className={`border-b last:border-0 ${!job.is_active ? 'opacity-60' : ''}`}>
-                          <td className="py-3">
+                        <tr key={job.id} className={`border-b last:border-0 hover:bg-gray-50 ${!job.is_active && !job.is_draft ? 'opacity-60' : ''}`}>
+                          <td className="py-3 pr-4">
                             <Link to={`/jobs/${job.slug ? `${job.slug}-${job.id}` : job.id}`} className="font-medium text-gray-900 hover:text-primary-600">
                               {job.title}
                             </Link>
@@ -425,11 +449,11 @@ function CompanyJobs() {
                           </td>
                           <td className="py-3">
                             {job.is_draft ? (
-                              <span className="text-yellow-600">Entwurf</span>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Entwurf</span>
                             ) : job.is_active ? (
-                              <span className="text-green-600">Aktiv</span>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Aktiv</span>
                             ) : (
-                              <span className="text-gray-500">Inaktiv</span>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Inaktiv</span>
                             )}
                           </td>
                           <td className="py-3 text-gray-600">{job.location || '-'}</td>
@@ -443,15 +467,27 @@ function CompanyJobs() {
                           </td>
                           <td className="py-3 text-right font-medium text-indigo-600">{job.view_count || 0}</td>
                           <td className="py-3 text-right">
-                            <div className="flex justify-end gap-1">
-                              <Link to={`/company/jobs/${job.id}/edit`} className="p-1.5 hover:bg-gray-100 rounded" title="Bearbeiten">
-                                <Edit className="h-4 w-4 text-gray-600" />
+                            <div className="flex justify-end gap-0.5">
+                              <Link 
+                                to={`/company/jobs/${job.id}/edit`} 
+                                className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" 
+                                title="Bearbeiten"
+                              >
+                                <Edit className="h-4 w-4" />
                               </Link>
-                              <button onClick={() => toggleActive(job)} className="p-1.5 hover:bg-gray-100 rounded" title={job.is_active ? 'Deaktivieren' : 'Aktivieren'}>
-                                {job.is_active ? <EyeOff className="h-4 w-4 text-gray-600" /> : <Eye className="h-4 w-4 text-gray-600" />}
+                              <button 
+                                onClick={() => toggleActive(job)} 
+                                className={`p-2 rounded-lg transition-colors ${job.is_active ? 'text-gray-500 hover:text-orange-600 hover:bg-orange-50' : 'text-gray-500 hover:text-green-600 hover:bg-green-50'}`}
+                                title={job.is_active ? 'Deaktivieren' : 'Aktivieren'}
+                              >
+                                {job.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                               </button>
-                              <button onClick={() => handleArchive(job.id)} className="p-1.5 hover:bg-red-50 rounded" title="Archivieren">
-                                <Archive className="h-4 w-4 text-red-500" />
+                              <button 
+                                onClick={() => handleArchive(job.id)} 
+                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                                title="Archivieren"
+                              >
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
                           </td>
@@ -583,11 +619,11 @@ function CompanyJobs() {
               <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Keine Vorlagen</h2>
               <p className="text-gray-600 mb-4">
-                Erstellen Sie Vorlagen, um ähnliche Stellen schneller zu erstellen.
+                Erstellen Sie eine Stelle und speichern Sie diese als Vorlage, um sie später wiederzuverwenden.
               </p>
-              <Link to="/company/jobs/new" className="btn-primary inline-flex items-center gap-2">
+              <Link to="/company/jobs/new?saveAsTemplate=true" className="btn-primary inline-flex items-center gap-2">
                 <Plus className="h-5 w-5" />
-                Neue Stelle erstellen
+                Vorlage erstellen
               </Link>
             </div>
           ) : (
