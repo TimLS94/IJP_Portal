@@ -378,6 +378,184 @@ async def track_job_view(job_id: int, db: Session = Depends(get_db)):
     return {"success": True, "view_count": job.view_count}
 
 
+# ========== JOB TEMPLATES (muss vor /{job_id} stehen!) ==========
+
+@router.get("/templates")
+async def get_job_templates(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Listet alle Vorlagen der Firma"""
+    from app.models.job_template import JobTemplate
+    
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firmen-Profil nicht gefunden")
+    
+    templates = db.query(JobTemplate).filter(
+        JobTemplate.company_id == company.id
+    ).order_by(JobTemplate.updated_at.desc()).all()
+    
+    return templates
+
+
+@router.post("/templates")
+async def create_job_template(
+    template_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Erstellt eine neue Vorlage"""
+    from app.models.job_template import JobTemplate
+    
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firmen-Profil nicht gefunden")
+    
+    # Name ist Pflicht
+    if not template_data.get('name'):
+        raise HTTPException(status_code=400, detail="Vorlagenname ist erforderlich")
+    
+    # Hilfsfunktion: Leere Strings zu None konvertieren
+    def clean_value(val, is_int=False):
+        if val == '' or val is None:
+            return None
+        if is_int:
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                return None
+        return val
+    
+    template = JobTemplate(
+        company_id=company.id,
+        name=template_data.get('name'),
+        title=clean_value(template_data.get('title')),
+        position_type=clean_value(template_data.get('position_type')) or 'general',
+        position_types=template_data.get('position_types', []),
+        employment_type=clean_value(template_data.get('employment_type')),
+        description=clean_value(template_data.get('description')),
+        tasks=clean_value(template_data.get('tasks')),
+        requirements=clean_value(template_data.get('requirements')),
+        benefits=clean_value(template_data.get('benefits')),
+        location=clean_value(template_data.get('location')),
+        address=clean_value(template_data.get('address')),
+        postal_code=clean_value(template_data.get('postal_code')),
+        remote_possible=template_data.get('remote_possible', False),
+        accommodation_provided=template_data.get('accommodation_provided', False),
+        contact_person=clean_value(template_data.get('contact_person')),
+        contact_phone=clean_value(template_data.get('contact_phone')),
+        contact_email=clean_value(template_data.get('contact_email')),
+        salary_min=clean_value(template_data.get('salary_min'), is_int=True),
+        salary_max=clean_value(template_data.get('salary_max'), is_int=True),
+        salary_type=clean_value(template_data.get('salary_type')),
+        german_required=clean_value(template_data.get('german_required')),
+        english_required=clean_value(template_data.get('english_required')),
+        other_languages_required=template_data.get('other_languages_required', []),
+        additional_requirements=template_data.get('additional_requirements', {}),
+        translations=template_data.get('translations', {}),
+        available_languages=template_data.get('available_languages', ['de'])
+    )
+    
+    db.add(template)
+    db.commit()
+    db.refresh(template)
+    
+    return template
+
+
+@router.get("/templates/{template_id}")
+async def get_job_template(
+    template_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Gibt eine einzelne Vorlage zurück"""
+    from app.models.job_template import JobTemplate
+    
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    template = db.query(JobTemplate).filter(
+        JobTemplate.id == template_id,
+        JobTemplate.company_id == company.id
+    ).first()
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
+    
+    return template
+
+
+@router.put("/templates/{template_id}")
+async def update_job_template(
+    template_id: int,
+    template_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert eine Vorlage"""
+    from app.models.job_template import JobTemplate
+    
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    template = db.query(JobTemplate).filter(
+        JobTemplate.id == template_id,
+        JobTemplate.company_id == company.id
+    ).first()
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
+    
+    # Felder aktualisieren
+    for key, value in template_data.items():
+        if hasattr(template, key) and key not in ['id', 'company_id', 'created_at']:
+            setattr(template, key, value)
+    
+    db.commit()
+    db.refresh(template)
+    
+    return template
+
+
+@router.delete("/templates/{template_id}")
+async def delete_job_template(
+    template_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Löscht eine Vorlage"""
+    from app.models.job_template import JobTemplate
+    
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    template = db.query(JobTemplate).filter(
+        JobTemplate.id == template_id,
+        JobTemplate.company_id == company.id
+    ).first()
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
+    
+    db.delete(template)
+    db.commit()
+    
+    return {"success": True, "message": "Vorlage gelöscht"}
+
+
+# ========== JOB CRUD ==========
+
 @router.get("/{job_id}", response_model=JobPostingResponse)
 async def get_job(job_id: int, db: Session = Depends(get_db)):
     """Gibt ein Stellenangebot zurück (öffentlich) - Legacy-Endpoint für Rückwärtskompatibilität"""
@@ -854,179 +1032,3 @@ async def get_translation_status(
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
     return get_deepl_status()
-
-
-# ========== JOB TEMPLATES ==========
-
-@router.get("/templates")
-async def get_job_templates(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Listet alle Vorlagen der Firma"""
-    from app.models.job_template import JobTemplate
-    
-    if current_user.role != UserRole.COMPANY:
-        raise HTTPException(status_code=403, detail="Nur für Firmen")
-    
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
-    if not company:
-        raise HTTPException(status_code=404, detail="Firmen-Profil nicht gefunden")
-    
-    templates = db.query(JobTemplate).filter(
-        JobTemplate.company_id == company.id
-    ).order_by(JobTemplate.updated_at.desc()).all()
-    
-    return templates
-
-
-@router.post("/templates")
-async def create_job_template(
-    template_data: dict,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Erstellt eine neue Vorlage"""
-    from app.models.job_template import JobTemplate
-    
-    if current_user.role != UserRole.COMPANY:
-        raise HTTPException(status_code=403, detail="Nur für Firmen")
-    
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
-    if not company:
-        raise HTTPException(status_code=404, detail="Firmen-Profil nicht gefunden")
-    
-    # Name ist Pflicht
-    if not template_data.get('name'):
-        raise HTTPException(status_code=400, detail="Vorlagenname ist erforderlich")
-    
-    # Hilfsfunktion: Leere Strings zu None konvertieren
-    def clean_value(val, is_int=False):
-        if val == '' or val is None:
-            return None
-        if is_int:
-            try:
-                return int(val)
-            except (ValueError, TypeError):
-                return None
-        return val
-    
-    template = JobTemplate(
-        company_id=company.id,
-        name=template_data.get('name'),
-        title=clean_value(template_data.get('title')),
-        position_type=clean_value(template_data.get('position_type')) or 'general',
-        position_types=template_data.get('position_types', []),
-        employment_type=clean_value(template_data.get('employment_type')),
-        description=clean_value(template_data.get('description')),
-        tasks=clean_value(template_data.get('tasks')),
-        requirements=clean_value(template_data.get('requirements')),
-        benefits=clean_value(template_data.get('benefits')),
-        location=clean_value(template_data.get('location')),
-        address=clean_value(template_data.get('address')),
-        postal_code=clean_value(template_data.get('postal_code')),
-        remote_possible=template_data.get('remote_possible', False),
-        accommodation_provided=template_data.get('accommodation_provided', False),
-        contact_person=clean_value(template_data.get('contact_person')),
-        contact_phone=clean_value(template_data.get('contact_phone')),
-        contact_email=clean_value(template_data.get('contact_email')),
-        salary_min=clean_value(template_data.get('salary_min'), is_int=True),
-        salary_max=clean_value(template_data.get('salary_max'), is_int=True),
-        salary_type=clean_value(template_data.get('salary_type')),
-        german_required=clean_value(template_data.get('german_required')),
-        english_required=clean_value(template_data.get('english_required')),
-        other_languages_required=template_data.get('other_languages_required', []),
-        additional_requirements=template_data.get('additional_requirements', {}),
-        translations=template_data.get('translations', {}),
-        available_languages=template_data.get('available_languages', ['de'])
-    )
-    
-    db.add(template)
-    db.commit()
-    db.refresh(template)
-    
-    return template
-
-
-@router.get("/templates/{template_id}")
-async def get_job_template(
-    template_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Gibt eine einzelne Vorlage zurück"""
-    from app.models.job_template import JobTemplate
-    
-    if current_user.role != UserRole.COMPANY:
-        raise HTTPException(status_code=403, detail="Nur für Firmen")
-    
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
-    template = db.query(JobTemplate).filter(
-        JobTemplate.id == template_id,
-        JobTemplate.company_id == company.id
-    ).first()
-    
-    if not template:
-        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
-    
-    return template
-
-
-@router.put("/templates/{template_id}")
-async def update_job_template(
-    template_id: int,
-    template_data: dict,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Aktualisiert eine Vorlage"""
-    from app.models.job_template import JobTemplate
-    
-    if current_user.role != UserRole.COMPANY:
-        raise HTTPException(status_code=403, detail="Nur für Firmen")
-    
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
-    template = db.query(JobTemplate).filter(
-        JobTemplate.id == template_id,
-        JobTemplate.company_id == company.id
-    ).first()
-    
-    if not template:
-        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
-    
-    # Felder aktualisieren
-    for key, value in template_data.items():
-        if hasattr(template, key) and key not in ['id', 'company_id', 'created_at']:
-            setattr(template, key, value)
-    
-    db.commit()
-    db.refresh(template)
-    
-    return template
-
-
-@router.delete("/templates/{template_id}")
-async def delete_job_template(
-    template_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Löscht eine Vorlage"""
-    from app.models.job_template import JobTemplate
-    
-    if current_user.role != UserRole.COMPANY:
-        raise HTTPException(status_code=403, detail="Nur für Firmen")
-    
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
-    template = db.query(JobTemplate).filter(
-        JobTemplate.id == template_id,
-        JobTemplate.company_id == company.id
-    ).first()
-    
-    if not template:
-        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
-    
-    db.delete(template)
-    db.commit()
-    
-    return {"success": True, "message": "Vorlage gelöscht"}
