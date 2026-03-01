@@ -4,13 +4,14 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Mail, Lock, Loader2, LogIn } from 'lucide-react';
+import { Mail, Lock, Loader2, LogIn, Eye, EyeOff } from 'lucide-react';
 
 function Login() {
   const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm();
 
   const onSubmit = async (data) => {
@@ -88,8 +89,8 @@ function Login() {
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
-                type="password"
-                className="input-styled pl-12"
+                type={showPassword ? 'text' : 'password'}
+                className="input-styled pl-12 pr-12"
                 placeholder="••••••••"
                 {...register('password', {
                   required: t('auth.passwordRequired'),
@@ -99,6 +100,13 @@ function Login() {
                   }
                 })}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
           </div>

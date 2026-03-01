@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { authAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { Mail, Lock, User, Building2, Loader2, CheckCircle, Clock, MapPin, Phone } from 'lucide-react';
+import { Mail, Lock, User, Building2, Loader2, CheckCircle, Clock, MapPin, Phone, Eye, EyeOff } from 'lucide-react';
 
 const LEGAL_FORMS = [
   { value: 'gmbh', label: 'GmbH' },
@@ -26,6 +26,8 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const [userType, setUserType] = useState('applicant');
   const [companyPending, setCompanyPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register, handleSubmit, formState: { errors }, watch } = useForm();
 
   const password = watch('password');
@@ -320,8 +322,8 @@ function Register() {
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
-                type="password"
-                className="input-styled pl-12"
+                type={showPassword ? 'text' : 'password'}
+                className="input-styled pl-12 pr-12"
                 placeholder="••••••••"
                 {...register('password', {
                   required: t('auth.passwordRequired'),
@@ -331,6 +333,13 @@ function Register() {
                   }
                 })}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
           </div>
@@ -340,14 +349,21 @@ function Register() {
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
-                type="password"
-                className="input-styled pl-12"
+                type={showConfirmPassword ? 'text' : 'password'}
+                className="input-styled pl-12 pr-12"
                 placeholder="••••••••"
                 {...register('confirmPassword', {
                   required: t('auth.confirmPasswordRequired'),
                   validate: value => value === password || t('auth.passwordsMismatch')
                 })}
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
             {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>}
           </div>
