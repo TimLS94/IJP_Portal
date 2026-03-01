@@ -20,8 +20,7 @@ const JOB_LANGUAGES = [
 
 const positionTypes = [
   { value: 'studentenferienjob', label: 'Studentenferienjob', description: 'Für Studenten aus dem Ausland' },
-  { value: 'saisonjob', label: 'Saisonjob (8 Monate)', description: 'Saisonarbeit (max. 90 Tage)' },
-  { value: 'workandholiday', label: 'Work & Holiday', description: 'Working Holiday Visum' },
+  { value: 'saisonjob', label: 'Saisonjob', description: 'Saisonarbeit & Work & Holiday' },
   { value: 'fachkraft', label: 'Fachkraft', description: 'Qualifizierte Fachkräfte' },
   { value: 'ausbildung', label: 'Ausbildung', description: 'Berufsausbildung' }
 ];

@@ -22,8 +22,8 @@ const statusOptions = [
 
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
-  saisonjob: 'Saisonjob (8 Monate)',
-  workandholiday: 'Work & Holiday',
+  saisonjob: 'Saisonjob',
+  workandholiday: 'Saisonjob',  // Legacy
   fachkraft: 'Fachkraft',
   ausbildung: 'Ausbildung'
 };

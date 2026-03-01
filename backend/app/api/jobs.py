@@ -46,7 +46,8 @@ async def get_sitemap_urls(db: Session = Depends(get_db)):
     """
     jobs = db.query(JobPosting).filter(
         JobPosting.is_active == True,
-        JobPosting.is_archived == False
+        JobPosting.is_archived == False,
+        JobPosting.is_draft == False  # Entwürfe ausblenden
     ).all()
     
     urls = []
@@ -174,7 +175,8 @@ async def get_sitemap_xml(db: Session = Depends(get_db)):
     """
     jobs = db.query(JobPosting).filter(
         JobPosting.is_active == True,
-        JobPosting.is_archived == False
+        JobPosting.is_archived == False,
+        JobPosting.is_draft == False  # Entwürfe ausblenden
     ).all()
     
     base_url = "https://www.jobon.work"
@@ -226,7 +228,10 @@ async def list_jobs(
     """Listet alle aktiven Stellenangebote (öffentlich)"""
     query = db.query(JobPosting).options(
         joinedload(JobPosting.company)
-    ).filter(JobPosting.is_active == True)
+    ).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_draft == False  # Entwürfe ausblenden
+    )
     
     if position_type:
         query = query.filter(JobPosting.position_type == position_type)
@@ -690,13 +695,17 @@ async def get_archived_jobs(
             detail="Firmen-Profil nicht gefunden"
         )
     
-    # Nur archivierte Stellen, die nicht älter als 30 Tage sind
+    # Archivierte Stellen: entweder keep_archived=True ODER nicht älter als 30 Tage
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    from sqlalchemy import or_
     jobs = db.query(JobPosting).filter(
         JobPosting.company_id == company.id,
         JobPosting.is_archived == True,
-        # Nur Stellen anzeigen, die nicht zu alt zum Reaktivieren sind
-        JobPosting.archived_at >= thirty_days_ago
+        # Stellen mit keep_archived=True werden immer angezeigt, sonst nur wenn nicht zu alt
+        or_(
+            JobPosting.keep_archived == True,
+            JobPosting.archived_at >= thirty_days_ago
+        )
     ).order_by(JobPosting.archived_at.desc()).all()
     
     return jobs

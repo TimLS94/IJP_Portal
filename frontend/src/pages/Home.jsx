@@ -34,7 +34,6 @@ function Home() {
   const positionTypes = [
     { id: 'studentenferienjob', name: t('positionTypes.studentenferienjob'), color: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200', icon: '🎓' },
     { id: 'saisonjob', name: t('positionTypes.saisonjob'), color: 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200', icon: '🌾' },
-    { id: 'workandholiday', name: t('positionTypes.workandholiday'), color: 'bg-pink-100 text-pink-800 border-pink-200 hover:bg-pink-200', icon: '✈️' },
     { id: 'fachkraft', name: t('positionTypes.fachkraft'), color: 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200', icon: '👔' },
     { id: 'ausbildung', name: t('positionTypes.ausbildung'), color: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200', icon: '📚' }
   ];

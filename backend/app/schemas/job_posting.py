@@ -115,6 +115,8 @@ class JobPostingUpdate(BaseModel):
     
     additional_requirements: Optional[dict] = None
     is_active: Optional[bool] = None
+    is_draft: Optional[bool] = None  # NEU: Entwurf
+    keep_archived: Optional[bool] = None  # NEU: Nicht automatisch löschen
     deadline: Optional[date] = None  # Bewerbungsschluss
     
     # Mehrsprachige Inhalte
@@ -143,7 +145,9 @@ class JobPostingResponse(JobPostingBase):
     company_id: int
     slug: Optional[str] = None  # SEO: URL-Slug
     is_active: bool
+    is_draft: Optional[bool] = False  # NEU: Entwurf
     is_archived: Optional[bool] = False
+    keep_archived: Optional[bool] = False  # NEU: Nicht automatisch löschen
     created_at: datetime
     updated_at: datetime
     archived_at: Optional[datetime] = None

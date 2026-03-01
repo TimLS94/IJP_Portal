@@ -174,8 +174,7 @@ function CreateJob() {
   // Position types with translations - "general" ist der Default wenn nichts ausgewählt
   const positionTypes = [
     { value: 'studentenferienjob', label: t('positionTypes.studentenferienjob'), description: 'Für Studenten aus dem Ausland' },
-    { value: 'saisonjob', label: t('positionTypes.saisonjob'), description: 'Saisonarbeit (max. 90 Tage)' },
-    { value: 'workandholiday', label: 'Work & Holiday', description: 'Working Holiday Visum' },
+    { value: 'saisonjob', label: t('positionTypes.saisonjob'), description: 'Saisonarbeit & Work & Holiday' },
     { value: 'fachkraft', label: t('positionTypes.fachkraft'), description: 'Qualifizierte Fachkräfte' },
     { value: 'ausbildung', label: 'Ausbildung', description: 'Berufsausbildung' }
   ];
@@ -253,14 +252,14 @@ function CreateJob() {
     return isNaN(parsed) ? null : parsed;
   };
 
-  const onSubmit = async (data) => {
-    // Validierung der deutschen Pflichtfelder
-    if (!translations.de.title?.trim()) {
+  const onSubmit = async (data, isDraft = false) => {
+    // Validierung der deutschen Pflichtfelder (nur bei Veröffentlichung)
+    if (!isDraft && !translations.de.title?.trim()) {
       toast.error('Bitte geben Sie einen Stellentitel (Deutsch) ein');
       setActiveLanguage('de');
       return;
     }
-    if (!translations.de.description?.trim()) {
+    if (!isDraft && !translations.de.description?.trim()) {
       toast.error('Bitte geben Sie eine Stellenbeschreibung (Deutsch) ein');
       setActiveLanguage('de');
       return;
@@ -324,8 +323,14 @@ function CreateJob() {
       // Haupttyp: erster ausgewählter oder "general"
       cleanData.position_type = selectedPositionTypes.length > 0 ? selectedPositionTypes[0] : 'general';
       
+      // Draft-Modus: Stelle als Entwurf speichern (nicht aktiv)
+      if (isDraft) {
+        cleanData.is_draft = true;
+        cleanData.is_active = false;
+      }
+      
       await jobsAPI.create(cleanData);
-      toast.success('Stellenangebot erstellt!');
+      toast.success(isDraft ? 'Entwurf gespeichert!' : 'Stellenangebot erstellt!');
       navigate('/company/jobs');
     } catch (error) {
       console.error('Fehler beim Erstellen:', error);
@@ -1001,22 +1006,37 @@ function CreateJob() {
         </div>
 
         {/* Speichern Button */}
-        <div className="flex justify-end gap-4 sticky bottom-4 bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border">
+        <div className="flex justify-between items-center sticky bottom-4 bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border">
           <Link to="/company/jobs" className="btn-secondary">
             Abbrechen
           </Link>
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn-primary flex items-center gap-2 px-8"
-          >
-            {saving ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Save className="h-5 w-5" />
-            )}
-            Stelle veröffentlichen
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSubmit((data) => onSubmit(data, true))}
+              className="btn-secondary flex items-center gap-2"
+            >
+              {saving ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <FileText className="h-5 w-5" />
+              )}
+              Als Entwurf speichern
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-primary flex items-center gap-2 px-8"
+            >
+              {saving ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Save className="h-5 w-5" />
+              )}
+              Stelle veröffentlichen
+            </button>
+          </div>
         </div>
       </form>
     </div>

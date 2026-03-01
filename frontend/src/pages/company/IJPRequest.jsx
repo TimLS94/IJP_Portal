@@ -361,8 +361,7 @@ function CompanyIJPRequest() {
                 >
                   <option value="">Bitte wählen...</option>
                   <option value="studentenferienjob">Studentenferienjob</option>
-                  <option value="saisonjob">Saisonjob (8 Monate)</option>
-                  <option value="workandholiday">Work & Holiday</option>
+                  <option value="saisonjob">Saisonjob</option>
                   <option value="fachkraft">Fachkraft</option>
                   <option value="ausbildung">Ausbildung</option>
                 </select>

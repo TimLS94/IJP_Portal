@@ -93,7 +93,9 @@ class JobPosting(Base):
     
     # Status
     is_active = Column(Boolean, default=True)
+    is_draft = Column(Boolean, default=False)  # NEU: Entwurf (nicht veröffentlicht)
     is_archived = Column(Boolean, default=False)  # Für archivierte Stellen (reaktivierbar)
+    keep_archived = Column(Boolean, default=False)  # NEU: Nicht automatisch löschen (permanent archiviert)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

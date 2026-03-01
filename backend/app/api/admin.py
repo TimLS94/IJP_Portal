@@ -1323,11 +1323,20 @@ async def admin_translate_job(
     
     # Job aktualisieren
     if translated_languages:
+        # SQLAlchemy erkennt JSON-Änderungen nicht automatisch - flag_modified verwenden
+        from sqlalchemy.orm.attributes import flag_modified
+        
         job.translations = translations
         job.available_languages = available_languages
         job.admin_translated = True
         job.admin_translated_at = datetime.utcnow()
         job.admin_translated_languages = admin_translated_languages
+        
+        # Explizit als geändert markieren für JSON-Felder
+        flag_modified(job, 'translations')
+        flag_modified(job, 'available_languages')
+        flag_modified(job, 'admin_translated_languages')
+        
         db.commit()
     
     return {
