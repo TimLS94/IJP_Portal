@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { 
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
   Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
-  ListTodo, Award, Gift, FileText, Globe
+  ListTodo, Award, Gift, FileText, Globe, Eye, X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RichTextEditor from '../../components/RichTextEditor';
@@ -94,6 +94,7 @@ function CreateJob() {
   const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90, archive_deletion_days: 90 });
   const [translating, setTranslating] = useState(false);
   const [translationAvailable, setTranslationAvailable] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   
   // Mehrsprachige Inhalte
   const [activeLanguage, setActiveLanguage] = useState('de');
@@ -1013,6 +1014,14 @@ function CreateJob() {
           <div className="flex gap-3">
             <button
               type="button"
+              onClick={() => setShowPreview(true)}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <Eye className="h-5 w-5" />
+              Vorschau
+            </button>
+            <button
+              type="button"
               disabled={saving}
               onClick={handleSubmit((data) => onSubmit(data, true))}
               className="btn-secondary flex items-center gap-2"
@@ -1039,6 +1048,203 @@ function CreateJob() {
           </div>
         </div>
       </form>
+
+      {/* Vorschau Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8 relative">
+            <div className="sticky top-0 bg-white border-b p-4 rounded-t-2xl flex items-center justify-between z-10">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Eye className="h-5 w-5 text-primary-600" />
+                Vorschau Ihrer Stellenanzeige
+              </h2>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {/* Header */}
+              <div className="mb-6">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                    {translations.de.title || 'Stellentitel'}
+                  </h1>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedPositionTypes.length > 0 ? (
+                      selectedPositionTypes.map((type) => (
+                        <span key={type} className={`px-3 py-1 rounded-full text-sm font-semibold border ${
+                          type === 'studentenferienjob' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                          type === 'saisonjob' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                          type === 'fachkraft' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                          type === 'ausbildung' ? 'bg-green-100 text-green-800 border-green-200' :
+                          'bg-gray-100 text-gray-800 border-gray-200'
+                        }`}>
+                          {positionTypes.find(p => p.value === type)?.label || type}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                        Keine Jobart ausgewählt
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-4 text-gray-600">
+                  {watch('location') && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="h-5 w-5 text-gray-400" />
+                      {watch('location')}
+                    </span>
+                  )}
+                  {watch('employment_type') && (
+                    <span className="flex items-center gap-1.5">
+                      <Briefcase className="h-5 w-5 text-gray-400" />
+                      {employmentTypes.find(e => e.value === watch('employment_type'))?.label}
+                    </span>
+                  )}
+                  {(watch('salary_min') || watch('salary_max')) && (
+                    <span className="flex items-center gap-1.5">
+                      <Euro className="h-5 w-5 text-gray-400" />
+                      {watch('salary_min') && watch('salary_max') 
+                        ? `${watch('salary_min')} - ${watch('salary_max')}€`
+                        : watch('salary_min') ? `ab ${watch('salary_min')}€` : `bis ${watch('salary_max')}€`
+                      }
+                      {watch('salary_type') && ` / ${salaryTypes.find(s => s.value === watch('salary_type'))?.label}`}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Beschreibung */}
+              {translations.de.description && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary-600" />
+                    Stellenbeschreibung
+                  </h3>
+                  <div 
+                    className="prose prose-sm max-w-none text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: translations.de.description }}
+                  />
+                </div>
+              )}
+
+              {/* Aufgaben */}
+              {translations.de.tasks && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <ListTodo className="h-5 w-5 text-primary-600" />
+                    Ihre Aufgaben
+                  </h3>
+                  <div 
+                    className="prose prose-sm max-w-none text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: translations.de.tasks }}
+                  />
+                </div>
+              )}
+
+              {/* Anforderungen */}
+              {translations.de.requirements && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary-600" />
+                    Anforderungen
+                  </h3>
+                  <div 
+                    className="prose prose-sm max-w-none text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: translations.de.requirements }}
+                  />
+                </div>
+              )}
+
+              {/* Benefits */}
+              {translations.de.benefits && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Gift className="h-5 w-5 text-primary-600" />
+                    Wir bieten
+                  </h3>
+                  <div 
+                    className="prose prose-sm max-w-none text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: translations.de.benefits }}
+                  />
+                </div>
+              )}
+
+              {/* Sprachanforderungen */}
+              <div className="mb-6 bg-gray-50 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Languages className="h-5 w-5 text-primary-600" />
+                  Sprachanforderungen
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  <span className="px-3 py-1.5 bg-white rounded-lg border text-sm">
+                    🇩🇪 Deutsch: {languageLevels.find(l => l.value === watch('german_required'))?.label || 'Nicht erforderlich'}
+                  </span>
+                  <span className="px-3 py-1.5 bg-white rounded-lg border text-sm">
+                    🇬🇧 Englisch: {languageLevels.find(l => l.value === watch('english_required'))?.label || 'Nicht erforderlich'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Kontakt */}
+              {(watch('contact_person') || watch('contact_email') || watch('contact_phone')) && (
+                <div className="bg-primary-50 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <User className="h-5 w-5 text-primary-600" />
+                    Kontakt
+                  </h3>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    {watch('contact_person') && (
+                      <span className="flex items-center gap-1.5">
+                        <User className="h-4 w-4 text-gray-400" />
+                        {watch('contact_person')}
+                      </span>
+                    )}
+                    {watch('contact_email') && (
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="h-4 w-4 text-gray-400" />
+                        {watch('contact_email')}
+                      </span>
+                    )}
+                    {watch('contact_phone') && (
+                      <span className="flex items-center gap-1.5">
+                        <Phone className="h-4 w-4 text-gray-400" />
+                        {watch('contact_phone')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t p-4 rounded-b-2xl flex justify-end gap-3">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="btn-secondary"
+              >
+                Schließen
+              </button>
+              <button
+                onClick={() => {
+                  setShowPreview(false);
+                  // Trigger form submit
+                  document.querySelector('form')?.requestSubmit();
+                }}
+                className="btn-primary flex items-center gap-2"
+              >
+                <Save className="h-5 w-5" />
+                Stelle veröffentlichen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

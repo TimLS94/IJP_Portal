@@ -263,9 +263,18 @@ function CompanyJobs() {
                         >
                           {job.title}
                         </Link>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${positionTypeColors[job.position_type]}`}>
-                          {positionTypeLabels[job.position_type]}
-                        </span>
+                        {/* Mehrere Jobarten-Badges */}
+                        {(job.position_types && job.position_types.length > 0) ? (
+                          job.position_types.map((type) => (
+                            <span key={type} className={`px-3 py-1 rounded-full text-sm font-medium ${positionTypeColors[type] || 'bg-gray-100 text-gray-800'}`}>
+                              {positionTypeLabels[type] || type}
+                            </span>
+                          ))
+                        ) : (
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${positionTypeColors[job.position_type]}`}>
+                            {positionTypeLabels[job.position_type]}
+                          </span>
+                        )}
                         {job.is_draft && (
                           <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700 border border-yellow-200">
                             Entwurf

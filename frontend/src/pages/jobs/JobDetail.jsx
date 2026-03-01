@@ -711,9 +711,23 @@ function JobDetail() {
                   )}
                 </div>
                 
-                <span className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${positionTypeColors[job.position_type]}`}>
-                  {positionTypeLabels[job.position_type]}
-                </span>
+                {/* Mehrere Jobarten-Badges anzeigen wenn vorhanden */}
+                <div className="flex flex-wrap gap-2">
+                  {(job.position_types && job.position_types.length > 0) ? (
+                    job.position_types.map((type) => (
+                      <span 
+                        key={type}
+                        className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${positionTypeColors[type] || positionTypeColors.general}`}
+                      >
+                        {positionTypeLabels[type] || type}
+                      </span>
+                    ))
+                  ) : (
+                    <span className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${positionTypeColors[job.position_type]}`}>
+                      {positionTypeLabels[job.position_type]}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
