@@ -174,39 +174,49 @@ function Register() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Firmenname */}
-              <div>
-                <label className="label">{t('auth.companyNameLabel')} *</label>
-                <div className="relative">
-                  <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    className="input-styled pl-12"
-                    placeholder="Musterfirma"
-                    {...register('companyName', { required: t('auth.companyNameRequired') })}
-                  />
+              <p className="text-xs text-gray-500 mb-2">Alle Felder außer Ansprechpartner sind Pflichtfelder.</p>
+              
+              {/* Firmenname + Rechtsform */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">{t('auth.companyNameLabel')}</label>
+                  <div className="relative">
+                    <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type="text"
+                      className="input-styled pl-12"
+                      placeholder="Musterfirma"
+                      {...register('companyName', { required: t('auth.companyNameRequired') })}
+                    />
+                  </div>
+                  {errors.companyName && <p className="text-red-500 text-sm mt-1">{errors.companyName.message}</p>}
                 </div>
-                {errors.companyName && <p className="text-red-500 text-sm mt-1">{errors.companyName.message}</p>}
-              </div>
-
-              {/* Rechtsform */}
-              <div>
-                <label className="label">Rechtsform *</label>
-                <select
-                  className="input-styled"
-                  {...register('legalForm', { required: 'Bitte wählen Sie eine Rechtsform' })}
-                >
-                  <option value="">Bitte wählen...</option>
-                  {LEGAL_FORMS.map(form => (
-                    <option key={form.value} value={form.value}>{form.label}</option>
-                  ))}
-                </select>
-                {errors.legalForm && <p className="text-red-500 text-sm mt-1">{errors.legalForm.message}</p>}
+                <div>
+                  <label className="label">Rechtsform</label>
+                  <div className="relative">
+                    <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                    <select
+                      className="input-styled pl-12 appearance-none bg-white cursor-pointer"
+                      {...register('legalForm', { required: 'Bitte wählen Sie eine Rechtsform' })}
+                    >
+                      <option value="">Bitte wählen...</option>
+                      {LEGAL_FORMS.map(form => (
+                        <option key={form.value} value={form.value}>{form.label}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                  {errors.legalForm && <p className="text-red-500 text-sm mt-1">{errors.legalForm.message}</p>}
+                </div>
               </div>
 
               {/* Ansprechpartner (optional) */}
               <div>
-                <label className="label">Ansprechpartner</label>
+                <label className="label">Ansprechpartner <span className="text-gray-400 text-xs">(optional)</span></label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
@@ -219,42 +229,45 @@ function Register() {
               </div>
 
               {/* Adresse */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="label">Straße *</label>
-                  <input
-                    type="text"
-                    className="input-styled"
-                    placeholder="Musterstraße"
-                    {...register('street', { required: 'Straße ist erforderlich' })}
-                  />
+              <div className="grid grid-cols-4 gap-3">
+                <div className="col-span-3">
+                  <label className="label">Straße</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type="text"
+                      className="input-styled pl-12"
+                      placeholder="Musterstraße"
+                      {...register('street', { required: 'Straße ist erforderlich' })}
+                    />
+                  </div>
                   {errors.street && <p className="text-red-500 text-sm mt-1">{errors.street.message}</p>}
                 </div>
                 <div>
-                  <label className="label">Hausnr. *</label>
+                  <label className="label">Nr.</label>
                   <input
                     type="text"
                     className="input-styled"
                     placeholder="123"
-                    {...register('houseNumber', { required: 'Hausnummer ist erforderlich' })}
+                    {...register('houseNumber', { required: 'Erforderlich' })}
                   />
                   {errors.houseNumber && <p className="text-red-500 text-sm mt-1">{errors.houseNumber.message}</p>}
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 <div>
-                  <label className="label">PLZ *</label>
+                  <label className="label">PLZ</label>
                   <input
                     type="text"
                     className="input-styled"
                     placeholder="12345"
-                    {...register('postalCode', { required: 'PLZ ist erforderlich' })}
+                    {...register('postalCode', { required: 'Erforderlich' })}
                   />
                   {errors.postalCode && <p className="text-red-500 text-sm mt-1">{errors.postalCode.message}</p>}
                 </div>
-                <div className="col-span-2">
-                  <label className="label">Stadt *</label>
+                <div className="col-span-3">
+                  <label className="label">Stadt</label>
                   <input
                     type="text"
                     className="input-styled"
@@ -267,7 +280,7 @@ function Register() {
 
               {/* Telefon */}
               <div>
-                <label className="label">Telefon *</label>
+                <label className="label">Telefon</label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
