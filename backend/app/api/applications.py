@@ -388,6 +388,22 @@ async def update_application(
     db.commit()
     db.refresh(application)
     
+    # Bei Ablehnung: Alle offenen Interviews stornieren
+    if update_data.status:
+        new_status_value = update_data.status.value if hasattr(update_data.status, 'value') else str(update_data.status)
+        if new_status_value == 'rejected':
+            from app.models.interview import Interview, InterviewStatus
+            # Alle nicht-abgeschlossenen Interviews dieser Bewerbung stornieren
+            open_interviews = db.query(Interview).filter(
+                Interview.application_id == application_id,
+                Interview.status.in_([InterviewStatus.PROPOSED, InterviewStatus.CONFIRMED])
+            ).all()
+            for interview in open_interviews:
+                interview.status = InterviewStatus.CANCELLED
+                interview.notes_company = (interview.notes_company or '') + '\n[Automatisch storniert: Bewerbung abgelehnt]'
+            if open_interviews:
+                db.commit()
+    
     # E-Mail bei Statusänderung
     if update_data.status and update_data.status != old_status:
         applicant = db.query(Applicant).filter(Applicant.id == application.applicant_id).first()
