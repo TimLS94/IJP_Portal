@@ -1273,8 +1273,8 @@ async def admin_translate_job(
         raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
     
     # DeepL Status prüfen
-    deepl_status = await get_deepl_status()
-    if not deepl_status.get("available"):
+    deepl_status = get_deepl_status()
+    if not deepl_status.get("configured"):
         raise HTTPException(
             status_code=503, 
             detail="Übersetzungsservice nicht verfügbar. Bitte DEEPL_API_KEY konfigurieren."
