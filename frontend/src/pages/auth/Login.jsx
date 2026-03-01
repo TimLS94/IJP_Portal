@@ -67,6 +67,7 @@ function Login() {
                 type="email"
                 className="input-styled pl-12"
                 placeholder="ihre@email.de"
+                autoComplete="email"
                 {...register('email', {
                   required: t('auth.emailRequired'),
                   pattern: {
@@ -92,6 +93,7 @@ function Login() {
                 type={showPassword ? 'text' : 'password'}
                 className="input-styled pl-12 pr-12"
                 placeholder="••••••••"
+                autoComplete="current-password"
                 {...register('password', {
                   required: t('auth.passwordRequired'),
                   minLength: {

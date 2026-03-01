@@ -305,6 +305,7 @@ function Register() {
                 type="email"
                 className="input-styled pl-12"
                 placeholder="ihre@email.de"
+                autoComplete="email"
                 {...register('email', {
                   required: t('auth.emailRequired'),
                   pattern: {
@@ -325,6 +326,7 @@ function Register() {
                 type={showPassword ? 'text' : 'password'}
                 className="input-styled pl-12 pr-12"
                 placeholder="••••••••"
+                autoComplete="new-password"
                 {...register('password', {
                   required: t('auth.passwordRequired'),
                   minLength: {
@@ -352,6 +354,7 @@ function Register() {
                 type={showConfirmPassword ? 'text' : 'password'}
                 className="input-styled pl-12 pr-12"
                 placeholder="••••••••"
+                autoComplete="new-password"
                 {...register('confirmPassword', {
                   required: t('auth.confirmPasswordRequired'),
                   validate: value => value === password || t('auth.passwordsMismatch')
