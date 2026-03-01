@@ -38,7 +38,15 @@ function CompanyCalendar() {
     setApplicantLoading(true);
     try {
       const response = await applicationsAPI.getApplicantDetails(applicationId);
-      setSelectedApplicant({ ...response.data, event });
+      // API gibt { applicant, application, job, documents } zurück
+      const data = response.data;
+      setSelectedApplicant({
+        ...data.applicant,
+        application: data.application,
+        job: data.job,
+        documents: data.documents,
+        event
+      });
     } catch (error) {
       console.error('Fehler beim Laden der Bewerber-Details:', error);
       toast.error('Bewerber-Details konnten nicht geladen werden');
@@ -658,7 +666,7 @@ function CompanyCalendar() {
                       <User className="h-5 w-5 text-gray-400" />
                       Kontaktdaten
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {selectedApplicant.email && (
                         <a 
                           href={`mailto:${selectedApplicant.email}`}
@@ -677,10 +685,12 @@ function CompanyCalendar() {
                           <span className="text-sm">{selectedApplicant.phone}</span>
                         </a>
                       )}
-                      {selectedApplicant.location && (
+                      {selectedApplicant.address && (selectedApplicant.address.street || selectedApplicant.address.city) && (
                         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                           <MapPin className="h-5 w-5 text-gray-400" />
-                          <span className="text-sm">{selectedApplicant.location}</span>
+                          <span className="text-sm">
+                            {selectedApplicant.address.street} {selectedApplicant.address.house_number}, {selectedApplicant.address.postal_code} {selectedApplicant.address.city}
+                          </span>
                         </div>
                       )}
                       {selectedApplicant.nationality && (
@@ -689,27 +699,55 @@ function CompanyCalendar() {
                           <span className="text-sm">{selectedApplicant.nationality}</span>
                         </div>
                       )}
+                      {selectedApplicant.date_of_birth && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <CalendarIcon className="h-5 w-5 text-gray-400" />
+                          <span className="text-sm">
+                            Geb.: {new Date(selectedApplicant.date_of_birth).toLocaleDateString('de-DE')}
+                            {selectedApplicant.place_of_birth && ` in ${selectedApplicant.place_of_birth}`}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Qualifikationen */}
-                  {(selectedApplicant.education || selectedApplicant.experience) && (
+                  {(selectedApplicant.profession || selectedApplicant.field_of_study || selectedApplicant.work_experience) && (
                     <div>
                       <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
                         <GraduationCap className="h-5 w-5 text-gray-400" />
                         Qualifikationen
                       </h3>
                       <div className="space-y-3">
-                        {selectedApplicant.education && (
+                        {selectedApplicant.profession && (
                           <div className="p-3 bg-gray-50 rounded-lg">
-                            <p className="text-xs text-gray-500 mb-1">Ausbildung</p>
-                            <p className="text-sm">{selectedApplicant.education}</p>
+                            <p className="text-xs text-gray-500 mb-1">Beruf</p>
+                            <p className="text-sm font-medium">{selectedApplicant.profession}</p>
                           </div>
                         )}
-                        {selectedApplicant.experience && (
+                        {selectedApplicant.field_of_study && (
+                          <div className="p-3 bg-gray-50 rounded-lg">
+                            <p className="text-xs text-gray-500 mb-1">Studiengang</p>
+                            <p className="text-sm font-medium">
+                              {selectedApplicant.field_of_study}
+                              {selectedApplicant.university_name && ` an ${selectedApplicant.university_name}`}
+                              {selectedApplicant.current_semester && ` (${selectedApplicant.current_semester}. Semester)`}
+                            </p>
+                          </div>
+                        )}
+                        {selectedApplicant.work_experience && (
                           <div className="p-3 bg-gray-50 rounded-lg">
                             <p className="text-xs text-gray-500 mb-1">Berufserfahrung</p>
-                            <p className="text-sm">{selectedApplicant.experience}</p>
+                            <p className="text-sm">{selectedApplicant.work_experience}</p>
+                            {selectedApplicant.work_experience_years && (
+                              <p className="text-xs text-gray-500 mt-1">{selectedApplicant.work_experience_years} Jahre</p>
+                            )}
+                          </div>
+                        )}
+                        {selectedApplicant.degree && (
+                          <div className="p-3 bg-gray-50 rounded-lg">
+                            <p className="text-xs text-gray-500 mb-1">Abschluss</p>
+                            <p className="text-sm font-medium">{selectedApplicant.degree}</p>
                           </div>
                         )}
                       </div>
@@ -717,18 +755,47 @@ function CompanyCalendar() {
                   )}
 
                   {/* Sprachkenntnisse */}
-                  {selectedApplicant.languages && selectedApplicant.languages.length > 0 && (
+                  {(selectedApplicant.german_level || selectedApplicant.english_level || selectedApplicant.other_languages) && (
                     <div>
                       <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
                         <Globe className="h-5 w-5 text-gray-400" />
                         Sprachen
                       </h3>
                       <div className="flex flex-wrap gap-2">
-                        {selectedApplicant.languages.map((lang, i) => (
+                        {selectedApplicant.german_level && (
+                          <span className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                            Deutsch: {selectedApplicant.german_level}
+                          </span>
+                        )}
+                        {selectedApplicant.english_level && (
+                          <span className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                            Englisch: {selectedApplicant.english_level}
+                          </span>
+                        )}
+                        {selectedApplicant.other_languages && selectedApplicant.other_languages.map((lang, i) => (
                           <span key={i} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
-                            {lang.language}: {lang.level}
+                            {typeof lang === 'string' ? lang : `${lang.language}: ${lang.level}`}
                           </span>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Verfügbarkeit */}
+                  {(selectedApplicant.available_from || selectedApplicant.available_until) && (
+                    <div>
+                      <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                        <Clock className="h-5 w-5 text-gray-400" />
+                        Verfügbarkeit
+                      </h3>
+                      <div className="p-3 bg-gray-50 rounded-lg text-sm">
+                        {selectedApplicant.available_from && (
+                          <span>Ab {new Date(selectedApplicant.available_from).toLocaleDateString('de-DE')}</span>
+                        )}
+                        {selectedApplicant.available_from && selectedApplicant.available_until && ' - '}
+                        {selectedApplicant.available_until && (
+                          <span>Bis {new Date(selectedApplicant.available_until).toLocaleDateString('de-DE')}</span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -738,20 +805,23 @@ function CompanyCalendar() {
                     <div>
                       <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
                         <FileText className="h-5 w-5 text-gray-400" />
-                        Dokumente
+                        Dokumente ({selectedApplicant.documents.length})
                       </h3>
                       <div className="space-y-2">
                         {selectedApplicant.documents.map((doc, i) => (
                           <a
                             key={i}
-                            href={doc.url}
+                            href={`/api/v1/documents/${doc.id}/download`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
                           >
                             <FileText className="h-5 w-5 text-primary-600" />
-                            <span className="text-sm flex-1">{doc.name || doc.type}</span>
-                            <ExternalLink className="h-4 w-4 text-gray-400" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{doc.original_name || doc.document_type}</p>
+                              <p className="text-xs text-gray-500">{doc.document_type}</p>
+                            </div>
+                            <Download className="h-4 w-4 text-gray-400" />
                           </a>
                         ))}
                       </div>
