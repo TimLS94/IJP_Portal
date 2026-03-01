@@ -111,6 +111,14 @@ export const jobsAPI = {
   getTranslationStatus: () => api.get('/jobs/translate/status'),
   // Statistik: View zählen (anonym)
   trackView: (id) => api.post(`/jobs/${id}/view`),
+  // Templates
+  getTemplates: () => api.get('/jobs/templates'),
+  getTemplate: (id) => api.get(`/jobs/templates/${id}`),
+  createTemplate: (data) => api.post('/jobs/templates', data),
+  updateTemplate: (id, data) => api.put(`/jobs/templates/${id}`, data),
+  deleteTemplate: (id) => api.delete(`/jobs/templates/${id}`),
+  // Keep Archived Flag
+  setKeepArchived: (id, keepArchived) => api.put(`/jobs/${id}`, { keep_archived: keepArchived }),
 };
 
 // Applications API

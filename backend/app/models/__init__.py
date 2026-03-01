@@ -11,10 +11,11 @@ from app.models.job_request import JobRequest
 from app.models.interview import Interview, InterviewStatus
 from app.models.settings import GlobalSettings
 from app.models.company_request import CompanyRequest, CompanyRequestType, CompanyRequestStatus
+from app.models.job_template import JobTemplate
 
 __all__ = [
     "User", "Applicant", "Company", "CompanyMember", "CompanyRole", "JobPosting", 
     "Application", "Document", "BlogPost", "PasswordResetToken", "JobRequest",
     "Interview", "InterviewStatus", "GlobalSettings", "CompanyRequest", 
-    "CompanyRequestType", "CompanyRequestStatus"
+    "CompanyRequestType", "CompanyRequestStatus", "JobTemplate"
 ]

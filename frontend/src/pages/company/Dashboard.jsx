@@ -31,11 +31,22 @@ function CompanyDashboard() {
   const [recentApplications, setRecentApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [translatedJobs, setTranslatedJobs] = useState([]);
-  const [showTranslationBanner, setShowTranslationBanner] = useState(true);
+  const [showTranslationBanner, setShowTranslationBanner] = useState(false);
 
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  // Banner schließen und gesehene Übersetzungen speichern
+  const dismissTranslationBanner = () => {
+    // Speichere die IDs und Zeitstempel der gesehenen Übersetzungen
+    const seenData = translatedJobs.map(job => ({
+      id: job.id,
+      translatedAt: job.admin_translated_at
+    }));
+    localStorage.setItem('seenTranslations', JSON.stringify(seenData));
+    setShowTranslationBanner(false);
+  };
 
   const loadDashboard = async () => {
     try {
@@ -59,7 +70,24 @@ function CompanyDashboard() {
 
       // Übersetzte Stellen finden
       const adminTranslatedJobs = jobs.filter(j => j.admin_translated);
-      setTranslatedJobs(adminTranslatedJobs);
+      
+      // Prüfen ob es NEUE Übersetzungen gibt (die der User noch nicht gesehen hat)
+      const seenTranslationsRaw = localStorage.getItem('seenTranslations');
+      const seenTranslations = seenTranslationsRaw ? JSON.parse(seenTranslationsRaw) : [];
+      
+      // Finde Übersetzungen die neu sind oder aktualisiert wurden
+      const newTranslations = adminTranslatedJobs.filter(job => {
+        const seen = seenTranslations.find(s => s.id === job.id);
+        // Neu wenn: noch nie gesehen ODER Übersetzungszeitpunkt ist neuer
+        if (!seen) return true;
+        if (job.admin_translated_at && seen.translatedAt) {
+          return new Date(job.admin_translated_at) > new Date(seen.translatedAt);
+        }
+        return false;
+      });
+      
+      setTranslatedJobs(newTranslations);
+      setShowTranslationBanner(newTranslations.length > 0);
 
       setRecentApplications(apps.slice(0, 5));
     } catch (error) {
@@ -83,7 +111,7 @@ function CompanyDashboard() {
       {showTranslationBanner && translatedJobs.length > 0 && (
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4 mb-6 relative">
           <button 
-            onClick={() => setShowTranslationBanner(false)}
+            onClick={dismissTranslationBanner}
             className="absolute top-3 right-3 text-indigo-400 hover:text-indigo-600"
           >
             <X className="h-5 w-5" />

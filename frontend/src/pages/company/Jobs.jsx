@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, BarChart2, Languages } from 'lucide-react';
+import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, BarChart2, Languages, Lock, Unlock } from 'lucide-react';
 
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
@@ -146,6 +146,16 @@ function CompanyJobs() {
       loadArchivedJobs();
     } catch (error) {
       toast.error('Fehler beim Löschen');
+    }
+  };
+
+  const toggleKeepArchived = async (job) => {
+    try {
+      await jobsAPI.setKeepArchived(job.id, !job.keep_archived);
+      toast.success(job.keep_archived ? 'Automatisches Löschen aktiviert' : 'Stelle wird dauerhaft aufbewahrt');
+      loadArchivedJobs();
+    } catch (error) {
+      toast.error('Fehler beim Aktualisieren');
     }
   };
 
@@ -373,7 +383,12 @@ function CompanyJobs() {
                           <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-600">
                             Archiviert
                           </span>
-                          {daysUntilDeletion !== null && (
+                          {job.keep_archived ? (
+                            <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              <Lock className="h-3 w-3" />
+                              Dauerhaft aufbewahrt
+                            </span>
+                          ) : daysUntilDeletion !== null && (
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                               daysUntilDeletion <= 7 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
                             }`}>
@@ -406,6 +421,14 @@ function CompanyJobs() {
                           <Edit className="h-4 w-4" />
                           Bearbeiten
                         </Link>
+                        <button
+                          onClick={() => toggleKeepArchived(job)}
+                          className={`text-sm flex items-center gap-1 ${job.keep_archived ? 'btn-secondary' : 'btn-success'}`}
+                          title={job.keep_archived ? 'Automatisches Löschen aktivieren' : 'Dauerhaft aufbewahren'}
+                        >
+                          {job.keep_archived ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                          <span className="hidden sm:inline">{job.keep_archived ? 'Freigeben' : 'Behalten'}</span>
+                        </button>
                         <button
                           onClick={() => handleReactivate(job.id)}
                           className="btn-primary text-sm flex items-center gap-1"
