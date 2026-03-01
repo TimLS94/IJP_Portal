@@ -455,11 +455,11 @@ function CreateJob() {
           </div>
         </div>
         <Link 
-          to="/company/jobs/templates" 
+          to="/company/jobs?tab=templates" 
           className="btn-secondary flex items-center gap-2"
         >
           <FileText className="h-5 w-5" />
-          Vorlagen & Entwürfe
+          Vorlagen
         </Link>
       </div>
 

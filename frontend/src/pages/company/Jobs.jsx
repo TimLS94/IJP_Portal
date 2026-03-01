@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, BarChart2, Languages, Lock, Unlock } from 'lucide-react';
+import { 
+  Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, 
+  RotateCcw, AlertTriangle, BarChart2, Languages, Lock, Unlock, FileText, Copy,
+  LayoutGrid, List, Filter, ChevronDown, Search, X
+} from 'lucide-react';
 
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
@@ -83,14 +87,22 @@ const DeadlineBadge = ({ deadline }) => {
 };
 
 function CompanyJobs() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState([]);
   const [archivedJobs, setArchivedJobs] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('active'); // 'active' oder 'archived'
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'active'); // 'active', 'archived', 'templates'
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' oder 'table'
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'active', 'inactive', 'draft'
+  const [sortBy, setSortBy] = useState('created_desc'); // 'created_desc', 'created_asc', 'deadline', 'views'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deletingTemplate, setDeletingTemplate] = useState(null);
 
   useEffect(() => {
     loadJobs();
     loadArchivedJobs();
+    loadTemplates();
   }, []);
 
   const loadJobs = async () => {
@@ -109,9 +121,67 @@ function CompanyJobs() {
       const response = await jobsAPI.getArchivedJobs();
       setArchivedJobs(response.data);
     } catch (error) {
-      // Stille Fehler - Archiv ist optional
       console.log('Keine archivierten Stellen oder Feature nicht verfügbar');
     }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const response = await jobsAPI.getTemplates();
+      setTemplates(response.data || []);
+    } catch (error) {
+      console.log('Templates nicht verfügbar');
+    }
+  };
+
+  const deleteTemplate = async (id) => {
+    if (!confirm('Möchten Sie diese Vorlage wirklich löschen?')) return;
+    setDeletingTemplate(id);
+    try {
+      await jobsAPI.deleteTemplate(id);
+      toast.success('Vorlage gelöscht');
+      loadTemplates();
+    } catch (error) {
+      toast.error('Fehler beim Löschen');
+    } finally {
+      setDeletingTemplate(null);
+    }
+  };
+
+  const useTemplate = (template) => {
+    sessionStorage.setItem('jobTemplate', JSON.stringify(template));
+    window.location.href = '/company/jobs/new?fromTemplate=true';
+  };
+
+  // Gefilterte und sortierte Jobs
+  const getFilteredJobs = () => {
+    let filtered = [...jobs];
+    
+    // Suchfilter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(j => 
+        j.title?.toLowerCase().includes(query) ||
+        j.location?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Statusfilter
+    if (filterStatus === 'active') filtered = filtered.filter(j => j.is_active && !j.is_draft);
+    else if (filterStatus === 'inactive') filtered = filtered.filter(j => !j.is_active && !j.is_draft);
+    else if (filterStatus === 'draft') filtered = filtered.filter(j => j.is_draft);
+    
+    // Sortierung
+    if (sortBy === 'created_desc') filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    else if (sortBy === 'created_asc') filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    else if (sortBy === 'deadline') filtered.sort((a, b) => {
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return new Date(a.deadline) - new Date(b.deadline);
+    });
+    else if (sortBy === 'views') filtered.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+    
+    return filtered;
   };
 
   const toggleActive = async (job) => {
@@ -218,7 +288,20 @@ function CompanyJobs() {
         >
           <span className="flex items-center gap-2">
             <Briefcase className="h-4 w-4" />
-            Aktive Stellen ({jobs.length})
+            Stellen ({jobs.length})
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('templates')}
+          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+            activeTab === 'templates'
+              ? 'border-primary-600 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Vorlagen ({templates.length})
           </span>
         </button>
         <button
@@ -236,6 +319,70 @@ function CompanyJobs() {
         </button>
       </div>
 
+      {/* Filter & Ansicht (nur für Stellen-Tab) */}
+      {activeTab === 'active' && jobs.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          {/* Suche */}
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Suchen..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input-styled pl-9 py-2 text-sm"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+              </button>
+            )}
+          </div>
+          
+          {/* Status-Filter */}
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="input-styled py-2 text-sm w-auto"
+          >
+            <option value="all">Alle Status</option>
+            <option value="active">Aktiv</option>
+            <option value="inactive">Inaktiv</option>
+            <option value="draft">Entwürfe</option>
+          </select>
+          
+          {/* Sortierung */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="input-styled py-2 text-sm w-auto"
+          >
+            <option value="created_desc">Neueste zuerst</option>
+            <option value="created_asc">Älteste zuerst</option>
+            <option value="deadline">Nach Deadline</option>
+            <option value="views">Nach Aufrufen</option>
+          </select>
+          
+          {/* Ansicht umschalten */}
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`p-2 rounded ${viewMode === 'cards' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
+              title="Kachelansicht"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-2 rounded ${viewMode === 'table' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
+              title="Tabellenansicht"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Aktive Stellen Tab */}
       {activeTab === 'active' && (
         <>
@@ -251,8 +398,77 @@ function CompanyJobs() {
               </Link>
             </div>
           ) : (
+            <>
+              {/* Tabellenansicht */}
+              {viewMode === 'table' && (
+                <div className="card overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="pb-3 font-semibold">Titel</th>
+                        <th className="pb-3 font-semibold">Status</th>
+                        <th className="pb-3 font-semibold">Ort</th>
+                        <th className="pb-3 font-semibold">Erstellt</th>
+                        <th className="pb-3 font-semibold">Deadline</th>
+                        <th className="pb-3 font-semibold text-right">Aufrufe</th>
+                        <th className="pb-3 font-semibold text-right">Aktionen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredJobs().map((job) => (
+                        <tr key={job.id} className={`border-b last:border-0 ${!job.is_active ? 'opacity-60' : ''}`}>
+                          <td className="py-3">
+                            <Link to={`/jobs/${job.slug ? `${job.slug}-${job.id}` : job.id}`} className="font-medium text-gray-900 hover:text-primary-600">
+                              {job.title}
+                            </Link>
+                            {job.is_draft && <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">Entwurf</span>}
+                          </td>
+                          <td className="py-3">
+                            {job.is_draft ? (
+                              <span className="text-yellow-600">Entwurf</span>
+                            ) : job.is_active ? (
+                              <span className="text-green-600">Aktiv</span>
+                            ) : (
+                              <span className="text-gray-500">Inaktiv</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-gray-600">{job.location || '-'}</td>
+                          <td className="py-3 text-gray-600">{formatDate(job.created_at)}</td>
+                          <td className="py-3">
+                            {job.deadline ? (
+                              <DeadlineBadge deadline={job.deadline} />
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-right font-medium text-indigo-600">{job.view_count || 0}</td>
+                          <td className="py-3 text-right">
+                            <div className="flex justify-end gap-1">
+                              <Link to={`/company/jobs/${job.id}/edit`} className="p-1.5 hover:bg-gray-100 rounded" title="Bearbeiten">
+                                <Edit className="h-4 w-4 text-gray-600" />
+                              </Link>
+                              <button onClick={() => toggleActive(job)} className="p-1.5 hover:bg-gray-100 rounded" title={job.is_active ? 'Deaktivieren' : 'Aktivieren'}>
+                                {job.is_active ? <EyeOff className="h-4 w-4 text-gray-600" /> : <Eye className="h-4 w-4 text-gray-600" />}
+                              </button>
+                              <button onClick={() => handleArchive(job.id)} className="p-1.5 hover:bg-red-50 rounded" title="Archivieren">
+                                <Archive className="h-4 w-4 text-red-500" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {getFilteredJobs().length === 0 && (
+                    <p className="text-center text-gray-500 py-8">Keine Stellen gefunden</p>
+                  )}
+                </div>
+              )}
+
+              {/* Kachelansicht */}
+              {viewMode === 'cards' && (
             <div className="space-y-4">
-              {jobs.map((job) => (
+              {getFilteredJobs().map((job) => (
                 <div key={job.id} className={`card ${!job.is_active ? 'opacity-60' : ''}`}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex-1">
@@ -344,6 +560,92 @@ function CompanyJobs() {
                       >
                         <Archive className="h-4 w-4" />
                         <span className="hidden sm:inline">Archivieren</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+              )}
+              {getFilteredJobs().length === 0 && viewMode === 'cards' && (
+                <p className="text-center text-gray-500 py-8">Keine Stellen gefunden</p>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {/* Vorlagen Tab */}
+      {activeTab === 'templates' && (
+        <>
+          {templates.length === 0 ? (
+            <div className="card text-center py-12">
+              <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Keine Vorlagen</h2>
+              <p className="text-gray-600 mb-4">
+                Erstellen Sie Vorlagen, um ähnliche Stellen schneller zu erstellen.
+              </p>
+              <Link to="/company/jobs/new" className="btn-primary inline-flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Neue Stelle erstellen
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                <p className="text-blue-800 text-sm flex items-center gap-2">
+                  <FileText className="h-5 w-5 flex-shrink-0" />
+                  Vorlagen sind wiederverwendbare Stellenbeschreibungen. Klicken Sie auf "Verwenden", um eine neue Stelle basierend auf einer Vorlage zu erstellen.
+                </p>
+              </div>
+              
+              {templates.map((template) => (
+                <div key={template.id} className="card hover:shadow-lg transition-shadow">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-lg font-semibold text-gray-900">
+                          {template.name}
+                        </span>
+                        {template.title && (
+                          <span className="text-gray-500">
+                            → {template.title}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 text-gray-600 text-sm">
+                        {template.location && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {template.location}
+                          </span>
+                        )}
+                        {template.position_type && (
+                          <span className="flex items-center gap-1">
+                            <Briefcase className="h-4 w-4" />
+                            {positionTypeLabels[template.position_type] || template.position_type}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Erstellt: {formatDate(template.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => useTemplate(template)}
+                        className="btn-primary text-sm flex items-center gap-1"
+                      >
+                        <Copy className="h-4 w-4" />
+                        Verwenden
+                      </button>
+                      <button
+                        onClick={() => deleteTemplate(template.id)}
+                        disabled={deletingTemplate === template.id}
+                        className="btn-danger text-sm flex items-center gap-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>

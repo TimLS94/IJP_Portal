@@ -31,7 +31,6 @@ import EditJob from './pages/company/EditJob';
 import TeamMembers from './pages/company/TeamMembers';
 import CompanyIJPRequest from './pages/company/IJPRequest';
 import RejectionSettings from './pages/company/RejectionSettings';
-import JobManager from './pages/company/JobManager';
 
 // Admin-Seiten
 import AdminDashboard from './pages/admin/Dashboard';
@@ -114,7 +113,6 @@ function App() {
             <Route path="profile" element={<CompanyProfile />} />
             <Route path="jobs" element={<CompanyJobs />} />
             <Route path="jobs/new" element={<CreateJob />} />
-            <Route path="jobs/templates" element={<JobManager />} />
             <Route path="jobs/:id/edit" element={<EditJob />} />
             <Route path="applications" element={<CompanyApplications />} />
             <Route path="team" element={<TeamMembers />} />
