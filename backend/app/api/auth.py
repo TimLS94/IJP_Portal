@@ -176,11 +176,26 @@ async def register_applicant(
     )
 
 
+class CompanyRegisterData(BaseModel):
+    company_name: str
+    legal_form: str
+    street: str
+    house_number: str
+    postal_code: str
+    city: str
+    phone: str
+    contact_person: Optional[str] = None
+
+
+class CompanyRegisterRequest(BaseModel):
+    user_data: UserRegister
+    company_data: CompanyRegisterData
+
+
 @router.post("/register/company")
 async def register_company(
     request: Request,
-    user_data: UserRegister,
-    company_name: str,
+    register_request: CompanyRegisterRequest,
     db: Session = Depends(get_db)
 ):
     """
@@ -188,6 +203,9 @@ async def register_company(
     WICHTIG: Firmen sind nach der Registrierung DEAKTIVIERT und müssen erst 
     von einem Admin freigeschaltet werden.
     """
+    user_data = register_request.user_data
+    company_data = register_request.company_data
+    
     # Rate Limiting: 3 Registrierungen pro Stunde pro IP
     await rate_limit_registration(request)
     
@@ -213,10 +231,18 @@ async def register_company(
     db.commit()
     db.refresh(user)
     
-    # Firmen-Profil erstellen
+    # Firmen-Profil erstellen mit allen Pflichtfeldern
     company = Company(
         user_id=user.id,
-        company_name=company_name
+        company_name=company_data.company_name,
+        legal_form=company_data.legal_form,
+        street=company_data.street,
+        house_number=company_data.house_number,
+        postal_code=company_data.postal_code,
+        city=company_data.city,
+        phone=company_data.phone,
+        contact_person=company_data.contact_person,
+        country="Deutschland"  # Default
     )
     db.add(company)
     db.commit()
@@ -224,8 +250,20 @@ async def register_company(
     # E-Mail senden: Registrierung erhalten, warten auf Freischaltung
     email_service.send_company_registration_pending(
         to_email=user.email,
-        company_name=company_name
+        company_name=company_data.company_name
     )
+    
+    # E-Mail an Admins senden
+    admin_emails = db.query(User.email).filter(User.role == UserRole.ADMIN, User.is_active == True).all()
+    for (admin_email,) in admin_emails:
+        email_service.send_admin_new_company_notification(
+            to_email=admin_email,
+            company_name=company_data.company_name,
+            company_email=user.email,
+            legal_form=company_data.legal_form,
+            address=f"{company_data.street} {company_data.house_number}, {company_data.postal_code} {company_data.city}",
+            phone=company_data.phone
+        )
     
     # KEIN Token zurückgeben - Firma muss erst aktiviert werden
     return {

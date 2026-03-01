@@ -45,8 +45,8 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   registerApplicant: (data, firstName, lastName) => 
     api.post(`/auth/register/applicant?first_name=${firstName}&last_name=${lastName}`, data),
-  registerCompany: (data, companyName) => 
-    api.post(`/auth/register/company?company_name=${encodeURIComponent(companyName)}`, data),
+  registerCompany: (userData, companyData) => 
+    api.post('/auth/register/company', { user_data: userData, company_data: companyData }),
   login: (email, password) => {
     const formData = new FormData();
     formData.append('username', email);

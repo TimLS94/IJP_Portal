@@ -256,6 +256,35 @@ class EmailService:
         return self.send_email(to_email, subject, html_content)
     
     @_safe_email_call
+    def send_admin_new_company_notification(
+        self, to_email: str, company_name: str, company_email: str, 
+        legal_form: str, address: str, phone: str
+    ) -> bool:
+        """Benachrichtigt Admins über neue Firmen-Registrierung"""
+        subject = "🏢 Neue Firmen-Registrierung wartet auf Freischaltung"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>🏢 Neue Firmen-Registrierung</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Eine neue Firma hat sich registriert und wartet auf Freischaltung:</p>
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                    <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Firmenname:</td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">{company_name}</td></tr>
+                    <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Rechtsform:</td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">{legal_form}</td></tr>
+                    <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">E-Mail:</td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">{company_email}</td></tr>
+                    <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Adresse:</td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">{address}</td></tr>
+                    <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Telefon:</td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">{phone}</td></tr>
+                </table>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="https://ijp-portal.onrender.com/admin/users" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Im Admin-Bereich prüfen</a>
+                </p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
+    
+    @_safe_email_call
     def send_company_activated(
         self, to_email: str, company_name: str, frontend_url: str = "https://ijp-portal.vercel.app"
     ) -> bool:

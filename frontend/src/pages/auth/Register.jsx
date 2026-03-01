@@ -5,7 +5,19 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { authAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { Mail, Lock, User, Building2, Loader2, CheckCircle, Clock } from 'lucide-react';
+import { Mail, Lock, User, Building2, Loader2, CheckCircle, Clock, MapPin, Phone } from 'lucide-react';
+
+const LEGAL_FORMS = [
+  { value: 'gmbh', label: 'GmbH' },
+  { value: 'ug', label: 'UG (haftungsbeschränkt)' },
+  { value: 'ag', label: 'AG' },
+  { value: 'ohg', label: 'OHG' },
+  { value: 'kg', label: 'KG' },
+  { value: 'gbr', label: 'GbR' },
+  { value: 'einzelunternehmen', label: 'Einzelunternehmen' },
+  { value: 'ev', label: 'e.V. (eingetragener Verein)' },
+  { value: 'sonstige', label: 'Sonstige' },
+];
 
 function Register() {
   const { t } = useTranslation();
@@ -29,7 +41,16 @@ function Register() {
         // Firmen-Registrierung: Konto wird erst nach Admin-Freischaltung aktiviert
         await authAPI.registerCompany(
           { email: data.email, password: data.password },
-          data.companyName
+          {
+            company_name: data.companyName,
+            legal_form: data.legalForm,
+            street: data.street,
+            house_number: data.houseNumber,
+            postal_code: data.postalCode,
+            city: data.city,
+            phone: data.phone,
+            contact_person: data.contactPerson || null
+          }
         );
         // Zeige Pending-Status an
         setCompanyPending(true);
@@ -152,18 +173,112 @@ function Register() {
               </div>
             </div>
           ) : (
-            <div>
-              <label className="label">{t('auth.companyNameLabel')}</label>
-              <div className="relative">
-                <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  className="input-styled pl-12"
-                  placeholder="Musterfirma GmbH"
-                  {...register('companyName', { required: t('auth.companyNameRequired') })}
-                />
+            <div className="space-y-4">
+              {/* Firmenname */}
+              <div>
+                <label className="label">{t('auth.companyNameLabel')} *</label>
+                <div className="relative">
+                  <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    className="input-styled pl-12"
+                    placeholder="Musterfirma"
+                    {...register('companyName', { required: t('auth.companyNameRequired') })}
+                  />
+                </div>
+                {errors.companyName && <p className="text-red-500 text-sm mt-1">{errors.companyName.message}</p>}
               </div>
-              {errors.companyName && <p className="text-red-500 text-sm mt-1">{errors.companyName.message}</p>}
+
+              {/* Rechtsform */}
+              <div>
+                <label className="label">Rechtsform *</label>
+                <select
+                  className="input-styled"
+                  {...register('legalForm', { required: 'Bitte wählen Sie eine Rechtsform' })}
+                >
+                  <option value="">Bitte wählen...</option>
+                  {LEGAL_FORMS.map(form => (
+                    <option key={form.value} value={form.value}>{form.label}</option>
+                  ))}
+                </select>
+                {errors.legalForm && <p className="text-red-500 text-sm mt-1">{errors.legalForm.message}</p>}
+              </div>
+
+              {/* Ansprechpartner (optional) */}
+              <div>
+                <label className="label">Ansprechpartner</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    className="input-styled pl-12"
+                    placeholder="Max Mustermann"
+                    {...register('contactPerson')}
+                  />
+                </div>
+              </div>
+
+              {/* Adresse */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="label">Straße *</label>
+                  <input
+                    type="text"
+                    className="input-styled"
+                    placeholder="Musterstraße"
+                    {...register('street', { required: 'Straße ist erforderlich' })}
+                  />
+                  {errors.street && <p className="text-red-500 text-sm mt-1">{errors.street.message}</p>}
+                </div>
+                <div>
+                  <label className="label">Hausnr. *</label>
+                  <input
+                    type="text"
+                    className="input-styled"
+                    placeholder="123"
+                    {...register('houseNumber', { required: 'Hausnummer ist erforderlich' })}
+                  />
+                  {errors.houseNumber && <p className="text-red-500 text-sm mt-1">{errors.houseNumber.message}</p>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="label">PLZ *</label>
+                  <input
+                    type="text"
+                    className="input-styled"
+                    placeholder="12345"
+                    {...register('postalCode', { required: 'PLZ ist erforderlich' })}
+                  />
+                  {errors.postalCode && <p className="text-red-500 text-sm mt-1">{errors.postalCode.message}</p>}
+                </div>
+                <div className="col-span-2">
+                  <label className="label">Stadt *</label>
+                  <input
+                    type="text"
+                    className="input-styled"
+                    placeholder="Musterstadt"
+                    {...register('city', { required: 'Stadt ist erforderlich' })}
+                  />
+                  {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>}
+                </div>
+              </div>
+
+              {/* Telefon */}
+              <div>
+                <label className="label">Telefon *</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="tel"
+                    className="input-styled pl-12"
+                    placeholder="+49 123 456789"
+                    {...register('phone', { required: 'Telefonnummer ist erforderlich' })}
+                  />
+                </div>
+                {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
+              </div>
             </div>
           )}
 

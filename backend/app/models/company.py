@@ -27,6 +27,7 @@ class Company(Base):
     # Firmendaten
     company_name = Column(String(255), nullable=False)
     contact_person = Column(String(200))
+    legal_form = Column(String(50))  # Rechtsform: GmbH, AG, UG, Einzelunternehmen, etc.
     
     # Adresse
     street = Column(String(255))
