@@ -62,6 +62,22 @@ class JobPostingBase(BaseModel):
     translations: Optional[dict] = {}  # {"en": JobTranslation, "es": JobTranslation, ...}
     available_languages: Optional[List[str]] = ["de"]
     
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v):
+        """Stellt sicher, dass der Titel nicht leer ist"""
+        if not v or not v.strip():
+            raise ValueError('Stellentitel ist erforderlich')
+        return v.strip()
+    
+    @field_validator('description')
+    @classmethod
+    def validate_description(cls, v):
+        """Stellt sicher, dass die Beschreibung nicht leer ist"""
+        if not v or not v.strip():
+            raise ValueError('Stellenbeschreibung ist erforderlich')
+        return v.strip()
+    
     @field_validator('salary_min')
     @classmethod
     def validate_salary_min(cls, v):

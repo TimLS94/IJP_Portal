@@ -82,14 +82,14 @@ function InviteTokens() {
   };
 
   const deleteToken = async (id) => {
-    if (!confirm('Token wirklich deaktivieren?')) return;
+    if (!confirm('Token wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
     
     try {
       await adminAPI.deleteInviteToken(id);
-      setTokens(tokens.map(t => t.id === id ? { ...t, is_active: false } : t));
-      toast.success('Token deaktiviert');
+      setTokens(tokens.filter(t => t.id !== id));
+      toast.success('Token gelöscht');
     } catch (error) {
-      toast.error('Fehler beim Deaktivieren');
+      toast.error('Fehler beim Löschen');
     }
   };
 
@@ -236,7 +236,7 @@ function InviteTokens() {
                   <button
                     onClick={() => deleteToken(token.id)}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                    title="Deaktivieren"
+                    title="Löschen"
                   >
                     <Trash2 className="h-5 w-5" />
                   </button>
