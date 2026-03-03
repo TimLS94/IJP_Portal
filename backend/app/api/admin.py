@@ -102,12 +102,14 @@ async def get_dashboard_stats(
 async def list_users(
     role: Optional[UserRole] = None,
     search: Optional[str] = None,
+    sort_by: Optional[str] = Query("created_at", description="Sortierfeld: email, role, created_at, last_login_at, is_active"),
+    sort_dir: Optional[str] = Query("desc", description="Sortierrichtung: asc oder desc"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Listet alle Benutzer"""
+    """Listet alle Benutzer mit serverseitiger Sortierung"""
     query = db.query(User)
     
     if role:
@@ -117,7 +119,15 @@ async def list_users(
         query = query.filter(User.email.ilike(f"%{search}%"))
     
     total = query.count()
-    users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
+    
+    # Serverseitige Sortierung
+    sort_column = getattr(User, sort_by, User.created_at)
+    if sort_dir == "asc":
+        query = query.order_by(sort_column.asc())
+    else:
+        query = query.order_by(sort_column.desc())
+    
+    users = query.offset(skip).limit(limit).all()
     
     result = []
     for user in users:

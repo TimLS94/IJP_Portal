@@ -39,7 +39,7 @@ function AdminUsers() {
 
   useEffect(() => {
     loadUsers();
-  }, [roleFilter, page]);
+  }, [roleFilter, page, sortBy, sortDir]);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -47,6 +47,8 @@ function AdminUsers() {
       const params = {
         skip: page * limit,
         limit,
+        sort_by: sortBy,
+        sort_dir: sortDir,
         ...(roleFilter && { role: roleFilter }),
         ...(search && { search })
       };
@@ -82,35 +84,7 @@ function AdminUsers() {
       : <ArrowDown className="h-3 w-3 text-primary-600" />;
   };
 
-  // Sortierte Benutzer
-  const sortedUsers = [...users].sort((a, b) => {
-    let aVal = a[sortBy];
-    let bVal = b[sortBy];
-    
-    // Spezialbehandlung für verschiedene Felder
-    if (sortBy === 'name') {
-      aVal = a.name || '';
-      bVal = b.name || '';
-    }
-    if (sortBy === 'created_at' || sortBy === 'last_login_at') {
-      aVal = aVal ? new Date(aVal).getTime() : 0;
-      bVal = bVal ? new Date(bVal).getTime() : 0;
-    }
-    if (sortBy === 'is_active') {
-      aVal = aVal ? 1 : 0;
-      bVal = bVal ? 1 : 0;
-    }
-    
-    if (typeof aVal === 'string') {
-      aVal = aVal.toLowerCase();
-      bVal = bVal.toLowerCase();
-    }
-    
-    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
-    if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
-    return 0;
-  });
-
+  
   const toggleActive = async (userId) => {
     try {
       const response = await adminAPI.toggleUserActive(userId);
@@ -347,7 +321,7 @@ function AdminUsers() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {sortedUsers.map((user) => {
+                  {users.map((user) => {
                     const roleInfo = roleLabels[user.role] || roleLabels.applicant;
                     const RoleIcon = roleInfo.icon;
                     return (
