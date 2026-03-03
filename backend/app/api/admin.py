@@ -775,7 +775,9 @@ async def get_feature_flags(
         "matching_enabled_for_applicants": get_setting(db, "matching_enabled_for_applicants", True),
         "auto_deactivate_expired_jobs": get_setting(db, "auto_deactivate_expired_jobs", True),
         "archive_deletion_days": get_setting(db, "archive_deletion_days", 90),
-        "max_job_deadline_days": get_setting(db, "max_job_deadline_days", 90)
+        "max_job_deadline_days": get_setting(db, "max_job_deadline_days", 90),
+        "job_notifications_enabled": get_setting(db, "job_notifications_enabled", True),
+        "job_notifications_threshold": get_setting(db, "job_notifications_threshold", 85)
     }
 
 
@@ -1442,7 +1444,10 @@ async def create_invite_token(
         "max_uses": token.max_uses,
         "current_uses": token.current_uses,
         "is_active": token.is_active,
+        "is_valid": token.is_valid(),
         "created_at": token.created_at.isoformat() if token.created_at else None,
+        "last_used_at": None,
+        "created_by_email": current_user.email,
         "registration_url": f"/register/company?invite={token.token}"
     }
 

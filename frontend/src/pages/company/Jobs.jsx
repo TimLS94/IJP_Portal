@@ -98,12 +98,25 @@ function CompanyJobs() {
   const [sortBy, setSortBy] = useState('created_desc'); // 'created_desc', 'created_asc', 'deadline', 'views'
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingTemplate, setDeletingTemplate] = useState(null);
+  const [archiveDeletionDays, setArchiveDeletionDays] = useState(90);
 
   useEffect(() => {
     loadJobs();
     loadArchivedJobs();
     loadTemplates();
+    loadSettings();
   }, []);
+
+  const loadSettings = async () => {
+    try {
+      const response = await jobsAPI.getJobSettings();
+      if (response.data?.archive_deletion_days) {
+        setArchiveDeletionDays(response.data.archive_deletion_days);
+      }
+    } catch (error) {
+      // Fallback auf 90 Tage
+    }
+  };
 
   const loadJobs = async () => {
     try {
@@ -195,7 +208,7 @@ function CompanyJobs() {
   };
 
   const handleArchive = async (id) => {
-    if (!confirm('Möchten Sie diese Stelle archivieren? Sie können sie innerhalb von 30 Tagen reaktivieren.')) return;
+    if (!confirm(`Möchten Sie diese Stelle archivieren? Sie können sie innerhalb von ${archiveDeletionDays} Tagen reaktivieren.`)) return;
     
     try {
       await jobsAPI.delete(id); // Backend archiviert standardmäßig
@@ -232,7 +245,7 @@ function CompanyJobs() {
   const handleReactivate = async (id) => {
     try {
       await jobsAPI.reactivate(id);
-      toast.success('Stelle reaktiviert! Die neue Deadline ist in 30 Tagen.');
+      toast.success(`Stelle reaktiviert! Die neue Deadline ist in ${archiveDeletionDays} Tagen.`);
       loadJobs();
       loadArchivedJobs();
     } catch (error) {
@@ -244,7 +257,7 @@ function CompanyJobs() {
   const getDaysUntilDeletion = (archivedAt) => {
     if (!archivedAt) return null;
     const archived = new Date(archivedAt);
-    const deleteDate = new Date(archived.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const deleteDate = new Date(archived.getTime() + archiveDeletionDays * 24 * 60 * 60 * 1000);
     const today = new Date();
     const diffDays = Math.ceil((deleteDate - today) / (1000 * 60 * 60 * 24));
     return Math.max(0, diffDays);
@@ -700,7 +713,7 @@ function CompanyJobs() {
               <Archive className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Kein Archiv</h2>
               <p className="text-gray-600">
-                Archivierte oder abgelaufene Stellen werden hier für 30 Tage aufbewahrt.
+                Archivierte oder abgelaufene Stellen werden hier für {archiveDeletionDays} Tage aufbewahrt.
               </p>
             </div>
           ) : (
@@ -708,7 +721,7 @@ function CompanyJobs() {
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
                 <p className="text-yellow-800 text-sm flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                  Archivierte Stellen werden nach 30 Tagen automatisch endgültig gelöscht. 
+                  Archivierte Stellen werden nach {archiveDeletionDays} Tagen automatisch endgültig gelöscht. 
                   Bearbeiten und reaktivieren Sie Stellen rechtzeitig!
                 </p>
               </div>
