@@ -471,10 +471,10 @@ async def get_applicant_details_for_company(
             'updated_at': application.updated_at,
         },
         'job': {
-            'id': job.id,
-            'title': job.title,
-            'position_type': job.position_type.value if job.position_type else None,
-        },
+            'id': job.id if job else None,
+            'title': job.title if job else 'Gelöschte Stelle',
+            'position_type': job.position_type.value if job and job.position_type else None,
+        } if job else {'id': None, 'title': 'Gelöschte Stelle', 'position_type': None},
         'applicant': {
             'id': applicant.id,
             'first_name': applicant.first_name,
