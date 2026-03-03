@@ -27,7 +27,7 @@ function AdminDashboard() {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const response = await adminAPI.getStats({ days: period });
+      const response = await adminAPI.getStats();
       setStats(response.data);
     } catch (error) {
       toast.error('Fehler beim Laden der Statistiken');
@@ -46,29 +46,11 @@ function AdminDashboard() {
 
   if (!stats) return null;
 
-  const periodLabel = periodOptions.find(p => p.value === period)?.label || 'Zeitraum';
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 mb-8">
         <Shield className="h-8 w-8 text-primary-600" />
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        </div>
-        
-        {/* Zeitraum-Auswahl */}
-        <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-gray-500" />
-          <select
-            value={period}
-            onChange={(e) => setPeriod(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          >
-            {periodOptions.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {/* Hauptstatistiken */}
@@ -81,7 +63,6 @@ function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-600">Benutzer gesamt</p>
               <p className="text-2xl font-bold text-gray-900">{stats.users.total}</p>
-              <p className="text-xs text-green-600">+{stats.users.new_in_period} im Zeitraum</p>
             </div>
           </div>
         </div>
@@ -107,7 +88,6 @@ function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-600">Bewerbungen</p>
               <p className="text-2xl font-bold text-gray-900">{stats.applications.total}</p>
-              <p className="text-xs text-green-600">+{stats.applications.new_in_period} im Zeitraum</p>
             </div>
           </div>
         </div>
@@ -124,7 +104,7 @@ function AdminDashboard() {
                   ? Math.round((stats.applications.accepted / stats.applications.total) * 100) 
                   : 0}%
               </p>
-              <p className="text-xs text-green-600">{stats.applications.accepted_in_period} angenommen ({periodLabel})</p>
+              <p className="text-xs text-green-600">{stats.applications.accepted} angenommen</p>
             </div>
           </div>
         </div>
