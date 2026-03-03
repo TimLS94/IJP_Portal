@@ -288,28 +288,28 @@ async def register_company(
         }
     else:
         # Normale Registrierung ohne Token
-    # E-Mail senden: Registrierung erhalten, warten auf Freischaltung
-    email_service.send_company_registration_pending(
-        to_email=user.email,
-        company_name=company_data.company_name
-    )
-    
-    # E-Mail an Admins senden
-    admin_emails = db.query(User.email).filter(User.role == UserRole.ADMIN, User.is_active == True).all()
-    for (admin_email,) in admin_emails:
-        email_service.send_admin_new_company_notification(
-            to_email=admin_email,
-            company_name=company_data.company_name,
-            company_email=user.email,
-            legal_form=company_data.legal_form,
-            address=f"{company_data.street} {company_data.house_number}, {company_data.postal_code} {company_data.city}",
-            phone=company_data.phone
-    )
-    
-    # KEIN Token zurückgeben - Firma muss erst aktiviert werden
-    return {
-        "message": "Registrierung erfolgreich! Ihr Unternehmen wird geprüft und in Kürze freigeschaltet. Sie erhalten eine E-Mail-Benachrichtigung.",
-        "status": "pending_activation"
+        # E-Mail senden: Registrierung erhalten, warten auf Freischaltung
+        email_service.send_company_registration_pending(
+            to_email=user.email,
+            company_name=company_data.company_name
+        )
+        
+        # E-Mail an Admins senden
+        admin_emails = db.query(User.email).filter(User.role == UserRole.ADMIN, User.is_active == True).all()
+        for (admin_email,) in admin_emails:
+            email_service.send_admin_new_company_notification(
+                to_email=admin_email,
+                company_name=company_data.company_name,
+                company_email=user.email,
+                legal_form=company_data.legal_form,
+                address=f"{company_data.street} {company_data.house_number}, {company_data.postal_code} {company_data.city}",
+                phone=company_data.phone
+            )
+        
+        # KEIN Token zurückgeben - Firma muss erst aktiviert werden
+        return {
+            "message": "Registrierung erfolgreich! Ihr Unternehmen wird geprüft und in Kürze freigeschaltet. Sie erhalten eine E-Mail-Benachrichtigung.",
+            "status": "pending_activation"
         }
 
 
