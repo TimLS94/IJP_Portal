@@ -58,6 +58,10 @@ class JobPostingBase(BaseModel):
     additional_requirements: Optional[dict] = {}
     deadline: Optional[date] = None  # Bewerbungsschluss
     
+    # Status
+    is_active: Optional[bool] = True
+    is_draft: Optional[bool] = False  # Entwurf - nicht öffentlich sichtbar
+    
     # Mehrsprachige Inhalte
     translations: Optional[dict] = {}  # {"en": JobTranslation, "es": JobTranslation, ...}
     available_languages: Optional[List[str]] = ["de"]
