@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { 
   Shield, Users, Briefcase, FileText, TrendingUp,
   UserCheck, Building2, Clock, BookOpen, ClipboardList,
-  Calendar, Archive, CheckCircle, XCircle, AlertTriangle, FileX, Loader2
+  Archive, CheckCircle, AlertTriangle, FileX
 } from 'lucide-react';
 
 const positionTypeLabels = {
@@ -16,22 +16,13 @@ const positionTypeLabels = {
   ausbildung: 'Ausbildung'
 };
 
-const periodOptions = [
-  { value: 7, label: 'Letzte 7 Tage' },
-  { value: 14, label: 'Letzte 14 Tage' },
-  { value: 30, label: 'Letzte 30 Tage' },
-  { value: 90, label: 'Letzte 3 Monate' },
-  { value: 365, label: 'Letztes Jahr' }
-];
-
 function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState(7);
 
   useEffect(() => {
     loadStats();
-  }, [period]);
+  }, []);
 
   const loadStats = async () => {
     setLoading(true);
@@ -61,8 +52,8 @@ function AdminDashboard() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <Shield className="h-8 w-8 text-primary-600" />
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <Shield className="h-8 w-8 text-primary-600" />
+        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
         </div>
         
         {/* Zeitraum-Auswahl */}
@@ -168,7 +159,7 @@ function AdminDashboard() {
             </div>
           </div>
         </div>
-                <div className="card bg-gray-50 border border-gray-200">
+        <div className="card bg-gray-50 border border-gray-200">
           <div className="flex items-center gap-3">
             <Archive className="h-5 w-5 text-gray-600" />
             <div>
