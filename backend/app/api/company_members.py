@@ -332,11 +332,25 @@ async def remove_member(
     if membership.role == CompanyRole.ADMIN and target_member.role == CompanyRole.ADMIN:
         raise HTTPException(status_code=403, detail="Administratoren können andere Administratoren nicht entfernen")
     
-    # Mitgliedschaft deaktivieren (nicht löschen für Audit)
-    target_member.is_active = False
+    # User-Objekt holen für Löschung
+    target_user = target_member.user
+    
+    # Mitgliedschaft löschen
+    db.delete(target_member)
+    
+    # User auch löschen, wenn er keine anderen Mitgliedschaften hat
+    other_memberships = db.query(CompanyMember).filter(
+        CompanyMember.user_id == target_user.id,
+        CompanyMember.id != member_id
+    ).count()
+    
+    if other_memberships == 0:
+        # User hat keine anderen Mitgliedschaften - komplett löschen
+        db.delete(target_user)
+    
     db.commit()
     
-    return {"message": "Mitglied entfernt"}
+    return {"message": "Mitglied gelöscht"}
 
 
 @router.get("/roles")
