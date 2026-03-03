@@ -438,7 +438,11 @@ async def get_applicant_details_for_company(
     
     # Bewerber-Daten
     applicant = db.query(Applicant).filter(Applicant.id == application.applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
     applicant_user = db.query(User).filter(User.id == applicant.user_id).first()
+    if not applicant_user:
+        raise HTTPException(status_code=404, detail="Bewerber-Account nicht gefunden")
     
     # NUR freigegebene Dokumente für diese Bewerbung laden (Datenschutz!)
     shared_doc_ids = db.query(ApplicationDocument.document_id).filter(
