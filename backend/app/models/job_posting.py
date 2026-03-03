@@ -55,10 +55,10 @@ class JobPosting(Base):
     slug = Column(String(255), index=True)
     
     # Stelleninformationen
-    title = Column(String(255), nullable=False)
-    position_type = Column(Enum(PositionType, values_callable=lambda x: [e.value for e in x]), nullable=False)
+    title = Column(String(255), nullable=True)
+    position_type = Column(Enum(PositionType, values_callable=lambda x: [e.value for e in x]), nullable=True)
     employment_type = Column(Enum(EmploymentType, values_callable=lambda x: [e.value for e in x]))  # NEU: Vollzeit/Teilzeit
-    description = Column(Text, nullable=False)
+    description = Column(Text, nullable=True)
     tasks = Column(Text)  # NEU: Aufgaben
     requirements = Column(Text)
     benefits = Column(Text)
