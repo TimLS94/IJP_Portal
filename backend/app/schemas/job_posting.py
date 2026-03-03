@@ -168,6 +168,8 @@ class JobPostingResponse(JobPostingBase):
     updated_at: datetime
     archived_at: Optional[datetime] = None
     company: Optional[CompanyResponse] = None
+    # Statistiken
+    view_count: Optional[int] = 0
     # Admin-Übersetzung
     admin_translated: Optional[bool] = False
     admin_translated_at: Optional[datetime] = None

@@ -199,6 +199,10 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
     if not job.slug:
         update_job_slug(job, db)
     
+    # View Count erhöhen (persistent in DB)
+    job.view_count = (job.view_count or 0) + 1
+    db.commit()
+    
     # Canonical URL berechnen
     canonical_slug = get_job_url_slug(job)
     canonical_url = f"/jobs/{canonical_slug}"
@@ -247,6 +251,8 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
         "admin_translated_languages": job.admin_translated_languages or [],
         "company_name": job.company.company_name if job.company else None,
         "company_logo": job.company.logo if job.company else None,
+        # Statistiken
+        "view_count": job.view_count or 0,
         # SEO-spezifische Felder
         "canonical_url": canonical_url,
         "url_slug": canonical_slug,

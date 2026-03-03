@@ -102,6 +102,9 @@ class JobPosting(Base):
     deadline = Column(Date)  # Bewerbungsschluss
     archived_at = Column(DateTime)  # Wann archiviert
     
+    # Statistiken
+    view_count = Column(Integer, default=0)  # Anzahl der Aufrufe
+    
     # ========== MEHRSPRACHIGE INHALTE ==========
     # Struktur: {"en": {"title": "...", "description": "...", "tasks": "...", "requirements": "...", "benefits": "..."}, "es": {...}, "ru": {...}}
     # Die Hauptfelder (title, description etc.) sind der deutsche Fallback

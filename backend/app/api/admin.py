@@ -224,12 +224,15 @@ async def list_all_jobs(
         result.append({
             "id": job.id,
             "title": job.title,
+            "slug": job.slug,
             "position_type": job.position_type,
             "location": job.location,
             "is_active": job.is_active,
             "created_at": job.created_at,
             "company_name": company.company_name if company else "Unbekannt",
-            "application_count": app_count
+            "application_count": app_count,
+            "view_count": job.view_count or 0,
+            "available_languages": job.available_languages or ["de"]
         })
     
     return {"total": total, "jobs": result}

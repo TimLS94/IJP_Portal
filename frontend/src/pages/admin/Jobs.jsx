@@ -214,6 +214,10 @@ function AdminJobs() {
                           </span>
                         )}
                         <span className="flex items-center gap-1">
+                          <Eye className="h-4 w-4" />
+                          {job.view_count || 0} Aufrufe
+                        </span>
+                        <span className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
                           {job.application_count} Bewerbungen
                         </span>
