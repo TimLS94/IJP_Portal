@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { 
   Settings as SettingsIcon, ToggleLeft, ToggleRight, Save, Loader2, 
   Sparkles, Building2, Users, AlertTriangle, RefreshCw, Clock, Trash2,
-  ChevronDown, ChevronUp, Calendar
+  ChevronDown, ChevronUp, Calendar, Mail, Bell
 } from 'lucide-react';
 
 function AdminSettings() {
@@ -21,6 +21,10 @@ function AdminSettings() {
   // Max. Stellenlaufzeit State
   const [maxDeadlineDays, setMaxDeadlineDays] = useState(90);
   const [showDeadlineSection, setShowDeadlineSection] = useState(false);
+  
+  // E-Mail Benachrichtigungen State
+  const [showEmailSection, setShowEmailSection] = useState(false);
+  const [emailThreshold, setEmailThreshold] = useState(85);
 
   useEffect(() => {
     loadFlags();
@@ -35,6 +39,9 @@ function AdminSettings() {
       }
       if (response.data.max_job_deadline_days) {
         setMaxDeadlineDays(response.data.max_job_deadline_days);
+      }
+      if (response.data.job_notifications_threshold) {
+        setEmailThreshold(response.data.job_notifications_threshold);
       }
     } catch (error) {
       console.error('Fehler beim Laden:', error);
@@ -131,6 +138,28 @@ function AdminSettings() {
       description: 'Bewerber können sehen, wie gut Stellenangebote zu ihrem Profil passen',
       icon: Users,
       color: 'green'
+    },
+    job_notifications_enabled: {
+      title: 'E-Mail Benachrichtigungen',
+      description: 'Bewerber erhalten E-Mails über passende neue Stellen (basierend auf Matching-Score)',
+      icon: Mail,
+      color: 'purple'
+    }
+  };
+  
+  const saveEmailThreshold = async () => {
+    setSaving('job_notifications_threshold');
+    try {
+      await adminAPI.setSetting('job_notifications_threshold', emailThreshold);
+      setFlags(prev => ({
+        ...prev,
+        job_notifications_threshold: emailThreshold
+      }));
+      toast.success(`E-Mail Schwellenwert auf ${emailThreshold}% gesetzt`);
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+    } finally {
+      setSaving(null);
     }
   };
 
@@ -238,6 +267,142 @@ function AdminSettings() {
           })}
         </div>
       </div>
+
+      {/* E-Mail Benachrichtigungs-Schwellenwert */}
+      {flags.job_notifications_enabled && (
+        <div className="card mb-8">
+          <button
+            onClick={() => setShowEmailSection(!showEmailSection)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Bell className="h-5 w-5 text-purple-600" />
+              </div>
+              <div className="text-left">
+                <h2 className="text-xl font-semibold text-gray-900">E-Mail Schwellenwert</h2>
+                <p className="text-sm text-gray-600">
+                  Ab welchem Matching-Score Bewerber benachrichtigt werden
+                  <span className="ml-2 font-medium text-gray-800">
+                    (Aktuell: {flags.job_notifications_threshold || 85}%)
+                  </span>
+                </p>
+              </div>
+            </div>
+            {showEmailSection ? (
+              <ChevronUp className="h-5 w-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-500" />
+            )}
+          </button>
+
+          {showEmailSection && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mindest-Matching-Score für E-Mail
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="50"
+                      max="100"
+                      value={emailThreshold}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 85;
+                        setEmailThreshold(Math.min(100, Math.max(50, value)));
+                      }}
+                      className="input w-32"
+                    />
+                    <span className="text-gray-600">%</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Standard: 85% (Nur sehr gute Matches)
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setEmailThreshold(70)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      emailThreshold === 70 
+                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    70%
+                  </button>
+                  <button
+                    onClick={() => setEmailThreshold(80)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      emailThreshold === 80 
+                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    80%
+                  </button>
+                  <button
+                    onClick={() => setEmailThreshold(85)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      emailThreshold === 85 
+                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    85%
+                  </button>
+                  <button
+                    onClick={() => setEmailThreshold(90)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      emailThreshold === 90 
+                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    90%
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-sm text-purple-700">
+                  <strong>Hinweis:</strong> Bewerber erhalten nur E-Mails über neue Stellen, 
+                  wenn ihr Matching-Score mindestens diesen Wert erreicht. Ein höherer Wert 
+                  bedeutet weniger, aber relevantere E-Mails.
+                </p>
+              </div>
+
+              {/* Speichern-Button */}
+              {emailThreshold !== (flags.job_notifications_threshold || 85) && (
+                <div className="mt-6 flex items-center justify-end gap-4">
+                  <button
+                    onClick={() => {
+                      setEmailThreshold(flags.job_notifications_threshold || 85);
+                    }}
+                    className="btn-secondary"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    onClick={saveEmailThreshold}
+                    disabled={saving === 'job_notifications_threshold'}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    {saving === 'job_notifications_threshold' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Speichern
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Max. Stellenlaufzeit */}
       <div className="card mb-8">
