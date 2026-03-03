@@ -100,6 +100,10 @@ async def login(
     # Erfolgreicher Login - Fehlversuche zurücksetzen
     await reset_failed_logins(form_data.username)
     
+    # Letzten Login-Zeitpunkt aktualisieren
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+    
     access_token = create_access_token(
         data={"sub": str(user.id)},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

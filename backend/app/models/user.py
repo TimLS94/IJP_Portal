@@ -21,6 +21,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login_at = Column(DateTime, nullable=True)  # Letzter Login-Zeitpunkt
     
     # Relationships
     # foreign_keys als String, da Applicant.user_id noch nicht importiert ist

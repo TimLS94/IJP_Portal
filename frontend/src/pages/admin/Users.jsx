@@ -270,6 +270,7 @@ function AdminUsers() {
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">E-Mail</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Rolle</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Registriert</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Letzter Login</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
                     <th className="px-4 py-3 text-right text-sm font-semibold text-gray-900">Aktionen</th>
                   </tr>
@@ -295,6 +296,11 @@ function AdminUsers() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600">{formatDate(user.created_at)}</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {user.last_login_at ? formatDate(user.last_login_at) : (
+                            <span className="text-gray-400 italic">Noch nie</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           {user.is_active ? (
                             <span className="flex items-center gap-1 text-green-600">
