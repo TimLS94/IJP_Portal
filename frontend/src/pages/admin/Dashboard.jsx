@@ -140,7 +140,7 @@ function AdminDashboard() {
       </div>
 
       {/* Stellen-Metriken */}
-      <div className="grid md:grid-cols-5 gap-4 mb-8">
+      <div className="grid md:grid-cols-4 gap-4 mb-8">
         <div className="card bg-green-50 border border-green-200">
           <div className="flex items-center gap-3">
             <CheckCircle className="h-5 w-5 text-green-600" />
@@ -168,16 +168,7 @@ function AdminDashboard() {
             </div>
           </div>
         </div>
-        <div className="card bg-purple-50 border border-purple-200">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="h-5 w-5 text-purple-600" />
-            <div>
-              <p className="text-xs text-purple-700">Besetzt</p>
-              <p className="text-xl font-bold text-purple-800">{stats.jobs.filled}</p>
-            </div>
-          </div>
-        </div>
-        <div className="card bg-gray-50 border border-gray-200">
+                <div className="card bg-gray-50 border border-gray-200">
           <div className="flex items-center gap-3">
             <Archive className="h-5 w-5 text-gray-600" />
             <div>

@@ -61,7 +61,6 @@ async def get_dashboard_stats(
                 JobPosting.deadline < now.date(),
                 JobPosting.is_active == True
             ).count(),
-            "filled": db.query(JobPosting).filter(JobPosting.is_filled == True).count(),
             "new_in_period": db.query(JobPosting).filter(JobPosting.created_at >= period_start).count(),
             "archived_in_period": db.query(JobPosting).filter(JobPosting.archived_at >= period_start).count()
         },
