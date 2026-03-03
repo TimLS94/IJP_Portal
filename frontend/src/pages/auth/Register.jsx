@@ -86,6 +86,7 @@ function Register() {
         // Wenn mit gültigem Token: Sofort einloggen
         if (response.data.status === 'active' && response.data.access_token) {
           localStorage.setItem('token', response.data.access_token);
+          localStorage.setItem('user', JSON.stringify(response.data.user));
           toast.success('Registrierung erfolgreich! Sie werden eingeloggt...');
           window.location.href = '/company/dashboard';
         } else {
