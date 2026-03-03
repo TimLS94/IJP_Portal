@@ -918,6 +918,27 @@ function CompanyApplications() {
                           </ul>
                         </div>
                       )}
+                      
+                      {/* Datenqualität */}
+                      {matchScore.data_quality && (
+                        <div className={`mt-4 pt-4 border-t border-gray-200/50 flex items-center gap-3 ${
+                          matchScore.data_quality.level === 'high' ? 'text-green-700' :
+                          matchScore.data_quality.level === 'medium' ? 'text-yellow-700' : 'text-red-700'
+                        }`}>
+                          <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            matchScore.data_quality.level === 'high' ? 'bg-green-100' :
+                            matchScore.data_quality.level === 'medium' ? 'bg-yellow-100' : 'bg-red-100'
+                          }`}>
+                            {matchScore.data_quality.label} ({matchScore.data_quality.percent}%)
+                          </div>
+                          <span className="text-sm text-gray-600">{matchScore.data_quality.description}</span>
+                          {matchScore.data_quality.missing_fields?.length > 0 && (
+                            <span className="text-xs text-gray-500">
+                              Fehlend: {matchScore.data_quality.missing_fields.join(', ')}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                   

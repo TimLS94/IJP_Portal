@@ -808,6 +808,30 @@ function JobDetail() {
                   </ul>
                 </div>
               )}
+              
+              {/* Datenqualität */}
+              {matchScore.data_quality && (
+                <div className={`mt-4 pt-4 border-t border-gray-200 ${
+                  matchScore.data_quality.level === 'high' ? 'text-green-700' :
+                  matchScore.data_quality.level === 'medium' ? 'text-yellow-700' : 'text-red-700'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                      matchScore.data_quality.level === 'high' ? 'bg-green-100' :
+                      matchScore.data_quality.level === 'medium' ? 'bg-yellow-100' : 'bg-red-100'
+                    }`}>
+                      {matchScore.data_quality.label}
+                    </div>
+                    <span className="text-xs text-gray-500">{matchScore.data_quality.percent}% Profildaten</span>
+                  </div>
+                  <p className="text-xs text-gray-600">{matchScore.data_quality.description}</p>
+                  {matchScore.data_quality.missing_fields?.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Fehlend: {matchScore.data_quality.missing_fields.join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
           
