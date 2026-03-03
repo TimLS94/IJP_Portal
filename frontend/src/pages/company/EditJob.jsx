@@ -8,6 +8,7 @@ import {
   Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
   ListTodo, FileText
 } from 'lucide-react';
+import RichTextEditor from '../../components/RichTextEditor';
 
 const positionTypes = [
   { value: 'studentenferienjob', label: 'Studentenferienjob' },

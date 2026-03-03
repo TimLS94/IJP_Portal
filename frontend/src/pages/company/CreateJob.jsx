@@ -315,6 +315,10 @@ function CreateJob() {
       if (isDraft) {
         cleanData.is_draft = true;
         cleanData.is_active = false;
+      } else {
+        // Veröffentlichen: Stelle ist aktiv und kein Entwurf
+        cleanData.is_draft = false;
+        cleanData.is_active = true;
       }
       
       await jobsAPI.create(cleanData);
