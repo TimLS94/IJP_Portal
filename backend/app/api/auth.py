@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta, datetime
 from pydantic import BaseModel
 from typing import Optional
 
@@ -192,6 +192,7 @@ class CompanyRegisterData(BaseModel):
 class CompanyRegisterRequest(BaseModel):
     user_data: UserRegister
     company_data: CompanyRegisterData
+    invite_token: Optional[str] = None  # Optionaler Einladungs-Token
 
 
 @router.post("/register/company")
@@ -202,11 +203,14 @@ async def register_company(
 ):
     """
     Registriert eine neue Firma.
-    WICHTIG: Firmen sind nach der Registrierung DEAKTIVIERT und müssen erst 
-    von einem Admin freigeschaltet werden.
+    - Mit gültigem Einladungs-Token: Sofort aktiv, kann sich direkt einloggen
+    - Ohne Token: DEAKTIVIERT, muss von Admin freigeschaltet werden
     """
+    from app.models.invite_token import InviteToken
+    
     user_data = register_request.user_data
     company_data = register_request.company_data
+    invite_token_str = register_request.invite_token
     
     # Rate Limiting: 3 Registrierungen pro Stunde pro IP
     await rate_limit_registration(request)
@@ -222,12 +226,29 @@ async def register_company(
             detail="E-Mail-Adresse bereits registriert"
         )
     
-    # Benutzer erstellen - DEAKTIVIERT bis Admin freischaltet
+    # Einladungs-Token prüfen (falls vorhanden)
+    invite_token = None
+    auto_activate = False
+    if invite_token_str:
+        invite_token = db.query(InviteToken).filter(
+            InviteToken.token == invite_token_str
+        ).first()
+        
+        if invite_token and invite_token.is_valid():
+            auto_activate = True
+        elif invite_token_str:
+            # Token angegeben aber ungültig
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ungültiger oder abgelaufener Einladungs-Link"
+            )
+    
+    # Benutzer erstellen
     user = User(
         email=user_data.email,
         password_hash=get_password_hash(user_data.password),
         role=UserRole.COMPANY,
-        is_active=False  # Firma muss erst aktiviert werden!
+        is_active=auto_activate  # Aktiv wenn gültiger Token, sonst deaktiviert
     )
     db.add(user)
     db.commit()
@@ -249,26 +270,92 @@ async def register_company(
     db.add(company)
     db.commit()
     
-    # E-Mail senden: Registrierung erhalten, warten auf Freischaltung
-    email_service.send_company_registration_pending(
-        to_email=user.email,
-        company_name=company_data.company_name
-    )
-    
-    # E-Mail an Admins senden
-    admin_emails = db.query(User.email).filter(User.role == UserRole.ADMIN, User.is_active == True).all()
-    for (admin_email,) in admin_emails:
-        email_service.send_admin_new_company_notification(
-            to_email=admin_email,
-            company_name=company_data.company_name,
-            company_email=user.email,
-            legal_form=company_data.legal_form,
-            address=f"{company_data.street} {company_data.house_number}, {company_data.postal_code} {company_data.city}",
-            phone=company_data.phone
+    # Token als verwendet markieren
+    if invite_token and auto_activate:
+        invite_token.use()
+        db.commit()
+        
+        # Willkommens-E-Mail senden (sofort aktiv)
+        email_service.send_welcome_email(
+            to_email=user.email,
+            name=company_data.company_name,
+            role="company"
         )
+        
+        # Token erstellen für sofortigen Login
+        access_token = create_access_token(
+            data={"sub": str(user.id)},
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+        
+        return {
+            "message": "Registrierung erfolgreich! Sie können sich jetzt einloggen.",
+            "status": "active",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "role": user.role.value,
+                "is_active": user.is_active
+            }
+        }
+    else:
+        # Normale Registrierung ohne Token
+        # E-Mail senden: Registrierung erhalten, warten auf Freischaltung
+        email_service.send_company_registration_pending(
+            to_email=user.email,
+            company_name=company_data.company_name
+        )
+        
+        # E-Mail an Admins senden
+        admin_emails = db.query(User.email).filter(User.role == UserRole.ADMIN, User.is_active == True).all()
+        for (admin_email,) in admin_emails:
+            email_service.send_admin_new_company_notification(
+                to_email=admin_email,
+                company_name=company_data.company_name,
+                company_email=user.email,
+                legal_form=company_data.legal_form,
+                address=f"{company_data.street} {company_data.house_number}, {company_data.postal_code} {company_data.city}",
+                phone=company_data.phone
+            )
+        
+        # KEIN Token zurückgeben - Firma muss erst aktiviert werden
+        return {
+            "message": "Registrierung erfolgreich! Ihr Unternehmen wird geprüft und in Kürze freigeschaltet. Sie erhalten eine E-Mail-Benachrichtigung.",
+            "status": "pending_activation"
+        }
+
+
+@router.get("/verify-invite/{token}")
+async def verify_invite_token(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Prüft ob ein Einladungs-Token gültig ist (öffentlich)"""
+    from app.models.invite_token import InviteToken
     
-    # KEIN Token zurückgeben - Firma muss erst aktiviert werden
+    invite_token = db.query(InviteToken).filter(InviteToken.token == token).first()
+    
+    if not invite_token:
+        return {"valid": False, "message": "Token nicht gefunden"}
+    
+    if not invite_token.is_valid():
+        reasons = []
+        if not invite_token.is_active:
+            reasons.append("deaktiviert")
+        if invite_token.expires_at and datetime.utcnow() > invite_token.expires_at:
+            reasons.append("abgelaufen")
+        if invite_token.max_uses and invite_token.current_uses >= invite_token.max_uses:
+            reasons.append("Nutzungslimit erreicht")
+        
+        return {
+            "valid": False, 
+            "message": f"Token ungültig: {', '.join(reasons)}"
+        }
+    
     return {
-        "message": "Registrierung erfolgreich! Ihr Unternehmen wird geprüft und in Kürze freigeschaltet. Sie erhalten eine E-Mail-Benachrichtigung.",
-        "status": "pending_activation"
+        "valid": True,
+        "name": invite_token.name,
+        "message": "Gültiger Einladungs-Link"
     }

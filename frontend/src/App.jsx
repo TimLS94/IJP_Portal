@@ -44,6 +44,7 @@ import BlogManager from './pages/admin/BlogManager';
 import BlogEditor from './pages/admin/BlogEditor';
 import AnabinVerification from './pages/admin/AnabinVerification';
 import AdminSettings from './pages/admin/Settings';
+import InviteTokens from './pages/admin/InviteTokens';
 
 // Blog
 import BlogList from './pages/blog/BlogList';
@@ -136,6 +137,7 @@ function App() {
             <Route path="blog/new" element={<BlogEditor />} />
             <Route path="blog/edit/:id" element={<BlogEditor />} />
             <Route path="feature-flags" element={<AdminSettings />} />
+            <Route path="invite-tokens" element={<InviteTokens />} />
             <Route path="settings" element={<AccountSettings />} />
           </Route>
         </Route>

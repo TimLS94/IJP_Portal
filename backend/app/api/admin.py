@@ -1367,3 +1367,123 @@ async def get_job_translation_status(
         "admin_translated_languages": job.admin_translated_languages or [],
         "has_translations": bool(job.translations)
     }
+
+
+# ==================== EINLADUNGS-TOKENS ====================
+
+class InviteTokenCreate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    expires_in_days: Optional[int] = None  # None = unbegrenzt
+    max_uses: Optional[int] = None  # None = unbegrenzt
+
+
+@router.get("/invite-tokens")
+async def list_invite_tokens(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Listet alle Einladungs-Tokens"""
+    from app.models.invite_token import InviteToken
+    
+    tokens = db.query(InviteToken).order_by(InviteToken.created_at.desc()).all()
+    
+    return [
+        {
+            "id": t.id,
+            "token": t.token,
+            "name": t.name,
+            "description": t.description,
+            "expires_at": t.expires_at.isoformat() if t.expires_at else None,
+            "max_uses": t.max_uses,
+            "current_uses": t.current_uses,
+            "is_active": t.is_active,
+            "is_valid": t.is_valid(),
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "last_used_at": t.last_used_at.isoformat() if t.last_used_at else None,
+            "created_by_email": t.created_by.email if t.created_by else None,
+        }
+        for t in tokens
+    ]
+
+
+@router.post("/invite-tokens")
+async def create_invite_token(
+    data: InviteTokenCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Erstellt einen neuen Einladungs-Token für Firmen-Registrierung"""
+    from app.models.invite_token import InviteToken
+    
+    expires_at = None
+    if data.expires_in_days:
+        expires_at = datetime.utcnow() + timedelta(days=data.expires_in_days)
+    
+    token = InviteToken(
+        token=InviteToken.generate_token(),
+        created_by_id=current_user.id,
+        name=data.name,
+        description=data.description,
+        expires_at=expires_at,
+        max_uses=data.max_uses
+    )
+    
+    db.add(token)
+    db.commit()
+    db.refresh(token)
+    
+    return {
+        "id": token.id,
+        "token": token.token,
+        "name": token.name,
+        "description": token.description,
+        "expires_at": token.expires_at.isoformat() if token.expires_at else None,
+        "max_uses": token.max_uses,
+        "current_uses": token.current_uses,
+        "is_active": token.is_active,
+        "created_at": token.created_at.isoformat() if token.created_at else None,
+        "registration_url": f"/register/company?invite={token.token}"
+    }
+
+
+@router.delete("/invite-tokens/{token_id}")
+async def delete_invite_token(
+    token_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Löscht/Deaktiviert einen Einladungs-Token"""
+    from app.models.invite_token import InviteToken
+    
+    token = db.query(InviteToken).filter(InviteToken.id == token_id).first()
+    if not token:
+        raise HTTPException(status_code=404, detail="Token nicht gefunden")
+    
+    token.is_active = False
+    db.commit()
+    
+    return {"message": "Token deaktiviert"}
+
+
+@router.put("/invite-tokens/{token_id}/toggle")
+async def toggle_invite_token(
+    token_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Aktiviert/Deaktiviert einen Einladungs-Token"""
+    from app.models.invite_token import InviteToken
+    
+    token = db.query(InviteToken).filter(InviteToken.id == token_id).first()
+    if not token:
+        raise HTTPException(status_code=404, detail="Token nicht gefunden")
+    
+    token.is_active = not token.is_active
+    db.commit()
+    
+    return {
+        "id": token.id,
+        "is_active": token.is_active,
+        "message": "Token aktiviert" if token.is_active else "Token deaktiviert"
+    }

@@ -45,8 +45,8 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   registerApplicant: (data, firstName, lastName) => 
     api.post(`/auth/register/applicant?first_name=${firstName}&last_name=${lastName}`, data),
-  registerCompany: (userData, companyData) => 
-    api.post('/auth/register/company', { user_data: userData, company_data: companyData }),
+  registerCompany: (userData, companyData, inviteToken = null) => 
+    api.post('/auth/register/company', { user_data: userData, company_data: companyData, invite_token: inviteToken }),
   login: (email, password) => {
     const formData = new FormData();
     formData.append('username', email);
@@ -320,6 +320,15 @@ export const adminAPI = {
   // Job Translation
   translateJob: (jobId, languages) => api.post(`/admin/jobs/${jobId}/translate`, { languages }),
   getJobTranslationStatus: (jobId) => api.get(`/admin/jobs/${jobId}/translation-status`),
+  
+  // Einladungs-Tokens für Firmen
+  listInviteTokens: () => api.get('/admin/invite-tokens'),
+  createInviteToken: (data) => api.post('/admin/invite-tokens', data),
+  deleteInviteToken: (id) => api.delete(`/admin/invite-tokens/${id}`),
+  toggleInviteToken: (id) => api.put(`/admin/invite-tokens/${id}/toggle`),
 };
+
+// Auth API Erweiterung für Einladungs-Token-Prüfung
+export const verifyInviteToken = (token) => api.get(`/auth/verify-invite/${token}`);
 
 export default api;

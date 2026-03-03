@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import { authAPI } from '../../lib/api';
+import { authAPI, verifyInviteToken } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { Mail, Lock, User, Building2, Loader2, CheckCircle, Clock, MapPin, Phone, Eye, EyeOff } from 'lucide-react';
 
@@ -21,16 +21,43 @@ const LEGAL_FORMS = [
 
 function Register() {
   const { t } = useTranslation();
-  const { registerApplicant } = useAuth();
+  const { registerApplicant, login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [userType, setUserType] = useState('applicant');
   const [companyPending, setCompanyPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register, handleSubmit, formState: { errors }, watch } = useForm();
+  
+  // Einladungs-Token aus URL
+  const inviteToken = searchParams.get('invite');
+  const [inviteValid, setInviteValid] = useState(null);
+  const [inviteName, setInviteName] = useState(null);
+  const [inviteChecking, setInviteChecking] = useState(!!inviteToken);
 
   const password = watch('password');
+
+  // Einladungs-Token prüfen
+  useEffect(() => {
+    if (inviteToken) {
+      setUserType('company'); // Automatisch Firma auswählen
+      verifyInviteToken(inviteToken)
+        .then(res => {
+          setInviteValid(res.data.valid);
+          setInviteName(res.data.name);
+          if (!res.data.valid) {
+            toast.error(res.data.message || 'Ungültiger Einladungs-Link');
+          }
+        })
+        .catch(() => {
+          setInviteValid(false);
+          toast.error('Einladungs-Link konnte nicht geprüft werden');
+        })
+        .finally(() => setInviteChecking(false));
+    }
+  }, [inviteToken]);
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -40,8 +67,8 @@ function Register() {
         toast.success(t('auth.registerSuccess'));
         navigate('/applicant/profile');
       } else {
-        // Firmen-Registrierung: Konto wird erst nach Admin-Freischaltung aktiviert
-        await authAPI.registerCompany(
+        // Firmen-Registrierung
+        const response = await authAPI.registerCompany(
           { email: data.email, password: data.password },
           {
             company_name: data.companyName,
@@ -52,11 +79,20 @@ function Register() {
             city: data.city,
             phone: data.phone,
             contact_person: data.contactPerson || null
-          }
+          },
+          inviteToken // Einladungs-Token mitsenden
         );
-        // Zeige Pending-Status an
-        setCompanyPending(true);
-        toast.success('Registrierung erfolgreich!');
+        
+        // Wenn mit gültigem Token: Sofort einloggen
+        if (response.data.status === 'active' && response.data.access_token) {
+          localStorage.setItem('token', response.data.access_token);
+          toast.success('Registrierung erfolgreich! Sie werden eingeloggt...');
+          window.location.href = '/company/dashboard';
+        } else {
+          // Zeige Pending-Status an
+          setCompanyPending(true);
+          toast.success('Registrierung erfolgreich!');
+        }
       }
     } catch (error) {
       toast.error(error.response?.data?.detail || t('auth.registerFailed'));
@@ -101,6 +137,43 @@ function Register() {
           <h1 className="text-2xl font-bold text-gray-900">{t('auth.register')}</h1>
           <p className="text-gray-600 mt-1">{t('auth.createAccount')}</p>
         </div>
+
+        {/* Einladungs-Token Info */}
+        {inviteToken && (
+          <div className={`mb-6 p-4 rounded-xl border ${
+            inviteChecking ? 'bg-gray-50 border-gray-200' :
+            inviteValid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+          }`}>
+            {inviteChecking ? (
+              <div className="flex items-center gap-2 text-gray-600">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Einladungs-Link wird geprüft...</span>
+              </div>
+            ) : inviteValid ? (
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-green-800">Gültiger Einladungs-Link</p>
+                  {inviteName && <p className="text-sm text-green-700">{inviteName}</p>}
+                  <p className="text-sm text-green-600 mt-1">
+                    Sie können sich direkt registrieren und sofort loslegen - keine Wartezeit!
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3">
+                <Clock className="h-5 w-5 text-red-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-red-800">Ungültiger Einladungs-Link</p>
+                  <p className="text-sm text-red-600 mt-1">
+                    Der Link ist abgelaufen oder wurde bereits verwendet. Sie können sich trotzdem registrieren, 
+                    müssen aber auf die Freischaltung durch einen Administrator warten.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         {/* User Type Selector */}
         <div className="grid grid-cols-2 gap-3 mb-6">

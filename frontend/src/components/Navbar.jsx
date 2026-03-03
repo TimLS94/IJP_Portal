@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Briefcase, User, Building2, LogOut, Menu, X, FileText, Shield, 
   BookOpen, Settings, ClipboardList, Users, ChevronDown, Home,
-  LayoutDashboard, FolderOpen, GraduationCap, Info, Mail, Calendar
+  LayoutDashboard, FolderOpen, GraduationCap, Info, Mail, Calendar, Link2
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -71,6 +71,7 @@ function Navbar() {
         { to: '/admin/jobs', icon: Briefcase, label: t('nav.adminJobs') },
         { to: '/admin/blog', icon: BookOpen, label: t('nav.adminBlog') },
         { to: '/admin/feature-flags', icon: Settings, label: 'Feature Flags' },
+        { to: '/admin/invite-tokens', icon: Link2, label: 'Einladungs-Links' },
         { divider: true },
         { to: '/admin/settings', icon: Settings, label: t('nav.settings') },
       ];
