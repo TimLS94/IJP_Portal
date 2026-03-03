@@ -95,6 +95,7 @@ function CreateJob() {
   const [otherLanguages, setOtherLanguages] = useState([]);
   const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90, archive_deletion_days: 90 });
   const [showPreview, setShowPreview] = useState(false);
+  const [selectedPositionTypes, setSelectedPositionTypes] = useState([]);
   
   // Mehrsprachige Inhalte
   const [activeLanguage, setActiveLanguage] = useState('de');
