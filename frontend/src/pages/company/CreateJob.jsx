@@ -1033,15 +1033,15 @@ function CreateJob() {
         </div>
 
         {/* Speichern Button */}
-        <div className="flex justify-between items-center sticky bottom-4 bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border">
-          <Link to="/company/jobs" className="btn-secondary px-6 py-2.5">
+        <div className="flex flex-wrap justify-between items-center gap-3 sticky bottom-4 bg-white/80 backdrop-blur-sm p-3 sm:p-4 rounded-xl shadow-lg border">
+          <Link to="/company/jobs" className="btn-secondary px-4 py-2 text-sm">
             Abbrechen
           </Link>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setShowPreview(true)}
-              className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+              className="btn-secondary px-3 py-2 text-sm flex items-center gap-1.5"
             >
               <Eye className="h-4 w-4" />
               <span className="hidden sm:inline">Vorschau</span>
@@ -1050,17 +1050,17 @@ function CreateJob() {
               <button
                 type="button"
                 onClick={() => setShowTemplateModal(true)}
-                className="btn-primary px-6 py-2.5 flex items-center gap-2"
+                className="btn-primary px-4 py-2 text-sm flex items-center gap-1.5"
               >
                 <Copy className="h-4 w-4" />
-                Als Vorlage speichern
+                <span className="hidden sm:inline">Als</span> Vorlage speichern
               </button>
             ) : (
               <>
             <button
               type="button"
               onClick={() => setShowTemplateModal(true)}
-              className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+              className="btn-secondary px-3 py-2 text-sm flex items-center gap-1.5"
               title="Als Vorlage speichern"
             >
               <Copy className="h-4 w-4" />
@@ -1070,7 +1070,7 @@ function CreateJob() {
               type="button"
               disabled={saving}
               onClick={handleSubmit((data) => onSubmit(data, true))}
-              className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+              className="btn-secondary px-3 py-2 text-sm flex items-center gap-1.5"
               title="Als Entwurf speichern"
             >
               {saving ? (
@@ -1083,14 +1083,14 @@ function CreateJob() {
           <button
             type="submit"
             disabled={saving}
-            className="btn-primary flex items-center gap-2 px-8"
+            className="btn-primary flex items-center gap-1.5 px-4 py-2 text-sm"
           >
             {saving ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Save className="h-5 w-5" />
+              <Save className="h-4 w-4" />
             )}
-            Stelle veröffentlichen
+            <span className="hidden sm:inline">Stelle</span> veröffentlichen
           </button>
               </>
             )}
