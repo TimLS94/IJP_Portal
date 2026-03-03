@@ -27,6 +27,9 @@ class DocumentType(str, enum.Enum):
     # Visum
     VISA = "visa"                               # Visum / Aufenthaltstitel
     
+    # Anschreiben
+    COVER_LETTER = "cover_letter"               # Anschreiben/Motivationsschreiben
+    
     # Sonstige
     OTHER = "other"                             # Sonstiges
 
