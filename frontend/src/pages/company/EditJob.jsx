@@ -111,6 +111,8 @@ function EditJob() {
   const [saving, setSaving] = useState(false);
   const [otherLanguages, setOtherLanguages] = useState([]);
   const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90, archive_deletion_days: 90 });
+  const [adminTranslated, setAdminTranslated] = useState(false);
+  const [adminTranslatedLanguages, setAdminTranslatedLanguages] = useState([]);
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm();
 
   const germanRequired = watch('german_required') || 'not_required';
@@ -167,6 +169,10 @@ function EditJob() {
       if (job.other_languages_required && job.other_languages_required.length > 0) {
         setOtherLanguages(job.other_languages_required);
       }
+      
+      // Admin-Übersetzung Status setzen
+      setAdminTranslated(job.admin_translated || false);
+      setAdminTranslatedLanguages(job.admin_translated_languages || []);
     } catch (error) {
       toast.error('Stellenangebot nicht gefunden');
       navigate('/company/jobs');

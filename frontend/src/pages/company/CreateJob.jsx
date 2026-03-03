@@ -533,7 +533,7 @@ function CreateJob() {
                     className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
                              focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
                              transition-all cursor-pointer text-gray-700 font-medium"
-                    {...register('position_type', { required: 'Stellenart ist erforderlich' })}
+                    {...register('position_type')}
                   >
                     <option value="">Stellenart wählen</option>
                     {positionTypes.map((type) => (

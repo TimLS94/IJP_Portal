@@ -24,10 +24,10 @@ class JobTranslation(BaseModel):
 
 
 class JobPostingBase(BaseModel):
-    title: str
-    position_type: PositionType
+    title: Optional[str] = None
+    position_type: Optional[PositionType] = None
     employment_type: Optional[EmploymentType] = None  # NEU: Vollzeit/Teilzeit
-    description: str
+    description: Optional[str] = None
     tasks: Optional[str] = None  # NEU: Aufgaben
     requirements: Optional[str] = None
     benefits: Optional[str] = None
@@ -65,18 +65,18 @@ class JobPostingBase(BaseModel):
     @field_validator('title')
     @classmethod
     def validate_title(cls, v):
-        """Stellt sicher, dass der Titel nicht leer ist"""
-        if not v or not v.strip():
-            raise ValueError('Stellentitel ist erforderlich')
-        return v.strip()
+        """Trimmt den Titel wenn vorhanden"""
+        if v:
+            return v.strip()
+        return v
     
     @field_validator('description')
     @classmethod
     def validate_description(cls, v):
-        """Stellt sicher, dass die Beschreibung nicht leer ist"""
-        if not v or not v.strip():
-            raise ValueError('Stellenbeschreibung ist erforderlich')
-        return v.strip()
+        """Trimmt die Beschreibung wenn vorhanden"""
+        if v:
+            return v.strip()
+        return v
     
     @field_validator('salary_min')
     @classmethod
