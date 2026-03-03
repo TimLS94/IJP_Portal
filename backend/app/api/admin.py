@@ -1404,6 +1404,7 @@ async def list_invite_tokens(
             "created_at": t.created_at.isoformat() if t.created_at else None,
             "last_used_at": t.last_used_at.isoformat() if t.last_used_at else None,
             "created_by_email": t.created_by.email if t.created_by else None,
+            "registration_url": f"/register?invite={t.token}",
         }
         for t in tokens
     ]
@@ -1448,7 +1449,7 @@ async def create_invite_token(
         "created_at": token.created_at.isoformat() if token.created_at else None,
         "last_used_at": None,
         "created_by_email": current_user.email,
-        "registration_url": f"/register/company?invite={token.token}"
+        "registration_url": f"/register?invite={token.token}"
     }
 
 
@@ -1458,17 +1459,17 @@ async def delete_invite_token(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Löscht/Deaktiviert einen Einladungs-Token"""
+    """Löscht einen Einladungs-Token permanent"""
     from app.models.invite_token import InviteToken
     
     token = db.query(InviteToken).filter(InviteToken.id == token_id).first()
     if not token:
         raise HTTPException(status_code=404, detail="Token nicht gefunden")
     
-    token.is_active = False
+    db.delete(token)
     db.commit()
     
-    return {"message": "Token deaktiviert"}
+    return {"message": "Token gelöscht"}
 
 
 @router.put("/invite-tokens/{token_id}/toggle")
