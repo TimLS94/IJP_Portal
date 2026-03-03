@@ -86,6 +86,10 @@ async def login(
             detail="Benutzer ist deaktiviert"
         )
     
+    # Letzten Login-Zeitpunkt aktualisieren
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+    
     access_token = create_access_token(
         data={"sub": str(user.id)},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
