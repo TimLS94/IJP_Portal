@@ -11,6 +11,7 @@ class PositionType(str, enum.Enum):
     WORK_AND_HOLIDAY = "workandholiday"  # Working Holiday Visum (Südamerika)
     FACHKRAFT = "fachkraft"
     AUSBILDUNG = "ausbildung"
+    GENERAL = "general"  # Allgemein / Sonstige
 
 
 class Gender(str, enum.Enum):
