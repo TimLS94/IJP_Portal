@@ -568,6 +568,10 @@ function CompanyJobs() {
                           <Calendar className="h-4 w-4" />
                           Erstellt: {formatDate(job.created_at)}
                         </span>
+                        <span className="flex items-center gap-1 text-indigo-600 font-medium">
+                          <Eye className="h-4 w-4" />
+                          {job.view_count || 0} Aufrufe
+                        </span>
                         {job.deadline && (
                           <span className="flex items-center gap-1 text-gray-500">
                             <Clock className="h-4 w-4" />
