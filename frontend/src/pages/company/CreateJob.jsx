@@ -441,7 +441,7 @@ function CreateJob() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={handleSubmit((data) => onSubmit(data, false))} className="space-y-8">
         {/* ========== 0. SPRACH-AUSWAHL ========== */}
         <div className="card border-l-4 border-l-indigo-500">
           <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
