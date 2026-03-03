@@ -359,6 +359,8 @@ function Jobs() {
             <Link
               key={job.id}
               to={`/jobs/${job.slug ? `${job.slug}-${job.id}` : job.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="card block hover:shadow-xl hover:border-primary-200 border-2 border-transparent transition-all group"
             >
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
