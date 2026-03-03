@@ -421,13 +421,13 @@ function CreateJob() {
           <p className="text-gray-600">Veröffentlichen Sie ein neues Stellenangebot</p>
         </div>
         </div>
-        <Link 
-          to="/company/jobs?tab=templates" 
+        <button 
+          onClick={() => setShowTemplateModal(true)}
           className="btn-secondary flex items-center gap-2"
         >
-          <FileText className="h-5 w-5" />
-          Vorlagen
-        </Link>
+          <Copy className="h-5 w-5" />
+          Als Vorlage speichern
+        </button>
       </div>
 
       {isTemplateMode && (
