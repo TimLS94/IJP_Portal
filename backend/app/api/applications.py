@@ -317,12 +317,15 @@ async def get_company_applications(
                 pass
         
         # Interview-Status ermitteln (neuestes relevantes Interview)
+        # Bei abgelehnten Bewerbungen keine Interview-Info anzeigen
         interview_info = None
-        if app.interviews:
+        app_status = app.status.value if hasattr(app.status, 'value') else app.status
+        if app.interviews and app_status != 'rejected':
             # Sortiere nach Erstellungsdatum (neuestes zuerst)
             sorted_interviews = sorted(app.interviews, key=lambda x: x.created_at, reverse=True)
             for interview in sorted_interviews:
-                if interview.status.value in ['confirmed', 'proposed', 'declined']:
+                # Nur aktive Interview-Status anzeigen (nicht stornierte)
+                if interview.status.value in ['confirmed', 'proposed']:
                     interview_info = {
                         "status": interview.status.value,
                         "confirmed_date": interview.confirmed_date.isoformat() if interview.confirmed_date else None,
