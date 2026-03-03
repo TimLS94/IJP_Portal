@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { 
   Users, Search, UserCheck, UserX, Building2, 
   User, Shield, Filter, Plus, X, Trash2, Eye, EyeOff, Loader2,
-  Download, FileText, ShieldAlert, AlertTriangle, File
+  Download, FileText, ShieldAlert, AlertTriangle, File, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 const roleLabels = {
@@ -20,6 +20,8 @@ function AdminUsers() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [page, setPage] = useState(0);
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortDir, setSortDir] = useState('desc');
   const limit = 20;
 
   // Modal State
@@ -63,6 +65,51 @@ function AdminUsers() {
     setPage(0);
     loadUsers();
   };
+
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ column }) => {
+    if (sortBy !== column) return <ArrowUpDown className="h-3 w-3 text-gray-400" />;
+    return sortDir === 'asc' 
+      ? <ArrowUp className="h-3 w-3 text-primary-600" />
+      : <ArrowDown className="h-3 w-3 text-primary-600" />;
+  };
+
+  // Sortierte Benutzer
+  const sortedUsers = [...users].sort((a, b) => {
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+    
+    // Spezialbehandlung für verschiedene Felder
+    if (sortBy === 'name') {
+      aVal = a.name || '';
+      bVal = b.name || '';
+    }
+    if (sortBy === 'created_at' || sortBy === 'last_login_at') {
+      aVal = aVal ? new Date(aVal).getTime() : 0;
+      bVal = bVal ? new Date(bVal).getTime() : 0;
+    }
+    if (sortBy === 'is_active') {
+      aVal = aVal ? 1 : 0;
+      bVal = bVal ? 1 : 0;
+    }
+    
+    if (typeof aVal === 'string') {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+    
+    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const toggleActive = async (userId) => {
     try {
@@ -266,17 +313,41 @@ function AdminUsers() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Benutzer</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">E-Mail</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Rolle</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Registriert</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Letzter Login</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                      <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-primary-600">
+                        Benutzer <SortIcon column="name" />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                      <button onClick={() => handleSort('email')} className="flex items-center gap-1 hover:text-primary-600">
+                        E-Mail <SortIcon column="email" />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                      <button onClick={() => handleSort('role')} className="flex items-center gap-1 hover:text-primary-600">
+                        Rolle <SortIcon column="role" />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                      <button onClick={() => handleSort('created_at')} className="flex items-center gap-1 hover:text-primary-600">
+                        Registriert <SortIcon column="created_at" />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                      <button onClick={() => handleSort('last_login_at')} className="flex items-center gap-1 hover:text-primary-600">
+                        Letzter Login <SortIcon column="last_login_at" />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                      <button onClick={() => handleSort('is_active')} className="flex items-center gap-1 hover:text-primary-600">
+                        Status <SortIcon column="is_active" />
+                      </button>
+                    </th>
                     <th className="px-4 py-3 text-right text-sm font-semibold text-gray-900">Aktionen</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {users.map((user) => {
+                  {sortedUsers.map((user) => {
                     const roleInfo = roleLabels[user.role] || roleLabels.applicant;
                     const RoleIcon = roleInfo.icon;
                     return (

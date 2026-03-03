@@ -186,7 +186,6 @@
     "ijpServiceButton": "IJP beauftragen"
   },
   "positionTypes": {
-    "general": "Arbeit (Allgemein)",
     "studentenferienjob": "Studentenferienjob",
     "saisonjob": "Saisonjob",
     "workandholiday": "Work & Holiday",
@@ -194,7 +193,6 @@
     "ausbildung": "Ausbildung"
   },
   "positionTypeDescriptions": {
-    "general": "Allgemeine Arbeitsstellen für EU-Bürger und Personen mit Arbeitserlaubnis. Keine speziellen Visa-Anforderungen. Lebenslauf erforderlich, Motivationsschreiben optional.",
     "studentenferienjob": "Für Studenten aus dem Ausland, die in den Semesterferien in Deutschland arbeiten möchten. Maximal 90 Tage (3 Monate) pro Jahr. Voraussetzung: Aktive Immatrikulation an einer ausländischen Hochschule.",
     "saisonjob": "Saisonarbeit und Work & Holiday: Kurzzeitige Beschäftigung in Landwirtschaft, Gastronomie oder Tourismus. Auch für Working Holiday Visum-Inhaber (18-30 Jahre) aus Partnerländern geeignet.",
     "workandholiday": "Saisonarbeit und Work & Holiday: Kurzzeitige Beschäftigung in Landwirtschaft, Gastronomie oder Tourismus. Auch für Working Holiday Visum-Inhaber (18-30 Jahre) aus Partnerländern geeignet.",
@@ -262,8 +260,7 @@
     "declineAndRequest": "Ablehnen & neue Termine anfordern",
     "cancelAppointmentTitle": "Termin absagen",
     "cancelAppointmentText": "Möchten Sie diesen bestätigten Termin wirklich absagen? Die Firma wird per E-Mail benachrichtigt.",
-    "cancelReasonPlaceholder": "z.B. Krankheit, familiärer Notfall...",
-    "germanTime": "Alle Zeiten in deutscher Zeit (MEZ/MESZ)"
+    "cancelReasonPlaceholder": "z.B. Krankheit, familiärer Notfall..."
   },
   "applicant": {
     "profile": "Mein Profil",
@@ -708,7 +705,6 @@
     "documentTypes": {
       "passport": "Reisepass",
       "cv": "Lebenslauf",
-      "cover_letter": "Anschreiben",
       "photo": "Bewerbungsfoto",
       "enrollment_cert": "Immatrikulationsbescheinigung (Original)",
       "enrollment_trans": "Immatrikulation (Übersetzung DE/EN)",
@@ -723,7 +719,6 @@
     "documentDescriptions": {
       "passport": "Gültiger Reisepass (alle Seiten mit Stempeln)",
       "cv": "Lebenslauf",
-      "cover_letter": "Motivationsschreiben / Anschreiben (optional)",
       "photo": "Bewerbungsfoto (optional)",
       "enrollment_cert": "Immatrikulationsbescheinigung im Original",
       "enrollment_trans": "Beglaubigte deutsche oder englische Übersetzung der Immatrikulation",
@@ -1393,11 +1388,6 @@
     "password": "Passwort",
     "passwordHint": "Ändern Sie Ihr Passwort regelmäßig",
     "dangerZone": "Gefahrenzone",
-    "notifications": "Benachrichtigungen",
-    "jobNotifications": "Passende Stellenangebote",
-    "jobNotificationsDesc": "E-Mail erhalten, wenn neue passende Stellen veröffentlicht werden",
-    "notificationsEnabled": "Benachrichtigungen aktiviert",
-    "notificationsDisabled": "Benachrichtigungen deaktiviert",
     "changeEmail": "E-Mail ändern",
     "currentEmail": "Aktuelle E-Mail",
     "newEmail": "Neue E-Mail-Adresse",
@@ -1432,8 +1422,7 @@
       "loadAccountData": "Fehler beim Laden der Account-Daten",
       "changePassword": "Fehler beim Ändern des Passworts",
       "changeEmail": "Fehler beim Ändern der E-Mail",
-      "deleteAccount": "Fehler beim Löschen des Accounts",
-      "saveNotifications": "Fehler beim Speichern der Benachrichtigungseinstellungen"
+      "deleteAccount": "Fehler beim Löschen des Accounts"
     }
   }
 }

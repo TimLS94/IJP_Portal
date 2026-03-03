@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { applicationsAPI, documentsAPI, interviewAPI, downloadBlob } from '../../lib/api';
-import { getNationalityLabel } from '../../data/nationalities';
 import toast from 'react-hot-toast';
 import { 
   Users, User, Briefcase, Calendar, MessageSquare, Check, X, 
@@ -26,33 +24,6 @@ const positionTypeLabels = {
   workandholiday: 'Saisonjob',  // Legacy
   fachkraft: 'Fachkraft',
   ausbildung: 'Ausbildung'
-};
-
-// Matching-Score Badge Komponente
-const MatchScoreBadge = ({ score }) => {
-  if (score === null || score === undefined) {
-    return <span className="text-gray-400 text-sm">-</span>;
-  }
-  
-  let colorClass = 'bg-red-100 text-red-700';
-  let icon = <TrendingDown className="h-3 w-3" />;
-  
-  if (score >= 80) {
-    colorClass = 'bg-green-100 text-green-700';
-    icon = <TrendingUp className="h-3 w-3" />;
-  } else if (score >= 60) {
-    colorClass = 'bg-yellow-100 text-yellow-700';
-    icon = <Minus className="h-3 w-3" />;
-  } else if (score >= 40) {
-    colorClass = 'bg-orange-100 text-orange-700';
-    icon = <TrendingDown className="h-3 w-3" />;
-  }
-  
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
-      {icon} {score}%
-    </span>
-  );
 };
 
 function CompanyApplications() {
@@ -160,9 +131,6 @@ function CompanyApplications() {
           const statusOrder = statusOptions.map(s => s.value);
           comparison = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
           break;
-        case 'match_score':
-          comparison = (a.match_score || 0) - (b.match_score || 0);
-          break;
         case 'applied_at':
         default:
           comparison = new Date(a.applied_at) - new Date(b.applied_at);
@@ -254,25 +222,24 @@ function CompanyApplications() {
       return;
     }
 
-    // Kombiniere Datum und Uhrzeit - als lokale deutsche Zeit speichern (ohne UTC-Konvertierung)
-    const dateTime1 = `${interviewData.proposed_date_1}T${interviewData.proposed_time_1}:00`;
-    let dateTime2 = null;
+    // Kombiniere Datum und Uhrzeit
+    const date1 = new Date(`${interviewData.proposed_date_1}T${interviewData.proposed_time_1}`);
+    let date2 = null;
     if (interviewData.proposed_date_2 && interviewData.proposed_time_2) {
-      dateTime2 = `${interviewData.proposed_date_2}T${interviewData.proposed_time_2}:00`;
+      date2 = new Date(`${interviewData.proposed_date_2}T${interviewData.proposed_time_2}`);
     }
 
     // Speichere nur lokal - wird erst beim "Speichern" gesendet
-    // Wichtig: Wir speichern das Datum als String ohne Timezone-Konvertierung
     setPendingInterview({
       application_id: selectedApp,
-      proposed_date_1: dateTime1,
-      proposed_date_2: dateTime2,
+      proposed_date_1: date1.toISOString(),
+      proposed_date_2: date2 ? date2.toISOString() : null,
       location: interviewData.location || null,
       meeting_link: interviewData.meeting_link || null,
       notes: interviewData.notes || null,
       // Für Anzeige
-      display_date_1: dateTime1,
-      display_date_2: dateTime2,
+      display_date_1: date1,
+      display_date_2: date2,
     });
 
     // Status auf "Vorstellungsgespräch" setzen
@@ -284,31 +251,12 @@ function CompanyApplications() {
 
   const formatDateTime = (dateString) => {
     if (!dateString) return '-';
-    // Parse das Datum ohne Timezone-Konvertierung
-    // Das Backend speichert deutsche Zeit, also zeigen wir sie direkt an
-    const date = new Date(dateString);
-    // Wenn das Datum ein Z (UTC) am Ende hat, korrigieren wir die Timezone
-    if (dateString.endsWith('Z') || dateString.includes('+')) {
-      // UTC-Datum: Addiere 1 Stunde für deutsche Zeit (MEZ)
-      // Im Sommer (MESZ) wären es 2 Stunden, aber wir nehmen 1 als Standard
-      const germanDate = new Date(date.getTime() + (1 * 60 * 60 * 1000));
-      return germanDate.toLocaleString('de-DE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Europe/Berlin'
-      });
-    }
-    // Lokales Datum ohne Z: Direkt anzeigen
-    return date.toLocaleString('de-DE', {
+    return new Date(dateString).toLocaleString('de-DE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Europe/Berlin'
+      minute: '2-digit'
     });
   };
 
@@ -727,14 +675,6 @@ function CompanyApplications() {
                   </th>
                   <th className="text-left px-4 py-3">
                     <button 
-                      onClick={() => handleSort('match_score')}
-                      className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
-                    >
-                      <Sparkles className="h-4 w-4" /> Match <SortIcon column="match_score" />
-                    </button>
-                  </th>
-                  <th className="text-left px-4 py-3">
-                    <button 
                       onClick={() => handleSort('applied_at')}
                       className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
                     >
@@ -777,41 +717,13 @@ function CompanyApplications() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Link 
-                        to={`/jobs/${app.job_slug || app.job_id}`}
-                        className="text-primary-600 hover:text-primary-700 hover:underline font-medium"
-                      >
-                        {app.job_title}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <MatchScoreBadge score={app.match_score} />
+                      <p className="text-gray-900">{app.job_title}</p>
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-sm">
                       {formatDate(app.applied_at)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
-                        <StatusBadge status={app.status} />
-                        {app.interview_info && (
-                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
-                            app.interview_info.status === 'confirmed' 
-                              ? 'bg-green-100 text-green-700' 
-                              : app.interview_info.status === 'declined'
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {app.interview_info.status === 'confirmed' && <CheckCircle className="h-3 w-3" />}
-                            {app.interview_info.status === 'declined' && <XCircle className="h-3 w-3" />}
-                            {app.interview_info.status === 'proposed' && <Clock className="h-3 w-3" />}
-                            {app.interview_info.status === 'confirmed' 
-                              ? `✓ ${new Date(app.interview_info.confirmed_date).toLocaleDateString('de-DE')}`
-                              : app.interview_info.status === 'declined'
-                                ? 'Abgelehnt'
-                                : 'Wartet auf Antwort'}
-                          </span>
-                        )}
-                      </div>
+                      <StatusBadge status={app.status} />
                     </td>
                     <td className="px-4 py-3">
                       <StatusDropdown app={app} />
@@ -858,28 +770,6 @@ function CompanyApplications() {
                 <Calendar className="h-4 w-4 inline mr-1" />
                 Beworben am {formatDate(app.applied_at)}
               </div>
-
-              {/* Interview-Status Anzeige */}
-              {app.interview_info && (
-                <div className={`rounded-lg p-2 mb-3 text-sm flex items-center gap-2 ${
-                  app.interview_info.status === 'confirmed' 
-                    ? 'bg-green-50 text-green-700 border border-green-200' 
-                    : app.interview_info.status === 'declined'
-                      ? 'bg-red-50 text-red-700 border border-red-200'
-                      : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                }`}>
-                  {app.interview_info.status === 'confirmed' && <CheckCircle className="h-4 w-4" />}
-                  {app.interview_info.status === 'declined' && <XCircle className="h-4 w-4" />}
-                  {app.interview_info.status === 'proposed' && <Clock className="h-4 w-4" />}
-                  <span>
-                    {app.interview_info.status === 'confirmed' 
-                      ? `Termin bestätigt: ${new Date(app.interview_info.confirmed_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
-                      : app.interview_info.status === 'declined'
-                        ? 'Termine abgelehnt - neue nötig'
-                        : 'Wartet auf Terminbestätigung'}
-                  </span>
-                </div>
-              )}
 
               {app.applicant_message && (
                 <div className="bg-gray-50 rounded-lg p-2 mb-3 text-sm text-gray-600">
@@ -1093,7 +983,7 @@ function CompanyApplications() {
                       </div>
                       <div className="flex justify-between p-2 bg-white rounded">
                         <span className="text-gray-500">Nationalität</span>
-                        <span className="font-medium">{getNationalityLabel(applicantDetails.applicant.nationality, 'de') || '-'}</span>
+                        <span className="font-medium">{applicantDetails.applicant.nationality || '-'}</span>
                       </div>
                       <div className="flex justify-between p-2 bg-white rounded">
                         <span className="text-gray-500">Stellenart</span>
@@ -1275,19 +1165,6 @@ function CompanyApplications() {
                                   </div>
                                 )}
                                 
-                                {/* Wartet auf Antwort Hinweis */}
-                                {interview.status === 'proposed' && (
-                                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                    <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
-                                      <Clock className="h-4 w-4 animate-pulse" />
-                                      ⏳ Wartet auf Antwort des Bewerbers
-                                    </p>
-                                    <p className="text-xs text-amber-600 mt-1">
-                                      Der Bewerber wurde per E-Mail über die Terminvorschläge informiert.
-                                    </p>
-                                  </div>
-                                )}
-                                
                                 {interview.location && (
                                   <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
                                     <MapPinned className="h-4 w-4" />
@@ -1460,10 +1337,6 @@ function CompanyApplications() {
               </h2>
               <p className="text-gray-600 text-sm mt-1">
                 Schlagen Sie dem Bewerber 2 Terminoptionen vor. Die E-Mail wird erst nach dem Speichern gesendet.
-              </p>
-              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Alle Zeiten in deutscher Zeit (MEZ/MESZ)
               </p>
             </div>
 

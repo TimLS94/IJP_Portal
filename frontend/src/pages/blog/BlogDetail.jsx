@@ -102,51 +102,24 @@ function BlogDetail() {
   const renderContent = (content) => {
     if (!content) return '';
     
-    // Zuerst Listen verarbeiten (vor anderen Transformationen)
-    const lines = content.split('\n');
-    const processedLines = [];
-    let inList = false;
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const isListItem = line.trim().startsWith('- ');
-      
-      if (isListItem) {
-        if (!inList) {
-          processedLines.push('<ul class="ml-6 my-4 space-y-2">');
-          inList = true;
-        }
-        // Entferne das "- " und wrappe in <li>
-        processedLines.push(`<li>${line.trim().substring(2)}</li>`);
-      } else {
-        if (inList) {
-          processedLines.push('</ul>');
-          inList = false;
-        }
-        processedLines.push(line);
-      }
-    }
-    
-    // Liste am Ende schließen falls nötig
-    if (inList) {
-      processedLines.push('</ul>');
-    }
-    
-    let html = processedLines.join('\n')
+    // Sehr einfache Markdown-Unterstützung
+    let html = content
       // Überschriften
       .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-8 mb-4">$1</h3>')
       .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-10 mb-4">$1</h2>')
       .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-12 mb-6">$1</h1>')
       // Fett
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      // Kursiv (aber nicht innerhalb von Listen-Tags)
-      .replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+      // Kursiv
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
       // Links
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary-600 hover:underline" target="_blank" rel="noopener">$1</a>')
-      // Absätze (doppelte Zeilenumbrüche)
+      // Listen
+      .replace(/^\- (.*$)/gim, '<li class="ml-4">$1</li>')
+      // Absätze
       .replace(/\n\n/g, '</p><p class="mb-4">')
-      // Einfache Zeilenumbrüche (außer in Listen)
-      .replace(/\n(?!<)/g, '<br>');
+      // Zeilenumbrüche
+      .replace(/\n/g, '<br>');
     
     return `<p class="mb-4">${html}</p>`;
   };

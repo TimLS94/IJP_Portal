@@ -14,13 +14,7 @@ from app.core.security import (
     check_password_strength
 )
 from app.core.config import settings
-from app.core.rate_limiter import (
-    rate_limit_login, 
-    rate_limit_registration,
-    check_account_lockout,
-    record_failed_login,
-    reset_failed_logins
-)
+from app.core.rate_limiter import rate_limit_login, rate_limit_registration
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant
 from app.models.company import Company
@@ -74,17 +68,12 @@ async def login(
     db: Session = Depends(get_db)
 ):
     """Login mit E-Mail und Passwort"""
-    # Rate Limiting: 5 Versuche pro Minute (IP-basiert)
+    # Rate Limiting: 5 Versuche pro Minute
     await rate_limit_login(request)
-    
-    # Account Lockout prüfen (E-Mail-basiert)
-    await check_account_lockout(form_data.username)
     
     user = db.query(User).filter(User.email == form_data.username).first()
     
     if not user or not verify_password(form_data.password, user.password_hash):
-        # Fehlversuch aufzeichnen für Account Lockout
-        await record_failed_login(form_data.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige E-Mail oder Passwort",
@@ -96,13 +85,6 @@ async def login(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Benutzer ist deaktiviert"
         )
-    
-    # Erfolgreicher Login - Fehlversuche zurücksetzen
-    await reset_failed_logins(form_data.username)
-    
-    # Letzten Login-Zeitpunkt aktualisieren
-    user.last_login_at = datetime.utcnow()
-    db.commit()
     
     access_token = create_access_token(
         data={"sub": str(user.id)},
@@ -306,28 +288,28 @@ async def register_company(
         }
     else:
         # Normale Registrierung ohne Token
-        # E-Mail senden: Registrierung erhalten, warten auf Freischaltung
-        email_service.send_company_registration_pending(
-            to_email=user.email,
-            company_name=company_data.company_name
-        )
-        
-        # E-Mail an Admins senden
-        admin_emails = db.query(User.email).filter(User.role == UserRole.ADMIN, User.is_active == True).all()
-        for (admin_email,) in admin_emails:
-            email_service.send_admin_new_company_notification(
-                to_email=admin_email,
-                company_name=company_data.company_name,
-                company_email=user.email,
-                legal_form=company_data.legal_form,
-                address=f"{company_data.street} {company_data.house_number}, {company_data.postal_code} {company_data.city}",
-                phone=company_data.phone
-            )
-        
-        # KEIN Token zurückgeben - Firma muss erst aktiviert werden
-        return {
-            "message": "Registrierung erfolgreich! Ihr Unternehmen wird geprüft und in Kürze freigeschaltet. Sie erhalten eine E-Mail-Benachrichtigung.",
-            "status": "pending_activation"
+    # E-Mail senden: Registrierung erhalten, warten auf Freischaltung
+    email_service.send_company_registration_pending(
+        to_email=user.email,
+        company_name=company_data.company_name
+    )
+    
+    # E-Mail an Admins senden
+    admin_emails = db.query(User.email).filter(User.role == UserRole.ADMIN, User.is_active == True).all()
+    for (admin_email,) in admin_emails:
+        email_service.send_admin_new_company_notification(
+            to_email=admin_email,
+            company_name=company_data.company_name,
+            company_email=user.email,
+            legal_form=company_data.legal_form,
+            address=f"{company_data.street} {company_data.house_number}, {company_data.postal_code} {company_data.city}",
+            phone=company_data.phone
+    )
+    
+    # KEIN Token zurückgeben - Firma muss erst aktiviert werden
+    return {
+        "message": "Registrierung erfolgreich! Ihr Unternehmen wird geprüft und in Kürze freigeschaltet. Sie erhalten eine E-Mail-Benachrichtigung.",
+        "status": "pending_activation"
         }
 
 

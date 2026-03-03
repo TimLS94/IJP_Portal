@@ -279,14 +279,12 @@ async def get_my_applications(
     return result
 
 
-@router.get("/company")
+@router.get("/company", response_model=List[ApplicationWithDetails])
 async def get_company_applications(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Listet alle Bewerbungen für die Firma mit Matching-Score"""
-    from app.services.matching_service import calculate_match_score
-    
+    """Listet alle Bewerbungen für die Firma"""
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -299,57 +297,26 @@ async def get_company_applications(
     
     applications = db.query(Application).options(
         joinedload(Application.applicant),
-        joinedload(Application.job_posting),
-        joinedload(Application.interviews)
+        joinedload(Application.job_posting)
     ).join(JobPosting).filter(
         JobPosting.company_id == company.id
     ).order_by(Application.applied_at.desc()).all()
     
     result = []
     for app in applications:
-        # Matching-Score berechnen
-        match_score = None
-        if app.applicant and app.job_posting:
-            try:
-                match_result = calculate_match_score(app.applicant, app.job_posting)
-                match_score = match_result.get("total_score", 0)
-            except:
-                pass
-        
-        # Interview-Status ermitteln (neuestes relevantes Interview)
-        # Bei abgelehnten Bewerbungen keine Interview-Info anzeigen
-        interview_info = None
-        app_status = app.status.value if hasattr(app.status, 'value') else app.status
-        if app.interviews and app_status != 'rejected':
-            # Sortiere nach Erstellungsdatum (neuestes zuerst)
-            sorted_interviews = sorted(app.interviews, key=lambda x: x.created_at, reverse=True)
-            for interview in sorted_interviews:
-                # Nur aktive Interview-Status anzeigen (nicht stornierte)
-                if interview.status.value in ['confirmed', 'proposed']:
-                    interview_info = {
-                        "status": interview.status.value,
-                        "confirmed_date": interview.confirmed_date.isoformat() if interview.confirmed_date else None,
-                        "proposed_date_1": interview.proposed_date_1.isoformat() if interview.proposed_date_1 else None,
-                    }
-                    break
-        
         app_dict = {
             "id": app.id,
             "applicant_id": app.applicant_id,
             "job_posting_id": app.job_posting_id,
-            "job_id": app.job_posting_id,  # Alias für Frontend
-            "status": app.status.value if hasattr(app.status, 'value') else app.status,
+            "status": app.status,
             "applicant_message": app.applicant_message,
             "company_notes": app.company_notes,
             "applied_at": app.applied_at,
             "updated_at": app.updated_at,
             "job_title": app.job_posting.title if app.job_posting else None,
-            "job_slug": f"{app.job_posting.slug}-{app.job_posting.id}" if app.job_posting and app.job_posting.slug else str(app.job_posting_id),
-            "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None,
-            "match_score": match_score,
-            "interview_info": interview_info
+            "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None
         }
-        result.append(app_dict)
+        result.append(ApplicationWithDetails(**app_dict))
     
     return result
 

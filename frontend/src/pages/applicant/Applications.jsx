@@ -153,16 +153,13 @@ function ApplicantApplications() {
   };
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return '-';
-    // Zeige das Datum in deutscher Zeit an
     return new Date(dateString).toLocaleString('de-DE', {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Europe/Berlin'
+      minute: '2-digit'
     });
   };
 
@@ -493,12 +490,6 @@ function ApplicantApplications() {
                                   <strong>{t('applicantApplications.note')}:</strong> {interview.notes_company}
                                 </p>
                               )}
-
-                              {/* Hinweis zur deutschen Zeitzone */}
-                              <p className="text-xs text-amber-600 mb-3 flex items-center gap-1 bg-amber-50 px-3 py-2 rounded-lg">
-                                <Clock className="h-3 w-3" />
-                                {t('applicantApplications.germanTime', 'Alle Zeiten in deutscher Zeit (MEZ/MESZ)')}
-                              </p>
 
                               <div className="grid sm:grid-cols-2 gap-3 mb-4">
                                 {/* Option 1 */}

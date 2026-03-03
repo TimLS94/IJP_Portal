@@ -7,7 +7,6 @@ from pydantic import BaseModel, EmailStr
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.core.rate_limiter import get_locked_accounts, unlock_account
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant, PositionType
 from app.models.company import Company
@@ -31,32 +30,53 @@ def require_admin(current_user: User = Depends(get_current_user)):
 
 @router.get("/stats")
 async def get_dashboard_stats(
+    days: int = Query(7, ge=1, le=365, description="Zeitraum in Tagen"),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Holt Statistiken für das Admin-Dashboard"""
+    """Holt Statistiken für das Admin-Dashboard mit wählbarem Zeitraum"""
     
-    # Zeitraum für "neu" (letzte 7 Tage)
-    week_ago = datetime.utcnow() - timedelta(days=7)
+    # Zeitraum für Statistiken
+    period_start = datetime.utcnow() - timedelta(days=days)
+    now = datetime.utcnow()
     
+    # Basis-Statistiken
     stats = {
+        "period_days": days,
         "users": {
             "total": db.query(User).count(),
             "applicants": db.query(User).filter(User.role == UserRole.APPLICANT).count(),
             "companies": db.query(User).filter(User.role == UserRole.COMPANY).count(),
-            "new_this_week": db.query(User).filter(User.created_at >= week_ago).count()
+            "active": db.query(User).filter(User.is_active == True).count(),
+            "inactive": db.query(User).filter(User.is_active == False).count(),
+            "new_in_period": db.query(User).filter(User.created_at >= period_start).count()
         },
         "jobs": {
             "total": db.query(JobPosting).count(),
-            "active": db.query(JobPosting).filter(JobPosting.is_active == True).count(),
-            "new_this_week": db.query(JobPosting).filter(JobPosting.created_at >= week_ago).count()
+            "active": db.query(JobPosting).filter(JobPosting.is_active == True, JobPosting.is_draft == False).count(),
+            "drafts": db.query(JobPosting).filter(JobPosting.is_draft == True).count(),
+            "archived": db.query(JobPosting).filter(JobPosting.is_active == False, JobPosting.archived_at != None).count(),
+            "expired": db.query(JobPosting).filter(
+                JobPosting.deadline != None,
+                JobPosting.deadline < now.date(),
+                JobPosting.is_active == True
+            ).count(),
+            "filled": db.query(JobPosting).filter(JobPosting.is_filled == True).count(),
+            "new_in_period": db.query(JobPosting).filter(JobPosting.created_at >= period_start).count(),
+            "archived_in_period": db.query(JobPosting).filter(JobPosting.archived_at >= period_start).count()
         },
         "applications": {
             "total": db.query(Application).count(),
             "pending": db.query(Application).filter(Application.status == ApplicationStatus.PENDING).count(),
             "accepted": db.query(Application).filter(Application.status == ApplicationStatus.ACCEPTED).count(),
             "rejected": db.query(Application).filter(Application.status == ApplicationStatus.REJECTED).count(),
-            "new_this_week": db.query(Application).filter(Application.applied_at >= week_ago).count()
+            "in_review": db.query(Application).filter(Application.status == ApplicationStatus.COMPANY_REVIEW).count(),
+            "interview": db.query(Application).filter(Application.status == ApplicationStatus.INTERVIEW_SCHEDULED).count(),
+            "new_in_period": db.query(Application).filter(Application.applied_at >= period_start).count(),
+            "accepted_in_period": db.query(Application).filter(
+                Application.status == ApplicationStatus.ACCEPTED,
+                Application.updated_at >= period_start
+            ).count()
         },
         "position_types": {}
     }
@@ -200,9 +220,7 @@ async def list_all_jobs(
             "is_active": job.is_active,
             "created_at": job.created_at,
             "company_name": company.company_name if company else "Unbekannt",
-            "application_count": app_count,
-            "view_count": job.view_count or 0,
-            "slug": job.slug
+            "application_count": app_count
         })
     
     return {"total": total, "jobs": result}
@@ -1223,32 +1241,6 @@ async def get_applicant_matches(
     
     matches = get_top_matches_for_applicant(db, applicant_id, limit)
     return {"matches": matches, "total": len(matches)}
-
-
-# ========== ACCOUNT LOCKOUT MANAGEMENT ==========
-
-@router.get("/locked-accounts")
-async def get_locked_accounts_list(
-    current_user: User = Depends(require_admin)
-):
-    """Gibt alle aktuell gesperrten Accounts zurück"""
-    locked = await get_locked_accounts()
-    return {"locked_accounts": locked, "total": len(locked)}
-
-
-@router.post("/unlock-account/{email}")
-async def admin_unlock_account(
-    email: str,
-    current_user: User = Depends(require_admin)
-):
-    """Entsperrt einen Account manuell"""
-    success = await unlock_account(email)
-    if success:
-        return {"message": f"Account {email} wurde entsperrt"}
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Account {email} ist nicht gesperrt"
-    )
 
 
 # ========== ADMIN JOB TRANSLATION ==========

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { 
   Shield, Users, Briefcase, FileText, TrendingUp,
   UserCheck, Building2, Clock, BookOpen, ClipboardList,
-  Lock, Unlock, AlertTriangle
+  Calendar, Archive, CheckCircle, XCircle, AlertTriangle, FileX, Loader2
 } from 'lucide-react';
 
 const positionTypeLabels = {
@@ -13,51 +13,35 @@ const positionTypeLabels = {
   saisonjob: 'Saisonjob',
   workandholiday: 'Work & Holiday',
   fachkraft: 'Fachkräfte',
-  ausbildung: 'Ausbildung',
-  general: 'Arbeit (Allgemein)'
+  ausbildung: 'Ausbildung'
 };
+
+const periodOptions = [
+  { value: 7, label: 'Letzte 7 Tage' },
+  { value: 14, label: 'Letzte 14 Tage' },
+  { value: 30, label: 'Letzte 30 Tage' },
+  { value: 90, label: 'Letzte 3 Monate' },
+  { value: 365, label: 'Letztes Jahr' }
+];
 
 function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [lockedAccounts, setLockedAccounts] = useState([]);
-  const [unlocking, setUnlocking] = useState(null);
+  const [period, setPeriod] = useState(7);
 
   useEffect(() => {
     loadStats();
-    loadLockedAccounts();
-  }, []);
+  }, [period]);
 
   const loadStats = async () => {
+    setLoading(true);
     try {
-      const response = await adminAPI.getStats();
+      const response = await adminAPI.getStats({ days: period });
       setStats(response.data);
     } catch (error) {
       toast.error('Fehler beim Laden der Statistiken');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadLockedAccounts = async () => {
-    try {
-      const response = await adminAPI.getLockedAccounts();
-      setLockedAccounts(response.data.locked_accounts || []);
-    } catch (error) {
-      console.error('Fehler beim Laden gesperrter Accounts');
-    }
-  };
-
-  const handleUnlock = async (email) => {
-    setUnlocking(email);
-    try {
-      await adminAPI.unlockAccount(email);
-      toast.success(`Account ${email} entsperrt`);
-      loadLockedAccounts();
-    } catch (error) {
-      toast.error('Fehler beim Entsperren');
-    } finally {
-      setUnlocking(null);
     }
   };
 
@@ -71,11 +55,29 @@ function AdminDashboard() {
 
   if (!stats) return null;
 
+  const periodLabel = periodOptions.find(p => p.value === period)?.label || 'Zeitraum';
+
   return (
     <div>
-      <div className="flex items-center gap-3 mb-8">
-        <Shield className="h-8 w-8 text-primary-600" />
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <Shield className="h-8 w-8 text-primary-600" />
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        </div>
+        
+        {/* Zeitraum-Auswahl */}
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-gray-500" />
+          <select
+            value={period}
+            onChange={(e) => setPeriod(Number(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            {periodOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Hauptstatistiken */}
@@ -88,7 +90,7 @@ function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-600">Benutzer gesamt</p>
               <p className="text-2xl font-bold text-gray-900">{stats.users.total}</p>
-              <p className="text-xs text-green-600">+{stats.users.new_this_week} diese Woche</p>
+              <p className="text-xs text-green-600">+{stats.users.new_in_period} im Zeitraum</p>
             </div>
           </div>
         </div>
@@ -114,7 +116,7 @@ function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-600">Bewerbungen</p>
               <p className="text-2xl font-bold text-gray-900">{stats.applications.total}</p>
-              <p className="text-xs text-yellow-600">{stats.applications.pending} ausstehend</p>
+              <p className="text-xs text-green-600">+{stats.applications.new_in_period} im Zeitraum</p>
             </div>
           </div>
         </div>
@@ -131,7 +133,56 @@ function AdminDashboard() {
                   ? Math.round((stats.applications.accepted / stats.applications.total) * 100) 
                   : 0}%
               </p>
-              <p className="text-xs text-green-600">{stats.applications.accepted} angenommen</p>
+              <p className="text-xs text-green-600">{stats.applications.accepted_in_period} angenommen ({periodLabel})</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stellen-Metriken */}
+      <div className="grid md:grid-cols-5 gap-4 mb-8">
+        <div className="card bg-green-50 border border-green-200">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <div>
+              <p className="text-xs text-green-700">Aktive Stellen</p>
+              <p className="text-xl font-bold text-green-800">{stats.jobs.active}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card bg-blue-50 border border-blue-200">
+          <div className="flex items-center gap-3">
+            <FileX className="h-5 w-5 text-blue-600" />
+            <div>
+              <p className="text-xs text-blue-700">Entwürfe</p>
+              <p className="text-xl font-bold text-blue-800">{stats.jobs.drafts}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card bg-yellow-50 border border-yellow-200">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+            <div>
+              <p className="text-xs text-yellow-700">Abgelaufen</p>
+              <p className="text-xl font-bold text-yellow-800">{stats.jobs.expired}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card bg-purple-50 border border-purple-200">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="h-5 w-5 text-purple-600" />
+            <div>
+              <p className="text-xs text-purple-700">Besetzt</p>
+              <p className="text-xl font-bold text-purple-800">{stats.jobs.filled}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card bg-gray-50 border border-gray-200">
+          <div className="flex items-center gap-3">
+            <Archive className="h-5 w-5 text-gray-600" />
+            <div>
+              <p className="text-xs text-gray-700">Archiviert</p>
+              <p className="text-xl font-bold text-gray-800">{stats.jobs.archived}</p>
             </div>
           </div>
         </div>
@@ -206,52 +257,6 @@ function AdminDashboard() {
           </div>
         </div>
       </div>
-
-      {/* Gesperrte Accounts */}
-      {lockedAccounts.length > 0 && (
-        <div className="card mb-8 border-2 border-red-200 bg-red-50">
-          <div className="flex items-center gap-3 mb-4">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
-            <h2 className="text-xl font-semibold text-red-900">
-              Gesperrte Accounts ({lockedAccounts.length})
-            </h2>
-          </div>
-          <p className="text-sm text-red-700 mb-4">
-            Diese Accounts wurden wegen zu vieler fehlgeschlagener Login-Versuche vorübergehend gesperrt.
-          </p>
-          <div className="space-y-3">
-            {lockedAccounts.map((account) => (
-              <div 
-                key={account.email} 
-                className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200"
-              >
-                <div className="flex items-center gap-3">
-                  <Lock className="h-5 w-5 text-red-500" />
-                  <div>
-                    <p className="font-medium text-gray-900">{account.email}</p>
-                    <p className="text-sm text-gray-500">
-                      {account.failed_attempts} Fehlversuche • 
-                      Entsperrt in {account.remaining_minutes} Min.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleUnlock(account.email)}
-                  disabled={unlocking === account.email}
-                  className="btn-secondary text-sm flex items-center gap-2"
-                >
-                  {unlocking === account.email ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600" />
-                  ) : (
-                    <Unlock className="h-4 w-4" />
-                  )}
-                  Entsperren
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Schnellzugriff */}
       <div className="card">

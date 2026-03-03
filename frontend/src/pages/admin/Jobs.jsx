@@ -11,16 +11,14 @@ const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
   saisonjob: 'Saisonjob',
   fachkraft: 'Fachkräfte',
-  ausbildung: 'Ausbildung',
-  general: 'Arbeit (Allgemein)'
+  ausbildung: 'Ausbildung'
 };
 
 const positionTypeColors = {
   studentenferienjob: 'bg-blue-100 text-blue-800',
   saisonjob: 'bg-green-100 text-green-800',
   fachkraft: 'bg-purple-100 text-purple-800',
-  ausbildung: 'bg-orange-100 text-orange-800',
-  general: 'bg-gray-100 text-gray-800'
+  ausbildung: 'bg-orange-100 text-orange-800'
 };
 
 const AVAILABLE_LANGUAGES = [
@@ -218,10 +216,6 @@ function AdminJobs() {
                         <span className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
                           {job.application_count} Bewerbungen
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" />
-                          {job.view_count || 0} Aufrufe
                         </span>
                         <span>Erstellt: {formatDate(job.created_at)}</span>
                       </div>

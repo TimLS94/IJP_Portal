@@ -6,7 +6,6 @@ from app.core.database import Base
 
 
 class PositionType(str, enum.Enum):
-    GENERAL = "general"  # Arbeit (Allgemein) - für EU-Bürger, keine speziellen Anforderungen
     STUDENTENFERIENJOB = "studentenferienjob"
     SAISONJOB = "saisonjob"
     WORK_AND_HOLIDAY = "workandholiday"  # Working Holiday Visum (Südamerika)
@@ -117,9 +116,6 @@ class Applicant(Base):
     # ========== ZUSÄTZLICHE INFOS ==========
     additional_info = Column(Text)  # Sonstige Informationen
     profile_image = Column(String(255))
-    
-    # ========== BENACHRICHTIGUNGEN ==========
-    job_notifications_enabled = Column(Boolean, default=True)  # E-Mail bei passenden Stellen
     
     # ========== ANABIN UNI-VERIFIZIERUNG ==========
     anabin_verified = Column(String(50), default="not_checked")  # not_checked, verified, not_found, uncertain, error

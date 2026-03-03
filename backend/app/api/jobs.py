@@ -13,7 +13,6 @@ from app.models.applicant import PositionType
 from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPostingResponse, JobPostingListResponse
 from app.services.settings_service import get_setting
 from app.services.slug_service import generate_job_slug, extract_id_from_slug
-from app.services.job_notification_service import notify_matching_applicants
 from app.services.google_indexing_service import google_indexing_service
 
 # Standard-Wert falls Setting nicht existiert (wird aus DB überschrieben)
@@ -67,105 +66,6 @@ async def get_sitemap_urls(db: Session = Depends(get_db)):
         })
     
     return {"urls": urls, "count": len(urls)}
-
-
-@router.get("/og/{slug_with_id}")
-async def get_job_og_preview(slug_with_id: str, db: Session = Depends(get_db)):
-    """
-    Gibt eine HTML-Seite mit Open Graph Meta-Tags für Social Media Crawler zurück.
-    Diese Seite leitet dann per JavaScript zur echten Job-Seite weiter.
-    """
-    from fastapi.responses import HTMLResponse
-    
-    # ID aus Slug extrahieren
-    job_id = extract_id_from_slug(slug_with_id)
-    if not job_id:
-        raise HTTPException(status_code=404, detail="Job nicht gefunden")
-    
-    job = db.query(JobPosting).options(
-        joinedload(JobPosting.company)
-    ).filter(JobPosting.id == job_id).first()
-    
-    if not job or not job.is_active:
-        raise HTTPException(status_code=404, detail="Stellenangebot nicht gefunden")
-    
-    # Position Type Labels
-    position_labels = {
-        "studentenferienjob": "Studentenferienjob",
-        "saisonjob": "Saisonjob",
-        "fachkraft": "Fachkräfte",
-        "ausbildung": "Ausbildung",
-        "general": "Arbeit (Allgemein)"
-    }
-    
-    position_type = job.position_type.value if job.position_type else "general"
-    position_label = position_labels.get(position_type, "Stellenangebot")
-    
-    # URL und Beschreibung
-    base_url = "https://www.jobon.work"
-    job_url = f"{base_url}/jobs/{slug_with_id}"
-    company_name = job.company.company_name if job.company else "JobOn Partner"
-    
-    # Kurze Beschreibung für OG
-    description = job.description[:200] + "..." if job.description and len(job.description) > 200 else (job.description or "")
-    description = description.replace('"', '&quot;').replace('\n', ' ')
-    
-    # OG Image - Firmenlogo oder Standard
-    og_image = f"{base_url}/og-image.png"
-    if job.company and job.company.logo and job.company.logo.startswith('http'):
-        og_image = job.company.logo
-    
-    # Titel
-    title = f"{job.title} | {position_label} in {job.location}"
-    
-    html_content = f"""<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title} | JobOn</title>
-    <meta name="description" content="{description}">
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{job_url}">
-    <meta property="og:title" content="{title}">
-    <meta property="og:description" content="{description}">
-    <meta property="og:image" content="{og_image}">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:site_name" content="JobOn">
-    
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="{job_url}">
-    <meta name="twitter:title" content="{title}">
-    <meta name="twitter:description" content="{description}">
-    <meta name="twitter:image" content="{og_image}">
-    
-    <!-- Redirect für normale Browser -->
-    <meta http-equiv="refresh" content="0; url={job_url}">
-    <link rel="canonical" href="{job_url}">
-    
-    <style>
-        body {{ font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f3f4f6; }}
-        .container {{ text-align: center; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; }}
-        h1 {{ color: #1f2937; margin-bottom: 10px; }}
-        p {{ color: #6b7280; }}
-        a {{ color: #2563eb; text-decoration: none; font-weight: bold; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🔄 Weiterleitung...</h1>
-        <p>Sie werden zu <strong>{job.title}</strong> weitergeleitet.</p>
-        <p><a href="{job_url}">Hier klicken falls die Weiterleitung nicht funktioniert</a></p>
-    </div>
-    <script>window.location.href = "{job_url}";</script>
-</body>
-</html>"""
-    
-    return HTMLResponse(content=html_content, status_code=200)
 
 
 @router.get("/sitemap.xml")
@@ -240,13 +140,9 @@ async def list_jobs(
         query = query.filter(JobPosting.location.ilike(f"%{location}%"))
     
     if search:
-        # Suche in Titel, Beschreibung, Ort UND Firmenname
-        from app.models.company import Company
-        query = query.join(JobPosting.company).filter(
+        query = query.filter(
             (JobPosting.title.ilike(f"%{search}%")) |
-            (JobPosting.description.ilike(f"%{search}%")) |
-            (JobPosting.location.ilike(f"%{search}%")) |
-            (Company.company_name.ilike(f"%{search}%"))
+            (JobPosting.description.ilike(f"%{search}%"))
         )
     
     jobs = query.order_by(JobPosting.created_at.desc()).offset(skip).limit(limit).all()
@@ -358,24 +254,6 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
     }
     
     return job_data
-
-
-@router.post("/{job_id}/view")
-async def track_job_view(job_id: int, db: Session = Depends(get_db)):
-    """Zählt einen View für eine Stellenanzeige (anonym, nur Zähler)"""
-    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
-    
-    if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Stellenangebot nicht gefunden"
-        )
-    
-    # View-Counter erhöhen
-    job.view_count = (job.view_count or 0) + 1
-    db.commit()
-    
-    return {"success": True, "view_count": job.view_count}
 
 
 # ========== JOB TEMPLATES (muss vor /{job_id} stehen!) ==========
@@ -625,23 +503,6 @@ async def create_job(
     update_job_slug(job, db)
     db.refresh(job)
     
-    # Job-Benachrichtigungen an passende Bewerber senden (wenn Stelle aktiv)
-    if job.is_active:
-        try:
-            notify_matching_applicants(db, job)
-        except Exception as e:
-            # Fehler beim Benachrichtigen soll Job-Erstellung nicht blockieren
-            import logging
-            logging.getLogger(__name__).error(f"Fehler bei Job-Benachrichtigungen: {e}")
-        
-        # Google Indexierung beantragen (async, fire-and-forget)
-        try:
-            import asyncio
-            asyncio.create_task(google_indexing_service.index_job(job.slug, job.id))
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).debug(f"Google Indexierung übersprungen: {e}")
-    
     return job
 
 
@@ -673,11 +534,6 @@ async def update_job(
     
     update_data = job_data.model_dump(exclude_unset=True)
     
-    # Prüfen ob Stelle gerade aktiviert wird (war inaktiv, wird aktiv)
-    was_inactive = not job.is_active
-    will_be_active = update_data.get('is_active', job.is_active)
-    is_being_activated = was_inactive and will_be_active
-    
     # Prüfen ob Slug-relevante Felder geändert werden
     slug_fields_changed = any(
         field in update_data and getattr(job, field) != update_data[field]
@@ -694,23 +550,6 @@ async def update_job(
         update_job_slug(job, db)
     
     db.refresh(job)
-    
-    # Job-Benachrichtigungen senden wenn Stelle gerade aktiviert wurde
-    if is_being_activated:
-        try:
-            notify_matching_applicants(db, job)
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Fehler bei Job-Benachrichtigungen: {e}")
-        
-        # Google Indexierung beantragen (async, fire-and-forget)
-        try:
-            import asyncio
-            asyncio.create_task(google_indexing_service.index_job(job.slug, job.id))
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).debug(f"Google Indexierung übersprungen: {e}")
-    
     return job
 
 
@@ -882,7 +721,7 @@ async def get_archived_jobs(
         # Stellen mit keep_archived=True werden immer angezeigt, sonst nur wenn nicht zu alt
         or_(
             JobPosting.keep_archived == True,
-            JobPosting.archived_at >= thirty_days_ago
+        JobPosting.archived_at >= thirty_days_ago
         )
     ).order_by(JobPosting.archived_at.desc()).all()
     
@@ -960,75 +799,3 @@ async def get_job_match_score(
         "job_id": job_id,
         **match
     }
-
-
-# ========== ÜBERSETZUNG ==========
-
-from pydantic import BaseModel
-
-class TranslationRequest(BaseModel):
-    title: str
-    description: str
-    tasks: Optional[str] = None
-    requirements: Optional[str] = None
-    benefits: Optional[str] = None
-    target_lang: str  # en, es, ru
-    source_lang: str = 'de'
-
-
-@router.post("/translate")
-async def translate_job_content(
-    request: TranslationRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Übersetzt Stelleninhalte mit DeepL Free API.
-    Nur für Firmen verfügbar.
-    """
-    from app.services.translation_service import translate_job_fields, get_deepl_status
-    
-    # Nur für Firmen
-    if current_user.role != UserRole.COMPANY:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Nur Firmen können Übersetzungen anfordern"
-        )
-    
-    # Prüfen ob DeepL konfiguriert ist
-    deepl_status = get_deepl_status()
-    if not deepl_status['configured']:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Übersetzungsservice nicht konfiguriert. Bitte DEEPL_API_KEY setzen."
-        )
-    
-    # Übersetzen
-    translated = await translate_job_fields(
-        title=request.title,
-        description=request.description,
-        tasks=request.tasks,
-        requirements=request.requirements,
-        benefits=request.benefits,
-        target_lang=request.target_lang,
-        source_lang=request.source_lang
-    )
-    
-    return {
-        "success": True,
-        "target_lang": request.target_lang,
-        "translations": translated
-    }
-
-
-@router.get("/translate/status")
-async def get_translation_status(
-    current_user: User = Depends(get_current_user)
-):
-    """Prüft ob Übersetzungsservice verfügbar ist"""
-    from app.services.translation_service import get_deepl_status
-    
-    if current_user.role != UserRole.COMPANY:
-        raise HTTPException(status_code=403, detail="Nur für Firmen")
-    
-    return get_deepl_status()

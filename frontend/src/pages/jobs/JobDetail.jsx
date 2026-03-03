@@ -7,8 +7,7 @@ import toast from 'react-hot-toast';
 import { 
   MapPin, Calendar, Building2, Euro, Clock, Globe, 
   ArrowLeft, Send, CheckCircle, Languages, AlertTriangle, FileText, Loader2, ClipboardList,
-  Sparkles, TrendingUp, TrendingDown, Minus, User, Phone, Mail, Briefcase, ListTodo, Globe2,
-  Share2, Facebook, Linkedin, MessageCircle, Copy, Check
+  Sparkles, TrendingUp, TrendingDown, Minus, User, Phone, Mail, Briefcase, ListTodo, Globe2
 } from 'lucide-react';
 
 // Verfügbare Sprachen
@@ -24,8 +23,7 @@ const positionTypeColors = {
   saisonjob: 'bg-orange-100 text-orange-800 border-orange-200',
   workandholiday: 'bg-orange-100 text-orange-800 border-orange-200',  // Legacy: gleiche Farbe wie Saisonjob
   fachkraft: 'bg-purple-100 text-purple-800 border-purple-200',
-  ausbildung: 'bg-green-100 text-green-800 border-green-200',
-  general: 'bg-gray-100 text-gray-800 border-gray-200'
+  ausbildung: 'bg-green-100 text-green-800 border-green-200'
 };
 
 // Employment type labels werden jetzt über t() geladen
@@ -51,10 +49,9 @@ function JobDetail() {
   const positionTypeLabels = {
     studentenferienjob: t('positionTypes.studentenferienjob'),
     saisonjob: t('positionTypes.saisonjob'),
-    workandholiday: t('positionTypes.workandholiday'),
+    workandholiday: 'Work & Holiday',
     fachkraft: t('positionTypes.fachkraft'),
-    ausbildung: t('positionTypes.ausbildung'),
-    general: t('positionTypes.general')
+    ausbildung: 'Ausbildung'
   };
   
   // Translate backend matching texts
@@ -191,10 +188,6 @@ function JobDetail() {
   const [selectedDocIds, setSelectedDocIds] = useState([]);
   const [showDocumentSelection, setShowDocumentSelection] = useState(false);
   
-  // Share-Menü
-  const [showShareMenu, setShowShareMenu] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
-  
   // Helper: Text in der gewählten Sprache abrufen (mit Fallback auf Deutsch)
   const getTranslatedText = (field) => {
     if (!job) return '';
@@ -250,10 +243,10 @@ function JobDetail() {
     
     return (
       <>
-        <div 
+      <div 
           className="text-gray-600 prose prose-sm max-w-none job-content"
-          dangerouslySetInnerHTML={{ __html: textToHtml(text) }}
-        />
+        dangerouslySetInnerHTML={{ __html: textToHtml(text) }}
+      />
         <style>{`
           .job-content ul {
             list-style-type: disc !important;
@@ -323,11 +316,6 @@ function JobDetail() {
       
       // SEO: Meta Tags setzen
       updateMetaTags(jobData);
-      
-      // Statistik: View zählen (anonym, fire-and-forget)
-      if (jobData.id) {
-        jobsAPI.trackView(jobData.id).catch(() => {});
-      }
     } catch (error) {
       toast.error(t('jobDetail.jobNotFound'));
       navigate('/jobs');
@@ -393,31 +381,19 @@ function JobDetail() {
     const existingScript = document.querySelector('script[type="application/ld+json"][data-job-posting]');
     if (existingScript) existingScript.remove();
     
-    // validThrough: Deadline oder 60 Tage nach Erstellung als Fallback
-    const getValidThrough = () => {
-      if (jobData.deadline) {
-        return new Date(jobData.deadline).toISOString();
-      }
-      // Fallback: 60 Tage nach Erstellung
-      const created = jobData.created_at ? new Date(jobData.created_at) : new Date();
-      created.setDate(created.getDate() + 60);
-      return created.toISOString();
-    };
-    
     const schema = {
       '@context': 'https://schema.org',
       '@type': 'JobPosting',
       'title': jobData.title,
       'description': jobData.description?.replace(/<[^>]*>/g, '') || '',
-      'datePosted': jobData.created_at ? new Date(jobData.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      'validThrough': getValidThrough(),
+      'datePosted': jobData.created_at ? new Date(jobData.created_at).toISOString().split('T')[0] : undefined,
+      'validThrough': jobData.deadline ? new Date(jobData.deadline).toISOString() : undefined,
       'employmentType': mapEmploymentType(jobData.employment_type),
       'jobLocation': {
         '@type': 'Place',
         'address': {
           '@type': 'PostalAddress',
           'addressLocality': jobData.location || 'Deutschland',
-          'addressRegion': 'Deutschland',
           'addressCountry': 'DE',
           ...(jobData.postal_code && { 'postalCode': jobData.postal_code }),
           ...(jobData.address && { 'streetAddress': jobData.address }),
@@ -425,7 +401,7 @@ function JobDetail() {
       },
       'hiringOrganization': {
         '@type': 'Organization',
-        'name': jobData.company_name || jobData.company?.company_name || 'Unbekannt',
+        'name': jobData.company_name || jobData.company?.name || 'Unbekannt',
         'sameAs': 'https://www.jobon.work',
       },
       'url': `https://www.jobon.work/jobs/${jobData.url_slug || slug}`,
@@ -501,48 +477,6 @@ function JobDetail() {
     }
   };
 
-  // Share-Funktionen
-  const getShareUrl = () => {
-    // OG-URL für Social Media mit korrekten Meta-Tags - immer jobon.work verwenden
-    return `https://www.jobon.work/api/jobs/og/${slug}`;
-  };
-
-  const getNormalUrl = () => {
-    return `https://www.jobon.work/jobs/${slug}`;
-  };
-
-  const shareOnFacebook = () => {
-    const url = encodeURIComponent(getShareUrl());
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
-    setShowShareMenu(false);
-  };
-
-  const shareOnLinkedIn = () => {
-    const url = encodeURIComponent(getShareUrl());
-    const title = encodeURIComponent(job?.title || 'Stellenangebot');
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=400');
-    setShowShareMenu(false);
-  };
-
-  const shareOnWhatsApp = () => {
-    const url = getShareUrl();
-    const text = encodeURIComponent(`${job?.title} - ${job?.location}\n${url}`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-    setShowShareMenu(false);
-  };
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(getNormalUrl());
-      setLinkCopied(true);
-      toast.success(t('jobDetail.linkCopied', 'Link kopiert!'));
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch (err) {
-      toast.error('Fehler beim Kopieren');
-    }
-    setShowShareMenu(false);
-  };
-
   const handleApply = async () => {
     if (!isAuthenticated) {
       toast.error('Bitte melden Sie sich an, um sich zu bewerben');
@@ -609,7 +543,7 @@ function JobDetail() {
   if (!job) return null;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-0">
+    <div className="max-w-5xl mx-auto">
       {/* Zurück-Button */}
       <Link to="/jobs" className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 group">
         <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
@@ -648,87 +582,11 @@ function JobDetail() {
               </div>
             )}
             
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{getTranslatedText('title')}</h1>
-              <div className="flex items-center gap-2 self-start">
-                {/* Share Button */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowShareMenu(!showShareMenu)}
-                    className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-                    title={t('jobDetail.share', 'Teilen')}
-                  >
-                    <Share2 className="h-5 w-5" />
-                  </button>
-                  
-                  {/* Share Dropdown */}
-                  {showShareMenu && (
-                    <>
-                      <div 
-                        className="fixed inset-0 z-40" 
-                        onClick={() => setShowShareMenu(false)}
-                      />
-                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border z-50 py-2">
-                        <button
-                          onClick={shareOnFacebook}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
-                        >
-                          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                            <Facebook className="h-4 w-4 text-white" />
-                          </div>
-                          Facebook
-                        </button>
-                        <button
-                          onClick={shareOnLinkedIn}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
-                        >
-                          <div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center">
-                            <Linkedin className="h-4 w-4 text-white" />
-                          </div>
-                          LinkedIn
-                        </button>
-                        <button
-                          onClick={shareOnWhatsApp}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
-                        >
-                          <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                            <MessageCircle className="h-4 w-4 text-white" />
-                          </div>
-                          WhatsApp
-                        </button>
-                        <hr className="my-2" />
-                        <button
-                          onClick={copyLink}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
-                        >
-                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                            {linkCopied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4 text-gray-600" />}
-                          </div>
-                          {linkCopied ? t('jobDetail.copied', 'Kopiert!') : t('jobDetail.copyLink', 'Link kopieren')}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-                
-                {/* Mehrere Jobarten-Badges anzeigen wenn vorhanden */}
-                <div className="flex flex-wrap gap-2">
-                  {(job.position_types && job.position_types.length > 0) ? (
-                    job.position_types.map((type) => (
-                      <span 
-                        key={type}
-                        className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${positionTypeColors[type] || positionTypeColors.general}`}
-                      >
-                        {positionTypeLabels[type] || type}
-                      </span>
-                    ))
-                  ) : (
-                    <span className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${positionTypeColors[job.position_type]}`}>
-                      {positionTypeLabels[job.position_type]}
-                    </span>
-                  )}
-                </div>
-              </div>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h1 className="text-3xl font-bold text-gray-900">{getTranslatedText('title')}</h1>
+              <span className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap border ${positionTypeColors[job.position_type]}`}>
+                {positionTypeLabels[job.position_type]}
+              </span>
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-6">
@@ -762,11 +620,11 @@ function JobDetail() {
               )}
             </div>
 
-            <div className="prose max-w-none overflow-hidden">
+            <div className="prose max-w-none">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t('jobDetail.description', 'Beschreibung')}
               </h3>
-              {renderFormattedContent('description')}
+              <p className="text-gray-600 whitespace-pre-wrap">{getTranslatedText('description')}</p>
 
               {(job.tasks || job.translations?.[displayLanguage]?.tasks) && (
                 <>

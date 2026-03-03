@@ -2,14 +2,10 @@
 Matching-Service für Bewerber und Stellen
 
 Berechnet einen Matching-Score basierend auf:
-- Sprachkenntnisse (35 Punkte: 25 Deutsch, 10 Englisch)
-- Berufserfahrung (25 Punkte)
-- Textvergleich Profil/Stelle (25 Punkte) - NEU
-- Verfügbarkeit (10 Punkte)
-- Positionstyp (5 Punkte) - REDUZIERT
-
-Zusätzlich: Datenqualitäts-Indikator
-- Zeigt an, wenn zu wenig Daten für aussagekräftigen Score
+- Sprachkenntnisse
+- Positionstyp
+- Berufserfahrung
+- Qualifikationen
 
 WICHTIG: Keine Berücksichtigung von:
 - Geschlecht
@@ -68,11 +64,18 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
     details = []
     data_quality = _calculate_data_quality(applicant, job)
     
-    # 1. Deutschkenntnisse (25 Punkte) - WICHTIGSTER FAKTOR
+    # 1. Positionstyp-Match (30 Punkte)
+    position_match = _check_position_match(applicant, job)
+    scores["position_type"] = position_match["score"]
+    if position_match["match"]:
+        details.append(f"✓ Positionstyp passt: {job.position_type.value}")
+    else:
+        details.append(f"✗ Positionstyp stimmt nicht überein")
+    
+    # 2. Deutschkenntnisse (25 Punkte)
     german_match = _check_language_match(
         applicant.german_level.value if applicant.german_level else "keine",
-        job.german_required.value if job.german_required else "not_required",
-        max_score=25
+        job.german_required.value if job.german_required else "not_required"
     )
     scores["german_level"] = german_match["score"]
     if german_match["exceeds"]:
@@ -82,35 +85,23 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
     else:
         details.append(f"✗ Deutschkenntnisse unter Anforderungen ({german_match['gap']} Stufen)")
     
-    # 2. Berufserfahrung (25 Punkte)
-    exp_match = _check_experience_match(applicant, job)
-    scores["experience"] = exp_match["score"]
-    if exp_match.get("has_relevant_experience"):
-        details.append(f"✓ Relevante Berufserfahrung: {', '.join(exp_match.get('relevant_entries', []))}")
-    elif exp_match["has_experience"]:
-        details.append(f"○ {applicant.work_experience_years or 0} Jahre Berufserfahrung (nicht stellenrelevant)")
-    
-    # 3. Textvergleich Profil/Stelle (25 Punkte) - NEU
-    text_match = _check_text_match(applicant, job)
-    scores["text_match"] = text_match["score"]
-    if text_match["score"] >= 20:
-        details.append(f"✓ Profil passt sehr gut zur Stellenbeschreibung")
-    elif text_match["score"] >= 10:
-        details.append(f"○ Profil passt teilweise zur Stellenbeschreibung")
-    elif text_match["matched_keywords"]:
-        details.append(f"○ Einige Übereinstimmungen: {', '.join(text_match['matched_keywords'][:3])}")
-    
-    # 4. Englischkenntnisse (10 Punkte)
+    # 3. Englischkenntnisse (15 Punkte)
     english_match = _check_language_match(
         applicant.english_level.value if applicant.english_level else "keine",
         job.english_required.value if job.english_required else "not_required",
-        max_score=10
+        max_score=15  # Englisch hat nur 15 Punkte max
     )
     scores["english_level"] = english_match["score"]
     if english_match["meets"] or english_match["exceeds"]:
         details.append(f"✓ Englischkenntnisse erfüllen Anforderungen")
     elif job.english_required and job.english_required.value != "not_required":
         details.append(f"✗ Englischkenntnisse unter Anforderungen")
+    
+    # 4. Berufserfahrung (20 Punkte)
+    exp_match = _check_experience_match(applicant, job)
+    scores["experience"] = exp_match["score"]
+    if exp_match["has_experience"]:
+        details.append(f"✓ {applicant.work_experience_years or 0} Jahre Berufserfahrung")
     
     # 5. Verfügbarkeit (10 Punkte)
     availability_match = _check_availability_match(applicant, job)
@@ -137,21 +128,17 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
 
 
 def _check_position_match(applicant: Applicant, job: JobPosting) -> dict:
-    """Prüft ob der Positionstyp passt (5 Punkte) - STARK REDUZIERT"""
+    """Prüft ob der Positionstyp passt (30 Punkte)"""
     job_type = job.position_type.value if job.position_type else None
     
     # Prüfe position_types Array (Mehrfachauswahl)
     applicant_types = applicant.position_types or []
     if isinstance(applicant_types, list) and job_type in applicant_types:
-        return {"match": True, "score": 5}
+        return {"match": True, "score": 30}
     
     # Fallback auf einzelnes position_type
     if applicant.position_type and applicant.position_type.value == job_type:
-        return {"match": True, "score": 5}
-    
-    # Kein Match, aber trotzdem ein paar Punkte wenn Bewerber flexibel ist
-    if len(applicant_types) >= 3:
-        return {"match": False, "score": 2}  # Flexibler Bewerber
+        return {"match": True, "score": 30}
     
     return {"match": False, "score": 0}
 
@@ -187,11 +174,11 @@ def _check_language_match(applicant_level: str, required_level: str, max_score: 
 
 def _check_experience_match(applicant: Applicant, job: JobPosting) -> dict:
     """
-    Prüft Berufserfahrung (25 Punkte).
+    Prüft Berufserfahrung (20 Punkte).
     
     Bewertet:
-    - Relevante Berufserfahrung (passt zur Stelle): bis 18 Punkte
-    - Allgemeine Berufserfahrung: bis 7 Punkte
+    - Relevante Berufserfahrung (passt zur Stelle): bis 15 Punkte
+    - Allgemeine Berufserfahrung: bis 5 Punkte
     """
     years = applicant.work_experience_years or 0
     job_title = (job.title or "").lower()
@@ -232,18 +219,18 @@ def _check_experience_match(applicant: Applicant, job: JobPosting) -> dict:
     # Score berechnen
     score = 0
     
-    # Relevante Erfahrung: bis 18 Punkte
+    # Relevante Erfahrung: bis 15 Punkte
     if relevant_experience > 0:
-        score += min(18, relevant_experience * 6)  # 6 Punkte pro relevanter Erfahrung
+        score += min(15, relevant_experience * 5)  # 5 Punkte pro relevanter Erfahrung
     elif years > 0:
         # Fallback: Allgemeine Jahre (weniger Punkte)
-        score += min(10, years * 2)  # Max 10 Punkte für allgemeine Jahre
+        score += min(8, years * 2)  # Max 8 Punkte für allgemeine Jahre
     
-    # Bonus für viel Erfahrung: bis 7 Punkte
+    # Bonus für viel Erfahrung: bis 5 Punkte
     if total_experience > 0:
-        score += min(7, total_experience * 2)  # 2 Punkte pro Eintrag, max 7
+        score += min(5, total_experience)  # 1 Punkt pro Eintrag, max 5
     elif years > 3:
-        score += min(7, (years - 3) * 2)  # Bonus für >3 Jahre
+        score += min(5, (years - 3))  # Bonus für >3 Jahre
     
     return {
         "has_experience": years > 0 or total_experience > 0,
@@ -251,7 +238,7 @@ def _check_experience_match(applicant: Applicant, job: JobPosting) -> dict:
         "relevant_entries": relevant_entries,
         "years": years,
         "entries": total_experience,
-        "score": min(25, score)
+        "score": min(20, score)
     }
 
 
@@ -455,6 +442,7 @@ def _check_availability_match(applicant: Applicant, job: JobPosting) -> dict:
         if applicant.available_from:
             if job.start_date and applicant.available_from <= job.start_date:
                 return {"available": True, "score": 10}
+            return {"available": True, "score": 7}
             return {"available": True, "score": 7}
     
     # Standard: Verfügbar

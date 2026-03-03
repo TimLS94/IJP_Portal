@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import os
 import logging
@@ -35,29 +34,13 @@ logger.info("Creating database tables...")
 Base.metadata.create_all(bind=engine)
 logger.info("Database tables created")
 
-# Datenbank-Migrationen: Neue Spalten hinzufügen falls nicht vorhanden
-def ensure_db_columns():
-    """Fügt neue Spalten zur Datenbank hinzu falls nicht vorhanden"""
+# SEO: Slug-Spalte hinzufügen falls nicht vorhanden
+def ensure_slug_column():
+    """Fügt die slug Spalte zur job_postings Tabelle hinzu falls nicht vorhanden"""
     from sqlalchemy import text
     db = SessionLocal()
     try:
-        # 0. Neuen Enum-Wert 'general' zu positiontype hinzufügen (PostgreSQL)
-        try:
-            result = db.execute(text("""
-                SELECT 1 FROM pg_enum 
-                WHERE enumlabel = 'general' 
-                AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'positiontype')
-            """))
-            if not result.fetchone():
-                logger.info("Adding 'general' to positiontype enum...")
-                db.execute(text("ALTER TYPE positiontype ADD VALUE IF NOT EXISTS 'general'"))
-                db.commit()
-                logger.info("'general' enum value added successfully")
-        except Exception as enum_error:
-            logger.warning(f"Could not add enum value (may already exist): {enum_error}")
-            db.rollback()
-        
-        # 1. slug Spalte für SEO
+        # Prüfen ob Spalte existiert
         result = db.execute(text("""
             SELECT column_name 
             FROM information_schema.columns 
@@ -69,38 +52,15 @@ def ensure_db_columns():
             db.execute(text("CREATE INDEX IF NOT EXISTS ix_job_postings_slug ON job_postings (slug)"))
             db.commit()
             logger.info("'slug' column added successfully")
-        
-        # 2. position_types Spalte für Mehrfachauswahl
-        result = db.execute(text("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'job_postings' AND column_name = 'position_types'
-        """))
-        if not result.fetchone():
-            logger.info("Adding 'position_types' column to job_postings table...")
-            db.execute(text("ALTER TABLE job_postings ADD COLUMN position_types JSON DEFAULT '[]'"))
-            db.commit()
-            logger.info("'position_types' column added successfully")
-        
-        # 3. view_count Spalte für Statistiken
-        result = db.execute(text("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'job_postings' AND column_name = 'view_count'
-        """))
-        if not result.fetchone():
-            logger.info("Adding 'view_count' column to job_postings table...")
-            db.execute(text("ALTER TABLE job_postings ADD COLUMN view_count INTEGER DEFAULT 0"))
-            db.commit()
-            logger.info("'view_count' column added successfully")
-            
+        else:
+            logger.info("'slug' column already exists")
     except Exception as e:
-        logger.error(f"Error in database migration: {e}")
+        logger.error(f"Error adding slug column: {e}")
         db.rollback()
     finally:
         db.close()
 
-ensure_db_columns()
+ensure_slug_column()
 
 # Testdaten einfügen (nur in Entwicklung)
 if settings.DEBUG:
@@ -201,52 +161,6 @@ async def lifespan(app: FastAPI):
         pass
 
 
-# ========== SECURITY MIDDLEWARE ==========
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """
-    Fügt wichtige Security Headers zu allen Responses hinzu.
-    Schützt vor XSS, Clickjacking, MIME-Sniffing und anderen Angriffen.
-    """
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        
-        # Verhindert MIME-Type Sniffing
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        
-        # Verhindert Clickjacking (Einbetten in iframes)
-        response.headers["X-Frame-Options"] = "DENY"
-        
-        # XSS-Schutz (für ältere Browser)
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        
-        # Referrer-Policy: Nur Origin senden, keine vollständige URL
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        
-        # Permissions-Policy: Deaktiviert nicht benötigte Browser-Features
-        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        
-        # HSTS: Erzwingt HTTPS (nur in Produktion aktivieren)
-        if not settings.DEBUG:
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        
-        # Content-Security-Policy: Verhindert XSS und Injection-Angriffe
-        # Erlaubt nur Ressourcen von eigener Domain und vertrauenswürdigen CDNs
-        csp_directives = [
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Für React/Vite
-            "style-src 'self' 'unsafe-inline'",  # Für Tailwind
-            "img-src 'self' data: https: blob:",
-            "font-src 'self' data:",
-            "connect-src 'self' https://api-free.deepl.com",  # DeepL API
-            "frame-ancestors 'none'",
-            "base-uri 'self'",
-            "form-action 'self'"
-        ]
-        response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
-        
-        return response
-
-
 # FastAPI App erstellen
 app = FastAPI(
     title=settings.APP_NAME,
@@ -256,9 +170,6 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan
 )
-
-# Security Headers Middleware (muss vor CORS kommen)
-app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS Middleware - Eingeschränkte Methods für bessere Sicherheit
 app.add_middleware(

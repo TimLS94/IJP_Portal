@@ -186,15 +186,13 @@
     "ijpServiceButton": "Solicitar servicio IJP"
   },
   "positionTypes": {
-    "general": "Empleo General",
-    "studentenferienjob": "Trabajo de verano para estudiantes",
+    "studentenferienjob": "Trabajo de verano estudiantil",
     "saisonjob": "Trabajo de temporada",
     "workandholiday": "Work & Holiday",
     "fachkraft": "Profesional cualificado",
     "ausbildung": "Ausbildung"
   },
   "positionTypeDescriptions": {
-    "general": "Empleo general para ciudadanos de la UE y personas con permiso de trabajo. Sin requisitos especiales de visa. CV requerido, carta de motivación opcional.",
     "studentenferienjob": "Para estudiantes del extranjero que desean trabajar en Alemania durante las vacaciones del semestre. Máximo 90 días (3 meses) por año. Requisito: Matrícula activa en una universidad extranjera.",
     "saisonjob": "Empleo contingentado a corto plazo para trabajo de temporada en agricultura, hostelería o turismo. Máximo 90 días por año. Aplica a personas de terceros países con permiso de trabajo.",
     "workandholiday": "Visa Working Holiday para jóvenes (18-30 años) de países socios como Argentina, Chile, Australia, etc. Permite trabajar y viajar en Alemania hasta 12 meses.",
@@ -262,8 +260,7 @@
     "declineAndRequest": "Rechazar y solicitar nuevas fechas",
     "cancelAppointmentTitle": "Cancelar cita",
     "cancelAppointmentText": "¿Realmente desea cancelar esta cita confirmada? La empresa será notificada por correo electrónico.",
-    "cancelReasonPlaceholder": "p.ej. Enfermedad, emergencia familiar...",
-    "germanTime": "Todas las horas en hora alemana (CET/CEST)"
+    "cancelReasonPlaceholder": "p.ej. Enfermedad, emergencia familiar..."
   },
   "applicant": {
     "profile": "Mi perfil",
@@ -693,46 +690,6 @@
       "analyzing": "Analizando...",
       "pdfFormat": "Formato PDF, máx. 10 MB",
       "noOverwrite": "Los datos existentes no se sobrescribirán"
-    },
-    "documents": {
-      "title": "Documentos requeridos",
-      "subtitle": "Suba los siguientes documentos para su solicitud como <strong>{{position}}</strong>.",
-      "required": "Requerido",
-      "optional": "Opcional",
-      "upload": "Subir",
-      "uploading": "Subiendo...",
-      "uploaded": "¡Documento subido!",
-      "allUploaded": "¡Todos los documentos requeridos han sido subidos!",
-      "progress": "{{uploaded}} de {{total}} documentos requeridos subidos"
-    },
-    "documentTypes": {
-      "passport": "Pasaporte",
-      "cv": "Currículum",
-      "cover_letter": "Carta de presentación",
-      "photo": "Foto de solicitud",
-      "enrollment_cert": "Certificado de matrícula (Original)",
-      "enrollment_trans": "Certificado de matrícula (Traducción DE/EN)",
-      "ba_declaration": "Declaración de matrícula (BA)",
-      "language_cert": "Certificado de idioma",
-      "diploma": "Diploma/Título",
-      "school_cert": "Certificado escolar",
-      "work_reference": "Referencia laboral",
-      "visa": "Visa",
-      "other": "Otro"
-    },
-    "documentDescriptions": {
-      "passport": "Pasaporte válido (todas las páginas con sellos)",
-      "cv": "Currículum",
-      "cover_letter": "Carta de presentación / motivación (opcional)",
-      "photo": "Foto de solicitud (opcional)",
-      "enrollment_cert": "Certificado de matrícula original",
-      "enrollment_trans": "Traducción certificada al alemán o inglés del certificado de matrícula",
-      "ba_declaration": "Declaración para certificado de matrícula (Agencia Federal de Empleo)",
-      "language_cert": "Certificado de idioma (mínimo B1 alemán)",
-      "diploma": "Título universitario / cualificación profesional",
-      "school_cert": "Certificado escolar",
-      "work_reference": "Referencias laborales",
-      "visa": "Visa (si ya está disponible)"
     },
     "errors": {
       "positionRequired": "Por favor seleccione un tipo de empleo",
@@ -1369,15 +1326,7 @@
     "deleteAccount": "Eliminar cuenta",
     "deleteAccountWarning": "Esta acción no se puede deshacer. Todos sus datos serán eliminados permanentemente.",
     "deleteAccountConfirm": "Escriba 'ELIMINAR' para confirmar",
-    "accountDeleted": "La cuenta ha sido eliminada",
-    "notifications": "Notificaciones",
-    "jobNotifications": "Ofertas de trabajo coincidentes",
-    "jobNotificationsDesc": "Recibir correo cuando se publiquen nuevos trabajos coincidentes",
-    "notificationsEnabled": "Notificaciones activadas",
-    "notificationsDisabled": "Notificaciones desactivadas",
-    "errors": {
-      "saveNotifications": "Error al guardar la configuración de notificaciones"
-    }
+    "accountDeleted": "La cuenta ha sido eliminada"
   }
 }
 

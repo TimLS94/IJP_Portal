@@ -14,7 +14,6 @@ import {
 
 // Diese werden in der Komponente mit t() übersetzt
 const positionTypeKeys = [
-  { value: 'general', labelKey: 'positionTypes.general', descKey: 'positionTypeDescriptions.general', color: 'gray', icon: '💼' },
   { value: 'studentenferienjob', labelKey: 'positionTypes.studentenferienjob', descKey: 'positionTypeDescriptions.studentenferienjob', color: 'blue', icon: '🎓' },
   { value: 'saisonjob', labelKey: 'positionTypes.saisonjob', descKey: 'positionTypeDescriptions.saisonjob', color: 'orange', icon: '🌾' },
   { value: 'workandholiday', labelKey: 'positionTypes.workandholiday', descKey: 'positionTypeDescriptions.workandholiday', color: 'teal', icon: '✈️' },

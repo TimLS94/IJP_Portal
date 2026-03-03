@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { 
-  Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, 
-  RotateCcw, AlertTriangle, BarChart2, Languages, Lock, Unlock, FileText, Copy,
-  LayoutGrid, List, Filter, ChevronDown, Search, X, ArrowUpDown, ArrowUp, ArrowDown
-} from 'lucide-react';
+import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle } from 'lucide-react';
 
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
@@ -536,9 +532,9 @@ function CompanyJobs() {
                             </span>
                           ))
                         ) : (
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${positionTypeColors[job.position_type]}`}>
-                            {positionTypeLabels[job.position_type]}
-                          </span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${positionTypeColors[job.position_type]}`}>
+                          {positionTypeLabels[job.position_type]}
+                        </span>
                         )}
                         {job.is_draft && (
                           <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700 border border-yellow-200">
@@ -578,11 +574,6 @@ function CompanyJobs() {
                             Deadline: {formatDate(job.deadline)}
                           </span>
                         )}
-                        {/* View-Statistik */}
-                        <span className="flex items-center gap-1 text-indigo-600 font-medium" title="Anzahl der Aufrufe">
-                          <BarChart2 className="h-4 w-4" />
-                          {job.view_count || 0} Aufrufe
-                        </span>
                       </div>
                     </div>
 

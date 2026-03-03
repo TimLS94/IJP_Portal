@@ -106,11 +106,6 @@ export const jobsAPI = {
   getPublicSettings: () => api.get('/jobs/settings/public'),
   // SEO: Sitemap URLs
   getSitemapUrls: () => api.get('/jobs/sitemap/urls'),
-  // Übersetzung (DeepL)
-  translate: (data) => api.post('/jobs/translate', data),
-  getTranslationStatus: () => api.get('/jobs/translate/status'),
-  // Statistik: View zählen (anonym)
-  trackView: (id) => api.post(`/jobs/${id}/view`),
   // Templates
   getTemplates: () => api.get('/jobs/templates'),
   getTemplate: (id) => api.get(`/jobs/templates/${id}`),
@@ -211,9 +206,6 @@ export const accountAPI = {
   changeEmail: (new_email, password) => api.post('/account/change-email', { new_email, password }),
   deleteAccount: (password, confirmation) => api.post('/account/delete-account', { password, confirmation }),
   getAccountInfo: () => api.get('/account/me'),
-  // Benachrichtigungseinstellungen
-  getNotificationSettings: () => api.get('/account/notification-settings'),
-  updateNotificationSettings: (settings) => api.put('/account/notification-settings', settings),
 };
 
 // Admin API
@@ -275,7 +267,7 @@ export const interviewAPI = {
 export const interviewsAPI = interviewAPI;
 
 export const adminAPI = {
-  getStats: () => api.get('/admin/stats'),
+  getStats: (params) => api.get('/admin/stats', { params }),
   // Feature Flags & Einstellungen
   getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
   setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),
@@ -312,10 +304,6 @@ export const adminAPI = {
   getAnabinPdfStatus: (applicantId) => api.get(`/anabin/pdf-status/${applicantId}`),
   getAnabinPdf: (applicantId, refresh = false) => api.get(`/anabin/pdf/${applicantId}${refresh ? '?refresh=true' : ''}`, { responseType: 'blob' }),
   getCachedPdfs: () => api.get('/anabin/cached-pdfs'),
-  
-  // Account Lockout Management
-  getLockedAccounts: () => api.get('/admin/locked-accounts'),
-  unlockAccount: (email) => api.post(`/admin/unlock-account/${encodeURIComponent(email)}`),
   
   // Job Translation
   translateJob: (jobId, languages) => api.post(`/admin/jobs/${jobId}/translate`, { languages }),

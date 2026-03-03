@@ -9,7 +9,6 @@ class DocumentType(str, enum.Enum):
     # Allgemeine Dokumente
     PASSPORT = "passport"                       # Reisepass
     CV = "cv"                                   # Lebenslauf
-    COVER_LETTER = "cover_letter"               # Motivationsschreiben / Anschreiben
     PHOTO = "photo"                             # Bewerbungsfoto
     
     # Studentenferienjob-Dokumente
@@ -34,20 +33,6 @@ class DocumentType(str, enum.Enum):
 
 # Dokumentenanforderungen je nach Positionstyp
 DOCUMENT_REQUIREMENTS = {
-    "general": {
-        "required": [
-            DocumentType.CV,
-        ],
-        "optional": [
-            DocumentType.COVER_LETTER,
-            DocumentType.PHOTO,
-        ],
-        "descriptions": {
-            DocumentType.CV: "Lebenslauf",
-            DocumentType.COVER_LETTER: "Motivationsschreiben / Anschreiben (optional)",
-            DocumentType.PHOTO: "Bewerbungsfoto (optional)",
-        }
-    },
     "studentenferienjob": {
         "required": [
             DocumentType.PASSPORT,
@@ -56,7 +41,6 @@ DOCUMENT_REQUIREMENTS = {
         ],
         "optional": [
             DocumentType.CV,
-            DocumentType.COVER_LETTER,
             DocumentType.ENROLLMENT_TRANSLATION,
             DocumentType.PHOTO,
         ],
@@ -66,7 +50,6 @@ DOCUMENT_REQUIREMENTS = {
             DocumentType.ENROLLMENT_TRANSLATION: "Beglaubigte deutsche oder englische Übersetzung der Immatrikulation",
             DocumentType.BA_DECLARATION: "Erklärung zur Immatrikulationsbescheinigung (Bundesagentur für Arbeit)",
             DocumentType.CV: "Lebenslauf",
-            DocumentType.COVER_LETTER: "Motivationsschreiben / Anschreiben (optional)",
             DocumentType.PHOTO: "Bewerbungsfoto (optional)",
         }
     },
@@ -77,7 +60,6 @@ DOCUMENT_REQUIREMENTS = {
             DocumentType.CV,
         ],
         "optional": [
-            DocumentType.COVER_LETTER,
             DocumentType.SCHOOL_CERT,
             DocumentType.PHOTO,
         ],
@@ -85,7 +67,6 @@ DOCUMENT_REQUIREMENTS = {
             DocumentType.PASSPORT: "Gültiger Reisepass (alle Seiten mit Stempeln)",
             DocumentType.LANGUAGE_CERT: "Sprachzertifikat (mindestens B1 Deutsch)",
             DocumentType.CV: "Tabellarischer Lebenslauf",
-            DocumentType.COVER_LETTER: "Motivationsschreiben / Anschreiben (optional)",
             DocumentType.SCHOOL_CERT: "Schulzeugnis (optional)",
             DocumentType.PHOTO: "Bewerbungsfoto (optional)",
         }
@@ -97,7 +78,6 @@ DOCUMENT_REQUIREMENTS = {
             DocumentType.DIPLOMA,
         ],
         "optional": [
-            DocumentType.COVER_LETTER,
             DocumentType.LANGUAGE_CERT,
             DocumentType.WORK_REFERENCE,
             DocumentType.PHOTO,
@@ -106,7 +86,6 @@ DOCUMENT_REQUIREMENTS = {
             DocumentType.PASSPORT: "Gültiger Reisepass (alle Seiten mit Stempeln)",
             DocumentType.CV: "Tabellarischer Lebenslauf",
             DocumentType.DIPLOMA: "Studienzeugnis / Berufsabschluss",
-            DocumentType.COVER_LETTER: "Motivationsschreiben / Anschreiben (optional)",
             DocumentType.LANGUAGE_CERT: "Sprachzertifikat (optional)",
             DocumentType.WORK_REFERENCE: "Arbeitszeugnisse (optional)",
             DocumentType.PHOTO: "Bewerbungsfoto (optional)",
@@ -118,14 +97,12 @@ DOCUMENT_REQUIREMENTS = {
         ],
         "optional": [
             DocumentType.CV,
-            DocumentType.COVER_LETTER,
             DocumentType.WORK_REFERENCE,
             DocumentType.PHOTO,
         ],
         "descriptions": {
             DocumentType.PASSPORT: "Gültiger Reisepass (alle Seiten mit Stempeln)",
             DocumentType.CV: "Lebenslauf",
-            DocumentType.COVER_LETTER: "Motivationsschreiben / Anschreiben (optional)",
             DocumentType.WORK_REFERENCE: "Arbeitszeugnisse (optional)",
             DocumentType.PHOTO: "Bewerbungsfoto (optional)",
         }
@@ -135,7 +112,6 @@ DOCUMENT_REQUIREMENTS = {
             DocumentType.CV,
         ],
         "optional": [
-            DocumentType.COVER_LETTER,
             DocumentType.PASSPORT,
             DocumentType.VISA,
             DocumentType.LANGUAGE_CERT,
@@ -144,7 +120,6 @@ DOCUMENT_REQUIREMENTS = {
         ],
         "descriptions": {
             DocumentType.CV: "Lebenslauf mit Foto",
-            DocumentType.COVER_LETTER: "Motivationsschreiben / Anschreiben (optional)",
             DocumentType.PASSPORT: "Gültiger Reisepass aus einem WHV-Partnerland (kann nachgereicht werden)",
             DocumentType.VISA: "Working Holiday Visum (falls bereits vorhanden)",
             DocumentType.LANGUAGE_CERT: "Deutschkenntnisse (optional, empfohlen)",

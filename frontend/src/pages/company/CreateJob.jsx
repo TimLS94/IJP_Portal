@@ -94,8 +94,6 @@ function CreateJob() {
   const [saving, setSaving] = useState(false);
   const [otherLanguages, setOtherLanguages] = useState([]);
   const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90, archive_deletion_days: 90 });
-  const [translating, setTranslating] = useState(false);
-  const [translationAvailable, setTranslationAvailable] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   
   // Mehrsprachige Inhalte
@@ -115,7 +113,7 @@ function CreateJob() {
     }
   });
 
-  // Job-Settings und Übersetzungsstatus laden
+  // Job-Settings laden
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -123,17 +121,6 @@ function CreateJob() {
         setJobSettings(response.data);
       } catch (error) {
         console.error('Fehler beim Laden der Job-Settings:', error);
-      }
-    };
-    const checkTranslation = async () => {
-      try {
-        const response = await jobsAPI.getTranslationStatus();
-        console.log('Translation status:', response.data);
-        setTranslationAvailable(response.data.configured);
-      } catch (error) {
-        console.error('Translation status check failed:', error);
-        // Fallback: Zeige Button trotzdem an, Fehler wird beim Übersetzen angezeigt
-        setTranslationAvailable(true);
       }
     };
     
@@ -176,54 +163,17 @@ function CreateJob() {
     };
     
     loadSettings();
-    checkTranslation();
     loadTemplate();
   }, [setValue]);
-  
-  // Automatische Übersetzung
-  const handleAutoTranslate = async (targetLang) => {
-    if (!translations.de.title && !translations.de.description) {
-      toast.error('Bitte füllen Sie zuerst die deutschen Inhalte aus');
-      return;
-    }
-    
-    setTranslating(true);
-    try {
-      const response = await jobsAPI.translate({
-        title: translations.de.title,
-        description: translations.de.description,
-        tasks: translations.de.tasks,
-        requirements: translations.de.requirements,
-        benefits: translations.de.benefits,
-        target_lang: targetLang,
-        source_lang: 'de'
-      });
-      
-      if (response.data.success) {
-        setTranslations(prev => ({
-          ...prev,
-          [targetLang]: response.data.translations
-        }));
-        toast.success(`Übersetzung nach ${targetLang.toUpperCase()} erfolgreich!`);
-        setActiveLanguage(targetLang);
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Übersetzung fehlgeschlagen');
-    } finally {
-      setTranslating(false);
-    }
-  };
 
-  // Position types with translations - "general" ist der Default wenn nichts ausgewählt
+  // Position types with translations (Ausbildung and Work & Holiday stay German)
   const positionTypes = [
-    { value: 'studentenferienjob', label: t('positionTypes.studentenferienjob'), description: 'Für Studenten aus dem Ausland' },
-    { value: 'saisonjob', label: t('positionTypes.saisonjob'), description: 'Saisonarbeit & Work & Holiday' },
-    { value: 'fachkraft', label: t('positionTypes.fachkraft'), description: 'Qualifizierte Fachkräfte' },
-    { value: 'ausbildung', label: 'Ausbildung', description: 'Berufsausbildung' }
+    { value: 'studentenferienjob', label: t('positionTypes.studentenferienjob') },
+    { value: 'saisonjob', label: t('positionTypes.saisonjob') },
+    { value: 'workandholiday', label: 'Work & Holiday' },
+    { value: 'fachkraft', label: t('positionTypes.fachkraft') },
+    { value: 'ausbildung', label: 'Ausbildung' }
   ];
-  
-  // State für Mehrfachauswahl der Stellenarten
-  const [selectedPositionTypes, setSelectedPositionTypes] = useState([]);
 
   const employmentTypes = [
     { value: 'fulltime', label: 'Vollzeit' },
@@ -361,11 +311,6 @@ function CreateJob() {
       cleanData.translations = translationsToSend;
       cleanData.available_languages = enabledLanguages;
       
-      // Stellenarten: Mehrfachauswahl oder Default "general"
-      cleanData.position_types = selectedPositionTypes;
-      // Haupttyp: erster ausgewählter oder "general"
-      cleanData.position_type = selectedPositionTypes.length > 0 ? selectedPositionTypes[0] : 'general';
-      
       // Draft-Modus: Stelle als Entwurf speichern (nicht aktiv)
       if (isDraft) {
         cleanData.is_draft = true;
@@ -461,19 +406,13 @@ function CreateJob() {
 
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className={`p-3 rounded-xl ${isTemplateMode ? 'bg-indigo-100' : 'bg-primary-100'}`}>
-            {isTemplateMode ? <FileText className="h-8 w-8 text-indigo-600" /> : <Briefcase className="h-8 w-8 text-primary-600" />}
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {isTemplateMode ? 'Vorlage erstellen' : 'Neue Stelle erstellen'}
-            </h1>
-            <p className="text-gray-600">
-              {isTemplateMode 
-                ? 'Erstellen Sie eine wiederverwendbare Vorlage für Stellenanzeigen' 
-                : 'Veröffentlichen Sie ein neues Stellenangebot'}
-            </p>
-          </div>
+        <div className="p-3 bg-primary-100 rounded-xl">
+          <Briefcase className="h-8 w-8 text-primary-600" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Neue Stelle erstellen</h1>
+          <p className="text-gray-600">Veröffentlichen Sie ein neues Stellenangebot</p>
+        </div>
         </div>
         <Link 
           to="/company/jobs?tab=templates" 
@@ -531,43 +470,10 @@ function CreateJob() {
           </div>
           
           {enabledLanguages.length > 1 && (
-            <div className="space-y-3">
-              <p className="text-indigo-700 text-sm bg-indigo-50 rounded-lg p-3">
-                <Globe className="h-4 w-4 inline mr-1" />
-                <strong>{enabledLanguages.length} Sprachen aktiviert.</strong> Bewerber können zwischen den Sprachen wechseln, um die Stelle in ihrer bevorzugten Sprache zu lesen.
-              </p>
-              
-              {/* Automatische Übersetzung */}
-              {translationAvailable && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <p className="text-green-800 text-sm font-medium mb-2 flex items-center gap-2">
-                    <Languages className="h-4 w-4" />
-                    Automatische Übersetzung (DeepL)
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {enabledLanguages.filter(l => l !== 'de').map(lang => (
-                      <button
-                        key={lang}
-                        type="button"
-                        onClick={() => handleAutoTranslate(lang)}
-                        disabled={translating}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {translating ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Languages className="h-4 w-4" />
-                        )}
-                        DE → {lang.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-green-600 text-xs mt-2">
-                    Übersetzt die deutschen Inhalte automatisch. Sie können die Übersetzung danach noch anpassen.
-                  </p>
-                </div>
-              )}
-            </div>
+            <p className="text-indigo-700 text-sm bg-indigo-50 rounded-lg p-3">
+              <Globe className="h-4 w-4 inline mr-1" />
+              <strong>{enabledLanguages.length} Sprachen aktiviert.</strong> Bewerber können zwischen den Sprachen wechseln, um die Stelle in ihrer bevorzugten Sprache zu lesen.
+            </p>
           )}
         </div>
 
@@ -621,36 +527,22 @@ function CreateJob() {
             
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Zielgruppe (optional)</label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Für spezielle Visa-Programme. Ohne Auswahl: Allgemeine Stelle für EU-Bürger.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {positionTypes.map((type) => (
-                    <button
-                      key={type.value}
-                      type="button"
-                      onClick={() => {
-                        if (selectedPositionTypes.includes(type.value)) {
-                          setSelectedPositionTypes(selectedPositionTypes.filter(t => t !== type.value));
-                        } else {
-                          setSelectedPositionTypes([...selectedPositionTypes, type.value]);
-                        }
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                        selectedPositionTypes.includes(type.value)
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                      title={type.description}
-                    >
-                      {type.label}
-                      {selectedPositionTypes.includes(type.value) && (
-                        <span className="ml-1">✓</span>
-                      )}
-                    </button>
-                  ))}
+                <label className="label">Stellenart *</label>
+                <div className="relative">
+                  <select
+                    className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
+                             focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
+                             transition-all cursor-pointer text-gray-700 font-medium"
+                    {...register('position_type', { required: 'Stellenart ist erforderlich' })}
+                  >
+                    <option value="">Stellenart wählen</option>
+                    {positionTypes.map((type) => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
                 </div>
+                {errors.position_type && <p className="text-red-500 text-sm mt-1">{errors.position_type.message}</p>}
               </div>
 
               <div>
@@ -1165,41 +1057,41 @@ function CreateJob() {
               </button>
             ) : (
               <>
-                <button
-                  type="button"
-                  onClick={() => setShowTemplateModal(true)}
-                  className="btn-secondary px-4 py-2.5 flex items-center gap-2"
-                  title="Als Vorlage speichern"
-                >
-                  <Copy className="h-4 w-4" />
-                  <span className="hidden sm:inline">Vorlage</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={handleSubmit((data) => onSubmit(data, true))}
-                  className="btn-secondary px-4 py-2.5 flex items-center gap-2"
-                  title="Als Entwurf speichern"
-                >
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileText className="h-4 w-4" />
-                  )}
-                  <span className="hidden sm:inline">Entwurf</span>
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="btn-primary px-6 py-2.5 flex items-center gap-2"
-                >
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  Veröffentlichen
-                </button>
+            <button
+              type="button"
+              onClick={() => setShowTemplateModal(true)}
+              className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+              title="Als Vorlage speichern"
+            >
+              <Copy className="h-4 w-4" />
+              <span className="hidden sm:inline">Vorlage</span>
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSubmit((data) => onSubmit(data, true))}
+              className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+              title="Als Entwurf speichern"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">Entwurf</span>
+            </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-primary flex items-center gap-2 px-8"
+          >
+            {saving ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Save className="h-5 w-5" />
+            )}
+            Stelle veröffentlichen
+          </button>
               </>
             )}
           </div>
