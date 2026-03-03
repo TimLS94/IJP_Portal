@@ -377,8 +377,21 @@ function CreateJob() {
       navigate('/company/jobs');
     } catch (error) {
       console.error('Fehler beim Erstellen:', error);
-      const errorMessage = error.response?.data?.detail || error.message || 'Fehler beim Erstellen';
-      toast.error(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+      // Pydantic Validierungsfehler benutzerfreundlich anzeigen
+      const errorData = error.response?.data?.detail;
+      if (Array.isArray(errorData)) {
+        // Pydantic Validierungsfehler
+        const messages = errorData.map(e => {
+          if (e.loc?.includes('title')) return 'Bitte geben Sie einen Stellentitel ein';
+          if (e.loc?.includes('description')) return 'Bitte geben Sie eine Stellenbeschreibung ein';
+          return e.msg?.replace('Value error, ', '') || 'Validierungsfehler';
+        });
+        toast.error(messages[0]);
+        setActiveLanguage('de');
+      } else {
+        const errorMessage = errorData || error.message || 'Fehler beim Erstellen';
+        toast.error(typeof errorMessage === 'string' ? errorMessage : 'Fehler beim Erstellen der Stelle');
+      }
     } finally {
       setSaving(false);
     }

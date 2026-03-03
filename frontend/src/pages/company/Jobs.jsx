@@ -783,7 +783,7 @@ function CompanyJobs() {
                         </Link>
                         <button
                           onClick={() => toggleKeepArchived(job)}
-                          className={`text-sm flex items-center gap-1 ${job.keep_archived ? 'btn-secondary' : 'btn-success'}`}
+                          className={`text-sm flex items-center gap-1 px-3 py-1.5 rounded-lg border ${job.keep_archived ? 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100' : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'}`}
                           title={job.keep_archived ? 'Automatisches Löschen aktivieren' : 'Dauerhaft aufbewahren'}
                         >
                           {job.keep_archived ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}

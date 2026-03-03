@@ -50,7 +50,7 @@ function Navbar() {
       return [
         { to: '/company/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
         { to: '/company/profile', icon: Building2, label: t('nav.companyProfile') },
-        { to: '/company/jobs', icon: Briefcase, label: t('nav.jobs') },
+        { to: '/company/jobs', icon: Briefcase, label: t('company.jobs') },
         { to: '/company/applications', icon: FileText, label: t('nav.companyApplications') },
         { to: '/company/calendar', icon: Calendar, label: 'Kalender' },
         { to: '/company/team', icon: Users, label: 'Team' },
