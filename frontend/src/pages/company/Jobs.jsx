@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, FileText, Search, X, LayoutGrid, List } from 'lucide-react';
+import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, FileText, Search, X, LayoutGrid, List, Languages } from 'lucide-react';
 
 const positionTypeLabels = {
   studentenferienjob: 'Studentenferienjob',
