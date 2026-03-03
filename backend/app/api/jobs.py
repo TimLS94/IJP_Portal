@@ -687,7 +687,7 @@ async def get_my_jobs(
     
     jobs = db.query(JobPosting).filter(
         JobPosting.company_id == company.id,
-        JobPosting.is_archived == False  # Archivierte ausblenden
+        (JobPosting.is_archived == False) | (JobPosting.is_archived == None)  # Archivierte ausblenden, NULL als nicht-archiviert behandeln
     ).order_by(JobPosting.created_at.desc()).all()
     
     return jobs
