@@ -329,7 +329,9 @@ function CreateJob() {
         const messages = errorData.map(e => {
           if (e.loc?.includes('title')) return 'Bitte geben Sie einen Stellentitel ein';
           if (e.loc?.includes('description')) return 'Bitte geben Sie eine Stellenbeschreibung ein';
-          return e.msg?.replace('Value error, ', '') || 'Validierungsfehler';
+          if (e.loc?.includes('position_type')) return 'Bitte wählen Sie eine Stellenart aus';
+          if (e.msg?.includes('valid string')) return 'Bitte füllen Sie alle Pflichtfelder aus';
+          return e.msg?.replace('Value error, ', '').replace('Input should be a valid string', 'Bitte füllen Sie alle Pflichtfelder aus') || 'Validierungsfehler';
         });
         toast.error(messages[0]);
         setActiveLanguage('de');
@@ -527,7 +529,7 @@ function CreateJob() {
             
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Stellenart *</label>
+                <label className="label">Stellenart</label>
                 <div className="relative">
                   <select
                     className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
