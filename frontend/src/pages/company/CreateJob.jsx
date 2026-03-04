@@ -314,6 +314,10 @@ function CreateJob() {
       cleanData.translations = translationsToSend;
       cleanData.available_languages = enabledLanguages;
       
+      // Stellenart aus selectedPositionTypes
+      cleanData.position_type = selectedPositionTypes.length > 0 ? selectedPositionTypes[0] : null;
+      cleanData.position_types = selectedPositionTypes;
+      
       // Draft-Modus: Stelle als Entwurf speichern (nicht aktiv)
       if (isDraft) {
         cleanData.is_draft = true;
@@ -544,7 +548,20 @@ function CreateJob() {
                     className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
                              focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
                              transition-all cursor-pointer text-gray-700 font-medium"
-                    {...register('position_type')}
+                    value={selectedPositionTypes[0] || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value) {
+                        // Work & Holiday ist auch ein Saisonjob
+                        if (value === 'workandholiday') {
+                          setSelectedPositionTypes(['workandholiday', 'saisonjob']);
+                        } else {
+                          setSelectedPositionTypes([value]);
+                        }
+                      } else {
+                        setSelectedPositionTypes([]);
+                      }
+                    }}
                   >
                     <option value="">Stellenart wählen</option>
                     {positionTypes.map((type) => (
@@ -553,7 +570,6 @@ function CreateJob() {
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
                 </div>
-                {errors.position_type && <p className="text-red-500 text-sm mt-1">{errors.position_type.message}</p>}
               </div>
 
               <div>
