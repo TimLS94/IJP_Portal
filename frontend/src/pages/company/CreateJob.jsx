@@ -1241,7 +1241,7 @@ function CreateJob() {
                       ))
                     ) : (
                       <span className="px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-600 border border-gray-200">
-                        Keine Jobart ausgewählt
+                        Allgemein
                       </span>
                     )}
                   </div>

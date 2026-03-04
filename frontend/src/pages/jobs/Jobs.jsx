@@ -66,6 +66,7 @@ function Jobs() {
   
   const positionTypes = [
     { value: '', label: t('jobs.allTypes') },
+    { value: 'general', label: t('positionTypes.general') || 'Allgemein' },
     { value: 'studentenferienjob', label: t('positionTypes.studentenferienjob') },
     { value: 'saisonjob', label: t('positionTypes.saisonjob') },
     { value: 'workandholiday', label: t('positionTypes.workandholiday') },
@@ -115,12 +116,18 @@ function Jobs() {
     setLoading(true);
     try {
       const params = {};
-      if (positionType) params.position_type = positionType;
+      // "general" bedeutet: Jobs ohne position_type - wird client-seitig gefiltert
+      if (positionType && positionType !== 'general') params.position_type = positionType;
       if (location) params.location = location;
       if (search) params.search = search;
       
       const response = await jobsAPI.list(params);
       let filteredJobs = response.data;
+      
+      // Client-seitige Filterung für "Allgemein" (Jobs ohne position_type)
+      if (positionType === 'general') {
+        filteredJobs = filteredJobs.filter(job => !job.position_type && (!job.position_types || job.position_types.length === 0));
+      }
       
       // Client-seitige Filterung nach Deutschkenntnissen
       if (germanLevel) {
