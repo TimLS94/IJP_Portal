@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, FileText, Search, X, LayoutGrid, List, Languages, ArrowDown, ArrowUp, ArrowUpDown, Lock, Unlock, Copy } from 'lucide-react';
 
 const positionTypeLabels = {
+  general: 'Allgemein',
   studentenferienjob: 'Studentenferienjob',
   saisonjob: 'Saisonjob',
   workandholiday: 'Saisonjob',  // Legacy: wird als Saisonjob angezeigt
@@ -13,6 +14,7 @@ const positionTypeLabels = {
 };
 
 const positionTypeColors = {
+  general: 'bg-gray-100 text-gray-800 border-gray-200',
   studentenferienjob: 'bg-blue-100 text-blue-800 border-blue-200',
   saisonjob: 'bg-orange-100 text-orange-800 border-orange-200',
   workandholiday: 'bg-orange-100 text-orange-800 border-orange-200',  // Legacy: gleiche Farbe wie Saisonjob

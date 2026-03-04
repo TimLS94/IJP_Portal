@@ -5,6 +5,7 @@ import { jobsAPI } from '../../lib/api';
 import { MapPin, Calendar, Building2, Search, Filter, Briefcase, ChevronDown, X, Languages } from 'lucide-react';
 
 const positionTypeColors = {
+  general: 'bg-gray-100 text-gray-800 border-gray-200',
   studentenferienjob: 'bg-blue-100 text-blue-800 border-blue-200',
   saisonjob: 'bg-orange-100 text-orange-800 border-orange-200',
   workandholiday: 'bg-pink-100 text-pink-800 border-pink-200',

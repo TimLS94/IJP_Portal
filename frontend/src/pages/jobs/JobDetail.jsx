@@ -19,6 +19,7 @@ const JOB_LANGUAGES = [
 ];
 
 const positionTypeColors = {
+  general: 'bg-gray-100 text-gray-800 border-gray-200',
   studentenferienjob: 'bg-blue-100 text-blue-800 border-blue-200',
   saisonjob: 'bg-orange-100 text-orange-800 border-orange-200',
   workandholiday: 'bg-orange-100 text-orange-800 border-orange-200',  // Legacy: gleiche Farbe wie Saisonjob
@@ -47,6 +48,7 @@ function JobDetail() {
   const { t, i18n } = useTranslation();
   
   const positionTypeLabels = {
+    general: t('positionTypes.general'),
     studentenferienjob: t('positionTypes.studentenferienjob'),
     saisonjob: t('positionTypes.saisonjob'),
     workandholiday: 'Work & Holiday',

@@ -171,6 +171,7 @@ function CreateJob() {
 
   // Position types with translations (Ausbildung and Work & Holiday stay German)
   const positionTypes = [
+    { value: 'general', label: 'Allgemein' },
     { value: 'studentenferienjob', label: t('positionTypes.studentenferienjob') },
     { value: 'saisonjob', label: t('positionTypes.saisonjob') },
     { value: 'workandholiday', label: 'Work & Holiday' },
@@ -547,6 +548,7 @@ function CreateJob() {
                   {positionTypes.map((type) => {
                     const isSelected = selectedPositionTypes.includes(type.value);
                     const colorMap = {
+                      general: { bg: 'bg-gray-100', border: 'border-gray-500', text: 'text-gray-800' },
                       studentenferienjob: { bg: 'bg-blue-100', border: 'border-blue-500', text: 'text-blue-800' },
                       saisonjob: { bg: 'bg-orange-100', border: 'border-orange-500', text: 'text-orange-800' },
                       workandholiday: { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-800' },
