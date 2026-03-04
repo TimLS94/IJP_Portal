@@ -542,34 +542,59 @@ function CreateJob() {
             
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Stellenart</label>
-                <div className="relative">
-                  <select
-                    className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
-                             focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
-                             transition-all cursor-pointer text-gray-700 font-medium"
-                    value={selectedPositionTypes[0] || ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value) {
-                        // Work & Holiday ist auch ein Saisonjob
-                        if (value === 'workandholiday') {
-                          setSelectedPositionTypes(['workandholiday', 'saisonjob']);
-                        } else {
-                          setSelectedPositionTypes([value]);
-                        }
-                      } else {
-                        setSelectedPositionTypes([]);
-                      }
-                    }}
-                  >
-                    <option value="">Stellenart wählen</option>
-                    {positionTypes.map((type) => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                <label className="label">Stellenart (Mehrfachauswahl möglich)</label>
+                <div className="flex flex-wrap gap-2">
+                  {positionTypes.map((type) => {
+                    const isSelected = selectedPositionTypes.includes(type.value);
+                    const colorMap = {
+                      studentenferienjob: { bg: 'bg-blue-100', border: 'border-blue-500', text: 'text-blue-800' },
+                      saisonjob: { bg: 'bg-orange-100', border: 'border-orange-500', text: 'text-orange-800' },
+                      workandholiday: { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-800' },
+                      fachkraft: { bg: 'bg-purple-100', border: 'border-purple-500', text: 'text-purple-800' },
+                      ausbildung: { bg: 'bg-pink-100', border: 'border-pink-500', text: 'text-pink-800' }
+                    };
+                    const colors = colorMap[type.value] || { bg: 'bg-gray-100', border: 'border-gray-500', text: 'text-gray-800' };
+                    
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            // Entfernen
+                            let newTypes = selectedPositionTypes.filter(t => t !== type.value);
+                            // Wenn Work & Holiday entfernt wird, auch Saisonjob entfernen (falls automatisch hinzugefügt)
+                            if (type.value === 'workandholiday') {
+                              newTypes = newTypes.filter(t => t !== 'saisonjob');
+                            }
+                            setSelectedPositionTypes(newTypes);
+                          } else {
+                            // Hinzufügen
+                            let newTypes = [...selectedPositionTypes, type.value];
+                            // Work & Holiday impliziert Saisonjob
+                            if (type.value === 'workandholiday' && !newTypes.includes('saisonjob')) {
+                              newTypes.push('saisonjob');
+                            }
+                            setSelectedPositionTypes(newTypes);
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-lg border-2 font-medium text-sm transition-all ${
+                          isSelected 
+                            ? `${colors.bg} ${colors.border} ${colors.text}` 
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        {type.label}
+                        {isSelected && <span className="ml-2">✓</span>}
+                      </button>
+                    );
+                  })}
                 </div>
+                {selectedPositionTypes.includes('workandholiday') && (
+                  <p className="text-xs text-green-600 mt-2">
+                    ℹ️ Work & Holiday wird automatisch auch als Saisonjob getaggt
+                  </p>
+                )}
               </div>
 
               <div>

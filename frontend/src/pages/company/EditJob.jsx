@@ -114,6 +114,7 @@ function EditJob() {
   const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90, archive_deletion_days: 90 });
   const [adminTranslated, setAdminTranslated] = useState(false);
   const [adminTranslatedLanguages, setAdminTranslatedLanguages] = useState([]);
+  const [selectedPositionTypes, setSelectedPositionTypes] = useState([]);
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm();
 
   const germanRequired = watch('german_required') || 'not_required';
@@ -176,6 +177,13 @@ function EditJob() {
       // Admin-Übersetzung Status setzen
       setAdminTranslated(job.admin_translated || false);
       setAdminTranslatedLanguages(job.admin_translated_languages || []);
+      
+      // Position Types setzen
+      if (job.position_types && job.position_types.length > 0) {
+        setSelectedPositionTypes(job.position_types);
+      } else if (job.position_type) {
+        setSelectedPositionTypes([job.position_type]);
+      }
     } catch (error) {
       toast.error('Stellenangebot nicht gefunden');
       navigate('/company/jobs');
@@ -237,6 +245,10 @@ function EditJob() {
       
       // Sprachanforderungen hinzufügen
       cleanData.other_languages_required = otherLanguages.filter(l => l.language);
+      
+      // Stellenart aus selectedPositionTypes
+      cleanData.position_type = selectedPositionTypes.length > 0 ? selectedPositionTypes[0] : null;
+      cleanData.position_types = selectedPositionTypes;
       
       await jobsAPI.update(id, cleanData);
       toast.success('Stellenangebot aktualisiert!');
@@ -339,22 +351,55 @@ function EditJob() {
             
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Stellenart *</label>
-                <div className="relative">
-                  <select
-                    className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
-                             focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
-                             transition-all cursor-pointer text-gray-700 font-medium"
-                    {...register('position_type', { required: 'Stellenart ist erforderlich' })}
-                  >
-                    <option value="">Stellenart wählen</option>
-                    {positionTypes.map((type) => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                <label className="label">Stellenart (Mehrfachauswahl möglich)</label>
+                <div className="flex flex-wrap gap-2">
+                  {positionTypes.map((type) => {
+                    const isSelected = selectedPositionTypes.includes(type.value);
+                    const colorMap = {
+                      studentenferienjob: { bg: 'bg-blue-100', border: 'border-blue-500', text: 'text-blue-800' },
+                      saisonjob: { bg: 'bg-orange-100', border: 'border-orange-500', text: 'text-orange-800' },
+                      workandholiday: { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-800' },
+                      fachkraft: { bg: 'bg-purple-100', border: 'border-purple-500', text: 'text-purple-800' },
+                      ausbildung: { bg: 'bg-pink-100', border: 'border-pink-500', text: 'text-pink-800' }
+                    };
+                    const colors = colorMap[type.value] || { bg: 'bg-gray-100', border: 'border-gray-500', text: 'text-gray-800' };
+                    
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            let newTypes = selectedPositionTypes.filter(t => t !== type.value);
+                            if (type.value === 'workandholiday') {
+                              newTypes = newTypes.filter(t => t !== 'saisonjob');
+                            }
+                            setSelectedPositionTypes(newTypes);
+                          } else {
+                            let newTypes = [...selectedPositionTypes, type.value];
+                            if (type.value === 'workandholiday' && !newTypes.includes('saisonjob')) {
+                              newTypes.push('saisonjob');
+                            }
+                            setSelectedPositionTypes(newTypes);
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-lg border-2 font-medium text-sm transition-all ${
+                          isSelected 
+                            ? `${colors.bg} ${colors.border} ${colors.text}` 
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        {type.label}
+                        {isSelected && <span className="ml-2">✓</span>}
+                      </button>
+                    );
+                  })}
                 </div>
-                {errors.position_type && <p className="text-red-500 text-sm mt-1">{errors.position_type.message}</p>}
+                {selectedPositionTypes.includes('workandholiday') && (
+                  <p className="text-xs text-green-600 mt-2">
+                    ℹ️ Work & Holiday wird automatisch auch als Saisonjob getaggt
+                  </p>
+                )}
               </div>
 
               <div>
