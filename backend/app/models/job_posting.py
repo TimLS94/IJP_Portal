@@ -75,7 +75,9 @@ class JobPosting(Base):
     # Kontaktperson (NEU)
     contact_person = Column(String(255))  # Ansprechpartner
     contact_phone = Column(String(50))  # Telefon
+    contact_whatsapp = Column(String(50))  # WhatsApp-Nummer
     contact_email = Column(String(255))  # E-Mail
+    preferred_contact_method = Column(String(20))  # 'phone', 'whatsapp', 'email'
     
     # Vergütung (Float für Dezimalwerte wie 12,50€)
     salary_min = Column(Float)

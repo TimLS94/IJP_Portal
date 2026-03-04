@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { 
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
   Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
-  ListTodo, FileText
+  ListTodo, FileText, MessageCircle
 } from 'lucide-react';
 import RichTextEditor from '../../components/RichTextEditor';
 
@@ -157,7 +157,9 @@ function EditJob() {
         deadline: job.deadline || '',
         contact_person: job.contact_person || '',
         contact_phone: job.contact_phone || '',
+        contact_whatsapp: job.contact_whatsapp || '',
         contact_email: job.contact_email || '',
+        preferred_contact_method: job.preferred_contact_method || '',
         salary_min: job.salary_min ? String(job.salary_min).replace('.', ',') : '',
         salary_max: job.salary_max ? String(job.salary_max).replace('.', ',') : '',
         salary_type: job.salary_type || '',
@@ -614,7 +616,7 @@ function EditJob() {
             Optional: Geben Sie eine Kontaktperson für Rückfragen an.
           </p>
           
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="label">Ansprechpartner</label>
               <div className="relative">
@@ -624,19 +626,6 @@ function EditJob() {
                   className="input-styled pl-12"
                   placeholder="Max Mustermann"
                   {...register('contact_person')}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="label">Telefon</label>
-              <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="tel"
-                  className="input-styled pl-12"
-                  placeholder="+49 123 456789"
-                  {...register('contact_phone')}
                 />
               </div>
             </div>
@@ -653,6 +642,71 @@ function EditJob() {
                 />
               </div>
             </div>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="label">Telefon</label>
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="tel"
+                  className="input-styled pl-12"
+                  placeholder="+49 123 456789"
+                  {...register('contact_phone')}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="label">WhatsApp</label>
+              <div className="relative">
+                <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                <input
+                  type="tel"
+                  className="input-styled pl-12"
+                  placeholder="+49 123 456789"
+                  {...register('contact_whatsapp')}
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Bevorzugter Kontaktweg */}
+          <div>
+            <label className="label">Bevorzugter Kontaktweg</label>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { value: 'email', label: 'E-Mail', icon: Mail, color: 'blue' },
+                { value: 'phone', label: 'Telefon', icon: Phone, color: 'gray' },
+                { value: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, color: 'green' }
+              ].map(option => {
+                const Icon = option.icon;
+                const isSelected = watch('preferred_contact_method') === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-all ${
+                      isSelected 
+                        ? `border-${option.color}-500 bg-${option.color}-50 text-${option.color}-700`
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      value={option.value}
+                      {...register('preferred_contact_method')}
+                      className="sr-only"
+                    />
+                    <Icon className={`h-4 w-4 ${isSelected ? `text-${option.color}-600` : 'text-gray-400'}`} />
+                    <span className="text-sm font-medium">{option.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Wird Bewerbern als bevorzugte Kontaktmethode angezeigt
+            </p>
           </div>
         </div>
 

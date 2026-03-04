@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { 
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
   Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
-  ListTodo, Award, Gift, FileText, Globe, Eye, X, Copy
+  ListTodo, Award, Gift, FileText, Globe, Eye, X, Copy, MessageCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RichTextEditor from '../../components/RichTextEditor';
@@ -147,6 +147,8 @@ function CreateJob() {
           if (template.contact_person) setValue('contact_person', template.contact_person);
           if (template.contact_email) setValue('contact_email', template.contact_email);
           if (template.contact_phone) setValue('contact_phone', template.contact_phone);
+          if (template.contact_whatsapp) setValue('contact_whatsapp', template.contact_whatsapp);
+          if (template.preferred_contact_method) setValue('preferred_contact_method', template.preferred_contact_method);
           if (template.salary_min) setValue('salary_min', template.salary_min);
           if (template.salary_max) setValue('salary_max', template.salary_max);
           if (template.salary_type) setValue('salary_type', template.salary_type);
@@ -380,6 +382,8 @@ function CreateJob() {
         contact_person: watch('contact_person'),
         contact_email: watch('contact_email'),
         contact_phone: watch('contact_phone'),
+        contact_whatsapp: watch('contact_whatsapp'),
+        preferred_contact_method: watch('preferred_contact_method'),
         salary_min: watch('salary_min'),
         salary_max: watch('salary_max'),
         salary_type: watch('salary_type'),
@@ -855,7 +859,7 @@ function CreateJob() {
             Optional: Geben Sie eine Kontaktperson für Rückfragen an.
           </p>
           
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="label">Ansprechpartner</label>
               <div className="relative">
@@ -865,19 +869,6 @@ function CreateJob() {
                   className="input-styled pl-12"
                   placeholder="Max Mustermann"
                   {...register('contact_person')}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="label">Telefon</label>
-              <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="tel"
-                  className="input-styled pl-12"
-                  placeholder="+49 123 456789"
-                  {...register('contact_phone')}
                 />
               </div>
             </div>
@@ -894,6 +885,71 @@ function CreateJob() {
                 />
               </div>
             </div>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="label">Telefon</label>
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="tel"
+                  className="input-styled pl-12"
+                  placeholder="+49 123 456789"
+                  {...register('contact_phone')}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="label">WhatsApp</label>
+              <div className="relative">
+                <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                <input
+                  type="tel"
+                  className="input-styled pl-12"
+                  placeholder="+49 123 456789"
+                  {...register('contact_whatsapp')}
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Bevorzugter Kontaktweg */}
+          <div>
+            <label className="label">Bevorzugter Kontaktweg</label>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { value: 'email', label: 'E-Mail', icon: Mail, color: 'blue' },
+                { value: 'phone', label: 'Telefon', icon: Phone, color: 'gray' },
+                { value: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, color: 'green' }
+              ].map(option => {
+                const Icon = option.icon;
+                const isSelected = watch('preferred_contact_method') === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-all ${
+                      isSelected 
+                        ? `border-${option.color}-500 bg-${option.color}-50 text-${option.color}-700`
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      value={option.value}
+                      {...register('preferred_contact_method')}
+                      className="sr-only"
+                    />
+                    <Icon className={`h-4 w-4 ${isSelected ? `text-${option.color}-600` : 'text-gray-400'}`} />
+                    <span className="text-sm font-medium">{option.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Wird Bewerbern als bevorzugte Kontaktmethode angezeigt
+            </p>
           </div>
         </div>
 
@@ -1249,11 +1305,16 @@ function CreateJob() {
               </div>
 
               {/* Kontakt */}
-              {(watch('contact_person') || watch('contact_email') || watch('contact_phone')) && (
+              {(watch('contact_person') || watch('contact_email') || watch('contact_phone') || watch('contact_whatsapp')) && (
                 <div className="bg-primary-50 rounded-xl p-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <User className="h-5 w-5 text-primary-600" />
                     Kontakt
+                    {watch('preferred_contact_method') && (
+                      <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">
+                        Bevorzugt: {watch('preferred_contact_method') === 'email' ? 'E-Mail' : watch('preferred_contact_method') === 'phone' ? 'Telefon' : 'WhatsApp'}
+                      </span>
+                    )}
                   </h3>
                   <div className="flex flex-wrap gap-4 text-sm">
                     {watch('contact_person') && (
@@ -1272,6 +1333,12 @@ function CreateJob() {
                       <span className="flex items-center gap-1.5">
                         <Phone className="h-4 w-4 text-gray-400" />
                         {watch('contact_phone')}
+                      </span>
+                    )}
+                    {watch('contact_whatsapp') && (
+                      <span className="flex items-center gap-1.5">
+                        <MessageCircle className="h-4 w-4 text-green-500" />
+                        {watch('contact_whatsapp')}
                       </span>
                     )}
                   </div>

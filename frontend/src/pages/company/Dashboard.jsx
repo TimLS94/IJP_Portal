@@ -3,6 +3,16 @@ import { Link } from 'react-router-dom';
 import { jobsAPI, applicationsAPI, companyAPI } from '../../lib/api';
 import { Building2, Briefcase, Users, Plus, FileText, Languages, X } from 'lucide-react';
 
+// Status-Mapping für Bewerbungen
+const statusConfig = {
+  pending: { label: 'Neu', bg: 'bg-yellow-100', text: 'text-yellow-800' },
+  company_review: { label: 'In Prüfung', bg: 'bg-blue-100', text: 'text-blue-800' },
+  interview_scheduled: { label: 'Interview', bg: 'bg-purple-100', text: 'text-purple-800' },
+  accepted: { label: 'Angenommen', bg: 'bg-green-100', text: 'text-green-800' },
+  rejected: { label: 'Abgelehnt', bg: 'bg-red-100', text: 'text-red-800' },
+  withdrawn: { label: 'Zurückgezogen', bg: 'bg-gray-100', text: 'text-gray-800' }
+};
+
 function CompanyDashboard() {
   const [stats, setStats] = useState({
     jobs: 0,
@@ -243,9 +253,9 @@ function CompanyDashboard() {
                     <p className="text-sm text-gray-600">{app.job_title}</p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {app.status === 'pending' ? 'Neu' : app.status}
+                    statusConfig[app.status]?.bg || 'bg-gray-100'
+                  } ${statusConfig[app.status]?.text || 'text-gray-800'}`}>
+                    {statusConfig[app.status]?.label || app.status}
                   </span>
                 </div>
               ))}

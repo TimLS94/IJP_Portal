@@ -44,7 +44,9 @@ class JobPostingBase(BaseModel):
     # Kontaktperson (NEU)
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
+    contact_whatsapp: Optional[str] = None
     contact_email: Optional[str] = None
+    preferred_contact_method: Optional[str] = None  # 'phone', 'whatsapp', 'email'
     
     salary_min: Optional[float] = None
     salary_max: Optional[float] = None
@@ -123,7 +125,9 @@ class JobPostingUpdate(BaseModel):
     # Kontaktperson (NEU)
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
+    contact_whatsapp: Optional[str] = None
     contact_email: Optional[str] = None
+    preferred_contact_method: Optional[str] = None
     
     salary_min: Optional[float] = None
     salary_max: Optional[float] = None
