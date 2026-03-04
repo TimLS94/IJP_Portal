@@ -120,12 +120,14 @@ async def list_users(
     
     total = query.count()
     
-    # Serverseitige Sortierung
+    # Serverseitige Sortierung mit korrekter NULL-Behandlung
     sort_column = getattr(User, sort_by, User.created_at)
     if sort_dir == "asc":
-        query = query.order_by(sort_column.asc())
+        # Bei aufsteigend: NULL-Werte ans Ende (z.B. "Noch nie" bei last_login_at)
+        query = query.order_by(sort_column.asc().nullslast())
     else:
-        query = query.order_by(sort_column.desc())
+        # Bei absteigend: NULL-Werte ans Ende
+        query = query.order_by(sort_column.desc().nullslast())
     
     users = query.offset(skip).limit(limit).all()
     
