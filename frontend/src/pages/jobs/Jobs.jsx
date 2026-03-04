@@ -369,18 +369,18 @@ function Jobs() {
                     <h2 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
                       {getJobText(job, 'title')}
                     </h2>
-                    {/* Mehrere Jobarten-Badges */}
+                    {/* Mehrere Jobarten-Badges - nur anzeigen wenn vorhanden */}
                     {(job.position_types && job.position_types.length > 0) ? (
                       job.position_types.map((type) => (
                         <span key={type} className={`px-3 py-1 rounded-full text-sm font-semibold border ${positionTypeColors[type] || 'bg-gray-100 text-gray-800'}`}>
                           {positionTypes.find(t => t.value === type)?.label || type}
                         </span>
                       ))
-                    ) : (
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${positionTypeColors[job.position_type]}`}>
-                      {positionTypes.find(t => t.value === job.position_type)?.label}
-                    </span>
-                    )}
+                    ) : job.position_type ? (
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${positionTypeColors[job.position_type]}`}>
+                        {positionTypes.find(t => t.value === job.position_type)?.label}
+                      </span>
+                    ) : null}
                     {job.remote_possible && (
                       <span className="px-3 py-1 rounded-full text-sm font-medium bg-teal-100 text-teal-800 border border-teal-200">
                         {t('jobDetail.remotePossible')}

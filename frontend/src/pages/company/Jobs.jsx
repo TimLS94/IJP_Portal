@@ -524,18 +524,18 @@ function CompanyJobs() {
                         >
                           {job.title}
                         </Link>
-                        {/* Mehrere Jobarten-Badges */}
+                        {/* Mehrere Jobarten-Badges - nur anzeigen wenn vorhanden */}
                         {(job.position_types && job.position_types.length > 0) ? (
                           job.position_types.map((type) => (
                             <span key={type} className={`px-3 py-1 rounded-full text-sm font-medium ${positionTypeColors[type] || 'bg-gray-100 text-gray-800'}`}>
                               {positionTypeLabels[type] || type}
                             </span>
                           ))
-                        ) : (
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${positionTypeColors[job.position_type]}`}>
-                          {positionTypeLabels[job.position_type]}
-                        </span>
-                        )}
+                        ) : job.position_type ? (
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${positionTypeColors[job.position_type]}`}>
+                            {positionTypeLabels[job.position_type]}
+                          </span>
+                        ) : null}
                         {job.is_draft && (
                           <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700 border border-yellow-200">
                             Entwurf
@@ -732,9 +732,11 @@ function CompanyJobs() {
                           <span className="text-xl font-semibold text-gray-700">
                             {job.title}
                           </span>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${positionTypeColors[job.position_type]} opacity-60`}>
-                            {positionTypeLabels[job.position_type]}
-                          </span>
+                          {job.position_type && (
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${positionTypeColors[job.position_type]} opacity-60`}>
+                              {positionTypeLabels[job.position_type]}
+                            </span>
+                          )}
                           <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-600">
                             Archiviert
                           </span>

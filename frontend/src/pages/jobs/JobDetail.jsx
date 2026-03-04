@@ -584,9 +584,11 @@ function JobDetail() {
             
             <div className="flex items-start justify-between gap-4 mb-4">
               <h1 className="text-3xl font-bold text-gray-900">{getTranslatedText('title')}</h1>
-              <span className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap border ${positionTypeColors[job.position_type]}`}>
-                {positionTypeLabels[job.position_type]}
-              </span>
+              {job.position_type && (
+                <span className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap border ${positionTypeColors[job.position_type]}`}>
+                  {positionTypeLabels[job.position_type]}
+                </span>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-6">
