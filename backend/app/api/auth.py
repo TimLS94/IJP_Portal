@@ -134,7 +134,8 @@ async def register_applicant(
     user = User(
         email=user_data.email,
         password_hash=get_password_hash(user_data.password),
-        role=UserRole.APPLICANT
+        role=UserRole.APPLICANT,
+        last_login_at=datetime.utcnow()  # Registrierung = erster Login
     )
     db.add(user)
     db.commit()
@@ -238,7 +239,8 @@ async def register_company(
         email=user_data.email,
         password_hash=get_password_hash(user_data.password),
         role=UserRole.COMPANY,
-        is_active=auto_activate  # Aktiv wenn gültiger Token, sonst deaktiviert
+        is_active=auto_activate,  # Aktiv wenn gültiger Token, sonst deaktiviert
+        last_login_at=datetime.utcnow() if auto_activate else None  # Login-Zeit nur wenn direkt aktiv
     )
     db.add(user)
     db.commit()
