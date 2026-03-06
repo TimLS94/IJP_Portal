@@ -509,6 +509,15 @@ async def create_job(
     update_job_slug(job, db)
     db.refresh(job)
     
+    # Notify matching applicants about new job (if active and not draft)
+    if job.is_active:
+        try:
+            from app.services.job_notification_service import notify_applicants_about_new_job
+            notify_applicants_about_new_job(job, db)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Job notification failed: {e}")
+    
     return job
 
 

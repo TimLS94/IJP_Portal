@@ -830,6 +830,167 @@ class EmailService:
         </body></html>
         """
         return self.send_email(to_email, subject, html_content)
+    
+    @_safe_email_call
+    def send_matching_job_notification(
+        self,
+        to_email: str,
+        applicant_name: str,
+        job_title: str,
+        company_name: str,
+        location: str,
+        match_score: int,
+        job_slug: str
+    ) -> bool:
+        """
+        Notifies an applicant about a new matching job posting.
+        Email is in English as applicants are international.
+        """
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+        except:
+            frontend_url = 'https://www.jobon.work'
+        
+        job_url = f"{frontend_url}/jobs/{job_slug}"
+        
+        subject = f"🎯 New Job Match: {job_title} ({match_score}% match)"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0; font-size: 24px;">🎯 Great News!</h1>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">A new job matches your profile</p>
+            </div>
+            <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <p style="font-size: 16px; color: #374151;">Hello {applicant_name},</p>
+                
+                <p style="color: #4b5563;">We found a new job opportunity that matches your profile!</p>
+                
+                <div style="background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+                    <p style="margin: 0 0 10px 0; font-size: 20px; font-weight: bold; color: #065f46;">
+                        {job_title}
+                    </p>
+                    <p style="margin: 0 0 5px 0; color: #047857;">
+                        🏢 {company_name}
+                    </p>
+                    <p style="margin: 0 0 10px 0; color: #047857;">
+                        📍 {location}
+                    </p>
+                    <div style="background: #d1fae5; padding: 10px 15px; border-radius: 20px; display: inline-block; margin-top: 10px;">
+                        <span style="color: #065f46; font-weight: bold; font-size: 18px;">
+                            {match_score}% Match
+                        </span>
+                    </div>
+                </div>
+                
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{job_url}" 
+                       style="background: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        View Job Details →
+                    </a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+                
+                <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                    Best regards,<br>
+                    <strong>Your IJP Team</strong>
+                </p>
+                
+                <p style="color: #9ca3af; font-size: 12px; margin: 20px 0 0 0;">
+                    IJP International Job Placement UG (haftungsbeschränkt)<br>
+                    Husemannstr. 9, 10435 Berlin
+                </p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
+    
+    @_safe_email_call
+    def send_weekly_job_digest(
+        self,
+        to_email: str,
+        applicant_name: str,
+        matching_jobs: list
+    ) -> bool:
+        """
+        Sends a weekly digest of matching jobs to an applicant.
+        Email is in English as applicants are international.
+        """
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+        except:
+            frontend_url = 'https://www.jobon.work'
+        
+        # Build job list HTML
+        jobs_html = ""
+        for match in matching_jobs[:10]:  # Max 10 jobs
+            job = match["job"]
+            score = match["score"]
+            job_url = f"{frontend_url}/jobs/{job.url_slug or job.id}"
+            company_name = job.company.company_name if job.company else "Unknown"
+            
+            jobs_html += f"""
+            <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #10b981;">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #1f2937;">
+                            {job.title}
+                        </p>
+                        <p style="margin: 0; color: #6b7280; font-size: 14px;">
+                            🏢 {company_name} • 📍 {job.location or 'Germany'}
+                        </p>
+                    </div>
+                    <span style="background: #d1fae5; color: #065f46; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 14px;">
+                        {score}%
+                    </span>
+                </div>
+                <p style="margin: 10px 0 0 0;">
+                    <a href="{job_url}" style="color: #10b981; text-decoration: none; font-weight: 500;">
+                        View Details →
+                    </a>
+                </p>
+            </div>
+            """
+        
+        subject = f"📋 Your Weekly Job Digest - {len(matching_jobs)} Matching Jobs"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0; font-size: 24px;">📋 Your Weekly Job Digest</h1>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">{len(matching_jobs)} jobs match your profile</p>
+            </div>
+            <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <p style="font-size: 16px; color: #374151;">Hello {applicant_name},</p>
+                
+                <p style="color: #4b5563;">Here are the latest job opportunities that match your profile:</p>
+                
+                {jobs_html}
+                
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/jobs" 
+                       style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        Browse All Jobs →
+                    </a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+                
+                <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                    Best regards,<br>
+                    <strong>Your IJP Team</strong>
+                </p>
+                
+                <p style="color: #9ca3af; font-size: 12px; margin: 20px 0 0 0;">
+                    IJP International Job Placement UG (haftungsbeschränkt)<br>
+                    Husemannstr. 9, 10435 Berlin<br><br>
+                    <em>You receive this email because you have an active profile on JobOn.work</em>
+                </p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content)
 
 
 # Singleton - CRASH-SAFE initialisiert

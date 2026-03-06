@@ -142,6 +142,37 @@ async def periodic_cleanup(interval_hours: int = 6):
         cleanup_jobs()
 
 
+async def weekly_job_digest():
+    """Background-Task für wöchentliche Job-Digest E-Mails (jeden Montag 9:00 UTC)"""
+    from datetime import datetime, timedelta
+    
+    while True:
+        # Berechne Zeit bis nächsten Montag 9:00 UTC
+        now = datetime.utcnow()
+        days_until_monday = (7 - now.weekday()) % 7
+        if days_until_monday == 0 and now.hour >= 9:
+            days_until_monday = 7
+        
+        next_monday = now.replace(hour=9, minute=0, second=0, microsecond=0) + timedelta(days=days_until_monday)
+        wait_seconds = (next_monday - now).total_seconds()
+        
+        logger.info(f"Weekly digest scheduled for {next_monday} (in {wait_seconds/3600:.1f} hours)")
+        await asyncio.sleep(wait_seconds)
+        
+        logger.info("Starte wöchentlichen Job-Digest...")
+        try:
+            from app.services.job_notification_service import send_weekly_job_digest
+            from app.database import SessionLocal
+            db = SessionLocal()
+            try:
+                emails_sent = send_weekly_job_digest(db)
+                logger.info(f"Weekly digest: {emails_sent} E-Mails gesendet")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Fehler beim Weekly Digest: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle-Handler für App-Start und -Stopp"""
@@ -151,12 +182,17 @@ async def lifespan(app: FastAPI):
     # Starte periodischen Cleanup-Task
     cleanup_task = asyncio.create_task(periodic_cleanup(6))  # Alle 6 Stunden
     
+    # Starte wöchentlichen Job-Digest Task
+    digest_task = asyncio.create_task(weekly_job_digest())
+    
     yield
     
     # Cleanup bei Shutdown
     cleanup_task.cancel()
+    digest_task.cancel()
     try:
         await cleanup_task
+        await digest_task
     except asyncio.CancelledError:
         pass
 
