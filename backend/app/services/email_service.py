@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def log_email(email_type: str, recipient: str, subject: str, success: bool = True):
     """Speichert E-Mail-Log für Statistiken"""
     try:
-        from app.database import SessionLocal
+        from app.core.database import SessionLocal
         from app.models.email_log import EmailLog, EmailType
         
         db = SessionLocal()
