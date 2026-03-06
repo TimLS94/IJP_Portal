@@ -5,7 +5,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Enum as SQLEnum
 from datetime import datetime
 import enum
 
-from app.database import Base
+from app.core.database import Base
 
 
 class EmailType(str, enum.Enum):
