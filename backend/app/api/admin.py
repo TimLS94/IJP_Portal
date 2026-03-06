@@ -98,6 +98,88 @@ async def get_dashboard_stats(
     return stats
 
 
+@router.get("/email-stats")
+async def get_email_stats(
+    days: int = Query(30, ge=1, le=365, description="Zeitraum in Tagen"),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Holt E-Mail-Statistiken nach Typ für das Admin-Dashboard"""
+    from app.models.email_log import EmailLog, EmailType
+    
+    period_start = datetime.utcnow() - timedelta(days=days)
+    
+    # E-Mail-Typen Labels (deutsch)
+    type_labels = {
+        "welcome": "Registrierung",
+        "password_reset": "Passwort vergessen",
+        "application_received": "Bewerbung eingegangen",
+        "new_application": "Neue Bewerbung (Firma)",
+        "application_status": "Status-Update",
+        "job_match": "Passende Stelle",
+        "job_digest": "Wöchentlicher Digest",
+        "company_pending": "Firma wartet",
+        "company_activated": "Firma aktiviert",
+        "admin_notification": "Admin-Benachrichtigung",
+        "other": "Sonstige"
+    }
+    
+    # Statistiken nach Typ
+    stats_by_type = db.query(
+        EmailLog.email_type,
+        func.count(EmailLog.id).label("total"),
+        func.sum(EmailLog.success).label("success")
+    ).filter(
+        EmailLog.created_at >= period_start
+    ).group_by(EmailLog.email_type).all()
+    
+    # Ergebnis formatieren
+    result = {
+        "period_days": days,
+        "total_sent": 0,
+        "total_success": 0,
+        "total_failed": 0,
+        "by_type": []
+    }
+    
+    for email_type, total, success in stats_by_type:
+        success = success or 0
+        failed = total - success
+        result["total_sent"] += total
+        result["total_success"] += success
+        result["total_failed"] += failed
+        
+        result["by_type"].append({
+            "type": email_type.value if email_type else "other",
+            "label": type_labels.get(email_type.value if email_type else "other", email_type.value if email_type else "Sonstige"),
+            "total": total,
+            "success": success,
+            "failed": failed
+        })
+    
+    # Sortieren nach Anzahl
+    result["by_type"].sort(key=lambda x: x["total"], reverse=True)
+    
+    # Letzte 10 E-Mails
+    recent_emails = db.query(EmailLog).order_by(
+        EmailLog.created_at.desc()
+    ).limit(10).all()
+    
+    result["recent"] = [
+        {
+            "type": e.email_type.value if e.email_type else "other",
+            "label": type_labels.get(e.email_type.value if e.email_type else "other", "Sonstige"),
+            "recipient": e.recipient_email,
+            "subject": e.subject,
+            "success": e.success == 1,
+            "created_at": e.created_at.isoformat() if e.created_at else None
+        }
+        for e in recent_emails
+    ]
+    
+    return result
+
+
 @router.get("/users")
 async def list_users(
     role: Optional[UserRole] = None,

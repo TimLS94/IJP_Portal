@@ -268,6 +268,7 @@ export const interviewsAPI = interviewAPI;
 
 export const adminAPI = {
   getStats: (params) => api.get('/admin/stats', { params }),
+  getEmailStats: (params) => api.get('/admin/email-stats', { params }),
   // Feature Flags & Einstellungen
   getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
   setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),

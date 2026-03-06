@@ -7,6 +7,34 @@ from typing import Optional, List
 logger = logging.getLogger(__name__)
 
 
+def log_email(email_type: str, recipient: str, subject: str, success: bool = True):
+    """Speichert E-Mail-Log für Statistiken"""
+    try:
+        from app.database import SessionLocal
+        from app.models.email_log import EmailLog, EmailType
+        
+        db = SessionLocal()
+        try:
+            # String zu Enum konvertieren
+            try:
+                email_type_enum = EmailType(email_type)
+            except ValueError:
+                email_type_enum = EmailType.OTHER
+            
+            log_entry = EmailLog(
+                email_type=email_type_enum,
+                recipient_email=recipient,
+                subject=subject[:500] if subject else None,
+                success=1 if success else 0
+            )
+            db.add(log_entry)
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"E-Mail-Log konnte nicht gespeichert werden: {e}")
+
+
 def _safe_email_call(func):
     """Decorator der ALLE E-Mail-Fehler abfängt - App darf NIEMALS crashen!"""
     import asyncio
@@ -63,13 +91,15 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: Optional[str] = None
+        text_content: Optional[str] = None,
+        email_type: str = "other"
     ) -> bool:
         """Sendet eine E-Mail über SendGrid HTTP API - CRASH-SAFE"""
         
         # Debug-Modus: Nur loggen
         if self.debug:
             logger.info(f"[DEBUG-EMAIL] An: {to_email} | Betreff: {subject}")
+            log_email(email_type, to_email, subject, True)
             return True
         
         # SendGrid nicht konfiguriert
@@ -96,9 +126,11 @@ class EmailService:
         
         if response.status_code in [200, 201, 202]:
             logger.info(f"✅ E-Mail gesendet an {to_email} (Status: {response.status_code})")
+            log_email(email_type, to_email, subject, True)
             return True
         else:
             logger.error(f"❌ E-Mail fehlgeschlagen: {response.status_code} - {response.body}")
+            log_email(email_type, to_email, subject, False)
             return False
     
     @_safe_email_call
@@ -118,7 +150,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="welcome")
     
     @_safe_email_call
     def send_application_received(
@@ -139,7 +171,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="application_received")
     
     @_safe_email_call
     def send_new_application_notification(
@@ -233,7 +265,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="new_application")
     
     @_safe_email_call
     def send_company_registration_pending(self, to_email: str, company_name: str) -> bool:
@@ -253,7 +285,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="company_pending")
     
     @_safe_email_call
     def send_admin_new_company_notification(
@@ -282,7 +314,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="admin_notification")
     
     @_safe_email_call
     def send_company_activated(
@@ -305,7 +337,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="company_activated")
     
     @_safe_email_call
     def send_application_status_update(
@@ -328,7 +360,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="application_status")
     
     @_safe_email_call
     def send_document_request(
@@ -363,7 +395,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="other")
     
     @_safe_email_call
     def send_rejection_email(
@@ -414,7 +446,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="application_status")
     
     @_safe_email_call
     def send_password_reset(self, to_email: str, reset_link: str) -> bool:
@@ -437,7 +469,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="password_reset")
     
     @_safe_email_call
     def send_interview_proposed(
@@ -510,7 +542,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="other")
     
     @_safe_email_call
     def send_interview_confirmed(
@@ -569,7 +601,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="other")
     
     @_safe_email_call
     def send_application_update(
@@ -668,7 +700,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="application_status")
 
     @_safe_email_call
     def send_interview_declined(
@@ -722,7 +754,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="other")
 
     @_safe_email_call
     def send_interview_cancelled(
@@ -796,7 +828,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="other")
 
     @_safe_email_call
     async def send_password_reset_email(self, to_email: str, reset_token: str, user_name: str = None) -> bool:
@@ -829,7 +861,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="password_reset")
     
     @_safe_email_call
     def send_matching_job_notification(
@@ -904,7 +936,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="job_match")
     
     @_safe_email_call
     def send_weekly_job_digest(
@@ -990,7 +1022,7 @@ class EmailService:
             </div>
         </body></html>
         """
-        return self.send_email(to_email, subject, html_content)
+        return self.send_email(to_email, subject, html_content, email_type="job_digest")
 
 
 # Singleton - CRASH-SAFE initialisiert

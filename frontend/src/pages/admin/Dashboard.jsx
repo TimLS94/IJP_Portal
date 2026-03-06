@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { 
   Shield, Users, Briefcase, FileText, TrendingUp,
   UserCheck, Building2, Clock, BookOpen, ClipboardList,
-  Archive, CheckCircle, AlertTriangle, FileX
+  Archive, CheckCircle, AlertTriangle, FileX, Mail, Send
 } from 'lucide-react';
 
 const positionTypeLabels = {
@@ -18,6 +18,7 @@ const positionTypeLabels = {
 
 function AdminDashboard() {
   const [stats, setStats] = useState(null);
+  const [emailStats, setEmailStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,8 +28,12 @@ function AdminDashboard() {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const response = await adminAPI.getStats();
-      setStats(response.data);
+      const [statsRes, emailRes] = await Promise.all([
+        adminAPI.getStats(),
+        adminAPI.getEmailStats().catch(() => ({ data: null }))
+      ]);
+      setStats(statsRes.data);
+      setEmailStats(emailRes.data);
     } catch (error) {
       toast.error('Fehler beim Laden der Statistiken');
     } finally {
@@ -219,6 +224,69 @@ function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* E-Mail-Statistiken */}
+      {emailStats && (
+        <div className="card mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Mail className="h-6 w-6 text-primary-600" />
+            <h2 className="text-xl font-semibold text-gray-900">E-Mail-Statistiken</h2>
+            <span className="text-sm text-gray-500">(letzte {emailStats.period_days} Tage)</span>
+          </div>
+          
+          {/* Übersicht */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <p className="text-3xl font-bold text-blue-600">{emailStats.total_sent}</p>
+              <p className="text-sm text-gray-600">Gesendet</p>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <p className="text-3xl font-bold text-green-600">{emailStats.total_success}</p>
+              <p className="text-sm text-gray-600">Erfolgreich</p>
+            </div>
+            <div className="text-center p-4 bg-red-50 rounded-lg">
+              <p className="text-3xl font-bold text-red-600">{emailStats.total_failed}</p>
+              <p className="text-sm text-gray-600">Fehlgeschlagen</p>
+            </div>
+          </div>
+          
+          {/* Nach Typ */}
+          {emailStats.by_type && emailStats.by_type.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Nach Typ</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {emailStats.by_type.map((item) => (
+                  <div key={item.type} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-gray-700">{item.label}</span>
+                    <span className="font-semibold text-gray-900">{item.total}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Letzte E-Mails */}
+          {emailStats.recent && emailStats.recent.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Letzte E-Mails</h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {emailStats.recent.slice(0, 5).map((email, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-2 bg-gray-50 rounded text-sm">
+                    <Send className={`h-4 w-4 ${email.success ? 'text-green-500' : 'text-red-500'}`} />
+                    <span className="text-gray-500 w-24 truncate">{email.label}</span>
+                    <span className="text-gray-700 flex-1 truncate">{email.recipient}</span>
+                    <span className="text-gray-400 text-xs">
+                      {email.created_at ? new Date(email.created_at).toLocaleString('de-DE', { 
+                        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' 
+                      }) : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Schnellzugriff */}
       <div className="card">
