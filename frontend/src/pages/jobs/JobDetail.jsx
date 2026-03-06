@@ -632,7 +632,7 @@ function JobDetail() {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t('jobDetail.description', 'Beschreibung')}
               </h3>
-              <p className="text-gray-600 whitespace-pre-wrap">{getTranslatedText('description')}</p>
+              {renderFormattedContent('description')}
 
               {(job.tasks || job.translations?.[displayLanguage]?.tasks) && (
                 <>
