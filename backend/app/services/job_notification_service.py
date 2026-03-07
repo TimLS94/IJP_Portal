@@ -113,7 +113,7 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
                 company_name=job.company.company_name if job.company else "Unknown",
                 location=job.location or "Germany",
                 match_score=score,
-                job_slug=job.url_slug or str(job.id)
+                job_slug=job.slug or str(job.id)
             )
             if success:
                 emails_sent += 1

@@ -973,7 +973,7 @@ class EmailService:
         for match in matching_jobs[:10]:  # Max 10 jobs
             job = match["job"]
             score = match["score"]
-            job_url = f"{frontend_url}/jobs/{job.url_slug or job.id}"
+            job_url = f"{frontend_url}/jobs/{job.slug or job.id}"
             company_name = job.company.company_name if job.company else "Unknown"
             
             jobs_html += f"""
