@@ -344,6 +344,19 @@ class EmailService:
         self, to_email: str, applicant_name: str, job_title: str, company_name: str, new_status: str
     ) -> bool:
         """Benachrichtigt den Bewerber über Statusänderung"""
+        # Status-Labels für E-Mail
+        status_labels = {
+            "pending": "Eingegangen",
+            "company_review": "In Prüfung beim Unternehmen",
+            "interview_proposed": "Vorstellungsgespräch vorgeschlagen",
+            "interview_scheduled": "Vorstellungsgespräch bestätigt",
+            "interview_completed": "Vorstellungsgespräch abgeschlossen",
+            "accepted": "Angenommen ✅",
+            "rejected": "Leider abgelehnt",
+            "withdrawn": "Zurückgezogen"
+        }
+        display_status = status_labels.get(new_status, new_status)
+        
         subject = f"Bewerbungsstatus aktualisiert: {job_title}"
         html_content = f"""
         <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -354,7 +367,7 @@ class EmailService:
                 <p>Hallo {applicant_name},</p>
                 <p>Der Status Ihrer Bewerbung bei <strong>{company_name}</strong> für <strong>{job_title}</strong> wurde aktualisiert:</p>
                 <p style="text-align: center; font-size: 24px; font-weight: bold; color: #2563eb; padding: 20px; background: white; border-radius: 8px; margin: 20px 0;">
-                    {new_status}
+                    {display_status}
                 </p>
                 <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
             </div>
