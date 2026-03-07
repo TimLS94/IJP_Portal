@@ -438,6 +438,79 @@ async def delete_job_template(
     return {"success": True, "message": "Vorlage gelöscht"}
 
 
+# ========== SITEMAP ==========
+
+@router.get("/sitemap/urls")
+async def get_sitemap_urls(db: Session = Depends(get_db)):
+    """Liefert alle aktiven Job-URLs für die Sitemap"""
+    jobs = db.query(JobPosting).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_draft == False
+    ).all()
+    
+    base_url = "https://www.jobon.work"
+    urls = []
+    
+    for job in jobs:
+        slug = generate_job_slug(job.title, job.location, job.id)
+        urls.append({
+            "loc": f"{base_url}/jobs/{slug}",
+            "lastmod": job.updated_at.strftime("%Y-%m-%d") if job.updated_at else job.created_at.strftime("%Y-%m-%d"),
+            "changefreq": "weekly",
+            "priority": "0.8"
+        })
+    
+    return {"urls": urls, "count": len(urls)}
+
+
+@router.get("/sitemap.xml")
+async def get_sitemap_xml(db: Session = Depends(get_db)):
+    """Generiert eine vollständige Sitemap als XML"""
+    jobs = db.query(JobPosting).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_draft == False
+    ).all()
+    
+    base_url = "https://www.jobon.work"
+    
+    # XML Header
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    # Statische Seiten
+    static_pages = [
+        {"loc": "/", "changefreq": "weekly", "priority": "1.0"},
+        {"loc": "/jobs", "changefreq": "daily", "priority": "0.9"},
+        {"loc": "/stellenarten", "changefreq": "weekly", "priority": "0.8"},
+        {"loc": "/blog", "changefreq": "weekly", "priority": "0.7"},
+        {"loc": "/about", "changefreq": "monthly", "priority": "0.5"},
+        {"loc": "/contact", "changefreq": "monthly", "priority": "0.5"},
+        {"loc": "/faq", "changefreq": "monthly", "priority": "0.6"},
+    ]
+    
+    for page in static_pages:
+        xml += f'  <url>\n'
+        xml += f'    <loc>{base_url}{page["loc"]}</loc>\n'
+        xml += f'    <changefreq>{page["changefreq"]}</changefreq>\n'
+        xml += f'    <priority>{page["priority"]}</priority>\n'
+        xml += f'  </url>\n'
+    
+    # Dynamische Job-URLs
+    for job in jobs:
+        slug = generate_job_slug(job.title, job.location, job.id)
+        lastmod = job.updated_at.strftime("%Y-%m-%d") if job.updated_at else job.created_at.strftime("%Y-%m-%d")
+        xml += f'  <url>\n'
+        xml += f'    <loc>{base_url}/jobs/{slug}</loc>\n'
+        xml += f'    <lastmod>{lastmod}</lastmod>\n'
+        xml += f'    <changefreq>weekly</changefreq>\n'
+        xml += f'    <priority>0.8</priority>\n'
+        xml += f'  </url>\n'
+    
+    xml += '</urlset>'
+    
+    return Response(content=xml, media_type="application/xml")
+
+
 # ========== JOB CRUD ==========
 
 @router.get("/{job_id}", response_model=JobPostingResponse)
