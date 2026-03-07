@@ -141,6 +141,7 @@ def get_matching_jobs_for_applicant(applicant: Applicant, db: Session, threshold
     cutoff_date = datetime.utcnow() - timedelta(days=days)
     jobs = db.query(JobPosting).filter(
         JobPosting.is_active == True,
+        JobPosting.is_draft == False,
         JobPosting.created_at >= cutoff_date
     ).all()
     
@@ -175,6 +176,8 @@ def send_weekly_job_digest(db: Session) -> int:
     """
     from app.services.email_service import email_service
     
+    logger.info("Starting weekly job digest...")
+    
     # Check if notifications are enabled
     notifications_enabled = get_setting(db, "job_notifications_enabled", True)
     if not notifications_enabled:
@@ -188,11 +191,17 @@ def send_weekly_job_digest(db: Session) -> int:
         return 0
     
     threshold = get_setting(db, "job_notifications_threshold", 85)
+    logger.info(f"Using threshold: {threshold}%")
     
     # Get all active applicants
-    applicants = db.query(Applicant).join(User).filter(
-        User.is_active == True
-    ).all()
+    try:
+        applicants = db.query(Applicant).join(User).filter(
+            User.is_active == True
+        ).all()
+        logger.info(f"Found {len(applicants)} active applicants")
+    except Exception as e:
+        logger.error(f"Error querying applicants: {e}")
+        raise
     
     emails_sent = 0
     

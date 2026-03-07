@@ -945,6 +945,8 @@ async def trigger_weekly_digest(
 ):
     """Löst den wöchentlichen Job-Digest manuell aus (Admin only)"""
     from app.services.job_notification_service import send_weekly_job_digest
+    import traceback
+    import logging
     
     try:
         emails_sent = send_weekly_job_digest(db)
@@ -954,6 +956,7 @@ async def trigger_weekly_digest(
             "emails_sent": emails_sent
         }
     except Exception as e:
+        logging.getLogger(__name__).error(f"Digest trigger error: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Fehler beim Senden: {str(e)}")
 
 
