@@ -583,13 +583,25 @@ async def create_job(
     db.refresh(job)
     
     # Notify matching applicants about new job (if active and not draft)
-    if job.is_active:
+    if job.is_active and not job.is_draft:
         try:
             from app.services.job_notification_service import notify_applicants_about_new_job
             notify_applicants_about_new_job(job, db)
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"Job notification failed: {e}")
+        
+        # Google Indexing: Neue Stelle zur Indexierung anmelden
+        try:
+            slug = generate_job_slug(job.title, job.location, job.id)
+            import asyncio
+            asyncio.create_task(google_indexing_service.request_indexing(
+                f"https://www.jobon.work/jobs/{slug}",
+                "URL_UPDATED"
+            ))
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Google Indexing request failed: {e}")
     
     return job
 
@@ -673,6 +685,19 @@ async def delete_job(
     if permanent:
         # Endgültig löschen
         applications_count = db.query(Application).filter(Application.job_posting_id == job_id).count()
+        
+        # Google Indexing: URL aus Index entfernen
+        try:
+            slug = generate_job_slug(job.title, job.location, job.id)
+            import asyncio
+            asyncio.create_task(google_indexing_service.request_indexing(
+                f"https://www.jobon.work/jobs/{slug}",
+                "URL_DELETED"
+            ))
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Google Indexing removal failed: {e}")
+        
         db.query(Application).filter(Application.job_posting_id == job_id).delete()
         db.delete(job)
         db.commit()
@@ -686,6 +711,19 @@ async def delete_job(
         job.is_archived = True
         job.archived_at = datetime.utcnow()
         db.commit()
+        
+        # Google Indexing: URL aus Index entfernen
+        try:
+            slug = generate_job_slug(job.title, job.location, job.id)
+            import asyncio
+            asyncio.create_task(google_indexing_service.request_indexing(
+                f"https://www.jobon.work/jobs/{slug}",
+                "URL_DELETED"
+            ))
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Google Indexing removal failed: {e}")
+        
         return {
             "message": "Stellenangebot archiviert",
             "can_be_reactivated": True
@@ -751,6 +789,19 @@ async def reactivate_job(
     
     db.commit()
     db.refresh(job)
+    
+    # Google Indexing: Reaktivierte Stelle zur Indexierung anmelden
+    try:
+        slug = generate_job_slug(job.title, job.location, job.id)
+        import asyncio
+        asyncio.create_task(google_indexing_service.request_indexing(
+            f"https://www.jobon.work/jobs/{slug}",
+            "URL_UPDATED"
+        ))
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Google Indexing request failed: {e}")
+    
     return job
 
 
