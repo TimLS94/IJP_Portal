@@ -33,7 +33,9 @@ def get_matching_applicants(job: JobPosting, db: Session, threshold: int = 85) -
     matching_applicants = []
     
     # Get all active applicants
-    applicants = db.query(Applicant).join(User).filter(
+    applicants = db.query(Applicant).join(
+        User, Applicant.user_id == User.id
+    ).filter(
         User.is_active == True
     ).all()
     
@@ -195,7 +197,9 @@ def send_weekly_job_digest(db: Session) -> int:
     
     # Get all active applicants
     try:
-        applicants = db.query(Applicant).join(User).filter(
+        applicants = db.query(Applicant).join(
+            User, Applicant.user_id == User.id
+        ).filter(
             User.is_active == True
         ).all()
         logger.info(f"Found {len(applicants)} active applicants")
