@@ -207,7 +207,17 @@ def send_weekly_job_digest(db: Session) -> int:
         logger.error(f"Error querying applicants: {e}")
         raise
     
+    # Count jobs from last 7 days
+    cutoff_date = datetime.utcnow() - timedelta(days=7)
+    recent_jobs_count = db.query(JobPosting).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_draft == False,
+        JobPosting.created_at >= cutoff_date
+    ).count()
+    logger.info(f"Active jobs from last 7 days: {recent_jobs_count}")
+    
     emails_sent = 0
+    applicants_with_matches = 0
     
     for applicant in applicants:
         user = db.query(User).filter(User.id == applicant.user_id).first()
@@ -220,6 +230,8 @@ def send_weekly_job_digest(db: Session) -> int:
         if not matching_jobs:
             continue
         
+        applicants_with_matches += 1
+        
         try:
             success = email_service.send_weekly_job_digest(
                 to_email=user.email,
@@ -231,5 +243,6 @@ def send_weekly_job_digest(db: Session) -> int:
         except Exception as e:
             logger.error(f"Failed to send weekly digest to {user.email}: {e}")
     
+    logger.info(f"Applicants with matching jobs: {applicants_with_matches}")
     logger.info(f"Sent {emails_sent} weekly digest emails")
     return emails_sent
