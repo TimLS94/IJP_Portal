@@ -1,5 +1,0 @@
-# Sitemap vom Backend (dynamisch mit Jobs)
-/sitemap.xml https://ijp-portal.onrender.com/api/v1/jobs/sitemap.xml 200
-
-# SPA Fallback - muss am Ende stehen
-/*    /index.html   200

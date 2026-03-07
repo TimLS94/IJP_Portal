@@ -4,6 +4,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://ijp-portal.onrender.com/api/v1/jobs/sitemap.xml"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
