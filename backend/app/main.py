@@ -143,26 +143,55 @@ async def periodic_cleanup(interval_hours: int = 6):
 
 
 async def weekly_job_digest():
-    """Background-Task für wöchentliche Job-Digest E-Mails (jeden Montag 9:00 UTC)"""
+    """Background-Task für wöchentliche Job-Digest E-Mails (konfigurierbare Wochentage und Uhrzeit)"""
     from datetime import datetime, timedelta
+    from app.core.database import SessionLocal
+    from app.services.settings_service import get_setting
     
     while True:
-        # Berechne Zeit bis nächsten Montag 9:00 UTC
+        # Hole aktuelle Einstellungen
+        db = SessionLocal()
+        try:
+            digest_days = get_setting(db, "weekly_digest_days", [1])  # Default: Montag
+            digest_hour = get_setting(db, "weekly_digest_hour", 9)    # Default: 9:00 UTC
+            digest_enabled = get_setting(db, "weekly_digest_enabled", True)
+        finally:
+            db.close()
+        
+        if not digest_enabled or not digest_days:
+            # Wenn deaktiviert, warte 1 Stunde und prüfe erneut
+            await asyncio.sleep(3600)
+            continue
+        
+        # Berechne Zeit bis zum nächsten Versand-Zeitpunkt
         now = datetime.utcnow()
-        days_until_monday = (7 - now.weekday()) % 7
-        if days_until_monday == 0 and now.hour >= 9:
-            days_until_monday = 7
+        current_weekday = now.weekday()  # 0=Montag, 6=Sonntag
+        # Konvertiere zu JS-Format (0=Sonntag) für Vergleich
+        current_weekday_js = (current_weekday + 1) % 7
         
-        next_monday = now.replace(hour=9, minute=0, second=0, microsecond=0) + timedelta(days=days_until_monday)
-        wait_seconds = (next_monday - now).total_seconds()
+        # Finde nächsten passenden Tag
+        days_to_wait = None
+        for i in range(8):  # Max 7 Tage + heute
+            check_day = (current_weekday_js + i) % 7
+            if check_day in digest_days:
+                if i == 0 and now.hour >= digest_hour:
+                    continue  # Heute schon vorbei
+                days_to_wait = i
+                break
         
-        logger.info(f"Weekly digest scheduled for {next_monday} (in {wait_seconds/3600:.1f} hours)")
+        if days_to_wait is None:
+            days_to_wait = 1  # Fallback
+        
+        next_send = now.replace(hour=digest_hour, minute=0, second=0, microsecond=0) + timedelta(days=days_to_wait)
+        wait_seconds = max(0, (next_send - now).total_seconds())
+        
+        day_names = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+        logger.info(f"Weekly digest scheduled for {next_send} (in {wait_seconds/3600:.1f} hours)")
         await asyncio.sleep(wait_seconds)
         
         logger.info("Starte wöchentlichen Job-Digest...")
         try:
             from app.services.job_notification_service import send_weekly_job_digest
-            from app.database import SessionLocal
             db = SessionLocal()
             try:
                 emails_sent = send_weekly_job_digest(db)

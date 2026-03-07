@@ -892,7 +892,11 @@ async def get_feature_flags(
         "archive_deletion_days": get_setting(db, "archive_deletion_days", 90),
         "max_job_deadline_days": get_setting(db, "max_job_deadline_days", 90),
         "job_notifications_enabled": get_setting(db, "job_notifications_enabled", True),
-        "job_notifications_threshold": get_setting(db, "job_notifications_threshold", 85)
+        "job_notifications_threshold": get_setting(db, "job_notifications_threshold", 85),
+        "instant_job_notifications_enabled": get_setting(db, "instant_job_notifications_enabled", True),
+        "weekly_digest_enabled": get_setting(db, "weekly_digest_enabled", True),
+        "weekly_digest_days": get_setting(db, "weekly_digest_days", [1]),
+        "weekly_digest_hour": get_setting(db, "weekly_digest_hour", 9)
     }
 
 
@@ -930,6 +934,161 @@ async def get_archive_deletion_preview(
         ],
         "warning": f"Bei einer Änderung auf {days} Tage würden {len(affected_jobs)} archivierte Stellen sofort gelöscht!" if len(affected_jobs) > 0 else None
     }
+
+
+# ==================== E-MAIL BENACHRICHTIGUNGEN ====================
+
+@router.post("/email/trigger-digest")
+async def trigger_weekly_digest(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Löst den wöchentlichen Job-Digest manuell aus (Admin only)"""
+    from app.services.job_notification_service import send_weekly_job_digest
+    
+    try:
+        emails_sent = send_weekly_job_digest(db)
+        return {
+            "success": True,
+            "message": f"Wöchentlicher Digest wurde an {emails_sent} Bewerber gesendet",
+            "emails_sent": emails_sent
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fehler beim Senden: {str(e)}")
+
+
+@router.get("/email/templates")
+async def get_email_templates(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Gibt Vorschau der E-Mail-Vorlagen zurück (Admin only)"""
+    from app.services.email_service import email_service
+    
+    # Beispieldaten für Vorschau
+    sample_job = {
+        "title": "Servicekraft im Hotel (m/w/d)",
+        "company_name": "Muster Hotel GmbH",
+        "location": "München",
+        "match_score": 92,
+        "job_slug": "servicekraft-im-hotel-muenchen-123"
+    }
+    
+    sample_jobs_list = [
+        {"job": type('Job', (), {
+            "title": "Servicekraft im Hotel (m/w/d)",
+            "company": type('Company', (), {"company_name": "Muster Hotel GmbH"})(),
+            "location": "München",
+            "url_slug": "servicekraft-im-hotel-muenchen-123"
+        })(), "score": 92},
+        {"job": type('Job', (), {
+            "title": "Kellner/in im Restaurant",
+            "company": type('Company', (), {"company_name": "Restaurant Beispiel"})(),
+            "location": "Berlin",
+            "url_slug": "kellner-restaurant-berlin-456"
+        })(), "score": 87},
+        {"job": type('Job', (), {
+            "title": "Rezeptionist/in",
+            "company": type('Company', (), {"company_name": "Hotel Sonnenschein"})(),
+            "location": "Hamburg",
+            "url_slug": "rezeptionist-hamburg-789"
+        })(), "score": 85}
+    ]
+    
+    # Generiere HTML-Vorlagen
+    templates = {}
+    
+    # 1. Neue Stelle Benachrichtigung
+    templates["new_job_notification"] = {
+        "name": "Neue passende Stelle",
+        "description": "Wird sofort gesendet, wenn eine neue Stelle zum Profil passt",
+        "subject": f"🎯 Neue passende Stelle: {sample_job['title']}",
+        "html": f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="margin: 0;">🎯 New Job Match!</h1>
+                <p style="margin: 10px 0 0 0; opacity: 0.9;">A position matching your profile</p>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hello Max Mustermann,</p>
+                <p>Great news! A new position has been posted that matches your profile:</p>
+                
+                <div style="background: white; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid #2563eb;">
+                    <h2 style="margin: 0 0 10px 0; color: #1f2937;">{sample_job['title']}</h2>
+                    <p style="margin: 5px 0; color: #6b7280;">🏢 {sample_job['company_name']}</p>
+                    <p style="margin: 5px 0; color: #6b7280;">📍 {sample_job['location']}</p>
+                    <div style="margin-top: 15px; padding: 10px; background: #ecfdf5; border-radius: 8px; text-align: center;">
+                        <span style="color: #059669; font-weight: bold; font-size: 18px;">✨ {sample_job['match_score']}% Match</span>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="https://www.jobon.work/jobs/{sample_job['job_slug']}" 
+                       style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        View Position →
+                    </a>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 14px;">Best regards,<br>Your JobOn Team</p>
+            </div>
+        </body></html>
+        """
+    }
+    
+    # 2. Wöchentlicher Digest
+    jobs_html = ""
+    for match in sample_jobs_list:
+        job = match["job"]
+        score = match["score"]
+        jobs_html += f"""
+        <div style="background: white; border-radius: 12px; padding: 20px; margin: 15px 0; border-left: 4px solid #2563eb;">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div>
+                    <h3 style="margin: 0 0 8px 0; color: #1f2937;">{job.title}</h3>
+                    <p style="margin: 3px 0; color: #6b7280; font-size: 14px;">🏢 {job.company.company_name}</p>
+                    <p style="margin: 3px 0; color: #6b7280; font-size: 14px;">📍 {job.location}</p>
+                </div>
+                <div style="background: #ecfdf5; padding: 8px 12px; border-radius: 20px;">
+                    <span style="color: #059669; font-weight: bold;">{score}%</span>
+                </div>
+            </div>
+            <a href="https://www.jobon.work/jobs/{job.url_slug}" 
+               style="color: #2563eb; text-decoration: none; font-size: 14px; margin-top: 10px; display: inline-block;">
+                View Details →
+            </a>
+        </div>
+        """
+    
+    templates["weekly_digest"] = {
+        "name": "Wöchentlicher Job-Digest",
+        "description": "Zusammenfassung aller passenden Stellen der letzten Woche",
+        "subject": "📬 Your Weekly Job Matches - 3 new positions!",
+        "html": f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="margin: 0;">📬 Weekly Job Digest</h1>
+                <p style="margin: 10px 0 0 0; opacity: 0.9;">Your personalized job matches</p>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hello Max Mustermann,</p>
+                <p>Here are the <strong>3 new positions</strong> from the last week that match your profile:</p>
+                
+                {jobs_html}
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="https://www.jobon.work/jobs" 
+                       style="background: #7c3aed; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        View All Jobs →
+                    </a>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 14px;">Best regards,<br>Your JobOn Team</p>
+            </div>
+        </body></html>
+        """
+    }
+    
+    return templates
 
 
 # ==================== DSGVO / DATENSCHUTZ ====================

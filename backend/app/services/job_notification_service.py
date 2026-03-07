@@ -75,6 +75,12 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
         logger.info("Job notifications are disabled in settings")
         return 0
     
+    # Check if instant notifications are enabled
+    instant_enabled = get_setting(db, "instant_job_notifications_enabled", True)
+    if not instant_enabled:
+        logger.info("Instant job notifications are disabled - skipping")
+        return 0
+    
     # Get threshold from settings
     threshold = get_setting(db, "job_notifications_threshold", 85)
     
@@ -173,6 +179,12 @@ def send_weekly_job_digest(db: Session) -> int:
     notifications_enabled = get_setting(db, "job_notifications_enabled", True)
     if not notifications_enabled:
         logger.info("Job notifications are disabled - skipping weekly digest")
+        return 0
+    
+    # Check if weekly digest is enabled
+    digest_enabled = get_setting(db, "weekly_digest_enabled", True)
+    if not digest_enabled:
+        logger.info("Weekly digest is disabled - skipping")
         return 0
     
     threshold = get_setting(db, "job_notifications_threshold", 85)

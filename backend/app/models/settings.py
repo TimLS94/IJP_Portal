@@ -44,6 +44,37 @@ DEFAULT_SETTINGS = {
         "value": "90",
         "value_type": "integer",
         "description": "Nach wie vielen Tagen archivierte Stellen endgültig gelöscht werden (Standard: 90 Tage = 3 Monate)"
+    },
+    # E-Mail Benachrichtigungen
+    "job_notifications_enabled": {
+        "value": "true",
+        "value_type": "boolean",
+        "description": "E-Mail-Benachrichtigungen an Bewerber aktivieren"
+    },
+    "job_notifications_threshold": {
+        "value": "85",
+        "value_type": "integer",
+        "description": "Mindest-Matching-Score für E-Mail-Benachrichtigungen (0-100)"
+    },
+    "instant_job_notifications_enabled": {
+        "value": "true",
+        "value_type": "boolean",
+        "description": "Sofortige E-Mail bei neuer passender Stelle senden"
+    },
+    "weekly_digest_enabled": {
+        "value": "true",
+        "value_type": "boolean",
+        "description": "Wöchentliche Zusammenfassung passender Stellen senden"
+    },
+    "weekly_digest_days": {
+        "value": "[1]",
+        "value_type": "json",
+        "description": "Wochentage für Digest-E-Mail (0=Sonntag, 1=Montag, ..., 6=Samstag)"
+    },
+    "weekly_digest_hour": {
+        "value": "9",
+        "value_type": "integer",
+        "description": "Uhrzeit für Digest-E-Mail (0-23, UTC)"
     }
 }
 

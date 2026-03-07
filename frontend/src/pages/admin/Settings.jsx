@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { 
   Settings as SettingsIcon, ToggleLeft, ToggleRight, Save, Loader2, 
   Sparkles, Building2, Users, AlertTriangle, RefreshCw, Clock, Trash2,
-  ChevronDown, ChevronUp, Calendar, Mail, Bell
+  ChevronDown, ChevronUp, Calendar, Mail, Bell, Send, Eye, Zap, CalendarDays
 } from 'lucide-react';
 
 function AdminSettings() {
@@ -25,6 +25,13 @@ function AdminSettings() {
   // E-Mail Benachrichtigungen State
   const [showEmailSection, setShowEmailSection] = useState(false);
   const [emailThreshold, setEmailThreshold] = useState(85);
+  const [digestDays, setDigestDays] = useState([1]);
+  const [digestHour, setDigestHour] = useState(9);
+  const [triggeringDigest, setTriggeringDigest] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [emailTemplates, setEmailTemplates] = useState(null);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
 
   useEffect(() => {
     loadFlags();
@@ -42,6 +49,12 @@ function AdminSettings() {
       }
       if (response.data.job_notifications_threshold) {
         setEmailThreshold(response.data.job_notifications_threshold);
+      }
+      if (response.data.weekly_digest_days) {
+        setDigestDays(response.data.weekly_digest_days);
+      }
+      if (response.data.weekly_digest_hour !== undefined) {
+        setDigestHour(response.data.weekly_digest_hour);
       }
     } catch (error) {
       console.error('Fehler beim Laden:', error);
@@ -163,6 +176,74 @@ function AdminSettings() {
     }
   };
 
+  const saveDigestDays = async () => {
+    setSaving('weekly_digest_days');
+    try {
+      await adminAPI.setSetting('weekly_digest_days', digestDays);
+      setFlags(prev => ({
+        ...prev,
+        weekly_digest_days: digestDays
+      }));
+      toast.success('Digest-Wochentage gespeichert');
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const saveDigestHour = async () => {
+    setSaving('weekly_digest_hour');
+    try {
+      await adminAPI.setSetting('weekly_digest_hour', digestHour);
+      setFlags(prev => ({
+        ...prev,
+        weekly_digest_hour: digestHour
+      }));
+      toast.success(`Digest-Uhrzeit auf ${digestHour}:00 Uhr gesetzt`);
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const triggerDigestNow = async () => {
+    setTriggeringDigest(true);
+    try {
+      const response = await adminAPI.triggerDigest();
+      toast.success(response.data.message);
+    } catch (error) {
+      toast.error('Fehler beim Senden des Digests');
+    } finally {
+      setTriggeringDigest(false);
+    }
+  };
+
+  const loadEmailTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const response = await adminAPI.getEmailTemplates();
+      setEmailTemplates(response.data);
+    } catch (error) {
+      toast.error('Fehler beim Laden der Vorlagen');
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const toggleDigestDay = (day) => {
+    setDigestDays(prev => {
+      if (prev.includes(day)) {
+        return prev.filter(d => d !== day);
+      } else {
+        return [...prev, day].sort();
+      }
+    });
+  };
+
+  const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -268,7 +349,7 @@ function AdminSettings() {
         </div>
       </div>
 
-      {/* E-Mail Benachrichtigungs-Schwellenwert */}
+      {/* E-Mail Benachrichtigungs-Einstellungen */}
       {flags.job_notifications_enabled && (
         <div className="card mb-8">
           <button
@@ -277,15 +358,12 @@ function AdminSettings() {
           >
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-100 rounded-lg">
-                <Bell className="h-5 w-5 text-purple-600" />
+                <Mail className="h-5 w-5 text-purple-600" />
               </div>
               <div className="text-left">
-                <h2 className="text-xl font-semibold text-gray-900">E-Mail Schwellenwert</h2>
+                <h2 className="text-xl font-semibold text-gray-900">E-Mail Einstellungen</h2>
                 <p className="text-sm text-gray-600">
-                  Ab welchem Matching-Score Bewerber benachrichtigt werden
-                  <span className="ml-2 font-medium text-gray-800">
-                    (Aktuell: {flags.job_notifications_threshold || 85}%)
-                  </span>
+                  Schwellenwert, Zeitplan und Vorlagen für Bewerber-Benachrichtigungen
                 </p>
               </div>
             </div>
@@ -297,108 +375,298 @@ function AdminSettings() {
           </button>
 
           {showEmailSection && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="mt-6 pt-6 border-t border-gray-200 space-y-8">
+              
+              {/* Sofort-Benachrichtigung Toggle */}
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <div className="flex items-center gap-3">
+                  <Zap className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <h3 className="font-medium text-gray-900">Sofort-Benachrichtigung bei neuer Stelle</h3>
+                    <p className="text-sm text-gray-600">Bewerber erhalten sofort eine E-Mail wenn eine passende Stelle online geht</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => toggleFlag('instant_job_notifications_enabled')}
+                  disabled={saving === 'instant_job_notifications_enabled'}
+                  className={`relative p-1 rounded-full transition-colors ${
+                    flags.instant_job_notifications_enabled 
+                      ? 'bg-blue-500 hover:bg-blue-600' 
+                      : 'bg-gray-300 hover:bg-gray-400'
+                  }`}
+                >
+                  {saving === 'instant_job_notifications_enabled' ? (
+                    <Loader2 className="h-6 w-6 text-white animate-spin p-0.5" />
+                  ) : flags.instant_job_notifications_enabled ? (
+                    <ToggleRight className="h-6 w-6 text-white" />
+                  ) : (
+                    <ToggleLeft className="h-6 w-6 text-white" />
+                  )}
+                </button>
+              </div>
+
+              {/* Wöchentlicher Digest Toggle */}
+              <div className="flex items-center justify-between p-4 bg-violet-50 rounded-xl border border-violet-200">
+                <div className="flex items-center gap-3">
+                  <CalendarDays className="h-5 w-5 text-violet-600" />
+                  <div>
+                    <h3 className="font-medium text-gray-900">Wöchentlicher Job-Digest</h3>
+                    <p className="text-sm text-gray-600">Zusammenfassung aller passenden Stellen der letzten Woche</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => toggleFlag('weekly_digest_enabled')}
+                  disabled={saving === 'weekly_digest_enabled'}
+                  className={`relative p-1 rounded-full transition-colors ${
+                    flags.weekly_digest_enabled 
+                      ? 'bg-violet-500 hover:bg-violet-600' 
+                      : 'bg-gray-300 hover:bg-gray-400'
+                  }`}
+                >
+                  {saving === 'weekly_digest_enabled' ? (
+                    <Loader2 className="h-6 w-6 text-white animate-spin p-0.5" />
+                  ) : flags.weekly_digest_enabled ? (
+                    <ToggleRight className="h-6 w-6 text-white" />
+                  ) : (
+                    <ToggleLeft className="h-6 w-6 text-white" />
+                  )}
+                </button>
+              </div>
+
+              {/* Matching-Score Schwellenwert */}
+              <div>
+                <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-purple-600" />
+                  Mindest-Matching-Score
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="50"
+                        max="100"
+                        value={emailThreshold}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 85;
+                          setEmailThreshold(Math.min(100, Math.max(50, value)));
+                        }}
+                        className="input w-32"
+                      />
+                      <span className="text-gray-600">%</span>
+                      {emailThreshold !== (flags.job_notifications_threshold || 85) && (
+                        <button
+                          onClick={saveEmailThreshold}
+                          disabled={saving === 'job_notifications_threshold'}
+                          className="btn-primary btn-sm flex items-center gap-1"
+                        >
+                          {saving === 'job_notifications_threshold' ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Save className="h-3 w-3" />
+                          )}
+                          Speichern
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Bewerber erhalten nur E-Mails wenn ihr Match ≥ {emailThreshold}% ist
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {[70, 80, 85, 90].map(val => (
+                      <button
+                        key={val}
+                        onClick={() => setEmailThreshold(val)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                          emailThreshold === val 
+                            ? 'bg-purple-100 text-purple-700 border-2 border-purple-300' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {val}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Digest Wochentage */}
+              {flags.weekly_digest_enabled && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mindest-Matching-Score für E-Mail
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      min="50"
-                      max="100"
-                      value={emailThreshold}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value) || 85;
-                        setEmailThreshold(Math.min(100, Math.max(50, value)));
-                      }}
-                      className="input w-32"
-                    />
-                    <span className="text-gray-600">%</span>
+                  <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-violet-600" />
+                    Digest-Versand Wochentage
+                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {dayNames.map((name, index) => (
+                      <button
+                        key={index}
+                        onClick={() => toggleDigestDay(index)}
+                        className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
+                          digestDays.includes(index)
+                            ? 'bg-violet-500 text-white' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                    {JSON.stringify(digestDays) !== JSON.stringify(flags.weekly_digest_days || [1]) && (
+                      <button
+                        onClick={saveDigestDays}
+                        disabled={saving === 'weekly_digest_days'}
+                        className="btn-primary btn-sm flex items-center gap-1 ml-2"
+                      >
+                        {saving === 'weekly_digest_days' ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Save className="h-3 w-3" />
+                        )}
+                        Speichern
+                      </button>
+                    )}
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Standard: 85% (Nur sehr gute Matches)
+                    Aktuell: {digestDays.length === 0 ? 'Keine Tage ausgewählt' : digestDays.map(d => dayNames[d]).join(', ')}
                   </p>
                 </div>
+              )}
 
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setEmailThreshold(70)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      emailThreshold === 70 
-                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    70%
-                  </button>
-                  <button
-                    onClick={() => setEmailThreshold(80)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      emailThreshold === 80 
-                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    80%
-                  </button>
-                  <button
-                    onClick={() => setEmailThreshold(85)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      emailThreshold === 85 
-                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    85%
-                  </button>
-                  <button
-                    onClick={() => setEmailThreshold(90)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      emailThreshold === 90 
-                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-300' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    90%
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <p className="text-sm text-purple-700">
-                  <strong>Hinweis:</strong> Bewerber erhalten nur E-Mails über neue Stellen, 
-                  wenn ihr Matching-Score mindestens diesen Wert erreicht. Ein höherer Wert 
-                  bedeutet weniger, aber relevantere E-Mails.
-                </p>
-              </div>
-
-              {/* Speichern-Button */}
-              {emailThreshold !== (flags.job_notifications_threshold || 85) && (
-                <div className="mt-6 flex items-center justify-end gap-4">
-                  <button
-                    onClick={() => {
-                      setEmailThreshold(flags.job_notifications_threshold || 85);
-                    }}
-                    className="btn-secondary"
-                  >
-                    Abbrechen
-                  </button>
-                  <button
-                    onClick={saveEmailThreshold}
-                    disabled={saving === 'job_notifications_threshold'}
-                    className="btn-primary flex items-center gap-2"
-                  >
-                    {saving === 'job_notifications_threshold' ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
+              {/* Digest Uhrzeit */}
+              {flags.weekly_digest_enabled && (
+                <div>
+                  <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-violet-600" />
+                    Digest-Versand Uhrzeit (UTC)
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={digestHour}
+                      onChange={(e) => setDigestHour(parseInt(e.target.value))}
+                      className="input w-32"
+                    >
+                      {Array.from({length: 24}, (_, i) => (
+                        <option key={i} value={i}>{i.toString().padStart(2, '0')}:00</option>
+                      ))}
+                    </select>
+                    <span className="text-gray-600">Uhr (UTC)</span>
+                    {digestHour !== (flags.weekly_digest_hour ?? 9) && (
+                      <button
+                        onClick={saveDigestHour}
+                        disabled={saving === 'weekly_digest_hour'}
+                        className="btn-primary btn-sm flex items-center gap-1"
+                      >
+                        {saving === 'weekly_digest_hour' ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Save className="h-3 w-3" />
+                        )}
+                        Speichern
+                      </button>
                     )}
-                    Speichern
-                  </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    In Deutschland: {(digestHour + 1) % 24}:00 Uhr (MEZ) / {(digestHour + 2) % 24}:00 Uhr (MESZ)
+                  </p>
                 </div>
               )}
+
+              {/* Manueller Digest-Trigger */}
+              <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Send className="h-5 w-5 text-orange-600" />
+                    <div>
+                      <h3 className="font-medium text-gray-900">Digest jetzt senden</h3>
+                      <p className="text-sm text-gray-600">Sendet sofort den wöchentlichen Digest an alle Bewerber</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={triggerDigestNow}
+                    disabled={triggeringDigest}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    {triggeringDigest ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                    Jetzt senden
+                  </button>
+                </div>
+              </div>
+
+              {/* E-Mail Vorlagen */}
+              <div>
+                <button
+                  onClick={() => {
+                    setShowTemplates(!showTemplates);
+                    if (!emailTemplates && !showTemplates) {
+                      loadEmailTemplates();
+                    }
+                  }}
+                  className="flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium"
+                >
+                  <Eye className="h-4 w-4" />
+                  E-Mail Vorlagen anzeigen
+                  {showTemplates ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+
+                {showTemplates && (
+                  <div className="mt-4">
+                    {loadingTemplates ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+                      </div>
+                    ) : emailTemplates ? (
+                      <div className="space-y-4">
+                        {/* Template Tabs */}
+                        <div className="flex gap-2 border-b border-gray-200">
+                          {Object.entries(emailTemplates).map(([key, template]) => (
+                            <button
+                              key={key}
+                              onClick={() => setSelectedTemplate(key)}
+                              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                                selectedTemplate === key
+                                  ? 'border-purple-500 text-purple-600'
+                                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                              }`}
+                            >
+                              {template.name}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Template Preview */}
+                        {selectedTemplate && emailTemplates[selectedTemplate] && (
+                          <div className="border rounded-lg overflow-hidden">
+                            <div className="bg-gray-100 px-4 py-2 border-b">
+                              <p className="text-sm text-gray-600">{emailTemplates[selectedTemplate].description}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                <strong>Betreff:</strong> {emailTemplates[selectedTemplate].subject}
+                              </p>
+                            </div>
+                            <div 
+                              className="p-4 bg-white max-h-96 overflow-y-auto"
+                              dangerouslySetInnerHTML={{ __html: emailTemplates[selectedTemplate].html }}
+                            />
+                          </div>
+                        )}
+
+                        {!selectedTemplate && (
+                          <p className="text-gray-500 text-center py-4">
+                            Wähle eine Vorlage aus, um die Vorschau zu sehen
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500">Keine Vorlagen verfügbar</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
         </div>

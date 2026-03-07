@@ -274,6 +274,9 @@ export const adminAPI = {
   setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),
   setFeatureFlag: (key, value) => api.put(`/admin/settings/${key}`, { value }),
   getArchiveDeletionPreview: (days) => api.get('/admin/settings/archive-deletion-preview', { params: { days } }),
+  // E-Mail Benachrichtigungen
+  triggerDigest: () => api.post('/admin/email/trigger-digest'),
+  getEmailTemplates: () => api.get('/admin/email/templates'),
   listUsers: (params) => api.get('/admin/users', { params }),
   toggleUserActive: (id) => api.put(`/admin/users/${id}/toggle-active`),
   createAdmin: (data) => api.post('/admin/users/create-admin', data),
