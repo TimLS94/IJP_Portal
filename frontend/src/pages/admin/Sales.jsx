@@ -519,7 +519,7 @@ Ihr JobOn Team`}
           <div className="flex items-center gap-3">
             <button
               onClick={sendTestEmail}
-              disabled={sendingTest || !subject || !htmlContent}
+              disabled={sendingTest || !subject || !currentContent}
               className="btn-secondary flex items-center gap-2"
             >
               {sendingTest ? (
@@ -532,7 +532,7 @@ Ihr JobOn Team`}
 
             <button
               onClick={sendEmails}
-              disabled={sending || validRecipients.length === 0 || !subject || !htmlContent}
+              disabled={sending || validRecipients.length === 0 || !subject || !currentContent}
               className="btn-primary bg-orange-600 hover:bg-orange-700 flex items-center gap-2"
             >
               {sending ? (
