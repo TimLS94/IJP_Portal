@@ -37,3 +37,6 @@ class ApplicationWithDetails(ApplicationResponse):
     applicant_name: Optional[str] = None
     job_translations: Optional[Dict[str, Any]] = None
     requested_documents: Optional[List[Dict[str, Any]]] = None
+    job_id: Optional[int] = None  # Alias für Frontend-Filter
+    interview_status: Optional[str] = None  # Status des Vorstellungsgesprächs
+    interview_status_label: Optional[str] = None  # Lesbares Label für den Status
