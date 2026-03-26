@@ -456,14 +456,35 @@ function CompanyApplications() {
       : <ChevronDown className="h-4 w-4 text-primary-600" />;
   };
 
+  // Interview-Status Konfiguration
+  const interviewStatusConfig = {
+    proposed: { label: 'Wartet auf Antwort', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: Clock },
+    confirmed: { label: 'Bestätigt', color: 'bg-green-50 text-green-700 border-green-200', icon: CheckCircle },
+    declined: { label: 'Abgelehnt', color: 'bg-red-50 text-red-700 border-red-200', icon: XCircle },
+    cancelled: { label: 'Abgesagt', color: 'bg-gray-50 text-gray-600 border-gray-200', icon: X },
+    completed: { label: 'Durchgeführt', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: CheckCircle },
+    needs_new_dates: { label: 'Neue Termine nötig', color: 'bg-orange-50 text-orange-700 border-orange-200', icon: AlertTriangle },
+  };
+
   // Status Badge Komponente
-  const StatusBadge = ({ status }) => {
+  const StatusBadge = ({ status, interviewStatus }) => {
     const statusInfo = statusOptions.find(s => s.value === status);
+    const interviewInfo = interviewStatus ? interviewStatusConfig[interviewStatus] : null;
+    const InterviewIcon = interviewInfo?.icon || Clock;
+    
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusInfo?.color || 'bg-gray-100 text-gray-800'}`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${statusInfo?.dotColor || 'bg-gray-500'}`}></span>
-        {statusInfo?.label || status}
-      </span>
+      <div className="flex flex-col gap-1">
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusInfo?.color || 'bg-gray-100 text-gray-800'}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${statusInfo?.dotColor || 'bg-gray-500'}`}></span>
+          {statusInfo?.label || status}
+        </span>
+        {status === 'interview_scheduled' && interviewInfo && (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs ${interviewInfo.color}`}>
+            <InterviewIcon className="h-3 w-3" />
+            {interviewInfo.label}
+          </span>
+        )}
+      </div>
     );
   };
 
@@ -724,7 +745,7 @@ function CompanyApplications() {
                       {formatDate(app.applied_at)}
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={app.status} />
+                      <StatusBadge status={app.status} interviewStatus={app.interview_status} />
                     </td>
                     <td className="px-4 py-3">
                       <StatusDropdown app={app} />
@@ -764,7 +785,7 @@ function CompanyApplications() {
                     <p className="text-sm text-gray-500">{app.job_title}</p>
                   </div>
                 </div>
-                <StatusBadge status={app.status} />
+                <StatusBadge status={app.status} interviewStatus={app.interview_status} />
               </div>
 
               <div className="text-sm text-gray-600 mb-3">

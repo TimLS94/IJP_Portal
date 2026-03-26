@@ -297,13 +297,32 @@ async def get_company_applications(
     
     applications = db.query(Application).options(
         joinedload(Application.applicant),
-        joinedload(Application.job_posting)
+        joinedload(Application.job_posting),
+        joinedload(Application.interviews)
     ).join(JobPosting).filter(
         JobPosting.company_id == company.id
     ).order_by(Application.applied_at.desc()).all()
     
     result = []
     for app in applications:
+        # Hole den aktuellsten Interview-Status
+        interview_status = None
+        interview_status_label = None
+        if app.interviews:
+            # Sortiere nach created_at desc und nimm den neuesten
+            latest_interview = sorted(app.interviews, key=lambda i: i.created_at, reverse=True)[0]
+            interview_status = latest_interview.status.value if latest_interview.status else None
+            # Status-Labels für bessere Anzeige
+            status_labels = {
+                "proposed": "Wartet auf Antwort",
+                "confirmed": "Vom Bewerber bestätigt",
+                "declined": "Vom Bewerber abgelehnt",
+                "cancelled": "Abgesagt",
+                "completed": "Durchgeführt",
+                "needs_new_dates": "Neue Termine nötig"
+            }
+            interview_status_label = status_labels.get(interview_status, interview_status)
+        
         app_dict = {
             "id": app.id,
             "applicant_id": app.applicant_id,
@@ -314,9 +333,11 @@ async def get_company_applications(
             "applied_at": app.applied_at,
             "updated_at": app.updated_at,
             "job_title": app.job_posting.title if app.job_posting else None,
-            "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None
+            "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None,
+            "interview_status": interview_status,
+            "interview_status_label": interview_status_label
         }
-        result.append(ApplicationWithDetails(**app_dict))
+        result.append(app_dict)
     
     return result
 
