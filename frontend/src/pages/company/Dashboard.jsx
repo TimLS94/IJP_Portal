@@ -32,12 +32,28 @@ function CompanyDashboard() {
 
   // Banner schließen und gesehene Übersetzungen speichern
   const dismissTranslationBanner = () => {
-    // Speichere die IDs und Zeitstempel der gesehenen Übersetzungen
-    const seenData = translatedJobs.map(job => ({
+    // Lade bestehende gesehene Übersetzungen
+    const seenTranslationsRaw = localStorage.getItem('seenTranslations');
+    const existingSeenTranslations = seenTranslationsRaw ? JSON.parse(seenTranslationsRaw) : [];
+    
+    // Füge neue gesehene Übersetzungen hinzu (oder aktualisiere bestehende)
+    const newSeenData = translatedJobs.map(job => ({
       id: job.id,
       translatedAt: job.admin_translated_at
     }));
-    localStorage.setItem('seenTranslations', JSON.stringify(seenData));
+    
+    // Merge: Bestehende behalten, neue hinzufügen/aktualisieren
+    const mergedSeenData = [...existingSeenTranslations];
+    newSeenData.forEach(newItem => {
+      const existingIndex = mergedSeenData.findIndex(item => item.id === newItem.id);
+      if (existingIndex >= 0) {
+        mergedSeenData[existingIndex] = newItem; // Aktualisieren
+      } else {
+        mergedSeenData.push(newItem); // Hinzufügen
+      }
+    });
+    
+    localStorage.setItem('seenTranslations', JSON.stringify(mergedSeenData));
     setShowTranslationBanner(false);
   };
 
