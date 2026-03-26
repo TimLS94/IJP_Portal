@@ -356,10 +356,42 @@ function Jobs() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
       ) : jobs.length === 0 ? (
-        <div className="card text-center py-12">
-          <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg mb-2">{t('jobs.noJobs')}</p>
-          <p className="text-gray-400">{t('jobs.tryOtherCriteria')}</p>
+        <div className="card py-12">
+          <div className="text-center mb-8">
+            <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-700 mb-2">{t('jobs.noJobs')}</h2>
+            <p className="text-gray-500 mb-4">{t('jobs.tryOtherCriteria')}</p>
+            <button 
+              onClick={() => { setSearch(''); setPositionType(''); setLocation(''); setGermanLevel(''); setAccommodationOnly(false); }}
+              className="btn-primary"
+            >
+              Filter zurücksetzen
+            </button>
+          </div>
+          
+          {/* SEO-relevanter Inhalt für leere Suchergebnisse */}
+          <div className="border-t pt-8 mt-8">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Über JobOn - Internationale Stellenvermittlung</h3>
+            <p className="text-gray-600 mb-4">
+              JobOn vermittelt internationale Fachkräfte, Studenten und Arbeitssuchende an deutsche Unternehmen. 
+              Wir bieten eine breite Palette an Stellenangeboten: Saisonjobs, Studentenferienjobs, Work & Holiday, 
+              Fachkräftestellen und Ausbildungsplätze.
+            </p>
+            <div className="grid md:grid-cols-3 gap-4 mt-6">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-800 mb-2">🎓 Studentenferienjobs</h4>
+                <p className="text-sm text-blue-700">Perfekt für Studenten, die in den Semesterferien Geld verdienen möchten.</p>
+              </div>
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-orange-800 mb-2">🌞 Saisonjobs</h4>
+                <p className="text-sm text-orange-700">Saisonale Beschäftigung in Tourismus, Gastronomie und Landwirtschaft.</p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-green-800 mb-2">📚 Ausbildung</h4>
+                <p className="text-sm text-green-700">Starte deine Karriere mit einer dualen Ausbildung in Deutschland.</p>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
