@@ -56,6 +56,9 @@ export const authAPI = {
     });
   },
   getMe: () => api.get('/auth/me'),
+  // E-Mail-Präferenzen
+  getEmailPreferences: () => api.get('/auth/email-preferences'),
+  updateEmailPreferences: (data) => api.put('/auth/email-preferences', data),
 };
 
 // Applicant API

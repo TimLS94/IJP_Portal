@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
-import { accountAPI } from '../../lib/api';
+import { accountAPI, authAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   Settings as SettingsIcon, Lock, Mail, Trash2, Eye, EyeOff, 
-  Loader2, AlertTriangle, CheckCircle, User, Shield
+  Loader2, AlertTriangle, CheckCircle, User, Shield, Bell, BellOff
 } from 'lucide-react';
 
 function Settings() {
@@ -16,6 +16,14 @@ function Settings() {
   const { t } = useTranslation();
   const [accountInfo, setAccountInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // E-Mail-Präferenzen
+  const [emailPreferences, setEmailPreferences] = useState({
+    email_newsletter: true,
+    email_job_alerts: true,
+    email_notifications: true
+  });
+  const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
   
   // Modal States
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -43,6 +51,7 @@ function Settings() {
 
   useEffect(() => {
     loadAccountInfo();
+    loadEmailPreferences();
   }, []);
 
   const loadAccountInfo = async () => {
@@ -53,6 +62,32 @@ function Settings() {
       toast.error(t('settings.errors.loadAccountData'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadEmailPreferences = async () => {
+    try {
+      const response = await authAPI.getEmailPreferences();
+      setEmailPreferences(response.data);
+    } catch (error) {
+      console.error('Fehler beim Laden der E-Mail-Einstellungen:', error);
+    }
+  };
+
+  const handleEmailPreferenceChange = async (key, value) => {
+    const newPrefs = { ...emailPreferences, [key]: value };
+    setEmailPreferences(newPrefs);
+    setSavingEmailPrefs(true);
+    
+    try {
+      await authAPI.updateEmailPreferences(newPrefs);
+      toast.success('E-Mail-Einstellungen gespeichert');
+    } catch (error) {
+      // Rollback bei Fehler
+      setEmailPreferences(emailPreferences);
+      toast.error('Fehler beim Speichern der Einstellungen');
+    } finally {
+      setSavingEmailPrefs(false);
     }
   };
 
@@ -232,6 +267,79 @@ function Settings() {
               {t('settings.changePassword')}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* E-Mail-Benachrichtigungen */}
+      <div className="card mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Bell className="h-6 w-6 text-primary-600" />
+          <h2 className="text-xl font-bold text-gray-900">E-Mail-Benachrichtigungen</h2>
+          {savingEmailPrefs && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+        </div>
+        <p className="text-gray-600 text-sm mb-4">
+          Wähle aus, welche E-Mails du von uns erhalten möchtest. Wichtige System-E-Mails (z.B. Passwort zurücksetzen) werden immer gesendet.
+        </p>
+        <div className="space-y-3">
+          {/* Newsletter */}
+          <label className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+            <div className="flex items-center gap-3">
+              <Mail className="h-5 w-5 text-gray-500" />
+              <div>
+                <p className="font-medium text-gray-900">Newsletter & Marketing</p>
+                <p className="text-sm text-gray-500">Neuigkeiten, Tipps und Angebote von JobOn</p>
+              </div>
+            </div>
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={emailPreferences.email_newsletter}
+                onChange={(e) => handleEmailPreferenceChange('email_newsletter', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            </div>
+          </label>
+
+          {/* Stellenbenachrichtigungen */}
+          <label className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-gray-500" />
+              <div>
+                <p className="font-medium text-gray-900">Neue Stellenangebote</p>
+                <p className="text-sm text-gray-500">Benachrichtigungen über passende neue Stellen</p>
+              </div>
+            </div>
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={emailPreferences.email_job_alerts}
+                onChange={(e) => handleEmailPreferenceChange('email_job_alerts', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            </div>
+          </label>
+
+          {/* Allgemeine Benachrichtigungen */}
+          <label className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-gray-500" />
+              <div>
+                <p className="font-medium text-gray-900">Bewerbungs-Updates</p>
+                <p className="text-sm text-gray-500">Status-Änderungen, Interview-Einladungen, etc.</p>
+              </div>
+            </div>
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={emailPreferences.email_notifications}
+                onChange={(e) => handleEmailPreferenceChange('email_notifications', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            </div>
+          </label>
         </div>
       </div>
 

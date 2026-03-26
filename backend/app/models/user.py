@@ -23,6 +23,11 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login_at = Column(DateTime, nullable=True)  # Letzter Login-Zeitpunkt
     
+    # E-Mail-Präferenzen (DSGVO-konform)
+    email_newsletter = Column(Boolean, default=True)  # Newsletter/Marketing E-Mails
+    email_job_alerts = Column(Boolean, default=True)  # Neue Stellenbenachrichtigungen
+    email_notifications = Column(Boolean, default=True)  # Allgemeine Benachrichtigungen (Bewerbungsstatus, etc.)
+    
     # Relationships
     # foreign_keys als String, da Applicant.user_id noch nicht importiert ist
     applicant = relationship("Applicant", back_populates="user", uselist=False, primaryjoin="User.id==Applicant.user_id")

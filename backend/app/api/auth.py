@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.core.database import get_db
@@ -351,3 +351,51 @@ async def verify_invite_token(
         "name": invite_token.name,
         "message": "Gültiger Einladungs-Link"
     }
+
+
+# === E-Mail-Präferenzen ===
+
+class EmailPreferences(BaseModel):
+    email_newsletter: bool = Field(True, description="Newsletter und Marketing E-Mails")
+    email_job_alerts: bool = Field(True, description="Benachrichtigungen über neue passende Stellen")
+    email_notifications: bool = Field(True, description="Allgemeine Benachrichtigungen (Bewerbungsstatus, etc.)")
+
+
+class EmailPreferencesResponse(BaseModel):
+    email_newsletter: bool
+    email_job_alerts: bool
+    email_notifications: bool
+    message: str = "E-Mail-Einstellungen erfolgreich aktualisiert"
+
+
+@router.get("/email-preferences", response_model=EmailPreferences)
+async def get_email_preferences(
+    current_user: User = Depends(get_current_user)
+):
+    """Gibt die E-Mail-Präferenzen des aktuellen Benutzers zurück"""
+    return EmailPreferences(
+        email_newsletter=current_user.email_newsletter if current_user.email_newsletter is not None else True,
+        email_job_alerts=current_user.email_job_alerts if current_user.email_job_alerts is not None else True,
+        email_notifications=current_user.email_notifications if current_user.email_notifications is not None else True
+    )
+
+
+@router.put("/email-preferences", response_model=EmailPreferencesResponse)
+async def update_email_preferences(
+    preferences: EmailPreferences,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert die E-Mail-Präferenzen des aktuellen Benutzers"""
+    current_user.email_newsletter = preferences.email_newsletter
+    current_user.email_job_alerts = preferences.email_job_alerts
+    current_user.email_notifications = preferences.email_notifications
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return EmailPreferencesResponse(
+        email_newsletter=current_user.email_newsletter,
+        email_job_alerts=current_user.email_job_alerts,
+        email_notifications=current_user.email_notifications
+    )
