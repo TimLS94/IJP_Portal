@@ -1424,6 +1424,18 @@
       "changePassword": "Fehler beim Ändern des Passworts",
       "changeEmail": "Fehler beim Ändern der E-Mail",
       "deleteAccount": "Fehler beim Löschen des Accounts"
+    },
+    "emailNotifications": {
+      "title": "E-Mail-Benachrichtigungen",
+      "description": "Wähle aus, welche E-Mails du von uns erhalten möchtest. Wichtige System-E-Mails (z.B. Passwort zurücksetzen) werden immer gesendet.",
+      "newsletter": "Newsletter & Marketing",
+      "newsletterDesc": "Neuigkeiten, Tipps und Angebote von JobOn",
+      "jobAlerts": "Neue Stellenangebote",
+      "jobAlertsDesc": "Benachrichtigungen über passende neue Stellen",
+      "notifications": "Bewerbungs-Updates",
+      "notificationsDesc": "Status-Änderungen, Interview-Einladungen, etc.",
+      "saved": "E-Mail-Einstellungen gespeichert",
+      "error": "Fehler beim Speichern der Einstellungen"
     }
   }
 }

@@ -1326,7 +1326,19 @@
     "deleteAccount": "Eliminar cuenta",
     "deleteAccountWarning": "Esta acción no se puede deshacer. Todos sus datos serán eliminados permanentemente.",
     "deleteAccountConfirm": "Escriba 'ELIMINAR' para confirmar",
-    "accountDeleted": "La cuenta ha sido eliminada"
+    "accountDeleted": "La cuenta ha sido eliminada",
+    "emailNotifications": {
+      "title": "Notificaciones por correo",
+      "description": "Elige qué correos quieres recibir de nosotros. Los correos importantes del sistema (ej. restablecer contraseña) siempre se enviarán.",
+      "newsletter": "Boletín y Marketing",
+      "newsletterDesc": "Noticias, consejos y ofertas de JobOn",
+      "jobAlerts": "Nuevas ofertas de empleo",
+      "jobAlertsDesc": "Notificaciones sobre nuevas posiciones que coinciden",
+      "notifications": "Actualizaciones de solicitudes",
+      "notificationsDesc": "Cambios de estado, invitaciones a entrevistas, etc.",
+      "saved": "Configuración de correo guardada",
+      "error": "Error al guardar la configuración"
+    }
   }
 }
 

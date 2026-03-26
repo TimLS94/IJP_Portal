@@ -1424,6 +1424,18 @@
       "changePassword": "Error changing password",
       "changeEmail": "Error changing email",
       "deleteAccount": "Error deleting account"
+    },
+    "emailNotifications": {
+      "title": "Email Notifications",
+      "description": "Choose which emails you want to receive from us. Important system emails (e.g. password reset) will always be sent.",
+      "newsletter": "Newsletter & Marketing",
+      "newsletterDesc": "News, tips and offers from JobOn",
+      "jobAlerts": "New Job Listings",
+      "jobAlertsDesc": "Notifications about matching new positions",
+      "notifications": "Application Updates",
+      "notificationsDesc": "Status changes, interview invitations, etc.",
+      "saved": "Email settings saved",
+      "error": "Error saving settings"
     }
   }
 }

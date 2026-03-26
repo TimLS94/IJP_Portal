@@ -81,11 +81,11 @@ function Settings() {
     
     try {
       await authAPI.updateEmailPreferences(newPrefs);
-      toast.success('E-Mail-Einstellungen gespeichert');
+      toast.success(t('settings.emailNotifications.saved'));
     } catch (error) {
       // Rollback bei Fehler
       setEmailPreferences(emailPreferences);
-      toast.error('Fehler beim Speichern der Einstellungen');
+      toast.error(t('settings.emailNotifications.error'));
     } finally {
       setSavingEmailPrefs(false);
     }
@@ -274,11 +274,11 @@ function Settings() {
       <div className="card mb-6">
         <div className="flex items-center gap-2 mb-4">
           <Bell className="h-6 w-6 text-primary-600" />
-          <h2 className="text-xl font-bold text-gray-900">E-Mail-Benachrichtigungen</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t('settings.emailNotifications.title')}</h2>
           {savingEmailPrefs && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
         </div>
         <p className="text-gray-600 text-sm mb-4">
-          Wähle aus, welche E-Mails du von uns erhalten möchtest. Wichtige System-E-Mails (z.B. Passwort zurücksetzen) werden immer gesendet.
+          {t('settings.emailNotifications.description')}
         </p>
         <div className="space-y-3">
           {/* Newsletter */}
@@ -286,8 +286,8 @@ function Settings() {
             <div className="flex items-center gap-3">
               <Mail className="h-5 w-5 text-gray-500" />
               <div>
-                <p className="font-medium text-gray-900">Newsletter & Marketing</p>
-                <p className="text-sm text-gray-500">Neuigkeiten, Tipps und Angebote von JobOn</p>
+                <p className="font-medium text-gray-900">{t('settings.emailNotifications.newsletter')}</p>
+                <p className="text-sm text-gray-500">{t('settings.emailNotifications.newsletterDesc')}</p>
               </div>
             </div>
             <div className="relative">
@@ -306,8 +306,8 @@ function Settings() {
             <div className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-gray-500" />
               <div>
-                <p className="font-medium text-gray-900">Neue Stellenangebote</p>
-                <p className="text-sm text-gray-500">Benachrichtigungen über passende neue Stellen</p>
+                <p className="font-medium text-gray-900">{t('settings.emailNotifications.jobAlerts')}</p>
+                <p className="text-sm text-gray-500">{t('settings.emailNotifications.jobAlertsDesc')}</p>
               </div>
             </div>
             <div className="relative">
@@ -326,8 +326,8 @@ function Settings() {
             <div className="flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-gray-500" />
               <div>
-                <p className="font-medium text-gray-900">Bewerbungs-Updates</p>
-                <p className="text-sm text-gray-500">Status-Änderungen, Interview-Einladungen, etc.</p>
+                <p className="font-medium text-gray-900">{t('settings.emailNotifications.notifications')}</p>
+                <p className="text-sm text-gray-500">{t('settings.emailNotifications.notificationsDesc')}</p>
               </div>
             </div>
             <div className="relative">
