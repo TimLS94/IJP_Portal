@@ -222,24 +222,25 @@ function CompanyApplications() {
       return;
     }
 
-    // Kombiniere Datum und Uhrzeit
-    const date1 = new Date(`${interviewData.proposed_date_1}T${interviewData.proposed_time_1}`);
-    let date2 = null;
+    // Kombiniere Datum und Uhrzeit - OHNE Zeitzonenkonvertierung
+    // Format: "2026-03-26T18:00:00" (lokale Zeit, wird als UTC behandelt)
+    const dateTime1 = `${interviewData.proposed_date_1}T${interviewData.proposed_time_1}:00`;
+    let dateTime2 = null;
     if (interviewData.proposed_date_2 && interviewData.proposed_time_2) {
-      date2 = new Date(`${interviewData.proposed_date_2}T${interviewData.proposed_time_2}`);
+      dateTime2 = `${interviewData.proposed_date_2}T${interviewData.proposed_time_2}:00`;
     }
 
     // Speichere nur lokal - wird erst beim "Speichern" gesendet
     setPendingInterview({
       application_id: selectedApp,
-      proposed_date_1: date1.toISOString(),
-      proposed_date_2: date2 ? date2.toISOString() : null,
+      proposed_date_1: dateTime1,
+      proposed_date_2: dateTime2,
       location: interviewData.location || null,
       meeting_link: interviewData.meeting_link || null,
       notes: interviewData.notes || null,
-      // Für Anzeige
-      display_date_1: date1,
-      display_date_2: date2,
+      // Für Anzeige (lokale Zeit)
+      display_date_1: new Date(dateTime1),
+      display_date_2: dateTime2 ? new Date(dateTime2) : null,
     });
 
     // Status auf "Vorstellungsgespräch" setzen

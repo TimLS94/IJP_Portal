@@ -10,11 +10,12 @@ import {
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
-  proposed: { label: 'Vorgeschlagen', color: 'bg-yellow-100 text-yellow-700', dotColor: 'bg-yellow-500', icon: Clock },
-  confirmed: { label: 'Bestätigt', color: 'bg-green-100 text-green-700', dotColor: 'bg-green-500', icon: CheckCircle },
+  proposed: { label: 'Wartet auf Antwort', color: 'bg-yellow-100 text-yellow-700', dotColor: 'bg-yellow-500', icon: Clock },
+  confirmed: { label: 'Vom Bewerber bestätigt', color: 'bg-green-100 text-green-700', dotColor: 'bg-green-500', icon: CheckCircle },
   completed: { label: 'Durchgeführt', color: 'bg-gray-100 text-gray-600', dotColor: 'bg-gray-400', icon: CheckCircle },
-  declined: { label: 'Abgelehnt', color: 'bg-red-100 text-red-700', dotColor: 'bg-red-500', icon: AlertCircle },
+  declined: { label: 'Vom Bewerber abgelehnt', color: 'bg-red-100 text-red-700', dotColor: 'bg-red-500', icon: AlertCircle },
   cancelled: { label: 'Abgesagt', color: 'bg-red-100 text-red-700', dotColor: 'bg-red-500', icon: AlertCircle },
+  needs_new_dates: { label: 'Neue Termine nötig', color: 'bg-orange-100 text-orange-700', dotColor: 'bg-orange-500', icon: AlertCircle },
 };
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
