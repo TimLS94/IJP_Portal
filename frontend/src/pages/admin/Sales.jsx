@@ -17,6 +17,8 @@ function AdminSales() {
   // E-Mail Content State
   const [subject, setSubject] = useState('');
   const [htmlContent, setHtmlContent] = useState('');
+  const [plainText, setPlainText] = useState('');
+  const [isHtmlMode, setIsHtmlMode] = useState(false); // Standard: Volltext
   const [showPreview, setShowPreview] = useState(false);
 
   // Sending State
@@ -61,9 +63,12 @@ function AdminSales() {
   // Nur gültige Empfänger
   const validRecipients = recipients.filter(r => r.valid);
 
+  // Aktueller Inhalt basierend auf Modus
+  const currentContent = isHtmlMode ? htmlContent : plainText;
+
   // Test-E-Mail senden
   const sendTestEmail = async () => {
-    if (!subject || !htmlContent) {
+    if (!subject || !currentContent) {
       toast.error('Bitte Betreff und Inhalt eingeben');
       return;
     }
@@ -73,11 +78,14 @@ function AdminSales() {
       await adminAPI.sendTestEmail({
         recipients: [],
         subject,
-        html_content: htmlContent
+        html_content: isHtmlMode ? htmlContent : '',
+        plain_text: isHtmlMode ? '' : plainText,
+        is_html: isHtmlMode
       });
       toast.success('Test-E-Mail wurde an deine Admin-Adresse gesendet');
     } catch (error) {
-      toast.error('Test-E-Mail konnte nicht gesendet werden');
+      console.error('Test-E-Mail Fehler:', error);
+      toast.error(error.response?.data?.detail || 'Test-E-Mail konnte nicht gesendet werden');
     } finally {
       setSendingTest(false);
     }
@@ -85,7 +93,7 @@ function AdminSales() {
 
   // Massen-E-Mails senden
   const sendEmails = async () => {
-    if (!subject || !htmlContent) {
+    if (!subject || !currentContent) {
       toast.error('Bitte Betreff und Inhalt eingeben');
       return;
     }
@@ -108,7 +116,9 @@ function AdminSales() {
       const response = await adminAPI.sendSalesEmails({
         recipients: validRecipients.map(r => r.email),
         subject,
-        html_content: htmlContent
+        html_content: isHtmlMode ? htmlContent : '',
+        plain_text: isHtmlMode ? '' : plainText,
+        is_html: isHtmlMode
       });
 
       setSendResult(response.data);
@@ -174,6 +184,7 @@ function AdminSales() {
     setRecipients([]);
     setSubject('');
     setHtmlContent('');
+    setPlainText('');
     setSendResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -307,10 +318,32 @@ function AdminSales() {
         <div className="space-y-6">
           {/* Betreff */}
           <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Mail className="h-5 w-5 text-orange-600" />
-              E-Mail verfassen
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Mail className="h-5 w-5 text-orange-600" />
+                E-Mail verfassen
+              </h2>
+              
+              {/* Modus-Umschalter */}
+              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setIsHtmlMode(false)}
+                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                    !isHtmlMode ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Volltext
+                </button>
+                <button
+                  onClick={() => setIsHtmlMode(true)}
+                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                    isHtmlMode ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  HTML
+                </button>
+              </div>
+            </div>
 
             <div className="space-y-4">
               <div>
@@ -326,61 +359,65 @@ function AdminSales() {
                 />
               </div>
 
-              {/* Formatierungs-Toolbar */}
-              <div className="flex items-center gap-1 border-b pb-2">
-                <button
-                  onClick={() => insertFormatting('bold')}
-                  className="p-2 hover:bg-gray-100 rounded"
-                  title="Fett"
-                >
-                  <Bold className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => insertFormatting('italic')}
-                  className="p-2 hover:bg-gray-100 rounded"
-                  title="Kursiv"
-                >
-                  <Italic className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => insertFormatting('link')}
-                  className="p-2 hover:bg-gray-100 rounded"
-                  title="Link einfügen"
-                >
-                  <LinkIcon className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => insertFormatting('list')}
-                  className="p-2 hover:bg-gray-100 rounded"
-                  title="Liste"
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <div className="border-l mx-2 h-6"></div>
-                <button
-                  onClick={() => insertFormatting('heading')}
-                  className="px-2 py-1 text-sm hover:bg-gray-100 rounded"
-                >
-                  H2
-                </button>
-                <button
-                  onClick={() => insertFormatting('paragraph')}
-                  className="px-2 py-1 text-sm hover:bg-gray-100 rounded"
-                >
-                  ¶
-                </button>
-              </div>
+              {/* Formatierungs-Toolbar - nur im HTML-Modus */}
+              {isHtmlMode && (
+                <div className="flex items-center gap-1 border-b pb-2">
+                  <button
+                    onClick={() => insertFormatting('bold')}
+                    className="p-2 hover:bg-gray-100 rounded"
+                    title="Fett"
+                  >
+                    <Bold className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => insertFormatting('italic')}
+                    className="p-2 hover:bg-gray-100 rounded"
+                    title="Kursiv"
+                  >
+                    <Italic className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => insertFormatting('link')}
+                    className="p-2 hover:bg-gray-100 rounded"
+                    title="Link einfügen"
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => insertFormatting('list')}
+                    className="p-2 hover:bg-gray-100 rounded"
+                    title="Liste"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <div className="border-l mx-2 h-6"></div>
+                  <button
+                    onClick={() => insertFormatting('heading')}
+                    className="px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                  >
+                    H2
+                  </button>
+                  <button
+                    onClick={() => insertFormatting('paragraph')}
+                    className="px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                  >
+                    ¶
+                  </button>
+                </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Inhalt (HTML)
-                </label>
-                <textarea
-                  id="email-content"
-                  value={htmlContent}
-                  onChange={(e) => setHtmlContent(e.target.value)}
-                  rows={12}
-                  placeholder={`<p>Sehr geehrte Damen und Herren,</p>
+              {/* Inhalt - HTML oder Volltext */}
+              {isHtmlMode ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Inhalt (HTML)
+                  </label>
+                  <textarea
+                    id="email-content"
+                    value={htmlContent}
+                    onChange={(e) => setHtmlContent(e.target.value)}
+                    rows={12}
+                    placeholder={`<p>Sehr geehrte Damen und Herren,</p>
 
 <p>wir von <strong>JobOn</strong> vermitteln qualifizierte internationale Fachkräfte...</p>
 
@@ -393,9 +430,35 @@ function AdminSales() {
 <p>Besuchen Sie uns: <a href="https://www.jobon.work">www.jobon.work</a></p>
 
 <p>Mit freundlichen Grüßen</p>`}
-                  className="input w-full font-mono text-sm"
-                />
-              </div>
+                    className="input w-full font-mono text-sm"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Inhalt (Volltext)
+                  </label>
+                  <textarea
+                    value={plainText}
+                    onChange={(e) => setPlainText(e.target.value)}
+                    rows={12}
+                    placeholder={`Sehr geehrte Damen und Herren,
+
+wir von JobOn vermitteln qualifizierte internationale Fachkräfte für Ihr Unternehmen.
+
+Unsere Vorteile:
+- Motivierte Mitarbeiter
+- Schnelle Vermittlung
+- Persönliche Betreuung
+
+Besuchen Sie uns auf www.jobon.work
+
+Mit freundlichen Grüßen
+Ihr JobOn Team`}
+                    className="input w-full"
+                  />
+                </div>
+              )}
 
               {/* Vorschau Button */}
               <button
@@ -409,7 +472,7 @@ function AdminSales() {
           </div>
 
           {/* Vorschau */}
-          {showPreview && htmlContent && (
+          {showPreview && currentContent && (
             <div className="card">
               <h3 className="text-sm font-medium text-gray-700 mb-3">E-Mail Vorschau</h3>
               <div className="border rounded-lg overflow-hidden">
@@ -420,11 +483,20 @@ function AdminSales() {
                   <p className="text-sm">
                     <span className="text-gray-500">Betreff:</span> {subject || '(kein Betreff)'}
                   </p>
+                  <p className="text-sm">
+                    <span className="text-gray-500">Modus:</span> {isHtmlMode ? 'HTML' : 'Volltext'}
+                  </p>
                 </div>
-                <div
-                  className="p-4 bg-white prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: htmlContent }}
-                />
+                {isHtmlMode ? (
+                  <div
+                    className="p-4 bg-white prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: htmlContent }}
+                  />
+                ) : (
+                  <div className="p-4 bg-white whitespace-pre-wrap text-gray-700">
+                    {plainText}
+                  </div>
+                )}
                 <div className="bg-gray-50 px-4 py-3 border-t text-center text-xs text-gray-500">
                   IJP International Job Placement UG · Husemannstr. 9, 10435 Berlin · www.jobon.work
                 </div>

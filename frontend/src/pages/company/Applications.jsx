@@ -80,6 +80,12 @@ function CompanyApplications() {
   const loadApplications = async () => {
     try {
       const response = await applicationsAPI.getCompanyApplications();
+      console.log('Applications loaded:', response.data);
+      // Debug: Zeige erste Bewerbung mit Interview-Status
+      if (response.data.length > 0) {
+        console.log('First app interview_status:', response.data[0].interview_status);
+        console.log('First app job_id:', response.data[0].job_id, 'job_posting_id:', response.data[0].job_posting_id);
+      }
       setApplications(response.data);
     } catch (error) {
       toast.error('Fehler beim Laden der Bewerbungen');
@@ -90,7 +96,11 @@ function CompanyApplications() {
 
   // Alle einzigartigen Jobs für Filter
   const uniqueJobs = useMemo(() => {
-    const jobs = [...new Map(applications.map(a => [a.job_id, { id: a.job_id, title: a.job_title }])).values()];
+    // Verwende job_id oder job_posting_id als Fallback
+    const jobs = [...new Map(applications.map(a => {
+      const jobId = a.job_id || a.job_posting_id;
+      return [jobId, { id: jobId, title: a.job_title }];
+    })).values()].filter(j => j.id); // Filtere null-Werte
     return jobs;
   }, [applications]);
 
@@ -114,7 +124,7 @@ function CompanyApplications() {
 
     // Jobfilter
     if (jobFilter !== 'all') {
-      filtered = filtered.filter(a => a.job_id === parseInt(jobFilter));
+      filtered = filtered.filter(a => (a.job_id || a.job_posting_id) === parseInt(jobFilter));
     }
 
     // Sortierung

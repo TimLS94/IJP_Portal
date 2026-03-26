@@ -1049,31 +1049,53 @@ class EmailService:
         self,
         to_email: str,
         subject: str,
-        html_content: str
+        html_content: str,
+        is_html: bool = True
     ) -> bool:
         """
         Sendet eine Kaltakquise/Vertriebs-E-Mail.
         Verwendet business@jobon.work als Absender.
+        Unterstützt HTML und Volltext-Modus.
         """
-        # Wrapper für den HTML-Inhalt mit professionellem Layout
-        full_html = f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
-            <div style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <div style="padding: 30px;">
-                    {html_content}
+        if is_html:
+            # HTML-Modus: Wrapper mit professionellem Layout
+            full_html = f"""
+            <html>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
+                <div style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="padding: 30px;">
+                        {html_content}
+                    </div>
+                    <div style="background: #f3f4f6; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+                        <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                            IJP International Job Placement UG (haftungsbeschränkt)<br>
+                            Husemannstr. 9, 10435 Berlin<br>
+                            <a href="https://www.jobon.work" style="color: #2563eb;">www.jobon.work</a>
+                        </p>
+                    </div>
                 </div>
-                <div style="background: #f3f4f6; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
-                    <p style="color: #6b7280; font-size: 12px; margin: 0;">
-                        IJP International Job Placement UG (haftungsbeschränkt)<br>
-                        Husemannstr. 9, 10435 Berlin<br>
-                        <a href="https://www.jobon.work" style="color: #2563eb;">www.jobon.work</a>
-                    </p>
+            </body>
+            </html>
+            """
+        else:
+            # Volltext-Modus: Konvertiere zu einfachem HTML mit Zeilenumbrüchen
+            # Ersetze Zeilenumbrüche durch <br> und füge minimales Styling hinzu
+            text_as_html = html_content.replace('\n', '<br>\n')
+            full_html = f"""
+            <html>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="line-height: 1.6; color: #333;">
+                    {text_as_html}
                 </div>
-            </div>
-        </body>
-        </html>
-        """
+                <br><br>
+                <div style="color: #666; font-size: 12px; border-top: 1px solid #eee; padding-top: 15px;">
+                    IJP International Job Placement UG (haftungsbeschränkt)<br>
+                    Husemannstr. 9, 10435 Berlin<br>
+                    www.jobon.work
+                </div>
+            </body>
+            </html>
+            """
         
         return self.send_email(
             to_email=to_email,

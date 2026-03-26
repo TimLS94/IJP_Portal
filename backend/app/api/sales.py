@@ -44,7 +44,9 @@ class ParseCSVResponse(BaseModel):
 class SendSalesEmailRequest(BaseModel):
     recipients: List[str]  # Liste von E-Mail-Adressen
     subject: str
-    html_content: str
+    html_content: str = ""  # HTML-Inhalt (optional wenn plain_text)
+    plain_text: str = ""  # Volltext-Inhalt (optional wenn html_content)
+    is_html: bool = True  # True = HTML, False = Volltext
     send_test_first: bool = False  # Erst Test-E-Mail an Admin senden
 
 
@@ -60,8 +62,14 @@ class SendSalesEmailResponse(BaseModel):
 
 def validate_email(email: str) -> bool:
     """Validiert eine E-Mail-Adresse"""
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return bool(re.match(pattern, email.strip()))
+    # Bereinige die E-Mail von unsichtbaren Zeichen
+    cleaned = email.strip().replace('\r', '').replace('\n', '').replace('\t', '')
+    # Erlaube alle gängigen E-Mail-Formate inkl. Zahlen, Punkte, Bindestriche
+    pattern = r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$'
+    result = bool(re.match(pattern, cleaned))
+    if not result:
+        logger.warning(f"E-Mail-Validierung fehlgeschlagen für: '{cleaned}' (original: '{email}')")
+    return result
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
@@ -113,7 +121,10 @@ async def parse_email_csv(
             parts = line.split(',')
             
             for part in parts:
-                part = part.strip().strip('"').strip("'").lower()
+                # Bereinige gründlich von allen unsichtbaren Zeichen
+                part = part.strip().strip('"').strip("'").strip()
+                part = part.replace('\r', '').replace('\n', '').replace('\t', '').replace(' ', '')
+                part = part.lower()
                 
                 # Überspringe Header-Zeilen
                 if part in ['email', 'e-mail', 'mail', 'emailaddress', 'email_address']:
@@ -126,6 +137,7 @@ async def parse_email_csv(
                 
                 if validate_email(part):
                     recipients.append(EmailRecipient(email=part, valid=True))
+                    logger.info(f"Gültige E-Mail gefunden: {part}")
                 else:
                     recipients.append(EmailRecipient(
                         email=part, 
@@ -163,7 +175,9 @@ async def send_sales_emails(
     if not data.recipients:
         raise HTTPException(status_code=400, detail="Keine Empfänger angegeben")
     
-    if not data.subject or not data.html_content:
+    # Prüfe ob Inhalt vorhanden (entweder HTML oder Volltext)
+    content = data.html_content if data.is_html else data.plain_text
+    if not data.subject or not content:
         raise HTTPException(status_code=400, detail="Betreff und Inhalt sind erforderlich")
     
     # Validiere alle E-Mails
@@ -177,7 +191,8 @@ async def send_sales_emails(
         test_success = email_service.send_sales_email(
             to_email=current_user.email,
             subject=f"[TEST] {data.subject}",
-            html_content=data.html_content
+            html_content=content,
+            is_html=data.is_html
         )
         if not test_success:
             raise HTTPException(status_code=500, detail="Test-E-Mail konnte nicht gesendet werden")
@@ -200,7 +215,8 @@ async def send_sales_emails(
             success = email_service.send_sales_email(
                 to_email=email,
                 subject=data.subject,
-                html_content=data.html_content
+                html_content=content,
+                is_html=data.is_html
             )
             if success:
                 sent += 1
