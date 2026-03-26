@@ -327,6 +327,7 @@ async def get_company_applications(
             "id": app.id,
             "applicant_id": app.applicant_id,
             "job_posting_id": app.job_posting_id,
+            "job_id": app.job_posting_id,  # Alias für Frontend-Filter
             "status": app.status,
             "applicant_message": app.applicant_message,
             "company_notes": app.company_notes,
