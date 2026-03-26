@@ -92,13 +92,19 @@ class EmailService:
         subject: str,
         html_content: str,
         text_content: Optional[str] = None,
-        email_type: str = "other"
+        email_type: str = "other",
+        from_email: Optional[str] = None,
+        from_name: Optional[str] = None
     ) -> bool:
         """Sendet eine E-Mail über SendGrid HTTP API - CRASH-SAFE"""
         
+        # Verwende übergebene Absender oder Standard
+        sender_email = from_email or self.from_email
+        sender_name = from_name or self.from_name
+        
         # Debug-Modus: Nur loggen
         if self.debug:
-            logger.info(f"[DEBUG-EMAIL] An: {to_email} | Betreff: {subject}")
+            logger.info(f"[DEBUG-EMAIL] Von: {sender_email} | An: {to_email} | Betreff: {subject}")
             log_email(email_type, to_email, subject, True)
             return True
         
@@ -112,7 +118,7 @@ class EmailService:
         from sendgrid.helpers.mail import Mail, Email, To, Content
         
         message = Mail(
-            from_email=Email(self.from_email, self.from_name),
+            from_email=Email(sender_email, sender_name),
             to_emails=To(to_email),
             subject=subject,
             html_content=Content("text/html", html_content)
@@ -1036,6 +1042,47 @@ class EmailService:
         </body></html>
         """
         return self.send_email(to_email, subject, html_content, email_type="job_digest")
+
+
+    @_safe_email_call
+    def send_sales_email(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str
+    ) -> bool:
+        """
+        Sendet eine Kaltakquise/Vertriebs-E-Mail.
+        Verwendet business@jobon.work als Absender.
+        """
+        # Wrapper für den HTML-Inhalt mit professionellem Layout
+        full_html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
+            <div style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="padding: 30px;">
+                    {html_content}
+                </div>
+                <div style="background: #f3f4f6; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+                    <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                        IJP International Job Placement UG (haftungsbeschränkt)<br>
+                        Husemannstr. 9, 10435 Berlin<br>
+                        <a href="https://www.jobon.work" style="color: #2563eb;">www.jobon.work</a>
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=full_html,
+            email_type="sales",
+            from_email="business@jobon.work",
+            from_name="JobOn - International Job Placement"
+        )
 
 
 # Singleton - CRASH-SAFE initialisiert

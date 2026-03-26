@@ -19,7 +19,7 @@ logger.info("Config loaded")
 from app.core.database import engine, Base, SessionLocal
 logger.info("Database module loaded")
 
-from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests
+from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales
 logger.info("API routers loaded")
 
 # Import Models für create_all
@@ -269,6 +269,7 @@ app.include_router(company_members.router, prefix=settings.API_V1_PREFIX)
 app.include_router(anabin.router, prefix=settings.API_V1_PREFIX)
 app.include_router(interviews.router, prefix=settings.API_V1_PREFIX)
 app.include_router(company_requests.router, prefix=settings.API_V1_PREFIX)
+app.include_router(sales.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

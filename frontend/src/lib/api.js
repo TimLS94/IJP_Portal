@@ -297,6 +297,17 @@ export const adminAPI = {
   gdprExportData: (userId) => api.get(`/admin/gdpr/export/${userId}`),
   gdprDeleteData: (userId, deleteDocuments = true) => api.delete(`/admin/gdpr/data/${userId}`, { params: { delete_documents: deleteDocuments } }),
   gdprGetDocuments: (userId) => api.get(`/admin/gdpr/documents/${userId}`),
+  
+  // Vertrieb / Sales
+  parseEmailCSV: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/sales/parse-csv', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  sendSalesEmails: (data) => api.post('/sales/send', data),
+  sendTestEmail: (data) => api.post('/sales/send-test', data),
   gdprDeleteDocument: (documentId) => api.delete(`/admin/gdpr/documents/${documentId}`),
   
   // Anabin Uni-Verifizierung
