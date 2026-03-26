@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { adminAPI, applicationsAPI, documentsAPI } from '../../lib/api';
+import { getNationalityLabel } from '../../data/nationalities';
 import toast from 'react-hot-toast';
 import { 
   FileText, User, Briefcase, Building2, Calendar, Search, Download,
@@ -27,6 +29,7 @@ const statusColors = {
 };
 
 function AdminApplications() {
+  const { i18n } = useTranslation();
   const [applications, setApplications] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -641,7 +644,7 @@ function AdminApplications() {
                         </p>
                         <p className="flex items-center gap-2">
                           <Globe className="h-4 w-4 text-gray-400" />
-                          {applicationDetails.applicant.nationality}
+                          {getNationalityLabel(applicationDetails.applicant.nationality, i18n.language) || applicationDetails.applicant.nationality}
                         </p>
                       </div>
                     </div>

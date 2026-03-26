@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { interviewsAPI, applicationsAPI } from '../../lib/api';
+import { getNationalityLabel } from '../../data/nationalities';
 import toast from 'react-hot-toast';
 import {
   Calendar as CalendarIcon, Clock, MapPin, User, Briefcase, Download,
@@ -22,6 +24,7 @@ const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
 function CompanyCalendar() {
+  const { i18n } = useTranslation();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -697,7 +700,7 @@ function CompanyCalendar() {
                       {selectedApplicant.nationality && (
                         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                           <Globe className="h-5 w-5 text-gray-400" />
-                          <span className="text-sm">{selectedApplicant.nationality}</span>
+                          <span className="text-sm">{getNationalityLabel(selectedApplicant.nationality, i18n.language) || selectedApplicant.nationality}</span>
                         </div>
                       )}
                       {selectedApplicant.date_of_birth && (

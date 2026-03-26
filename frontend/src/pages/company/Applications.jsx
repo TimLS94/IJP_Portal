@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { applicationsAPI, documentsAPI, interviewAPI, downloadBlob } from '../../lib/api';
+import { getNationalityLabel } from '../../data/nationalities';
 import toast from 'react-hot-toast';
 import { 
   Users, User, Briefcase, Calendar, MessageSquare, Check, X, 
@@ -27,6 +29,7 @@ const positionTypeLabels = {
 };
 
 function CompanyApplications() {
+  const { i18n } = useTranslation();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -1036,7 +1039,7 @@ function CompanyApplications() {
                       </div>
                       <div className="flex justify-between p-2 bg-white rounded">
                         <span className="text-gray-500">Nationalität</span>
-                        <span className="font-medium">{applicantDetails.applicant.nationality || '-'}</span>
+                        <span className="font-medium">{getNationalityLabel(applicantDetails.applicant.nationality, i18n.language) || '-'}</span>
                       </div>
                       <div className="flex justify-between p-2 bg-white rounded">
                         <span className="text-gray-500">Stellenart</span>
