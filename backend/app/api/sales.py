@@ -97,7 +97,7 @@ async def parse_email_csv(
     
     try:
         # Versuche verschiedene Encodings
-        for encoding in ['utf-8', 'latin-1', 'cp1252']:
+        for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
             try:
                 text = content.decode(encoding)
                 break
@@ -105,6 +105,10 @@ async def parse_email_csv(
                 continue
         else:
             raise HTTPException(status_code=400, detail="Datei-Encoding nicht erkannt")
+        
+        # Entferne BOM (Byte Order Mark) falls vorhanden
+        if text.startswith('\ufeff'):
+            text = text[1:]
         
         recipients = []
         seen_emails = set()
@@ -246,10 +250,19 @@ async def send_test_email(
     """Sendet eine Test-E-Mail an den aktuellen Admin"""
     from app.services.email_service import email_service
     
+    # Bestimme den Inhalt basierend auf dem Modus
+    content = data.html_content if data.is_html else data.plain_text
+    
+    if not data.subject or not content:
+        raise HTTPException(status_code=400, detail="Betreff und Inhalt sind erforderlich")
+    
+    logger.info(f"Sende Test-E-Mail an {current_user.email}, is_html={data.is_html}")
+    
     success = email_service.send_sales_email(
         to_email=current_user.email,
         subject=f"[TEST] {data.subject}",
-        html_content=data.html_content
+        html_content=content,
+        is_html=data.is_html
     )
     
     if success:
