@@ -447,23 +447,27 @@ function EditJob() {
           </p>
           
           <div className="space-y-4">
-            <FormattedTextarea
-              label="Aufgaben"
-              name="tasks"
-              register={register}
-              rows={5}
-              placeholder="Was sind die Hauptaufgaben dieser Stelle?"
-              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
-            />
+            <div>
+              <label className="label">Aufgaben</label>
+              <RichTextEditor
+                rows={5}
+                placeholder="Was sind die Hauptaufgaben dieser Stelle?"
+                value={watch('tasks') || ''}
+                onChange={(val) => setValue('tasks', val)}
+                helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
+              />
+            </div>
             
-            <FormattedTextarea
-              label="Anforderungen"
-              name="requirements"
-              register={register}
-              rows={5}
-              placeholder="Welche Qualifikationen und Fähigkeiten werden benötigt?"
-              helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
-            />
+            <div>
+              <label className="label">Anforderungen</label>
+              <RichTextEditor
+                rows={5}
+                placeholder="Welche Qualifikationen und Fähigkeiten werden benötigt?"
+                value={watch('requirements') || ''}
+                onChange={(val) => setValue('requirements', val)}
+                helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
+              />
+            </div>
           </div>
         </div>
 
@@ -819,12 +823,12 @@ function EditJob() {
 
           {/* Benefits */}
           <div className="border-t pt-4">
-            <FormattedTextarea
-              label="Benefits / Wir bieten"
-              name="benefits"
-              register={register}
+            <label className="label">Benefits / Wir bieten</label>
+            <RichTextEditor
               rows={4}
               placeholder="Was bieten Sie den Bewerbern? (Unterkunft, Verpflegung, etc.)"
+              value={watch('benefits') || ''}
+              onChange={(val) => setValue('benefits', val)}
               helpText="Nutzen Sie Zeilenumbrüche für eine übersichtliche Auflistung"
             />
           </div>
