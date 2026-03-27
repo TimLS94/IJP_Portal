@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { interviewsAPI, applicationsAPI } from '../../lib/api';
+import { interviewsAPI, applicationsAPI, documentsAPI, downloadBlob } from '../../lib/api';
 import { getNationalityLabel } from '../../data/nationalities';
 import toast from 'react-hot-toast';
 import {
@@ -86,6 +86,17 @@ function CompanyCalendar() {
       toast.success('Kalender-Datei heruntergeladen');
     } catch (error) {
       toast.error('Download fehlgeschlagen');
+    }
+  };
+
+  // Dokument herunterladen (mit Auth-Token)
+  const handleDocumentDownload = async (doc) => {
+    try {
+      const response = await documentsAPI.download(doc.id);
+      downloadBlob(response.data, doc.original_name || `${doc.document_type}.pdf`);
+    } catch (error) {
+      console.error('Download-Fehler:', error);
+      toast.error('Dokument konnte nicht heruntergeladen werden');
     }
   };
 
@@ -813,12 +824,10 @@ function CompanyCalendar() {
                       </h3>
                       <div className="space-y-2">
                         {selectedApplicant.documents.map((doc, i) => (
-                          <a
+                          <button
                             key={i}
-                            href={`/api/v1/documents/${doc.id}/download`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
+                            onClick={() => handleDocumentDownload(doc)}
+                            className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 text-left"
                           >
                             <FileText className="h-5 w-5 text-primary-600" />
                             <div className="flex-1">
@@ -826,7 +835,7 @@ function CompanyCalendar() {
                               <p className="text-xs text-gray-500">{doc.document_type}</p>
                             </div>
                             <Download className="h-4 w-4 text-gray-400" />
-                          </a>
+                          </button>
                         ))}
                       </div>
                     </div>

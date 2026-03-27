@@ -428,7 +428,8 @@ function EditJob() {
               <RichTextEditor
                 rows={6}
                 placeholder="Beschreiben Sie die Stelle allgemein. Was erwartet die Bewerber?"
-                {...register('description', { required: 'Beschreibung ist erforderlich' })}
+                value={watch('description') || ''}
+                onChange={(val) => setValue('description', val, { shouldValidate: true })}
               />
               {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
             </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { applicationsAPI, documentsAPI, interviewAPI, downloadBlob } from '../../lib/api';
 import { getNationalityLabel } from '../../data/nationalities';
@@ -30,13 +31,15 @@ const positionTypeLabels = {
 
 function CompanyApplications() {
   const { i18n } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Filter & Sortierung
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [jobFilter, setJobFilter] = useState('all');
+  // Filter & Sortierung - initialisiere aus URL-Parametern
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
+  const [jobFilter, setJobFilter] = useState(searchParams.get('job') || 'all');
+  const [highlightAppId, setHighlightAppId] = useState(searchParams.get('highlight') || null);
   const [sortBy, setSortBy] = useState('applied_at');
   const [sortOrder, setSortOrder] = useState('desc');
   const [viewMode, setViewMode] = useState('table'); // 'table' oder 'cards'
@@ -79,6 +82,25 @@ function CompanyApplications() {
   useEffect(() => {
     loadApplications();
   }, []);
+
+  // Wenn highlight-Parameter vorhanden, öffne die Bewerbung automatisch
+  useEffect(() => {
+    if (highlightAppId && applications.length > 0) {
+      const app = applications.find(a => a.id === parseInt(highlightAppId));
+      if (app) {
+        // Setze Job-Filter auf die Stelle dieser Bewerbung
+        const jobId = app.job_id || app.job_posting_id;
+        if (jobId) {
+          setJobFilter(String(jobId));
+        }
+        // Öffne die Bewerbungsdetails
+        loadApplicantDetails(app.id);
+        // Entferne highlight aus URL
+        setSearchParams({});
+        setHighlightAppId(null);
+      }
+    }
+  }, [highlightAppId, applications]);
 
   const loadApplications = async () => {
     try {
