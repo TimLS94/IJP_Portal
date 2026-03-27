@@ -678,7 +678,7 @@ async def get_company_calendar(
     if not hasattr(current_user, 'company') or not current_user.company:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    # Alle Interviews der Firma laden
+    # Alle Interviews der Firma laden (inkl. abgelehnte/abgesagte für Historie)
     interviews = db.query(Interview).join(
         Application, Interview.application_id == Application.id
     ).join(
@@ -688,7 +688,9 @@ async def get_company_calendar(
         Interview.status.in_([
             InterviewStatus.PROPOSED,
             InterviewStatus.CONFIRMED,
-            InterviewStatus.COMPLETED
+            InterviewStatus.COMPLETED,
+            InterviewStatus.DECLINED,
+            InterviewStatus.CANCELLED
         ])
     ).order_by(Interview.confirmed_date.desc().nullsfirst()).all()
     
