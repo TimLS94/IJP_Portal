@@ -155,6 +155,66 @@ function AdminDashboard() {
         </div>
       </div>
 
+      {/* Erfolgsstatistik - Vermittlungen über JobOn */}
+      {stats.success_rate && (
+        <div className="card mb-8 border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-green-500 p-2 rounded-lg">
+              <CheckCircle className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Erfolgreiche Vermittlungen</h2>
+              <p className="text-sm text-gray-600">Stellen, die über JobOn besetzt wurden</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-4xl font-bold text-green-600">{stats.success_rate.total_successes}</p>
+              <p className="text-sm text-gray-600">Gesamt</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-4xl font-bold text-green-600">{stats.success_rate.successes_in_period}</p>
+              <p className="text-sm text-gray-600">Letzte {stats.period_days} Tage</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-4xl font-bold text-green-600">{stats.success_rate.success_percentage}%</p>
+              <p className="text-sm text-gray-600">Erfolgsquote</p>
+            </div>
+          </div>
+
+          {/* Löschgründe Aufschlüsselung */}
+          {stats.deletion_reasons && stats.deletion_reasons.total_deleted > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Archivierungsgründe (alle Zeiten)</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="flex items-center justify-between p-3 bg-green-100 rounded-lg">
+                  <span className="text-sm text-green-800">✅ Über JobOn</span>
+                  <span className="font-bold text-green-700">{stats.deletion_reasons.filled_via_jobon}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+                  <span className="text-sm text-gray-700">Andere Plattform</span>
+                  <span className="font-bold text-gray-600">{stats.deletion_reasons.filled_via_other}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+                  <span className="text-sm text-gray-700">Nicht besetzt</span>
+                  <span className="font-bold text-gray-600">{stats.deletion_reasons.position_cancelled}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+                  <span className="text-sm text-gray-700">Sonstige</span>
+                  <span className="font-bold text-gray-600">
+                    {(stats.deletion_reasons.seasonal_end || 0) + 
+                     (stats.deletion_reasons.budget_reasons || 0) + 
+                     (stats.deletion_reasons.company_closed || 0) + 
+                     (stats.deletion_reasons.other || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Detailstatistiken */}
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         {/* Benutzer nach Typ */}

@@ -97,6 +97,24 @@ function CompanyJobs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingTemplate, setDeletingTemplate] = useState(null);
   const [archiveDeletionDays, setArchiveDeletionDays] = useState(90);
+  
+  // Löschgrund Modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteJobId, setDeleteJobId] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteReasonNote, setDeleteReasonNote] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Löschgründe
+  const deletionReasons = [
+    { value: 'filled_via_jobon', label: '✅ Bewerber über JobOn gefunden', highlight: true },
+    { value: 'filled_via_other', label: 'Bewerber über andere Plattform gefunden' },
+    { value: 'position_cancelled', label: 'Stelle wird nicht mehr besetzt' },
+    { value: 'seasonal_end', label: 'Saison beendet' },
+    { value: 'budget_reasons', label: 'Budgetgründe' },
+    { value: 'company_closed', label: 'Unternehmen pausiert/geschlossen' },
+    { value: 'other', label: 'Sonstiges' },
+  ];
 
   useEffect(() => {
     loadJobs();
@@ -205,16 +223,35 @@ function CompanyJobs() {
     }
   };
 
-  const handleArchive = async (id) => {
-    if (!confirm(`Möchten Sie diese Stelle archivieren? Sie können sie innerhalb von ${archiveDeletionDays} Tagen reaktivieren.`)) return;
+  // Öffnet das Löschgrund-Modal
+  const openDeleteModal = (id) => {
+    setDeleteJobId(id);
+    setDeleteReason('');
+    setDeleteReasonNote('');
+    setShowDeleteModal(true);
+  };
+
+  // Archiviert die Stelle mit Löschgrund
+  const handleArchiveWithReason = async () => {
+    if (!deleteReason) {
+      toast.error('Bitte wählen Sie einen Grund aus');
+      return;
+    }
     
+    setIsDeleting(true);
     try {
-      await jobsAPI.delete(id); // Backend archiviert standardmäßig
-      toast.success('Stelle archiviert');
+      await jobsAPI.delete(deleteJobId, false, deleteReason, deleteReasonNote);
+      toast.success(deleteReason === 'filled_via_jobon' 
+        ? '🎉 Gratulation! Stelle erfolgreich besetzt über JobOn!' 
+        : 'Stelle archiviert'
+      );
+      setShowDeleteModal(false);
       loadJobs();
       loadArchivedJobs();
     } catch (error) {
       toast.error('Fehler beim Archivieren');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -494,7 +531,7 @@ function CompanyJobs() {
                                 {job.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                               </button>
                               <button 
-                                onClick={() => handleArchive(job.id)} 
+                                onClick={() => openDeleteModal(job.id)} 
                                 className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
                                 title="Archivieren"
                               >
@@ -604,7 +641,7 @@ function CompanyJobs() {
                         <span className="hidden sm:inline">Bearbeiten</span>
                       </Link>
                       <button
-                        onClick={() => handleArchive(job.id)}
+                        onClick={() => openDeleteModal(job.id)}
                         className="btn-danger text-sm flex items-center gap-1"
                         title="Archivieren"
                       >
@@ -818,6 +855,93 @@ function CompanyJobs() {
             </div>
           )}
         </>
+      )}
+
+      {/* Löschgrund Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-semibold text-gray-900">Stelle archivieren</h2>
+              <p className="text-gray-600 text-sm mt-1">
+                Warum möchten Sie diese Stelle archivieren?
+              </p>
+            </div>
+            
+            <div className="p-6 space-y-3">
+              {deletionReasons.map((reason) => (
+                <label 
+                  key={reason.value}
+                  className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                    deleteReason === reason.value 
+                      ? reason.highlight 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-primary-500 bg-primary-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="deleteReason"
+                    value={reason.value}
+                    checked={deleteReason === reason.value}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    className="sr-only"
+                  />
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    deleteReason === reason.value 
+                      ? reason.highlight ? 'border-green-500' : 'border-primary-500'
+                      : 'border-gray-300'
+                  }`}>
+                    {deleteReason === reason.value && (
+                      <div className={`w-3 h-3 rounded-full ${reason.highlight ? 'bg-green-500' : 'bg-primary-500'}`} />
+                    )}
+                  </div>
+                  <span className={`font-medium ${reason.highlight ? 'text-green-700' : 'text-gray-700'}`}>
+                    {reason.label}
+                  </span>
+                </label>
+              ))}
+              
+              {deleteReason === 'other' && (
+                <textarea
+                  value={deleteReasonNote}
+                  onChange={(e) => setDeleteReasonNote(e.target.value)}
+                  placeholder="Bitte beschreiben Sie den Grund..."
+                  className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:outline-none"
+                  rows={3}
+                />
+              )}
+            </div>
+            
+            <div className="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="btn-secondary"
+                disabled={isDeleting}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleArchiveWithReason}
+                disabled={!deleteReason || isDeleting}
+                className={`btn-primary flex items-center gap-2 ${!deleteReason ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    Archiviere...
+                  </>
+                ) : (
+                  <>
+                    <Archive className="h-4 w-4" />
+                    Archivieren
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

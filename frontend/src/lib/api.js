@@ -98,7 +98,12 @@ export const jobsAPI = {
   getBySlug: (slugWithId) => api.get(`/jobs/by-slug/${slugWithId}`),  // SEO: Neuer Endpoint
   create: (data) => api.post('/jobs', data),
   update: (id, data) => api.put(`/jobs/${id}`, data),
-  delete: (id) => api.delete(`/jobs/${id}`), // Archiviert die Stelle
+  delete: (id, permanent = false, deletionReason = null, deletionReasonNote = null) => {
+    const params = { permanent };
+    if (deletionReason) params.deletion_reason = deletionReason;
+    if (deletionReasonNote) params.deletion_reason_note = deletionReasonNote;
+    return api.delete(`/jobs/${id}`, { params });
+  },
   deletePermanent: (id) => api.delete(`/jobs/${id}/permanent`), // Löscht endgültig
   getMyJobs: () => api.get('/jobs/my/jobs'),
   getArchivedJobs: () => api.get('/jobs/my/jobs/archived'), // Archivierte Stellen

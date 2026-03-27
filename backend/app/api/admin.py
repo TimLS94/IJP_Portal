@@ -95,6 +95,61 @@ async def get_dashboard_stats(
         if pos_type:
             stats["position_types"][pos_type.value] = count
     
+    # Löschgründe / Erfolgsstatistik
+    from app.models.job_posting import JobDeletionReason, DELETION_REASON_LABELS
+    
+    deletion_counts = db.query(
+        JobPosting.deletion_reason,
+        func.count(JobPosting.id)
+    ).filter(
+        JobPosting.deletion_reason != None
+    ).group_by(JobPosting.deletion_reason).all()
+    
+    deletion_stats = {
+        "total_deleted": 0,
+        "filled_via_jobon": 0,  # ERFOLGE!
+        "filled_via_other": 0,
+        "position_cancelled": 0,
+        "company_closed": 0,
+        "seasonal_end": 0,
+        "budget_reasons": 0,
+        "other": 0,
+        "in_period": {
+            "total": 0,
+            "filled_via_jobon": 0
+        }
+    }
+    
+    for reason, count in deletion_counts:
+        if reason:
+            deletion_stats["total_deleted"] += count
+            deletion_stats[reason.value] = count
+    
+    # Erfolge im Zeitraum
+    period_deletions = db.query(
+        JobPosting.deletion_reason,
+        func.count(JobPosting.id)
+    ).filter(
+        JobPosting.deleted_at >= period_start,
+        JobPosting.deletion_reason != None
+    ).group_by(JobPosting.deletion_reason).all()
+    
+    for reason, count in period_deletions:
+        if reason:
+            deletion_stats["in_period"]["total"] += count
+            if reason.value == "filled_via_jobon":
+                deletion_stats["in_period"]["filled_via_jobon"] = count
+    
+    stats["deletion_reasons"] = deletion_stats
+    stats["success_rate"] = {
+        "total_successes": deletion_stats["filled_via_jobon"],
+        "successes_in_period": deletion_stats["in_period"]["filled_via_jobon"],
+        "success_percentage": round(
+            (deletion_stats["filled_via_jobon"] / deletion_stats["total_deleted"] * 100) 
+            if deletion_stats["total_deleted"] > 0 else 0, 1
+        )
+    }
+    
     return stats
 
 

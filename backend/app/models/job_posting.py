@@ -45,6 +45,29 @@ class EmploymentType(str, enum.Enum):
     BOTH = "both"  # Vollzeit und Teilzeit möglich
 
 
+class JobDeletionReason(str, enum.Enum):
+    """Gründe für das Löschen/Archivieren einer Stelle"""
+    FILLED_VIA_JOBON = "filled_via_jobon"           # Bewerber über JobOn gefunden (ERFOLG!)
+    FILLED_VIA_OTHER = "filled_via_other"           # Bewerber über andere Plattform gefunden
+    POSITION_CANCELLED = "position_cancelled"       # Stelle wird nicht mehr besetzt
+    COMPANY_CLOSED = "company_closed"               # Unternehmen geschlossen/pausiert
+    SEASONAL_END = "seasonal_end"                   # Saison beendet
+    BUDGET_REASONS = "budget_reasons"               # Budgetgründe
+    OTHER = "other"                                 # Sonstiges
+
+
+# Labels für Löschgründe
+DELETION_REASON_LABELS = {
+    JobDeletionReason.FILLED_VIA_JOBON: "Bewerber über JobOn gefunden",
+    JobDeletionReason.FILLED_VIA_OTHER: "Bewerber über andere Plattform gefunden",
+    JobDeletionReason.POSITION_CANCELLED: "Stelle wird nicht mehr besetzt",
+    JobDeletionReason.COMPANY_CLOSED: "Unternehmen geschlossen/pausiert",
+    JobDeletionReason.SEASONAL_END: "Saison beendet",
+    JobDeletionReason.BUDGET_REASONS: "Budgetgründe",
+    JobDeletionReason.OTHER: "Sonstiges",
+}
+
+
 class JobPosting(Base):
     __tablename__ = "job_postings"
     
@@ -103,6 +126,11 @@ class JobPosting(Base):
     # Deadline (dynamisch aus Admin-Settings)
     deadline = Column(Date)  # Bewerbungsschluss
     archived_at = Column(DateTime)  # Wann archiviert
+    
+    # Löschgrund (für Statistiken)
+    deletion_reason = Column(Enum(JobDeletionReason, values_callable=lambda x: [e.value for e in x]), nullable=True)
+    deletion_reason_note = Column(Text, nullable=True)  # Optionale Notiz bei "Sonstiges"
+    deleted_at = Column(DateTime, nullable=True)  # Wann gelöscht/deaktiviert
     
     # Statistiken
     view_count = Column(Integer, default=0)  # Anzahl der Aufrufe

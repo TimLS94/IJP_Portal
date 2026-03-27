@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
 from app.models.company import Company
-from app.models.job_posting import JobPosting
+from app.models.job_posting import JobPosting, JobDeletionReason
 from app.models.applicant import PositionType
 from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPostingResponse, JobPostingListResponse
 from app.services.settings_service import get_setting
@@ -657,11 +657,15 @@ async def update_job(
 async def delete_job(
     job_id: int,
     permanent: bool = False,
+    deletion_reason: Optional[str] = None,
+    deletion_reason_note: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Archiviert oder löscht ein Stellenangebot (nur eigene).
-    Mit permanent=true wird die Stelle endgültig gelöscht, sonst nur archiviert."""
+    Mit permanent=true wird die Stelle endgültig gelöscht, sonst nur archiviert.
+    deletion_reason: Grund für das Löschen (filled_via_jobon, filled_via_other, etc.)
+    deletion_reason_note: Optionale Notiz bei 'other'"""
     from app.models.application import Application
     
     if current_user.role != UserRole.COMPANY:
@@ -681,6 +685,15 @@ async def delete_job(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Stellenangebot nicht gefunden oder keine Berechtigung"
         )
+    
+    # Löschgrund speichern (für Statistiken)
+    if deletion_reason:
+        try:
+            job.deletion_reason = JobDeletionReason(deletion_reason)
+        except ValueError:
+            pass  # Ungültiger Grund ignorieren
+    job.deletion_reason_note = deletion_reason_note
+    job.deleted_at = datetime.utcnow()
     
     if permanent:
         # Endgültig löschen
