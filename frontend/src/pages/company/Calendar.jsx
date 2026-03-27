@@ -129,15 +129,20 @@ function CompanyCalendar() {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   
+  // Status die als "abgeschlossen/vergangen" gelten
+  const pastStatuses = ['completed', 'declined', 'cancelled'];
+  
   const getFilteredEvents = () => {
     return events.filter(event => {
       const eventDate = new Date(event.confirmed_date || event.proposed_date_1);
       eventDate.setHours(0, 0, 0, 0);
       
       if (filterTab === 'upcoming') {
-        return eventDate >= now && event.status !== 'cancelled';
+        // Bevorstehend: Datum in Zukunft UND nicht abgesagt/abgelehnt
+        return eventDate >= now && !pastStatuses.includes(event.status);
       } else if (filterTab === 'past') {
-        return eventDate < now || event.status === 'completed';
+        // Vergangen: Datum in Vergangenheit ODER abgeschlossen/abgelehnt/abgesagt
+        return eventDate < now || pastStatuses.includes(event.status);
       }
       return true; // 'all'
     });
@@ -207,11 +212,11 @@ function CompanyCalendar() {
   const proposedCount = events.filter(e => e.status === 'proposed').length;
   const upcomingCount = events.filter(e => {
     const date = new Date(e.confirmed_date || e.proposed_date_1);
-    return date >= now && e.status !== 'cancelled';
+    return date >= now && !pastStatuses.includes(e.status);
   }).length;
   const pastCount = events.filter(e => {
     const date = new Date(e.confirmed_date || e.proposed_date_1);
-    return date < now || e.status === 'completed';
+    return date < now || pastStatuses.includes(e.status);
   }).length;
 
   if (loading) {

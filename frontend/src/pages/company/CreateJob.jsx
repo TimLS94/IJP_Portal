@@ -114,14 +114,21 @@ function CreateJob() {
     }
   });
 
-  // Job-Settings laden
+  // Job-Settings laden und Deadline vorauswählen
   useEffect(() => {
     const loadSettings = async () => {
       try {
         const response = await jobsAPI.getPublicSettings();
         setJobSettings(response.data);
+        // Deadline standardmäßig auf Maximum setzen (für Google Jobs wichtig)
+        const maxDays = response.data.max_job_deadline_days || 90;
+        const defaultDeadline = new Date(Date.now() + maxDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        setValue('deadline', defaultDeadline);
       } catch (error) {
         console.error('Fehler beim Laden der Job-Settings:', error);
+        // Fallback: 90 Tage
+        const defaultDeadline = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        setValue('deadline', defaultDeadline);
       }
     };
     
@@ -1121,7 +1128,7 @@ function CreateJob() {
           </div>
           
           <div className="max-w-md">
-            <label className="label">Bewerbungsfrist (optional)</label>
+            <label className="label">Bewerbungsfrist *</label>
             <div className="relative">
               <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
@@ -1129,12 +1136,13 @@ function CreateJob() {
                 className="input-styled pl-12"
                 min={new Date().toISOString().split('T')[0]}
                 max={maxDeadlineDate}
-                {...register('deadline')}
+                {...register('deadline', { required: 'Bewerbungsfrist ist erforderlich' })}
               />
             </div>
             <p className="text-gray-500 text-sm mt-2">
-              Wenn keine Frist gesetzt wird, bleibt die Stelle unbegrenzt aktiv.
+              Standardmäßig auf {jobSettings.max_job_deadline_days} Tage gesetzt. Nach Ablauf wird die Stelle automatisch archiviert.
             </p>
+            {errors.deadline && <p className="text-red-500 text-sm mt-1">{errors.deadline.message}</p>}
           </div>
         </div>
 

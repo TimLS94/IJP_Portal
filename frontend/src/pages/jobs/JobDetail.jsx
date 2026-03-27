@@ -411,13 +411,23 @@ function JobDetail() {
     
     // Gehalt hinzufügen wenn vorhanden
     if (jobData.salary_min || jobData.salary_max) {
+      const hasMin = jobData.salary_min != null;
+      const hasMax = jobData.salary_max != null;
+      const hasBoth = hasMin && hasMax;
+      
       schema.baseSalary = {
         '@type': 'MonetaryAmount',
         'currency': 'EUR',
         'value': {
           '@type': 'QuantitativeValue',
-          ...(jobData.salary_min && { 'minValue': jobData.salary_min }),
-          ...(jobData.salary_max && { 'maxValue': jobData.salary_max }),
+          // Wenn nur ein Wert vorhanden: 'value' statt Range
+          // Wenn beide vorhanden: minValue/maxValue Range
+          ...(hasBoth ? {
+            'minValue': jobData.salary_min,
+            'maxValue': jobData.salary_max,
+          } : {
+            'value': hasMin ? jobData.salary_min : jobData.salary_max,
+          }),
           'unitText': mapSalaryUnit(jobData.salary_type),
         }
       };
@@ -1040,7 +1050,13 @@ function JobDetail() {
                   <div>
                     <p className="text-sm text-gray-500">{t('jobDetail.salary')}</p>
                     <p className="font-semibold text-gray-900">
-                      {job.salary_min?.toLocaleString('de-DE', { minimumFractionDigits: job.salary_min % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€ - {job.salary_max?.toLocaleString('de-DE', { minimumFractionDigits: job.salary_max % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€
+                      {job.salary_min && job.salary_max ? (
+                        // Range anzeigen wenn beide Werte vorhanden
+                        <>{job.salary_min.toLocaleString('de-DE', { minimumFractionDigits: job.salary_min % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€ - {job.salary_max.toLocaleString('de-DE', { minimumFractionDigits: job.salary_max % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€</>
+                      ) : (
+                        // Einzelwert wenn nur min oder max
+                        <>{(job.salary_min || job.salary_max).toLocaleString('de-DE', { minimumFractionDigits: (job.salary_min || job.salary_max) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€</>
+                      )}
                       <span className="text-gray-500 font-normal">
                         /{salaryTypeLabels[job.salary_type] || job.salary_type}
                       </span>
