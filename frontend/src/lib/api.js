@@ -275,8 +275,9 @@ export const interviewAPI = {
 export const interviewsAPI = interviewAPI;
 
 export const adminAPI = {
-  getStats: (params) => api.get('/admin/stats', { params }),
-  getEmailStats: (params) => api.get('/admin/email-stats', { params }),
+  getStats: (days = 7) => api.get('/admin/stats', { params: { days } }),
+  getEmailStats: (days = 30) => api.get('/admin/email-stats', { params: { days } }),
+  getColdOutreachStats: (days = 30) => api.get('/admin/cold-outreach-stats', { params: { days } }),
   // Feature Flags & Einstellungen
   getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
   setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),

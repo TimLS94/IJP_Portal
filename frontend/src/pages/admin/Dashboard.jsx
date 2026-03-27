@@ -19,6 +19,7 @@ const positionTypeLabels = {
 function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [emailStats, setEmailStats] = useState(null);
+  const [coldOutreachStats, setColdOutreachStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,12 +29,14 @@ function AdminDashboard() {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const [statsRes, emailRes] = await Promise.all([
+      const [statsRes, emailRes, coldOutreachRes] = await Promise.all([
         adminAPI.getStats(),
-        adminAPI.getEmailStats().catch(() => ({ data: null }))
+        adminAPI.getEmailStats().catch(() => ({ data: null })),
+        adminAPI.getColdOutreachStats().catch(() => ({ data: null }))
       ]);
       setStats(statsRes.data);
       setEmailStats(emailRes.data);
+      setColdOutreachStats(coldOutreachRes.data);
     } catch (error) {
       toast.error('Fehler beim Laden der Statistiken');
     } finally {
@@ -340,6 +343,59 @@ function AdminDashboard() {
                         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' 
                       }) : ''}
                     </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Kaltakquise-Statistiken */}
+      {coldOutreachStats && (
+        <div className="card mb-8 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-blue-500 p-2 rounded-lg">
+              <Send className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Kaltakquise E-Mails</h2>
+              <p className="text-sm text-gray-600">Letzte {coldOutreachStats.period_days} Tage</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-4xl font-bold text-blue-600">{coldOutreachStats.total}</p>
+              <p className="text-sm text-gray-600">Gesendet</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-4xl font-bold text-green-600">{coldOutreachStats.success}</p>
+              <p className="text-sm text-gray-600">Erfolgreich</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-4xl font-bold text-red-600">{coldOutreachStats.failed}</p>
+              <p className="text-sm text-gray-600">Fehlgeschlagen</p>
+            </div>
+          </div>
+
+          {/* Pro Mitarbeiter */}
+          {coldOutreachStats.by_user && coldOutreachStats.by_user.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Pro Mitarbeiter</h3>
+              <div className="space-y-2">
+                {coldOutreachStats.by_user.map((user, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-sm">
+                        {idx + 1}
+                      </div>
+                      <span className="font-medium text-gray-800">{user.email}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-gray-500">{user.success} erfolgreich</span>
+                      <span className="text-xl font-bold text-blue-600">{user.total}</span>
+                    </div>
                   </div>
                 ))}
               </div>

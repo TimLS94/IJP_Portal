@@ -20,6 +20,7 @@ class EmailType(str, enum.Enum):
     COMPANY_PENDING = "company_pending"  # Firma wartet auf Freischaltung
     COMPANY_ACTIVATED = "company_activated"  # Firma freigeschaltet
     ADMIN_NOTIFICATION = "admin_notification"  # Admin-Benachrichtigung
+    COLD_OUTREACH = "cold_outreach"  # Kaltakquise E-Mail (business@jobon.work)
     OTHER = "other"  # Sonstige
 
 
@@ -32,4 +33,5 @@ class EmailLog(Base):
     recipient_email = Column(String(255), nullable=False)
     subject = Column(String(500))
     success = Column(Integer, default=1)  # 1 = erfolgreich, 0 = fehlgeschlagen
+    sent_by_user_id = Column(Integer, nullable=True, index=True)  # Wer hat gesendet (für Kaltakquise-Tracking)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)

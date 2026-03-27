@@ -210,6 +210,8 @@ async def send_sales_emails(
         )
     
     # Massen-Versand
+    from app.models.email_log import EmailLog, EmailType
+    
     sent = 0
     failed = 0
     errors = []
@@ -222,6 +224,17 @@ async def send_sales_emails(
                 html_content=content,
                 is_html=data.is_html
             )
+            
+            # Logge die E-Mail für Statistiken
+            email_log = EmailLog(
+                email_type=EmailType.COLD_OUTREACH,
+                recipient_email=email,
+                subject=data.subject,
+                success=1 if success else 0,
+                sent_by_user_id=current_user.id
+            )
+            db.add(email_log)
+            
             if success:
                 sent += 1
                 logger.info(f"Sales-E-Mail gesendet an: {email}")
@@ -232,6 +245,18 @@ async def send_sales_emails(
             failed += 1
             errors.append({"email": email, "error": str(e)})
             logger.error(f"Fehler beim Senden an {email}: {e}")
+            
+            # Auch fehlgeschlagene E-Mails loggen
+            email_log = EmailLog(
+                email_type=EmailType.COLD_OUTREACH,
+                recipient_email=email,
+                subject=data.subject,
+                success=0,
+                sent_by_user_id=current_user.id
+            )
+            db.add(email_log)
+    
+    db.commit()
     
     return SendSalesEmailResponse(
         success=failed == 0,

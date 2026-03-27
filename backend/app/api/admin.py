@@ -176,6 +176,7 @@ async def get_email_stats(
         "company_pending": "Firma wartet",
         "company_activated": "Firma aktiviert",
         "admin_notification": "Admin-Benachrichtigung",
+        "cold_outreach": "Kaltakquise",
         "other": "Sonstige"
     }
     
@@ -233,6 +234,84 @@ async def get_email_stats(
     ]
     
     return result
+
+
+@router.get("/cold-outreach-stats")
+async def get_cold_outreach_stats(
+    days: int = Query(30, ge=1, le=365, description="Zeitraum in Tagen"),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Holt Kaltakquise-Statistiken pro Mitarbeiter für das Admin-Dashboard"""
+    from app.models.email_log import EmailLog, EmailType
+    
+    period_start = datetime.utcnow() - timedelta(days=days)
+    
+    # Gesamt-Statistik für Kaltakquise
+    total_stats = db.query(
+        func.count(EmailLog.id).label("total"),
+        func.sum(EmailLog.success).label("success")
+    ).filter(
+        EmailLog.email_type == EmailType.COLD_OUTREACH,
+        EmailLog.created_at >= period_start
+    ).first()
+    
+    total = total_stats.total or 0
+    success = total_stats.success or 0
+    
+    # Statistik pro Mitarbeiter
+    by_user = db.query(
+        EmailLog.sent_by_user_id,
+        User.email,
+        func.count(EmailLog.id).label("total"),
+        func.sum(EmailLog.success).label("success")
+    ).join(
+        User, EmailLog.sent_by_user_id == User.id, isouter=True
+    ).filter(
+        EmailLog.email_type == EmailType.COLD_OUTREACH,
+        EmailLog.created_at >= period_start
+    ).group_by(
+        EmailLog.sent_by_user_id, User.email
+    ).order_by(
+        func.count(EmailLog.id).desc()
+    ).all()
+    
+    # Statistik pro Tag (für Chart)
+    by_day = db.query(
+        func.date(EmailLog.created_at).label("date"),
+        func.count(EmailLog.id).label("total")
+    ).filter(
+        EmailLog.email_type == EmailType.COLD_OUTREACH,
+        EmailLog.created_at >= period_start
+    ).group_by(
+        func.date(EmailLog.created_at)
+    ).order_by(
+        func.date(EmailLog.created_at)
+    ).all()
+    
+    return {
+        "period_days": days,
+        "total": total,
+        "success": success,
+        "failed": total - success,
+        "by_user": [
+            {
+                "user_id": user_id,
+                "email": email or "Unbekannt",
+                "total": t,
+                "success": s or 0,
+                "failed": t - (s or 0)
+            }
+            for user_id, email, t, s in by_user
+        ],
+        "by_day": [
+            {
+                "date": d.isoformat() if d else None,
+                "total": t
+            }
+            for d, t in by_day
+        ]
+    }
 
 
 @router.get("/users")
