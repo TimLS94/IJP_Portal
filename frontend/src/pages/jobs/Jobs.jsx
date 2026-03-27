@@ -472,9 +472,15 @@ function Jobs() {
                 </div>
                 
                 <div className="text-right flex-shrink-0">
-                  {job.salary_min && job.salary_max && (
+                  {(job.salary_min || job.salary_max) && (
                     <p className="text-lg font-bold text-primary-600">
-                      {job.salary_min.toLocaleString('de-DE', { minimumFractionDigits: job.salary_min % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€ - {job.salary_max.toLocaleString('de-DE', { minimumFractionDigits: job.salary_max % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€
+                      {job.salary_min && job.salary_max ? (
+                        // Range anzeigen wenn beide Werte vorhanden
+                        <>{job.salary_min.toLocaleString('de-DE', { minimumFractionDigits: job.salary_min % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€ - {job.salary_max.toLocaleString('de-DE', { minimumFractionDigits: job.salary_max % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€</>
+                      ) : (
+                        // Einzelwert wenn nur min oder max
+                        <>{(job.salary_min || job.salary_max).toLocaleString('de-DE', { minimumFractionDigits: (job.salary_min || job.salary_max) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}€</>
+                      )}
                       <span className="text-sm font-normal text-gray-500 block">
                         /{job.salary_type === 'hourly' ? 'Stunde' : job.salary_type === 'monthly' ? 'Monat' : 'Jahr'}
                       </span>
