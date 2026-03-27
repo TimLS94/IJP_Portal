@@ -29,7 +29,8 @@ class EmailLog(Base):
     __tablename__ = "email_logs"
     
     id = Column(Integer, primary_key=True, index=True)
-    email_type = Column(SQLEnum(EmailType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
+    # Verwende String statt ENUM für Flexibilität
+    email_type = Column(String(50), nullable=False, index=True)
     recipient_email = Column(String(255), nullable=False)
     subject = Column(String(500))
     success = Column(Integer, default=1)  # 1 = erfolgreich, 0 = fehlgeschlagen

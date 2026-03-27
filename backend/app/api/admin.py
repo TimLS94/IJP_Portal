@@ -160,7 +160,7 @@ async def get_email_stats(
     db: Session = Depends(get_db)
 ):
     """Holt E-Mail-Statistiken nach Typ für das Admin-Dashboard"""
-    from app.models.email_log import EmailLog, EmailType
+    from app.models.email_log import EmailLog
     
     period_start = datetime.utcnow() - timedelta(days=days)
     
@@ -205,9 +205,11 @@ async def get_email_stats(
         result["total_success"] += success
         result["total_failed"] += failed
         
+        # email_type ist jetzt ein String, nicht mehr ein Enum
+        type_str = email_type.lower() if email_type else "other"
         result["by_type"].append({
-            "type": email_type.value if email_type else "other",
-            "label": type_labels.get(email_type.value if email_type else "other", email_type.value if email_type else "Sonstige"),
+            "type": type_str,
+            "label": type_labels.get(type_str, type_str),
             "total": total,
             "success": success,
             "failed": failed
@@ -223,8 +225,8 @@ async def get_email_stats(
     
     result["recent"] = [
         {
-            "type": e.email_type.value if e.email_type else "other",
-            "label": type_labels.get(e.email_type.value if e.email_type else "other", "Sonstige"),
+            "type": (e.email_type.lower() if e.email_type else "other"),
+            "label": type_labels.get(e.email_type.lower() if e.email_type else "other", "Sonstige"),
             "recipient": e.recipient_email,
             "subject": e.subject,
             "success": e.success == 1,
@@ -243,7 +245,7 @@ async def get_cold_outreach_stats(
     db: Session = Depends(get_db)
 ):
     """Holt Kaltakquise-Statistiken pro Mitarbeiter für das Admin-Dashboard"""
-    from app.models.email_log import EmailLog, EmailType
+    from app.models.email_log import EmailLog
     
     period_start = datetime.utcnow() - timedelta(days=days)
     
@@ -252,7 +254,7 @@ async def get_cold_outreach_stats(
         func.count(EmailLog.id).label("total"),
         func.sum(EmailLog.success).label("success")
     ).filter(
-        EmailLog.email_type == EmailType.COLD_OUTREACH,
+        EmailLog.email_type == "cold_outreach",
         EmailLog.created_at >= period_start
     ).first()
     
@@ -268,7 +270,7 @@ async def get_cold_outreach_stats(
     ).join(
         User, EmailLog.sent_by_user_id == User.id, isouter=True
     ).filter(
-        EmailLog.email_type == EmailType.COLD_OUTREACH,
+        EmailLog.email_type == "cold_outreach",
         EmailLog.created_at >= period_start
     ).group_by(
         EmailLog.sent_by_user_id, User.email
@@ -281,7 +283,7 @@ async def get_cold_outreach_stats(
         func.date(EmailLog.created_at).label("date"),
         func.count(EmailLog.id).label("total")
     ).filter(
-        EmailLog.email_type == EmailType.COLD_OUTREACH,
+        EmailLog.email_type == "cold_outreach",
         EmailLog.created_at >= period_start
     ).group_by(
         func.date(EmailLog.created_at)

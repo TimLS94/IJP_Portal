@@ -227,7 +227,7 @@ async def send_sales_emails(
             
             # Logge die E-Mail für Statistiken
             email_log = EmailLog(
-                email_type=EmailType.COLD_OUTREACH,
+                email_type="cold_outreach",
                 recipient_email=email,
                 subject=data.subject,
                 success=1 if success else 0,
@@ -248,7 +248,7 @@ async def send_sales_emails(
             
             # Auch fehlgeschlagene E-Mails loggen
             email_log = EmailLog(
-                email_type=EmailType.COLD_OUTREACH,
+                email_type="cold_outreach",
                 recipient_email=email,
                 subject=data.subject,
                 success=0,
