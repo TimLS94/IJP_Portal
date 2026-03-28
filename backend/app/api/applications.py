@@ -222,6 +222,7 @@ async def create_application(
     
     # E-Mail an Firma über neue Bewerbung
     if company_user:
+        logger.info(f"Sende Bewerbungs-Benachrichtigung an Firma: {company_user.email}")
         email_service.send_new_application_notification(
             to_email=company_user.email,
             company_name=company.company_name,
@@ -232,6 +233,8 @@ async def create_application(
             position_type=job.position_type.value if job.position_type else None,
             applied_at=application.applied_at
         )
+    else:
+        logger.warning(f"Keine Firmen-E-Mail gesendet: company={company}, company_user={company_user}")
     
     return application
 

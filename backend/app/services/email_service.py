@@ -11,18 +11,13 @@ def log_email(email_type: str, recipient: str, subject: str, success: bool = Tru
     """Speichert E-Mail-Log für Statistiken"""
     try:
         from app.core.database import SessionLocal
-        from app.models.email_log import EmailLog, EmailType
+        from app.models.email_log import EmailLog
         
         db = SessionLocal()
         try:
-            # String zu Enum konvertieren
-            try:
-                email_type_enum = EmailType(email_type)
-            except ValueError:
-                email_type_enum = EmailType.OTHER
-            
+            # email_type ist jetzt ein String (nicht mehr Enum)
             log_entry = EmailLog(
-                email_type=email_type_enum,
+                email_type=email_type.lower() if email_type else "other",
                 recipient_email=recipient,
                 subject=subject[:500] if subject else None,
                 success=1 if success else 0

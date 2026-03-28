@@ -992,7 +992,7 @@ from pydantic import BaseModel
 from typing import Union
 
 class SettingUpdateRequest(BaseModel):
-    value: Union[bool, int, str]
+    value: Union[bool, int, str, list]
 
 @router.put("/settings/{key}")
 async def update_setting(
