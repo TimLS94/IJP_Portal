@@ -379,7 +379,7 @@ async def get_account_info(
                 "position_type": applicant.position_type.value if applicant.position_type else None
             }
     elif current_user.role == UserRole.COMPANY:
-        company = db.query(Company).filter(Company.user_id == current_user.id).first()
+        company = get_company_for_user(current_user, db)
         if company:
             info["profile"] = {
                 "company_name": company.company_name,
