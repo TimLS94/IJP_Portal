@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
 from pydantic import BaseModel, Field
 from typing import Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.core.database import get_db
 from app.core.security import (
@@ -73,7 +76,16 @@ async def login(
     
     user = db.query(User).filter(User.email == form_data.username).first()
     
-    if not user or not verify_password(form_data.password, user.password_hash):
+    if not user:
+        logger.warning(f"Login fehlgeschlagen: User nicht gefunden für E-Mail: {form_data.username}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Ungültige E-Mail oder Passwort",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if not verify_password(form_data.password, user.password_hash):
+        logger.warning(f"Login fehlgeschlagen: Falsches Passwort für User: {form_data.username} (User-ID: {user.id})")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige E-Mail oder Passwort",
