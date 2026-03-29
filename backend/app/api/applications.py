@@ -11,6 +11,7 @@ from app.core.security import get_current_user
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant, PositionType
 from app.models.company import Company
+from app.models.company_member import CompanyMember
 from app.models.job_posting import JobPosting
 from app.models.document import Document, DOCUMENT_REQUIREMENTS
 from app.models.application import Application, ApplicationDocument, ApplicationStatus, APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS
@@ -18,6 +19,20 @@ from app.schemas.application import ApplicationCreate, ApplicationUpdate, Applic
 from app.services.email_service import email_service
 
 router = APIRouter(prefix="/applications", tags=["Bewerbungen"])
+
+
+def get_company_for_user(user: User, db: Session) -> Company:
+    """Holt die Firma für einen User - funktioniert für Owner UND Teammitglieder"""
+    company = db.query(Company).filter(Company.user_id == user.id).first()
+    if company:
+        return company
+    membership = db.query(CompanyMember).filter(
+        CompanyMember.user_id == user.id,
+        CompanyMember.is_active == True
+    ).first()
+    if membership:
+        return membership.company
+    return None
 
 
 # ========== HELPER: Bewerbungsvoraussetzungen prüfen ==========
@@ -304,7 +319,7 @@ async def get_company_applications(
             detail="Nur Firmen können auf diesen Endpunkt zugreifen"
         )
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         return []
     
@@ -370,7 +385,7 @@ async def update_application(
             detail="Nur Firmen können Bewerbungen aktualisieren"
         )
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     
     application = db.query(Application).join(JobPosting).filter(
         Application.id == application_id,
@@ -458,7 +473,7 @@ async def get_applicant_details_for_company(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
     
@@ -578,7 +593,7 @@ async def get_application_match_score(
     if current_user.role != UserRole.COMPANY:
         return {"enabled": False, "message": "Matching nur für Firmen verfügbar"}
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
     
@@ -659,7 +674,7 @@ async def request_documents_from_applicant(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur Firmen können Unterlagen anfordern")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
     

@@ -9,10 +9,25 @@ from app.models.user import User, UserRole
 from app.models.applicant import Applicant
 from app.models.job_posting import JobPosting
 from app.models.company import Company
+from app.models.company_member import CompanyMember
 from app.models.application import Application
 from app.services.document_generator import DocumentGenerator
 
 router = APIRouter(prefix="/generate", tags=["Dokument-Generierung"])
+
+
+def get_company_for_user(user: User, db: Session) -> Company:
+    """Holt die Firma für einen User - funktioniert für Owner UND Teammitglieder"""
+    company = db.query(Company).filter(Company.user_id == user.id).first()
+    if company:
+        return company
+    membership = db.query(CompanyMember).filter(
+        CompanyMember.user_id == user.id,
+        CompanyMember.is_active == True
+    ).first()
+    if membership:
+        return membership.company
+    return None
 
 
 @router.get("/arbeitserlaubnis")
@@ -135,7 +150,7 @@ async def generate_stellenbescheinigung(
                 detail="Keine Berechtigung"
             )
     elif current_user.role == UserRole.COMPANY:
-        company = db.query(Company).filter(Company.user_id == current_user.id).first()
+        company = get_company_for_user(current_user, db)
         job_posting = db.query(JobPosting).filter(
             JobPosting.id == application.job_posting_id
         ).first()

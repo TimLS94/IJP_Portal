@@ -7,20 +7,32 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
 from app.models.company import Company, DEFAULT_REJECTION_SUBJECT, DEFAULT_REJECTION_TEXT
+from app.models.company_member import CompanyMember
 from app.schemas.company import CompanyCreate, CompanyUpdate, CompanyResponse
 
 router = APIRouter(prefix="/companies", tags=["Firmen"])
 
 
 def get_company_or_404(user: User, db: Session) -> Company:
-    """Holt das Firmen-Profil oder wirft 404"""
+    """Holt das Firmen-Profil oder wirft 404 - funktioniert für Owner UND Teammitglieder"""
+    # 1. Erst prüfen ob User direkt eine Company hat (Owner)
     company = db.query(Company).filter(Company.user_id == user.id).first()
-    if not company:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Firmen-Profil nicht gefunden"
-        )
-    return company
+    if company:
+        return company
+    
+    # 2. Prüfen ob User Teammitglied einer Company ist
+    membership = db.query(CompanyMember).filter(
+        CompanyMember.user_id == user.id,
+        CompanyMember.is_active == True
+    ).first()
+    
+    if membership:
+        return membership.company
+    
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Firmen-Profil nicht gefunden"
+    )
 
 
 @router.get("/me", response_model=CompanyResponse)

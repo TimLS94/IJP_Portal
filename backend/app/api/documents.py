@@ -9,6 +9,8 @@ from app.core.security import get_current_user
 from app.core.config import settings
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant, PositionType
+from app.models.company import Company
+from app.models.company_member import CompanyMember
 from app.models.document import Document, DocumentType, DOCUMENT_REQUIREMENTS
 from app.schemas.document import (
     DocumentResponse, 
@@ -20,6 +22,20 @@ from app.schemas.document import (
 from app.services.document_service import DocumentService
 
 router = APIRouter(prefix="/documents", tags=["Dokumente"])
+
+
+def get_company_for_user(user: User, db: Session) -> Company:
+    """Holt die Firma für einen User - funktioniert für Owner UND Teammitglieder"""
+    company = db.query(Company).filter(Company.user_id == user.id).first()
+    if company:
+        return company
+    membership = db.query(CompanyMember).filter(
+        CompanyMember.user_id == user.id,
+        CompanyMember.is_active == True
+    ).first()
+    if membership:
+        return membership.company
+    return None
 
 
 @router.get("/requirements/{position_type}", response_model=DocumentRequirementsResponse)
@@ -245,7 +261,7 @@ async def download_document(
             )
     elif current_user.role == UserRole.COMPANY:
         # Firma darf Dokumente herunterladen, wenn sie eine Bewerbung von diesem Bewerber hat
-        company = db.query(Company).filter(Company.user_id == current_user.id).first()
+        company = get_company_for_user(current_user, db)
         if not company:
             raise HTTPException(status_code=403, detail="Firmenprofil nicht gefunden")
         

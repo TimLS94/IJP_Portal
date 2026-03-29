@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
 from app.models.company import Company
+from app.models.company_member import CompanyMember
 from app.models.company_request import (
     CompanyRequest, CompanyRequestType, CompanyRequestStatus,
     COMPANY_REQUEST_STATUS_LABELS, COMPANY_REQUEST_STATUS_COLORS,
@@ -18,6 +19,20 @@ from app.models.company_request import (
 )
 
 router = APIRouter(prefix="/company-requests", tags=["Firmen-Aufträge"])
+
+
+def get_company_for_user(user: User, db: Session) -> Company:
+    """Holt die Firma für einen User - funktioniert für Owner UND Teammitglieder"""
+    company = db.query(Company).filter(Company.user_id == user.id).first()
+    if company:
+        return company
+    membership = db.query(CompanyMember).filter(
+        CompanyMember.user_id == user.id,
+        CompanyMember.is_active == True
+    ).first()
+    if membership:
+        return membership.company
+    return None
 
 
 # ==================== SCHEMAS ====================
@@ -168,7 +183,7 @@ async def get_my_requests(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
     
@@ -189,7 +204,7 @@ async def create_request(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
     
@@ -234,7 +249,7 @@ async def get_request(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
     
@@ -260,7 +275,7 @@ async def update_request(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
     
@@ -298,7 +313,7 @@ async def cancel_request(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
     
@@ -329,7 +344,7 @@ async def delete_request_permanent(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
     

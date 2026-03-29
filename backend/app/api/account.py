@@ -14,11 +14,26 @@ from app.models.user import User, UserRole
 from app.models.password_reset import PasswordResetToken
 from app.models.applicant import Applicant
 from app.models.company import Company
+from app.models.company_member import CompanyMember
 from app.models.application import Application
 from app.models.job_posting import JobPosting
 from app.models.document import Document
 
 router = APIRouter(prefix="/account", tags=["Account"])
+
+
+def get_company_for_user(user: User, db: Session) -> Company:
+    """Holt die Firma für einen User - funktioniert für Owner UND Teammitglieder"""
+    company = db.query(Company).filter(Company.user_id == user.id).first()
+    if company:
+        return company
+    membership = db.query(CompanyMember).filter(
+        CompanyMember.user_id == user.id,
+        CompanyMember.is_active == True
+    ).first()
+    if membership:
+        return membership.company
+    return None
 
 
 # ==================== SCHEMAS ====================
@@ -94,7 +109,7 @@ async def forgot_password(
         if applicant and applicant.first_name:
             user_name = applicant.first_name
     elif user.role == UserRole.COMPANY:
-        company = db.query(Company).filter(Company.user_id == user.id).first()
+        company = get_company_for_user(user, db)
         if company:
             user_name = company.company_name
     

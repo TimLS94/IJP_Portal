@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
 from app.models.company import Company
+from app.models.company_member import CompanyMember
 from app.models.job_posting import JobPosting, JobDeletionReason
 from app.models.applicant import PositionType
 from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPostingResponse, JobPostingListResponse
@@ -19,6 +20,25 @@ from app.services.google_indexing_service import google_indexing_service
 DEFAULT_MAX_DEADLINE_DAYS = 90
 
 router = APIRouter(prefix="/jobs", tags=["Stellenangebote"])
+
+
+def get_company_for_user(user: User, db: Session) -> Company:
+    """Holt die Firma für einen User - funktioniert für Owner UND Teammitglieder"""
+    # 1. Erst prüfen ob User direkt eine Company hat (Owner)
+    company = db.query(Company).filter(Company.user_id == user.id).first()
+    if company:
+        return company
+    
+    # 2. Prüfen ob User Teammitglied einer Company ist
+    membership = db.query(CompanyMember).filter(
+        CompanyMember.user_id == user.id,
+        CompanyMember.is_active == True
+    ).first()
+    
+    if membership:
+        return membership.company
+    
+    return None
 
 
 def get_max_deadline_days(db: Session) -> int:
@@ -275,7 +295,7 @@ async def get_job_templates(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmen-Profil nicht gefunden")
     
@@ -298,7 +318,7 @@ async def create_job_template(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(status_code=404, detail="Firmen-Profil nicht gefunden")
     
@@ -366,7 +386,7 @@ async def get_job_template(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     template = db.query(JobTemplate).filter(
         JobTemplate.id == template_id,
         JobTemplate.company_id == company.id
@@ -391,7 +411,7 @@ async def update_job_template(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     template = db.query(JobTemplate).filter(
         JobTemplate.id == template_id,
         JobTemplate.company_id == company.id
@@ -423,7 +443,7 @@ async def delete_job_template(
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     template = db.query(JobTemplate).filter(
         JobTemplate.id == template_id,
         JobTemplate.company_id == company.id
@@ -546,7 +566,7 @@ async def create_job(
             detail="Nur Firmen können Stellenangebote erstellen"
         )
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -620,7 +640,7 @@ async def update_job(
             detail="Nur Firmen können Stellenangebote bearbeiten"
         )
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     job = db.query(JobPosting).filter(
         JobPosting.id == job_id,
         JobPosting.company_id == company.id
@@ -674,7 +694,7 @@ async def delete_job(
             detail="Nur Firmen können Stellenangebote löschen"
         )
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     job = db.query(JobPosting).filter(
         JobPosting.id == job_id,
         JobPosting.company_id == company.id
@@ -758,7 +778,7 @@ async def reactivate_job(
             detail="Nur Firmen können Stellenangebote reaktivieren"
         )
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     job = db.query(JobPosting).filter(
         JobPosting.id == job_id,
         JobPosting.company_id == company.id
@@ -830,7 +850,7 @@ async def get_my_jobs(
             detail="Nur Firmen können auf diesen Endpunkt zugreifen"
         )
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -857,7 +877,7 @@ async def get_archived_jobs(
             detail="Nur Firmen können auf diesen Endpunkt zugreifen"
         )
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     if not company:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -895,7 +915,7 @@ async def delete_job_permanent(
             detail="Nur Firmen können Stellenangebote löschen"
         )
     
-    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    company = get_company_for_user(current_user, db)
     job = db.query(JobPosting).filter(
         JobPosting.id == job_id,
         JobPosting.company_id == company.id
