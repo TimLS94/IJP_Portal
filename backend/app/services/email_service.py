@@ -198,9 +198,9 @@ class EmailService:
         """Benachrichtigt die Firma über eine neue Bewerbung"""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
         except:
-            frontend_url = 'https://ijp-portal.vercel.app'
+            frontend_url = 'https://www.jobon.work'
         
         # Position Type Label
         position_labels = {
@@ -328,7 +328,7 @@ class EmailService:
     
     @_safe_email_call
     def send_company_activated(
-        self, to_email: str, company_name: str, frontend_url: str = "https://ijp-portal.vercel.app"
+        self, to_email: str, company_name: str, frontend_url: str = "https://www.jobon.work"
     ) -> bool:
         """Benachrichtigt die Firma über Aktivierung"""
         subject = "IJP Portal - Konto freigeschaltet! 🎉"
@@ -510,9 +510,9 @@ class EmailService:
         """Benachrichtigt den Bewerber über Terminvorschläge"""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
         except:
-            frontend_url = 'https://ijp-portal.vercel.app'
+            frontend_url = 'https://www.jobon.work'
         
         date_options = f"""
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #8b5cf6;">
@@ -581,9 +581,9 @@ class EmailService:
         """Benachrichtigt die Firma über die Terminbestätigung"""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
         except:
-            frontend_url = 'https://ijp-portal.vercel.app'
+            frontend_url = 'https://www.jobon.work'
         
         location_info = ""
         if location:
@@ -645,9 +645,9 @@ class EmailService:
         """
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
         except:
-            frontend_url = 'https://ijp-portal.vercel.app'
+            frontend_url = 'https://www.jobon.work'
         
         # Status-Sektion
         status_section = ""
@@ -737,9 +737,9 @@ class EmailService:
         """Benachrichtigt die Firma, dass der Bewerber die Termine abgelehnt hat"""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
         except:
-            frontend_url = 'https://ijp-portal.vercel.app'
+            frontend_url = 'https://www.jobon.work'
         
         reason_section = ""
         if reason:
@@ -793,9 +793,9 @@ class EmailService:
         """Benachrichtigt über eine Terminabsage"""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
         except:
-            frontend_url = 'https://ijp-portal.vercel.app'
+            frontend_url = 'https://www.jobon.work'
         
         if cancelled_by == "company":
             who_cancelled = "Das Unternehmen"
@@ -858,9 +858,9 @@ class EmailService:
         """Sendet Passwort-Reset-Link (async für account.py)"""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://ijp-portal.vercel.app')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
         except:
-            frontend_url = 'https://ijp-portal.vercel.app'
+            frontend_url = 'https://www.jobon.work'
         
         reset_link = f"{frontend_url}/reset-password?token={reset_token}"
         greeting = f"Hallo {user_name}," if user_name else "Hallo,"

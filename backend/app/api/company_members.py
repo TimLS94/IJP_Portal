@@ -231,7 +231,7 @@ async def add_member(
                 </p>
                 
                 <p style="text-align: center; margin: 30px 0;">
-                    <a href="https://ijp-portal.vercel.app/login" 
+                    <a href="https://www.jobon.work/login" 
                        style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
                         Jetzt anmelden
                     </a>

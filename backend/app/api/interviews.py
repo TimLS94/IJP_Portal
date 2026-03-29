@@ -21,9 +21,25 @@ from app.core.security import get_current_user
 from app.core.rate_limiter import check_rate_limit
 from app.models import User, Application, Interview, InterviewStatus
 from app.models.application import ApplicationStatus
+from app.models.company import Company
+from app.models.company_member import CompanyMember
 from app.services.email_service import email_service
 
 router = APIRouter(prefix="/interviews", tags=["interviews"])
+
+
+def get_company_for_user(user: User, db: Session) -> Company:
+    """Holt die Firma für einen User - funktioniert für Owner UND Teammitglieder"""
+    company = db.query(Company).filter(Company.user_id == user.id).first()
+    if company:
+        return company
+    membership = db.query(CompanyMember).filter(
+        CompanyMember.user_id == user.id,
+        CompanyMember.is_active == True
+    ).first()
+    if membership:
+        return membership.company
+    return None
 
 
 # === Pydantic Schemas ===
@@ -135,7 +151,8 @@ async def propose_interview(
     
     # Prüfe ob Firma zur Bewerbung gehört (außer Admin)
     if current_user.role == "company":
-        if not application.job_posting or application.job_posting.company_id != current_user.company.id:
+        company = get_company_for_user(current_user, db)
+        if not company or not application.job_posting or application.job_posting.company_id != company.id:
             raise HTTPException(status_code=403, detail="Keine Berechtigung für diese Bewerbung")
     
     # Alle bestehenden bestätigten/vorgeschlagenen Termine auf CANCELLED setzen
@@ -367,7 +384,8 @@ async def cancel_interview(
         if not application.applicant or application.applicant.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Keine Berechtigung")
     elif is_company:
-        if not application.job_posting or application.job_posting.company_id != current_user.company.id:
+        company = get_company_for_user(current_user, db)
+        if not company or not application.job_posting or application.job_posting.company_id != company.id:
             raise HTTPException(status_code=403, detail="Keine Berechtigung")
     elif not is_admin:
         raise HTTPException(status_code=403, detail="Keine Berechtigung")
@@ -464,7 +482,8 @@ async def send_update_email(
     
     # Berechtigungsprüfung für Firma
     if current_user.role == "company":
-        if not application.job_posting or application.job_posting.company_id != current_user.company.id:
+        company = get_company_for_user(current_user, db)
+        if not company or not application.job_posting or application.job_posting.company_id != company.id:
             raise HTTPException(status_code=403, detail="Keine Berechtigung für diese Bewerbung")
     
     applicant = application.applicant
@@ -508,7 +527,8 @@ async def get_interviews_for_application(
         if not application.applicant or application.applicant.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Keine Berechtigung")
     elif current_user.role == "company":
-        if not application.job_posting or application.job_posting.company_id != current_user.company.id:
+        company = get_company_for_user(current_user, db)
+        if not company or not application.job_posting or application.job_posting.company_id != company.id:
             raise HTTPException(status_code=403, detail="Keine Berechtigung")
     # Admin hat immer Zugriff
     
@@ -539,11 +559,14 @@ async def get_pending_interviews(
     elif current_user.role == "company":
         # Firma: Hole alle offenen Interviews für eigene Stellen
         from app.models import JobPosting
+        company = get_company_for_user(current_user, db)
+        if not company:
+            return []
         interviews = db.query(Interview).join(Application).join(
             Application.job_posting
         ).filter(
             and_(
-                JobPosting.company_id == current_user.company.id,
+                JobPosting.company_id == company.id,
                 Interview.status.in_([InterviewStatus.PROPOSED, InterviewStatus.DECLINED])
             )
         ).all()
@@ -628,7 +651,8 @@ async def download_interview_ics(
     job = application.job_posting
     
     # Firma oder Bewerber darf zugreifen
-    is_company = hasattr(current_user, 'company') and current_user.company and job.company_id == current_user.company.id
+    company = get_company_for_user(current_user, db)
+    is_company = company and job.company_id == company.id
     is_applicant = hasattr(current_user, 'applicant') and current_user.applicant and application.applicant_id == current_user.applicant.id
     is_admin = current_user.role.value == 'admin'
     
@@ -675,7 +699,8 @@ async def get_company_calendar(
     from app.models.company import Company
     from app.models.applicant import Applicant
     
-    if not hasattr(current_user, 'company') or not current_user.company:
+    company = get_company_for_user(current_user, db)
+    if not company:
         raise HTTPException(status_code=403, detail="Nur für Firmen")
     
     # Alle Interviews der Firma laden (inkl. abgelehnte/abgesagte für Historie)
@@ -684,7 +709,7 @@ async def get_company_calendar(
     ).join(
         JobPosting, Application.job_posting_id == JobPosting.id
     ).filter(
-        JobPosting.company_id == current_user.company.id,
+        JobPosting.company_id == company.id,
         Interview.status.in_([
             InterviewStatus.PROPOSED,
             InterviewStatus.CONFIRMED,
