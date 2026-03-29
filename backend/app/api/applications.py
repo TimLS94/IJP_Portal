@@ -211,28 +211,35 @@ async def create_application(
     company = db.query(Company).filter(Company.id == job.company_id).first()
     company_user = db.query(User).filter(User.id == company.user_id).first() if company else None
     
-    # E-Mail an Bewerber
+    # E-Mails senden (Fehler dürfen Bewerbung nicht beeinflussen)
     user = db.query(User).filter(User.id == current_user.id).first()
-    email_service.send_application_received(
-        to_email=user.email,
-        applicant_name=f"{applicant.first_name} {applicant.last_name}",
-        job_title=job.title,
-        company_name=company.company_name if company else "Unbekannt"
-    )
+    
+    try:
+        email_service.send_application_received(
+            to_email=user.email,
+            applicant_name=f"{applicant.first_name} {applicant.last_name}",
+            job_title=job.title,
+            company_name=company.company_name if company else "Unbekannt"
+        )
+    except Exception as e:
+        logger.error(f"Fehler beim Senden der Bewerber-E-Mail: {e}")
     
     # E-Mail an Firma über neue Bewerbung
     if company_user:
-        logger.info(f"Sende Bewerbungs-Benachrichtigung an Firma: {company_user.email}")
-        email_service.send_new_application_notification(
-            to_email=company_user.email,
-            company_name=company.company_name,
-            applicant_name=f"{applicant.first_name} {applicant.last_name}",
-            job_title=job.title,
-            applicant_email=user.email,
-            applicant_phone=applicant.phone,
-            position_type=job.position_type.value if job.position_type else None,
-            applied_at=application.applied_at
-        )
+        try:
+            logger.info(f"Sende Bewerbungs-Benachrichtigung an Firma: {company_user.email}")
+            email_service.send_new_application_notification(
+                to_email=company_user.email,
+                company_name=company.company_name,
+                applicant_name=f"{applicant.first_name} {applicant.last_name}",
+                job_title=job.title,
+                applicant_email=user.email,
+                applicant_phone=applicant.phone,
+                position_type=job.position_type.value if job.position_type else None,
+                applied_at=application.applied_at
+            )
+        except Exception as e:
+            logger.error(f"Fehler beim Senden der Firmen-E-Mail: {e}")
     else:
         logger.warning(f"Keine Firmen-E-Mail gesendet: company={company}, company_user={company_user}")
     

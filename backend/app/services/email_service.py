@@ -100,7 +100,10 @@ class EmailService:
         # Debug-Modus: Nur loggen
         if self.debug:
             logger.info(f"[DEBUG-EMAIL] Von: {sender_email} | An: {to_email} | Betreff: {subject}")
-            log_email(email_type, to_email, subject, True)
+            try:
+                log_email(email_type, to_email, subject, True)
+            except Exception as e:
+                logger.warning(f"E-Mail-Log fehlgeschlagen: {e}")
             return True
         
         # SendGrid nicht konfiguriert
@@ -127,11 +130,17 @@ class EmailService:
         
         if response.status_code in [200, 201, 202]:
             logger.info(f"✅ E-Mail gesendet an {to_email} (Status: {response.status_code})")
-            log_email(email_type, to_email, subject, True)
+            try:
+                log_email(email_type, to_email, subject, True)
+            except Exception as e:
+                logger.warning(f"E-Mail-Log fehlgeschlagen: {e}")
             return True
         else:
             logger.error(f"❌ E-Mail fehlgeschlagen: {response.status_code} - {response.body}")
-            log_email(email_type, to_email, subject, False)
+            try:
+                log_email(email_type, to_email, subject, False)
+            except Exception as e:
+                logger.warning(f"E-Mail-Log fehlgeschlagen: {e}")
             return False
     
     @_safe_email_call
