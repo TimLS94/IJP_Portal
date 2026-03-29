@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from pydantic import BaseModel
+import logging
 
 from app.core.database import get_db
+
+logger = logging.getLogger(__name__)
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant, PositionType
