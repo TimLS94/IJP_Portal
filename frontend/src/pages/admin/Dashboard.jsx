@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import { 
   Shield, Users, Briefcase, FileText, TrendingUp,
   UserCheck, Building2, Clock, BookOpen, ClipboardList,
-  Archive, CheckCircle, AlertTriangle, FileX, Mail, Send
+  Archive, CheckCircle, AlertTriangle, FileX, Mail, Send,
+  Calendar, LogIn, UserPlus, BarChart3
 } from 'lucide-react';
 
 const positionTypeLabels = {
@@ -22,6 +23,8 @@ function AdminDashboard() {
   const [coldOutreachStats, setColdOutreachStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [periodDays, setPeriodDays] = useState(7);
+  const [customRange, setCustomRange] = useState({ from: '', to: '' });
+  const [showCustomRange, setShowCustomRange] = useState(false);
 
   useEffect(() => {
     loadStats(periodDays);
@@ -45,6 +48,32 @@ function AdminDashboard() {
     }
   };
 
+  const handleCustomRangeApply = () => {
+    if (customRange.from && customRange.to) {
+      const fromDate = new Date(customRange.from);
+      const toDate = new Date(customRange.to);
+      const diffDays = Math.ceil((toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1;
+      if (diffDays > 0 && diffDays <= 365) {
+        setPeriodDays(diffDays);
+        setShowCustomRange(false);
+      } else {
+        toast.error('Ungültiger Zeitraum (max. 365 Tage)');
+      }
+    }
+  };
+
+  const getPeriodLabel = () => {
+    switch(periodDays) {
+      case 1: return 'Heute';
+      case 7: return 'Letzte 7 Tage';
+      case 14: return 'Letzte 14 Tage';
+      case 30: return 'Letzte 30 Tage';
+      case 90: return 'Letzte 90 Tage';
+      case 365: return 'Letztes Jahr';
+      default: return `Letzte ${periodDays} Tage`;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -57,27 +86,18 @@ function AdminDashboard() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <Shield className="h-8 w-8 text-primary-600" />
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        </div>
-        
-        {/* Zeitraum-Filter */}
-        <div className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-gray-500" />
-          <select
-            value={periodDays}
-            onChange={(e) => setPeriodDays(Number(e.target.value))}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          >
-            <option value={1}>Heute</option>
-            <option value={7}>Letzte 7 Tage</option>
-            <option value={14}>Letzte 14 Tage</option>
-            <option value={30}>Letzte 30 Tage</option>
-            <option value={90}>Letzte 90 Tage</option>
-            <option value={365}>Letztes Jahr</option>
-          </select>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-8">
+        <Shield className="h-8 w-8 text-primary-600" />
+        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+      </div>
+
+      {/* ==================== STATISCHE STATISTIKEN (Gesamtzahlen) ==================== */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-gray-500" />
+          <h2 className="text-lg font-semibold text-gray-700">Gesamtübersicht</h2>
+          <span className="text-sm text-gray-400">(alle Zeiten)</span>
         </div>
       </div>
 
@@ -285,41 +305,9 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* Aktive Logins */}
-      <div className="card mb-8 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="bg-blue-500 p-2 rounded-lg">
-            <Users className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Aktive Logins</h2>
-            <p className="text-sm text-gray-600">Benutzer, die sich eingeloggt haben</p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <p className="text-3xl font-bold text-blue-600">{stats.users.logins_today || 0}</p>
-            <p className="text-sm text-gray-600">Heute</p>
-          </div>
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <p className="text-3xl font-bold text-blue-600">{stats.users.logins_this_week || 0}</p>
-            <p className="text-sm text-gray-600">Diese Woche</p>
-          </div>
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <p className="text-3xl font-bold text-blue-600">{stats.users.logins_this_month || 0}</p>
-            <p className="text-sm text-gray-600">Diesen Monat</p>
-          </div>
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <p className="text-3xl font-bold text-blue-600">{stats.users.logins_in_period || 0}</p>
-            <p className="text-sm text-gray-600">Letzte {stats.period_days} Tage</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Bewerbungsstatus */}
+      {/* Bewerbungsstatus (statisch - Gesamtzahlen) */}
       <div className="card mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Bewerbungsstatus</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Bewerbungsstatus (Gesamt)</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-yellow-50 rounded-lg">
             <p className="text-3xl font-bold text-yellow-600">{stats.applications.pending}</p>
@@ -333,9 +321,188 @@ function AdminDashboard() {
             <p className="text-3xl font-bold text-red-600">{stats.applications.rejected}</p>
             <p className="text-sm text-gray-600">Abgelehnt</p>
           </div>
-          <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <p className="text-3xl font-bold text-blue-600">{stats.applications.new_this_week || 0}</p>
-            <p className="text-sm text-gray-600">Diese Woche</p>
+          <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <p className="text-3xl font-bold text-purple-600">{stats.applications.in_review || 0}</p>
+            <p className="text-sm text-gray-600">In Prüfung</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ==================== ZEITBASIERTE AUSWERTUNGEN ==================== */}
+      <div className="mb-6 mt-12">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-500 p-2 rounded-lg">
+              <Calendar className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Zeitbasierte Auswertungen</h2>
+              <p className="text-sm text-gray-600">Aktivitäten im gewählten Zeitraum</p>
+            </div>
+          </div>
+          
+          {/* Zeitraum-Auswahl */}
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { value: 1, label: 'Heute' },
+              { value: 7, label: '7 Tage' },
+              { value: 14, label: '14 Tage' },
+              { value: 30, label: '30 Tage' },
+              { value: 90, label: '90 Tage' },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => { setPeriodDays(value); setShowCustomRange(false); }}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  periodDays === value && !showCustomRange
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-white text-gray-700 hover:bg-indigo-100 border border-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+            <button
+              onClick={() => setShowCustomRange(!showCustomRange)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${
+                showCustomRange
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-white text-gray-700 hover:bg-indigo-100 border border-gray-200'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              Zeitraum
+            </button>
+          </div>
+        </div>
+        
+        {/* Benutzerdefinierter Zeitraum */}
+        {showCustomRange && (
+          <div className="mt-3 p-4 bg-white rounded-lg border border-indigo-200 shadow-sm">
+            <div className="flex flex-wrap items-end gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Von</label>
+                <input
+                  type="date"
+                  value={customRange.from}
+                  onChange={(e) => setCustomRange({ ...customRange, from: e.target.value })}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bis</label>
+                <input
+                  type="date"
+                  value={customRange.to}
+                  onChange={(e) => setCustomRange({ ...customRange, to: e.target.value })}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              <button
+                onClick={handleCustomRangeApply}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+              >
+                Anwenden
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Zeitraum-Anzeige */}
+      <div className="text-center mb-6">
+        <span className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
+          <Clock className="h-4 w-4" />
+          Zeitraum: {getPeriodLabel()}
+        </span>
+      </div>
+
+      {/* Zeitbasierte Statistiken Grid */}
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
+        {/* Aktive Logins */}
+        <div className="card border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-blue-500 p-2 rounded-lg">
+              <LogIn className="h-5 w-5 text-white" />
+            </div>
+            <h3 className="font-semibold text-gray-900">Aktive Logins</h3>
+          </div>
+          <p className="text-4xl font-bold text-blue-600 mb-1">{stats.users.logins_in_period || 0}</p>
+          <p className="text-sm text-gray-600">Benutzer eingeloggt</p>
+        </div>
+
+        {/* Neue Bewerbungen */}
+        <div className="card border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-purple-500 p-2 rounded-lg">
+              <FileText className="h-5 w-5 text-white" />
+            </div>
+            <h3 className="font-semibold text-gray-900">Neue Bewerbungen</h3>
+          </div>
+          <p className="text-4xl font-bold text-purple-600 mb-1">{stats.applications.new_in_period || 0}</p>
+          <p className="text-sm text-gray-600">eingegangen</p>
+        </div>
+
+        {/* Neue Registrierungen */}
+        <div className="card border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-green-500 p-2 rounded-lg">
+              <UserPlus className="h-5 w-5 text-white" />
+            </div>
+            <h3 className="font-semibold text-gray-900">Neue Registrierungen</h3>
+          </div>
+          <p className="text-4xl font-bold text-green-600 mb-1">{stats.users.new_in_period || 0}</p>
+          <p className="text-sm text-gray-600">neue Benutzer</p>
+        </div>
+      </div>
+
+      {/* Detaillierte zeitbasierte Statistiken */}
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
+        {/* Login-Details */}
+        <div className="card">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <LogIn className="h-5 w-5 text-blue-600" />
+            Login-Übersicht
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-gray-600">Heute</span>
+              <span className="font-bold text-blue-600">{stats.users.logins_today || 0}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-gray-600">Diese Woche</span>
+              <span className="font-bold text-blue-600">{stats.users.logins_this_week || 0}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-gray-600">Diesen Monat</span>
+              <span className="font-bold text-blue-600">{stats.users.logins_this_month || 0}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+              <span className="text-indigo-700 font-medium">{getPeriodLabel()}</span>
+              <span className="font-bold text-indigo-600">{stats.users.logins_in_period || 0}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bewerbungen im Zeitraum */}
+        <div className="card">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-purple-600" />
+            Bewerbungen im Zeitraum
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-gray-600">Neue Bewerbungen</span>
+              <span className="font-bold text-purple-600">{stats.applications.new_in_period || 0}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-gray-600">Angenommen</span>
+              <span className="font-bold text-green-600">{stats.applications.accepted_in_period || 0}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-gray-600">Diese Woche (neu)</span>
+              <span className="font-bold text-blue-600">{stats.applications.new_this_week || 0}</span>
+            </div>
           </div>
         </div>
       </div>
