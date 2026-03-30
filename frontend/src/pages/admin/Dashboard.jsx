@@ -22,16 +22,21 @@ function AdminDashboard() {
   const [emailStats, setEmailStats] = useState(null);
   const [coldOutreachStats, setColdOutreachStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [periodDays, setPeriodDays] = useState(7);
   const [customRange, setCustomRange] = useState({ from: '', to: '' });
   const [showCustomRange, setShowCustomRange] = useState(false);
 
   useEffect(() => {
-    loadStats(periodDays);
+    loadStats(periodDays, !stats);
   }, [periodDays]);
 
-  const loadStats = async (days) => {
-    setLoading(true);
+  const loadStats = async (days, isInitial = false) => {
+    if (isInitial) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     try {
       const [statsRes, emailRes, coldOutreachRes] = await Promise.all([
         adminAPI.getStats(days),
@@ -45,6 +50,7 @@ function AdminDashboard() {
       toast.error('Fehler beim Laden der Statistiken');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -353,15 +359,19 @@ function AdminDashboard() {
               <button
                 key={value}
                 onClick={() => { setPeriodDays(value); setShowCustomRange(false); }}
+                disabled={refreshing}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   periodDays === value && !showCustomRange
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'bg-white text-gray-700 hover:bg-indigo-100 border border-gray-200'
-                }`}
+                } ${refreshing ? 'opacity-50 cursor-wait' : ''}`}
               >
                 {label}
               </button>
             ))}
+            {refreshing && (
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-indigo-600 border-t-transparent"></div>
+            )}
             <button
               onClick={() => setShowCustomRange(!showCustomRange)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${
