@@ -49,7 +49,20 @@ async def get_dashboard_stats(
             "companies": db.query(User).filter(User.role == UserRole.COMPANY).count(),
             "active": db.query(User).filter(User.is_active == True).count(),
             "inactive": db.query(User).filter(User.is_active == False).count(),
-            "new_in_period": db.query(User).filter(User.created_at >= period_start).count()
+            "new_in_period": db.query(User).filter(User.created_at >= period_start).count(),
+            "logins_in_period": db.query(User).filter(
+                User.last_login_at >= period_start,
+                User.last_login_at != None
+            ).count(),
+            "logins_today": db.query(User).filter(
+                User.last_login_at >= datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            ).count(),
+            "logins_this_week": db.query(User).filter(
+                User.last_login_at >= datetime.utcnow() - timedelta(days=7)
+            ).count(),
+            "logins_this_month": db.query(User).filter(
+                User.last_login_at >= datetime.utcnow() - timedelta(days=30)
+            ).count()
         },
         "jobs": {
             "total": db.query(JobPosting).count(),
@@ -72,6 +85,9 @@ async def get_dashboard_stats(
             "in_review": db.query(Application).filter(Application.status == ApplicationStatus.COMPANY_REVIEW).count(),
             "interview": db.query(Application).filter(Application.status == ApplicationStatus.INTERVIEW_SCHEDULED).count(),
             "new_in_period": db.query(Application).filter(Application.applied_at >= period_start).count(),
+            "new_this_week": db.query(Application).filter(
+                Application.applied_at >= datetime.utcnow() - timedelta(days=7)
+            ).count(),
             "accepted_in_period": db.query(Application).filter(
                 Application.status == ApplicationStatus.ACCEPTED,
                 Application.updated_at >= period_start

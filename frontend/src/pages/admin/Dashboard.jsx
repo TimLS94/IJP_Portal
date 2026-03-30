@@ -21,18 +21,19 @@ function AdminDashboard() {
   const [emailStats, setEmailStats] = useState(null);
   const [coldOutreachStats, setColdOutreachStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [periodDays, setPeriodDays] = useState(7);
 
   useEffect(() => {
-    loadStats();
-  }, []);
+    loadStats(periodDays);
+  }, [periodDays]);
 
-  const loadStats = async () => {
+  const loadStats = async (days) => {
     setLoading(true);
     try {
       const [statsRes, emailRes, coldOutreachRes] = await Promise.all([
-        adminAPI.getStats(),
-        adminAPI.getEmailStats().catch(() => ({ data: null })),
-        adminAPI.getColdOutreachStats().catch(() => ({ data: null }))
+        adminAPI.getStats(days),
+        adminAPI.getEmailStats(days).catch(() => ({ data: null })),
+        adminAPI.getColdOutreachStats(days).catch(() => ({ data: null }))
       ]);
       setStats(statsRes.data);
       setEmailStats(emailRes.data);
@@ -56,9 +57,28 @@ function AdminDashboard() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-8">
-        <Shield className="h-8 w-8 text-primary-600" />
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <Shield className="h-8 w-8 text-primary-600" />
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        </div>
+        
+        {/* Zeitraum-Filter */}
+        <div className="flex items-center gap-2">
+          <Clock className="h-5 w-5 text-gray-500" />
+          <select
+            value={periodDays}
+            onChange={(e) => setPeriodDays(Number(e.target.value))}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value={1}>Heute</option>
+            <option value={7}>Letzte 7 Tage</option>
+            <option value={14}>Letzte 14 Tage</option>
+            <option value={30}>Letzte 30 Tage</option>
+            <option value={90}>Letzte 90 Tage</option>
+            <option value={365}>Letztes Jahr</option>
+          </select>
+        </div>
       </div>
 
       {/* Hauptstatistiken */}
@@ -106,13 +126,13 @@ function AdminDashboard() {
               <TrendingUp className="h-6 w-6 text-orange-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Erfolgsrate</p>
+              <p className="text-sm text-gray-600">Vermittlungen</p>
               <p className="text-2xl font-bold text-gray-900">
-                {stats.applications.total > 0 
-                  ? Math.round((stats.applications.accepted / stats.applications.total) * 100) 
-                  : 0}%
+                {stats.success_rate?.total_successes || 0}
               </p>
-              <p className="text-xs text-green-600">{stats.applications.accepted} angenommen</p>
+              <p className="text-xs text-green-600">
+                {stats.success_rate?.success_percentage || 0}% Erfolgsquote
+              </p>
             </div>
           </div>
         </div>
@@ -265,6 +285,38 @@ function AdminDashboard() {
         </div>
       </div>
 
+      {/* Aktive Logins */}
+      <div className="card mb-8 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="bg-blue-500 p-2 rounded-lg">
+            <Users className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Aktive Logins</h2>
+            <p className="text-sm text-gray-600">Benutzer, die sich eingeloggt haben</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+            <p className="text-3xl font-bold text-blue-600">{stats.users.logins_today || 0}</p>
+            <p className="text-sm text-gray-600">Heute</p>
+          </div>
+          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+            <p className="text-3xl font-bold text-blue-600">{stats.users.logins_this_week || 0}</p>
+            <p className="text-sm text-gray-600">Diese Woche</p>
+          </div>
+          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+            <p className="text-3xl font-bold text-blue-600">{stats.users.logins_this_month || 0}</p>
+            <p className="text-sm text-gray-600">Diesen Monat</p>
+          </div>
+          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+            <p className="text-3xl font-bold text-blue-600">{stats.users.logins_in_period || 0}</p>
+            <p className="text-sm text-gray-600">Letzte {stats.period_days} Tage</p>
+          </div>
+        </div>
+      </div>
+
       {/* Bewerbungsstatus */}
       <div className="card mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Bewerbungsstatus</h2>
@@ -282,7 +334,7 @@ function AdminDashboard() {
             <p className="text-sm text-gray-600">Abgelehnt</p>
           </div>
           <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <p className="text-3xl font-bold text-blue-600">+{stats.applications.new_this_week}</p>
+            <p className="text-3xl font-bold text-blue-600">{stats.applications.new_this_week || 0}</p>
             <p className="text-sm text-gray-600">Diese Woche</p>
           </div>
         </div>
