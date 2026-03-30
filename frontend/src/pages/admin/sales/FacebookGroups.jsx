@@ -1,189 +1,222 @@
 import { useState, useEffect } from 'react';
+import { adminAPI } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import {
-  Facebook, Plus, ExternalLink, Copy, Trash2, Edit2, Save, X,
-  Users, Globe, Lock, Star, CheckCircle, Loader2, FileText,
-  Sparkles, ClipboardCopy, Eye
+  Facebook, Plus, ExternalLink, Trash2, Edit2, X,
+  Users, Globe, Star, Loader2, FileText,
+  Sparkles, ClipboardCopy, Eye, Heart, Clock,
+  Save, History, PenLine, BarChart3
 } from 'lucide-react';
 
-// Lokaler Storage für Gruppen und Vorlagen
-const STORAGE_KEY_GROUPS = 'fb_groups';
-const STORAGE_KEY_TEMPLATES = 'fb_templates';
-
-const defaultTemplates = [
-  {
-    id: 'job-general',
-    name: 'Allgemeine Stellenanzeige',
-    content: `🔥 JOBCHANCE: {job_title}
-
-📍 Standort: {location}
-💼 Typ: {job_type}
-💰 Gehalt: {salary}
-
-{description}
-
-✅ Jetzt bewerben: {link}
-
-#Job #Arbeit #Stellenangebot #JobOn`
-  },
-  {
-    id: 'seasonal',
-    name: 'Saisonjob / Ferienjob',
-    content: `☀️ SAISONJOB VERFÜGBAR!
-
-🏨 {company_name} sucht:
-👉 {job_title}
-
-📍 {location}
-📅 Zeitraum: {period}
-💰 {salary}
-
-Perfekt für Studenten und Saisonarbeiter!
-
-🔗 Mehr Infos: {link}
-
-#Saisonjob #Ferienjob #Studentenjob #Arbeit`
-  },
-  {
-    id: 'fachkraft',
-    name: 'Fachkräfte',
-    content: `🎯 FACHKRAFT GESUCHT
-
-{company_name} sucht qualifizierte Mitarbeiter:
-
-📌 Position: {job_title}
-📍 Ort: {location}
-💼 Vollzeit/Teilzeit: {job_type}
-
-Anforderungen:
-{requirements}
-
-Wir bieten:
-{benefits}
-
-👉 Jetzt bewerben: {link}
-
-#Fachkraft #Karriere #Job #Deutschland`
-  }
-];
-
 function FacebookGroups() {
-  // State
+  // Loading States
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Data States
   const [groups, setGroups] = useState([]);
-  const [templates, setTemplates] = useState(defaultTemplates);
+  const [templates, setTemplates] = useState([]);
+  const [savedPosts, setSavedPosts] = useState([]);
+  const [stats, setStats] = useState(null);
+
+  // UI States
+  const [activeTab, setActiveTab] = useState('compose'); // 'compose', 'saved', 'groups', 'templates'
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [showAddTemplate, setShowAddTemplate] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
   const [editingTemplate, setEditingTemplate] = useState(null);
-  
-  // Neuer Gruppen-Form State
-  const [newGroup, setNewGroup] = useState({
-    name: '',
-    url: '',
-    type: 'external', // 'own' oder 'external'
-    members: '',
-    notes: ''
-  });
 
-  // Neuer Template-Form State
-  const [newTemplate, setNewTemplate] = useState({
-    name: '',
-    content: ''
-  });
-
-  // Post Generator State
+  // Compose States
+  const [composeMode, setComposeMode] = useState('freetext'); // 'freetext' oder 'template'
+  const [freeText, setFreeText] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [postVariables, setPostVariables] = useState({});
   const [generatedPost, setGeneratedPost] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
+  const [postTitle, setPostTitle] = useState('');
 
-  // Load from localStorage
+  // Form States
+  const [newGroup, setNewGroup] = useState({
+    name: '', url: '', type: 'external', members: 0, notes: ''
+  });
+  const [newTemplate, setNewTemplate] = useState({
+    name: '', content: '', category: ''
+  });
+
+  // Load Data
   useEffect(() => {
-    const savedGroups = localStorage.getItem(STORAGE_KEY_GROUPS);
-    const savedTemplates = localStorage.getItem(STORAGE_KEY_TEMPLATES);
-    
-    if (savedGroups) {
-      setGroups(JSON.parse(savedGroups));
-    }
-    if (savedTemplates) {
-      setTemplates(JSON.parse(savedTemplates));
-    }
+    loadData();
   }, []);
 
-  // Save to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_GROUPS, JSON.stringify(groups));
-  }, [groups]);
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [groupsRes, templatesRes, postsRes, statsRes] = await Promise.all([
+        adminAPI.getFacebookGroups(),
+        adminAPI.getFacebookTemplates(),
+        adminAPI.getFacebookPosts(),
+        adminAPI.getFacebookStats()
+      ]);
+      setGroups(groupsRes.data);
+      setTemplates(templatesRes.data);
+      setSavedPosts(postsRes.data);
+      setStats(statsRes.data);
+    } catch (error) {
+      console.error('Fehler beim Laden:', error);
+      // Fallback auf leere Arrays wenn Backend noch nicht bereit
+      setGroups([]);
+      setTemplates([]);
+      setSavedPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_TEMPLATES, JSON.stringify(templates));
-  }, [templates]);
-
-  // Gruppen-Funktionen
-  const addGroup = () => {
+  // ============ Groups ============
+  const addGroup = async () => {
     if (!newGroup.name || !newGroup.url) {
       toast.error('Name und URL sind erforderlich');
       return;
     }
-
-    const group = {
-      id: Date.now().toString(),
-      ...newGroup,
-      members: parseInt(newGroup.members) || 0,
-      createdAt: new Date().toISOString()
-    };
-
-    setGroups([...groups, group]);
-    setNewGroup({ name: '', url: '', type: 'external', members: '', notes: '' });
-    setShowAddGroup(false);
-    toast.success('Gruppe hinzugefügt');
-  };
-
-  const updateGroup = (id, updates) => {
-    setGroups(groups.map(g => g.id === id ? { ...g, ...updates } : g));
-    setEditingGroup(null);
-    toast.success('Gruppe aktualisiert');
-  };
-
-  const deleteGroup = (id) => {
-    if (window.confirm('Gruppe wirklich löschen?')) {
-      setGroups(groups.filter(g => g.id !== id));
-      toast.success('Gruppe gelöscht');
+    setSaving(true);
+    try {
+      const res = await adminAPI.createFacebookGroup(newGroup);
+      setGroups([...groups, res.data]);
+      setNewGroup({ name: '', url: '', type: 'external', members: 0, notes: '' });
+      setShowAddGroup(false);
+      toast.success('Gruppe hinzugefügt');
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Template-Funktionen
-  const addTemplate = () => {
+  const updateGroup = async () => {
+    if (!editingGroup) return;
+    setSaving(true);
+    try {
+      const res = await adminAPI.updateFacebookGroup(editingGroup.id, editingGroup);
+      setGroups(groups.map(g => g.id === editingGroup.id ? res.data : g));
+      setEditingGroup(null);
+      toast.success('Gruppe aktualisiert');
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteGroup = async (id) => {
+    if (!window.confirm('Gruppe wirklich löschen?')) return;
+    try {
+      await adminAPI.deleteFacebookGroup(id);
+      setGroups(groups.filter(g => g.id !== id));
+      toast.success('Gruppe gelöscht');
+    } catch (error) {
+      toast.error('Fehler beim Löschen');
+    }
+  };
+
+  // ============ Templates ============
+  const addTemplate = async () => {
     if (!newTemplate.name || !newTemplate.content) {
       toast.error('Name und Inhalt sind erforderlich');
       return;
     }
-
-    const template = {
-      id: Date.now().toString(),
-      ...newTemplate
-    };
-
-    setTemplates([...templates, template]);
-    setNewTemplate({ name: '', content: '' });
-    setShowAddTemplate(false);
-    toast.success('Vorlage hinzugefügt');
-  };
-
-  const updateTemplate = (id, updates) => {
-    setTemplates(templates.map(t => t.id === id ? { ...t, ...updates } : t));
-    setEditingTemplate(null);
-    toast.success('Vorlage aktualisiert');
-  };
-
-  const deleteTemplate = (id) => {
-    if (window.confirm('Vorlage wirklich löschen?')) {
-      setTemplates(templates.filter(t => t.id !== id));
-      toast.success('Vorlage gelöscht');
+    setSaving(true);
+    try {
+      const res = await adminAPI.createFacebookTemplate(newTemplate);
+      setTemplates([...templates, res.data]);
+      setNewTemplate({ name: '', content: '', category: '' });
+      setShowAddTemplate(false);
+      toast.success('Vorlage erstellt');
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Post-Generator Funktionen
+  const updateTemplate = async () => {
+    if (!editingTemplate) return;
+    setSaving(true);
+    try {
+      const res = await adminAPI.updateFacebookTemplate(editingTemplate.id, editingTemplate);
+      setTemplates(templates.map(t => t.id === editingTemplate.id ? res.data : t));
+      setEditingTemplate(null);
+      toast.success('Vorlage aktualisiert');
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteTemplate = async (id) => {
+    if (!window.confirm('Vorlage wirklich löschen?')) return;
+    try {
+      await adminAPI.deleteFacebookTemplate(id);
+      setTemplates(templates.filter(t => t.id !== id));
+      toast.success('Vorlage gelöscht');
+    } catch (error) {
+      toast.error('Fehler beim Löschen');
+    }
+  };
+
+  // ============ Posts ============
+  const savePost = async () => {
+    const content = composeMode === 'freetext' ? freeText : generatedPost;
+    if (!content) {
+      toast.error('Kein Inhalt zum Speichern');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await adminAPI.createFacebookPost({
+        title: postTitle || `Post vom ${new Date().toLocaleDateString('de-DE')}`,
+        content,
+        template_id: selectedTemplate?.id || null,
+        variables: composeMode === 'template' ? postVariables : null,
+        is_favorite: false
+      });
+      setSavedPosts([res.data, ...savedPosts]);
+      toast.success('Post gespeichert');
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleFavorite = async (post) => {
+    try {
+      const res = await adminAPI.updateFacebookPost(post.id, { is_favorite: !post.is_favorite });
+      setSavedPosts(savedPosts.map(p => p.id === post.id ? res.data : p));
+    } catch (error) {
+      toast.error('Fehler');
+    }
+  };
+
+  const deletePost = async (id) => {
+    if (!window.confirm('Post wirklich löschen?')) return;
+    try {
+      await adminAPI.deleteFacebookPost(id);
+      setSavedPosts(savedPosts.filter(p => p.id !== id));
+      toast.success('Post gelöscht');
+    } catch (error) {
+      toast.error('Fehler beim Löschen');
+    }
+  };
+
+  const loadSavedPost = (post) => {
+    setFreeText(post.content);
+    setComposeMode('freetext');
+    setActiveTab('compose');
+    toast.success('Post geladen');
+  };
+
+  // ============ Post Generator ============
   const extractVariables = (content) => {
     const matches = content.match(/\{([^}]+)\}/g) || [];
     return [...new Set(matches.map(m => m.slice(1, -1)))];
@@ -196,11 +229,11 @@ function FacebookGroups() {
     vars.forEach(v => initialVars[v] = '');
     setPostVariables(initialVars);
     setGeneratedPost('');
+    setComposeMode('template');
   };
 
   const generatePost = () => {
     if (!selectedTemplate) return;
-    
     let post = selectedTemplate.content;
     Object.entries(postVariables).forEach(([key, value]) => {
       post = post.replace(new RegExp(`\\{${key}\\}`, 'g'), value || `[${key}]`);
@@ -208,9 +241,14 @@ function FacebookGroups() {
     setGeneratedPost(post);
   };
 
-  const copyToClipboard = async () => {
+  const copyToClipboard = async (text) => {
+    const content = text || (composeMode === 'freetext' ? freeText : generatedPost);
+    if (!content) {
+      toast.error('Kein Inhalt zum Kopieren');
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(generatedPost);
+      await navigator.clipboard.writeText(content);
       toast.success('In Zwischenablage kopiert!');
     } catch (err) {
       toast.error('Kopieren fehlgeschlagen');
@@ -218,13 +256,27 @@ function FacebookGroups() {
   };
 
   const openGroupAndCopy = async (group) => {
-    await copyToClipboard();
+    const content = composeMode === 'freetext' ? freeText : generatedPost;
+    await copyToClipboard(content);
+    
+    // Log erstellen
+    try {
+      await adminAPI.createFacebookLog({
+        group_id: group.id,
+        group_name: group.name,
+        content,
+        status: 'manual'
+      });
+    } catch (e) {
+      // Ignorieren
+    }
+    
     window.open(group.url, '_blank');
   };
 
   const toggleGroupSelection = (groupId) => {
-    setSelectedGroups(prev => 
-      prev.includes(groupId) 
+    setSelectedGroups(prev =>
+      prev.includes(groupId)
         ? prev.filter(id => id !== groupId)
         : [...prev, groupId]
     );
@@ -232,6 +284,15 @@ function FacebookGroups() {
 
   const ownGroups = groups.filter(g => g.type === 'own');
   const externalGroups = groups.filter(g => g.type === 'external');
+  const currentContent = composeMode === 'freetext' ? freeText : generatedPost;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -243,14 +304,361 @@ function FacebookGroups() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Facebook Gruppen</h1>
-            <p className="text-gray-600">Posts für Facebook Gruppen erstellen und verwalten</p>
+            <p className="text-gray-600">Posts erstellen, speichern und in Gruppen teilen</p>
           </div>
         </div>
+        {stats && (
+          <div className="flex items-center gap-4 text-sm">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600">{stats.total_groups}</p>
+              <p className="text-gray-500">Gruppen</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-purple-600">{stats.total_posts}</p>
+              <p className="text-gray-500">Posts</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-600">{stats.total_posted}</p>
+              <p className="text-gray-500">Gepostet</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Linke Spalte: Gruppen-Verwaltung */}
-        <div className="space-y-6">
+      {/* Tabs */}
+      <div className="flex gap-2 border-b pb-2">
+        {[
+          { id: 'compose', label: 'Post erstellen', icon: PenLine },
+          { id: 'saved', label: `Gespeicherte Posts (${savedPosts.length})`, icon: Save },
+          { id: 'groups', label: `Gruppen (${groups.length})`, icon: Users },
+          { id: 'templates', label: `Vorlagen (${templates.length})`, icon: FileText },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <tab.icon className="h-4 w-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'compose' && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Linke Spalte: Post erstellen */}
+          <div className="space-y-4">
+            {/* Modus-Umschalter */}
+            <div className="card">
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => setComposeMode('freetext')}
+                  className={`flex-1 py-2 rounded-lg font-medium transition-all ${
+                    composeMode === 'freetext'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Freitext
+                </button>
+                <button
+                  onClick={() => setComposeMode('template')}
+                  className={`flex-1 py-2 rounded-lg font-medium transition-all ${
+                    composeMode === 'template'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Mit Vorlage
+                </button>
+              </div>
+
+              {composeMode === 'freetext' ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Titel (optional, zum Speichern)
+                    </label>
+                    <input
+                      type="text"
+                      value={postTitle}
+                      onChange={(e) => setPostTitle(e.target.value)}
+                      className="input w-full"
+                      placeholder="z.B. Hoteljob Bayern Sommer 2026"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Post-Text
+                    </label>
+                    <textarea
+                      value={freeText}
+                      onChange={(e) => setFreeText(e.target.value)}
+                      rows={12}
+                      className="input w-full"
+                      placeholder={`🔥 JOBCHANCE: Servicekraft (m/w/d)
+
+📍 Standort: München
+💼 Vollzeit
+💰 2.500€ brutto
+
+Wir suchen motivierte Mitarbeiter für unser Hotel...
+
+✅ Jetzt bewerben: https://www.jobon.work/jobs/...
+
+#Job #Arbeit #Hotel #München`}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Template Auswahl */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Vorlage auswählen
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                      {templates.map(template => (
+                        <button
+                          key={template.id}
+                          onClick={() => selectTemplate(template)}
+                          className={`p-2 rounded-lg border text-left text-sm transition-all ${
+                            selectedTemplate?.id === template.id
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-gray-200 hover:border-purple-300'
+                          }`}
+                        >
+                          <p className="font-medium truncate">{template.name}</p>
+                        </button>
+                      ))}
+                      {templates.length === 0 && (
+                        <p className="col-span-2 text-gray-500 text-sm text-center py-4">
+                          Noch keine Vorlagen. Erstelle welche im "Vorlagen" Tab.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Variablen */}
+                  {selectedTemplate && (
+                    <div className="space-y-3 border-t pt-4">
+                      <p className="text-sm font-medium text-gray-700">
+                        Variablen für: {selectedTemplate.name}
+                      </p>
+                      {Object.keys(postVariables).map(varName => (
+                        <div key={varName}>
+                          <label className="block text-xs text-gray-500 mb-1">
+                            {varName.replace(/_/g, ' ')}
+                          </label>
+                          <input
+                            type="text"
+                            value={postVariables[varName]}
+                            onChange={(e) => setPostVariables({ ...postVariables, [varName]: e.target.value })}
+                            className="input w-full text-sm"
+                            placeholder={varName}
+                          />
+                        </div>
+                      ))}
+                      <button
+                        onClick={generatePost}
+                        className="btn-primary w-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center gap-2"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Post generieren
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Aktionen */}
+              <div className="flex gap-2 mt-4 pt-4 border-t">
+                <button
+                  onClick={() => copyToClipboard()}
+                  disabled={!currentContent}
+                  className="btn-secondary flex-1 flex items-center justify-center gap-2"
+                >
+                  <ClipboardCopy className="h-4 w-4" />
+                  Kopieren
+                </button>
+                <button
+                  onClick={savePost}
+                  disabled={!currentContent || saving}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Speichern
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Rechte Spalte: Vorschau & Gruppen */}
+          <div className="space-y-4">
+            {/* Vorschau */}
+            <div className="card">
+              <div className="flex items-center gap-2 mb-3">
+                <Eye className="h-5 w-5 text-gray-400" />
+                <h3 className="font-semibold text-gray-900">Vorschau</h3>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap text-sm text-gray-700 border">
+                {currentContent || <span className="text-gray-400 italic">Noch kein Inhalt...</span>}
+              </div>
+            </div>
+
+            {/* Gruppen zum Posten */}
+            <div className="card">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900">In Gruppen posten</h3>
+                <span className="text-sm text-gray-500">{selectedGroups.length} ausgewählt</span>
+              </div>
+
+              {groups.length === 0 ? (
+                <p className="text-gray-500 text-sm text-center py-4">
+                  Noch keine Gruppen. Füge welche im "Gruppen" Tab hinzu.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {groups.map(group => (
+                    <div
+                      key={group.id}
+                      className={`flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all ${
+                        selectedGroups.includes(group.id)
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => toggleGroupSelection(group.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedGroups.includes(group.id)}
+                        onChange={() => {}}
+                        className="h-4 w-4 text-blue-600 rounded"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{group.name}</p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          {group.type === 'own' && <Star className="h-3 w-3 text-yellow-500" />}
+                          {group.members > 0 && <span>{group.members.toLocaleString()} Mitglieder</span>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openGroupAndCopy(group); }}
+                        disabled={!currentContent}
+                        className="p-1.5 text-blue-600 hover:bg-blue-100 rounded disabled:opacity-50"
+                        title="Kopieren & Öffnen"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedGroups.length > 0 && currentContent && (
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-sm text-gray-600 mb-2">Schnell-Posten:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedGroups.map(groupId => {
+                      const group = groups.find(g => g.id === groupId);
+                      if (!group) return null;
+                      return (
+                        <button
+                          key={group.id}
+                          onClick={() => openGroupAndCopy(group)}
+                          className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {group.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'saved' && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Gespeicherte Posts</h2>
+          </div>
+
+          {savedPosts.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">
+              Noch keine Posts gespeichert. Erstelle einen im "Post erstellen" Tab.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {savedPosts.map(post => (
+                <div key={post.id} className="border rounded-lg p-4 hover:border-gray-300 transition-all">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-medium text-gray-900">{post.title || 'Unbenannter Post'}</h3>
+                        {post.is_favorite && <Heart className="h-4 w-4 text-red-500 fill-red-500" />}
+                        {post.times_used > 0 && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                            {post.times_used}x verwendet
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 line-clamp-3 whitespace-pre-wrap">
+                        {post.content}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        <Clock className="h-3 w-3 inline mr-1" />
+                        {new Date(post.created_at).toLocaleDateString('de-DE')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => toggleFavorite(post)}
+                        className={`p-2 rounded hover:bg-gray-100 ${post.is_favorite ? 'text-red-500' : 'text-gray-400'}`}
+                        title="Favorit"
+                      >
+                        <Heart className={`h-4 w-4 ${post.is_favorite ? 'fill-current' : ''}`} />
+                      </button>
+                      <button
+                        onClick={() => copyToClipboard(post.content)}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                        title="Kopieren"
+                      >
+                        <ClipboardCopy className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => loadSavedPost(post)}
+                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"
+                        title="Laden & Bearbeiten"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => deletePost(post.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                        title="Löschen"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'groups' && (
+        <div className="grid lg:grid-cols-2 gap-6">
           {/* Eigene Gruppen */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
@@ -269,18 +677,16 @@ function FacebookGroups() {
 
             {ownGroups.length === 0 ? (
               <p className="text-gray-500 text-sm text-center py-4">
-                Noch keine eigenen Gruppen hinzugefügt
+                Noch keine eigenen Gruppen
               </p>
             ) : (
               <div className="space-y-2">
                 {ownGroups.map(group => (
-                  <GroupCard 
-                    key={group.id} 
-                    group={group} 
+                  <GroupCard
+                    key={group.id}
+                    group={group}
                     onEdit={() => setEditingGroup(group)}
                     onDelete={() => deleteGroup(group.id)}
-                    isSelected={selectedGroups.includes(group.id)}
-                    onToggleSelect={() => toggleGroupSelection(group.id)}
                   />
                 ))}
               </div>
@@ -305,152 +711,82 @@ function FacebookGroups() {
 
             {externalGroups.length === 0 ? (
               <p className="text-gray-500 text-sm text-center py-4">
-                Noch keine externen Gruppen hinzugefügt
+                Noch keine externen Gruppen
               </p>
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {externalGroups.map(group => (
-                  <GroupCard 
-                    key={group.id} 
-                    group={group} 
+                  <GroupCard
+                    key={group.id}
+                    group={group}
                     onEdit={() => setEditingGroup(group)}
                     onDelete={() => deleteGroup(group.id)}
-                    isSelected={selectedGroups.includes(group.id)}
-                    onToggleSelect={() => toggleGroupSelection(group.id)}
                   />
                 ))}
               </div>
             )}
           </div>
         </div>
+      )}
 
-        {/* Rechte Spalte: Post Generator */}
-        <div className="space-y-6">
-          {/* Vorlagen */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-purple-500" />
-                Post-Vorlagen
-              </h2>
-              <button
-                onClick={() => setShowAddTemplate(true)}
-                className="btn-secondary text-sm flex items-center gap-1"
-              >
-                <Plus className="h-4 w-4" />
-                Neue Vorlage
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {templates.map(template => (
-                <button
-                  key={template.id}
-                  onClick={() => selectTemplate(template)}
-                  className={`p-3 rounded-lg border text-left transition-all ${
-                    selectedTemplate?.id === template.id
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <p className="font-medium text-sm text-gray-900 truncate">{template.name}</p>
-                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{template.content.substring(0, 50)}...</p>
-                </button>
-              ))}
-            </div>
+      {activeTab === 'templates' && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Post-Vorlagen</h2>
+            <button
+              onClick={() => setShowAddTemplate(true)}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Neue Vorlage
+            </button>
           </div>
 
-          {/* Post Generator */}
-          {selectedTemplate && (
-            <div className="card border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50">
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="h-5 w-5 text-purple-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Post Generator</h2>
-              </div>
-
-              <div className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  Vorlage: <span className="font-medium">{selectedTemplate.name}</span>
-                </p>
-
-                {/* Variablen-Eingabe */}
-                <div className="space-y-3">
-                  {Object.keys(postVariables).map(varName => (
-                    <div key={varName}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {varName.replace(/_/g, ' ')}
-                      </label>
-                      <input
-                        type="text"
-                        value={postVariables[varName]}
-                        onChange={(e) => setPostVariables({ ...postVariables, [varName]: e.target.value })}
-                        className="input w-full text-sm"
-                        placeholder={`${varName} eingeben...`}
-                      />
+          {templates.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">
+              Noch keine Vorlagen. Erstelle deine erste Vorlage!
+            </p>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {templates.map(template => (
+                <div key={template.id} className="border rounded-lg p-4 hover:border-purple-300 transition-all">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-medium text-gray-900">{template.name}</h3>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setEditingTemplate(template)}
+                        className="p-1 text-gray-400 hover:text-gray-600"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteTemplate(template.id)}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={generatePost}
-                  className="btn-primary w-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Post generieren
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Generierter Post */}
-          {generatedPost && (
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-green-600" />
-                  Generierter Post
-                </h3>
-                <button
-                  onClick={copyToClipboard}
-                  className="btn-secondary text-sm flex items-center gap-1"
-                >
-                  <ClipboardCopy className="h-4 w-4" />
-                  Kopieren
-                </button>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4 whitespace-pre-wrap text-sm text-gray-700 border">
-                {generatedPost}
-              </div>
-
-              {/* Schnell-Posten */}
-              {selectedGroups.length > 0 && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-sm font-medium text-gray-700 mb-2">
-                    In {selectedGroups.length} ausgewählte Gruppen posten:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedGroups.map(groupId => {
-                      const group = groups.find(g => g.id === groupId);
-                      if (!group) return null;
-                      return (
-                        <button
-                          key={group.id}
-                          onClick={() => openGroupAndCopy(group)}
-                          className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 flex items-center gap-1"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          {group.name}
-                        </button>
-                      );
-                    })}
                   </div>
+                  {template.category && (
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                      {template.category}
+                    </span>
+                  )}
+                  <p className="text-sm text-gray-600 mt-2 line-clamp-4 whitespace-pre-wrap">
+                    {template.content}
+                  </p>
+                  <button
+                    onClick={() => { selectTemplate(template); setActiveTab('compose'); }}
+                    className="mt-3 text-sm text-purple-600 hover:text-purple-700 font-medium"
+                  >
+                    Vorlage verwenden →
+                  </button>
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>
-      </div>
+      )}
 
       {/* Add Group Modal */}
       {showAddGroup && (
@@ -492,7 +828,7 @@ function FacebookGroups() {
               <input
                 type="number"
                 value={newGroup.members}
-                onChange={(e) => setNewGroup({ ...newGroup, members: e.target.value })}
+                onChange={(e) => setNewGroup({ ...newGroup, members: parseInt(e.target.value) || 0 })}
                 className="input w-full"
                 placeholder="z.B. 5000"
               />
@@ -511,8 +847,8 @@ function FacebookGroups() {
               <button onClick={() => setShowAddGroup(false)} className="btn-secondary flex-1">
                 Abbrechen
               </button>
-              <button onClick={addGroup} className="btn-primary flex-1">
-                Hinzufügen
+              <button onClick={addGroup} disabled={saving} className="btn-primary flex-1">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Hinzufügen'}
               </button>
             </div>
           </div>
@@ -574,11 +910,8 @@ function FacebookGroups() {
               <button onClick={() => setEditingGroup(null)} className="btn-secondary flex-1">
                 Abbrechen
               </button>
-              <button 
-                onClick={() => updateGroup(editingGroup.id, editingGroup)} 
-                className="btn-primary flex-1"
-              >
-                Speichern
+              <button onClick={updateGroup} disabled={saving} className="btn-primary flex-1">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Speichern'}
               </button>
             </div>
           </div>
@@ -597,6 +930,16 @@ function FacebookGroups() {
                 onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
                 className="input w-full"
                 placeholder="z.B. Hoteljob Sommer"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Kategorie</label>
+              <input
+                type="text"
+                value={newTemplate.category}
+                onChange={(e) => setNewTemplate({ ...newTemplate, category: e.target.value })}
+                className="input w-full"
+                placeholder="z.B. Hotel, Gastronomie, Pflege"
               />
             </div>
             <div>
@@ -622,8 +965,51 @@ function FacebookGroups() {
               <button onClick={() => setShowAddTemplate(false)} className="btn-secondary flex-1">
                 Abbrechen
               </button>
-              <button onClick={addTemplate} className="btn-primary flex-1">
-                Erstellen
+              <button onClick={addTemplate} disabled={saving} className="btn-primary flex-1">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Erstellen'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit Template Modal */}
+      {editingTemplate && (
+        <Modal onClose={() => setEditingTemplate(null)} title="Vorlage bearbeiten">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vorlagenname</label>
+              <input
+                type="text"
+                value={editingTemplate.name}
+                onChange={(e) => setEditingTemplate({ ...editingTemplate, name: e.target.value })}
+                className="input w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Kategorie</label>
+              <input
+                type="text"
+                value={editingTemplate.category || ''}
+                onChange={(e) => setEditingTemplate({ ...editingTemplate, category: e.target.value })}
+                className="input w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Inhalt</label>
+              <textarea
+                value={editingTemplate.content}
+                onChange={(e) => setEditingTemplate({ ...editingTemplate, content: e.target.value })}
+                className="input w-full font-mono text-sm"
+                rows={10}
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setEditingTemplate(null)} className="btn-secondary flex-1">
+                Abbrechen
+              </button>
+              <button onClick={updateTemplate} disabled={saving} className="btn-primary flex-1">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Speichern'}
               </button>
             </div>
           </div>
@@ -634,17 +1020,9 @@ function FacebookGroups() {
 }
 
 // Group Card Component
-function GroupCard({ group, onEdit, onDelete, isSelected, onToggleSelect }) {
+function GroupCard({ group, onEdit, onDelete }) {
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-      isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-    }`}>
-      <input
-        type="checkbox"
-        checked={isSelected}
-        onChange={onToggleSelect}
-        className="h-4 w-4 text-blue-600 rounded border-gray-300"
-      />
+    <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-all">
       <div className="flex-1 min-w-0">
         <p className="font-medium text-gray-900 truncate">{group.name}</p>
         <div className="flex items-center gap-2 text-xs text-gray-500">

@@ -338,6 +338,27 @@ export const adminAPI = {
   createInviteToken: (data) => api.post('/admin/invite-tokens', data),
   deleteInviteToken: (id) => api.delete(`/admin/invite-tokens/${id}`),
   toggleInviteToken: (id) => api.put(`/admin/invite-tokens/${id}/toggle`),
+  
+  // Facebook Gruppen & Posts
+  getFacebookGroups: (type) => api.get('/facebook/groups', { params: type ? { type } : {} }),
+  createFacebookGroup: (data) => api.post('/facebook/groups', data),
+  updateFacebookGroup: (id, data) => api.put(`/facebook/groups/${id}`, data),
+  deleteFacebookGroup: (id) => api.delete(`/facebook/groups/${id}`),
+  
+  getFacebookTemplates: (category) => api.get('/facebook/templates', { params: category ? { category } : {} }),
+  createFacebookTemplate: (data) => api.post('/facebook/templates', data),
+  updateFacebookTemplate: (id, data) => api.put(`/facebook/templates/${id}`, data),
+  deleteFacebookTemplate: (id) => api.delete(`/facebook/templates/${id}`),
+  
+  getFacebookPosts: (favoritesOnly) => api.get('/facebook/posts', { params: { favorites_only: favoritesOnly || false } }),
+  createFacebookPost: (data) => api.post('/facebook/posts', data),
+  updateFacebookPost: (id, data) => api.put(`/facebook/posts/${id}`, data),
+  deleteFacebookPost: (id) => api.delete(`/facebook/posts/${id}`),
+  markFacebookPostUsed: (id) => api.post(`/facebook/posts/${id}/use`),
+  
+  getFacebookLogs: (limit) => api.get('/facebook/logs', { params: { limit: limit || 100 } }),
+  createFacebookLog: (data) => api.post('/facebook/logs', data),
+  getFacebookStats: () => api.get('/facebook/stats'),
 };
 
 // Auth API Erweiterung für Einladungs-Token-Prüfung
