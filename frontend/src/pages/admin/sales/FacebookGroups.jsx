@@ -5,7 +5,8 @@ import {
   Facebook, Plus, ExternalLink, Trash2, Edit2, X,
   Users, Globe, Star, Loader2, FileText,
   Sparkles, ClipboardCopy, Eye, Heart, Clock,
-  Save, History, PenLine, BarChart3
+  Save, History, PenLine, BarChart3, Bot, Play, Square,
+  RefreshCw, Terminal, Zap, AlertTriangle
 } from 'lucide-react';
 
 function FacebookGroups() {
@@ -43,10 +44,113 @@ function FacebookGroups() {
     name: '', content: '', category: ''
   });
 
+  // Bot States
+  const [botStatus, setBotStatus] = useState('offline'); // 'offline', 'idle', 'running', 'finished', 'error'
+  const [botLogs, setBotLogs] = useState([]);
+  const [botConnected, setBotConnected] = useState(false);
+  const BOT_URL = 'http://localhost:3847';
+
   // Load Data
   useEffect(() => {
     loadData();
-  }, []);
+    checkBotStatus();
+    // Bot-Status alle 5 Sekunden prüfen wenn Tab aktiv
+    const interval = setInterval(() => {
+      if (activeTab === 'bot') checkBotStatus();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
+  // ============ Bot Functions ============
+  const checkBotStatus = async () => {
+    try {
+      const res = await fetch(`${BOT_URL}/status`);
+      if (res.ok) {
+        const data = await res.json();
+        setBotConnected(true);
+        setBotStatus(data.status);
+        setBotLogs(data.logs || []);
+      } else {
+        setBotConnected(false);
+        setBotStatus('offline');
+      }
+    } catch (e) {
+      setBotConnected(false);
+      setBotStatus('offline');
+    }
+  };
+
+  const syncGroupsToBot = async () => {
+    if (!botConnected) {
+      toast.error('Bot-Server nicht erreichbar');
+      return;
+    }
+    try {
+      const groupsForBot = groups.map(g => ({
+        url: g.url,
+        name: g.name,
+        type: g.type
+      }));
+      await fetch(`${BOT_URL}/groups`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(groupsForBot)
+      });
+      toast.success(`${groups.length} Gruppen an Bot übertragen`);
+    } catch (e) {
+      toast.error('Fehler beim Sync');
+    }
+  };
+
+  const sendPostToBot = async () => {
+    const content = composeMode === 'freetext' ? freeText : generatedPost;
+    if (!content) {
+      toast.error('Kein Post-Text vorhanden');
+      return;
+    }
+    if (!botConnected) {
+      toast.error('Bot-Server nicht erreichbar');
+      return;
+    }
+    try {
+      await fetch(`${BOT_URL}/post`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: content })
+      });
+      toast.success('Post-Text an Bot übertragen');
+    } catch (e) {
+      toast.error('Fehler beim Senden');
+    }
+  };
+
+  const startBot = async (dryRun = false) => {
+    if (!botConnected) {
+      toast.error('Bot-Server nicht erreichbar');
+      return;
+    }
+    try {
+      await fetch(`${BOT_URL}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun })
+      });
+      setBotStatus('running');
+      toast.success(dryRun ? 'Bot gestartet (Dry Run)' : 'Bot gestartet');
+    } catch (e) {
+      toast.error('Fehler beim Starten');
+    }
+  };
+
+  const stopBot = async () => {
+    try {
+      await fetch(`${BOT_URL}/stop`, { method: 'POST' });
+      setBotStatus('idle');
+      toast.success('Bot gestoppt');
+    } catch (e) {
+      toast.error('Fehler beim Stoppen');
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -332,6 +436,7 @@ function FacebookGroups() {
           { id: 'saved', label: `Gespeicherte Posts (${savedPosts.length})`, icon: Save },
           { id: 'groups', label: `Gruppen (${groups.length})`, icon: Users },
           { id: 'templates', label: `Vorlagen (${templates.length})`, icon: FileText },
+          { id: 'bot', label: 'Auto-Poster', icon: Bot, badge: botConnected ? (botStatus === 'running' ? '🟢' : '🔵') : '🔴' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -344,6 +449,7 @@ function FacebookGroups() {
           >
             <tab.icon className="h-4 w-4" />
             {tab.label}
+            {tab.badge && <span className="text-xs">{tab.badge}</span>}
           </button>
         ))}
       </div>
@@ -785,6 +891,167 @@ Wir suchen motivierte Mitarbeiter für unser Hotel...
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Bot Tab */}
+      {activeTab === 'bot' && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Linke Spalte: Bot-Steuerung */}
+          <div className="space-y-4">
+            {/* Status Card */}
+            <div className={`card border-2 ${
+              botConnected 
+                ? botStatus === 'running' ? 'border-green-400 bg-green-50' : 'border-blue-400 bg-blue-50'
+                : 'border-red-400 bg-red-50'
+            }`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-xl ${
+                    botConnected ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    <Bot className={`h-8 w-8 ${botConnected ? 'text-green-600' : 'text-red-600'}`} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Auto-Poster Bot</h2>
+                    <p className={`text-sm ${botConnected ? 'text-green-600' : 'text-red-600'}`}>
+                      {botConnected ? `Status: ${botStatus}` : 'Server nicht erreichbar'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={checkBotStatus}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                </button>
+              </div>
+
+              {!botConnected && (
+                <div className="bg-white rounded-lg p-4 border border-red-200">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-900">Bot-Server starten</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Öffne ein Terminal und führe aus:
+                      </p>
+                      <code className="block bg-gray-100 text-sm p-2 rounded mt-2 font-mono">
+                        cd tools/facebook-bot && npm run server
+                      </code>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {botConnected && (
+                <div className="space-y-3">
+                  {/* Aktionen */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={syncGroupsToBot}
+                      className="btn-secondary flex-1 flex items-center justify-center gap-2"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Gruppen sync ({groups.length})
+                    </button>
+                    <button
+                      onClick={sendPostToBot}
+                      disabled={!currentContent}
+                      className="btn-secondary flex-1 flex items-center justify-center gap-2"
+                    >
+                      <ClipboardCopy className="h-4 w-4" />
+                      Post übertragen
+                    </button>
+                  </div>
+
+                  {/* Start/Stop */}
+                  <div className="flex gap-2">
+                    {botStatus !== 'running' ? (
+                      <>
+                        <button
+                          onClick={() => startBot(true)}
+                          className="btn-secondary flex-1 flex items-center justify-center gap-2"
+                        >
+                          <Play className="h-4 w-4" />
+                          Test (Dry Run)
+                        </button>
+                        <button
+                          onClick={() => startBot(false)}
+                          className="btn-primary flex-1 bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2"
+                        >
+                          <Zap className="h-4 w-4" />
+                          Posten starten
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={stopBot}
+                        className="btn-primary flex-1 bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2"
+                      >
+                        <Square className="h-4 w-4" />
+                        Stoppen
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Anleitung */}
+            <div className="card">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Terminal className="h-5 w-5 text-gray-400" />
+                Anleitung
+              </h3>
+              <ol className="text-sm text-gray-600 space-y-2">
+                <li><strong>1.</strong> Gruppen im "Gruppen" Tab hinzufügen</li>
+                <li><strong>2.</strong> Post im "Post erstellen" Tab schreiben</li>
+                <li><strong>3.</strong> Bot-Server starten (Terminal)</li>
+                <li><strong>4.</strong> "Gruppen sync" klicken</li>
+                <li><strong>5.</strong> "Post übertragen" klicken</li>
+                <li><strong>6.</strong> "Test (Dry Run)" zum Testen</li>
+                <li><strong>7.</strong> "Posten starten" für echtes Posten</li>
+              </ol>
+              <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-xs text-yellow-800">
+                  <strong>⚠️ Hinweis:</strong> Der Bot öffnet einen Browser und postet automatisch.
+                  Beim ersten Start musst du dich bei Facebook einloggen.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Rechte Spalte: Logs */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Terminal className="h-5 w-5 text-gray-400" />
+                Bot-Logs
+              </h3>
+              {botStatus === 'running' && (
+                <span className="flex items-center gap-1 text-sm text-green-600">
+                  <span className="animate-pulse">●</span> Läuft
+                </span>
+              )}
+            </div>
+            <div className="bg-gray-900 rounded-lg p-4 h-96 overflow-y-auto font-mono text-xs">
+              {botLogs.length === 0 ? (
+                <p className="text-gray-500">Keine Logs vorhanden...</p>
+              ) : (
+                botLogs.map((log, i) => (
+                  <div key={i} className={`py-0.5 ${
+                    log.includes('ERROR') ? 'text-red-400' :
+                    log.includes('✅') ? 'text-green-400' :
+                    log.includes('⏳') ? 'text-yellow-400' :
+                    'text-gray-300'
+                  }`}>
+                    {log}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       )}
 

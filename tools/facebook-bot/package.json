@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node bot.js",
     "post": "node bot.js --post",
-    "test": "node bot.js --test"
+    "test": "node bot.js --test",
+    "server": "node server.js"
   },
   "dependencies": {
     "playwright": "^1.40.0",
