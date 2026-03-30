@@ -45,7 +45,7 @@ import BlogEditor from './pages/admin/BlogEditor';
 import AnabinVerification from './pages/admin/AnabinVerification';
 import AdminSettings from './pages/admin/Settings';
 import InviteTokens from './pages/admin/InviteTokens';
-import AdminSales from './pages/admin/Sales';
+import SalesLayout from './pages/admin/SalesLayout';
 
 // Blog
 import BlogList from './pages/blog/BlogList';
@@ -140,7 +140,7 @@ function App() {
             <Route path="blog/edit/:id" element={<BlogEditor />} />
             <Route path="feature-flags" element={<AdminSettings />} />
             <Route path="invite-tokens" element={<InviteTokens />} />
-            <Route path="sales" element={<AdminSales />} />
+            <Route path="sales" element={<SalesLayout />} />
             <Route path="settings" element={<AccountSettings />} />
           </Route>
         </Route>
