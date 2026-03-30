@@ -1,0 +1,16 @@
+{
+  "name": "facebook-group-bot",
+  "version": "1.0.0",
+  "description": "Automatisches Posten in Facebook Gruppen",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "post": "node bot.js --post",
+    "test": "node bot.js --test"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "dotenv": "^16.3.1",
+    "readline-sync": "^1.4.10"
+  }
+}
