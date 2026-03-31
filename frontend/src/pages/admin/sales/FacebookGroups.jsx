@@ -6,7 +6,7 @@ import {
   Users, Globe, Star, Loader2, FileText,
   Sparkles, ClipboardCopy, Eye, Heart, Clock,
   Save, History, PenLine, BarChart3, Bot, Play, Square,
-  RefreshCw, Terminal, Zap, AlertTriangle
+  RefreshCw, Terminal, Zap, AlertTriangle, MessageSquare
 } from 'lucide-react';
 
 function FacebookGroups() {
@@ -48,6 +48,8 @@ function FacebookGroups() {
   const [botStatus, setBotStatus] = useState('offline'); // 'offline', 'idle', 'running', 'finished', 'error'
   const [botLogs, setBotLogs] = useState([]);
   const [botConnected, setBotConnected] = useState(false);
+  const [botComments, setBotComments] = useState(['']); // Array von Kommentaren
+  const [botPost, setBotPost] = useState(''); // Aktueller Post im Bot
   const BOT_URL = 'http://localhost:3847';
 
   // Load Data
@@ -70,6 +72,10 @@ function FacebookGroups() {
         setBotConnected(true);
         setBotStatus(data.status);
         setBotLogs(data.logs || []);
+        if (data.post) setBotPost(data.post);
+        if (data.comments && data.comments.length > 0) {
+          setBotComments(data.comments);
+        }
       } else {
         setBotConnected(false);
         setBotStatus('offline');
@@ -102,8 +108,8 @@ function FacebookGroups() {
     }
   };
 
-  const sendPostToBot = async () => {
-    const content = composeMode === 'freetext' ? freeText : generatedPost;
+  const sendPostToBot = async (postText = null, comments = null) => {
+    const content = postText || (composeMode === 'freetext' ? freeText : generatedPost);
     if (!content) {
       toast.error('Kein Post-Text vorhanden');
       return;
@@ -113,15 +119,33 @@ function FacebookGroups() {
       return;
     }
     try {
+      // Kommentare filtern (leere entfernen)
+      const filteredComments = (comments || botComments).filter(c => c.trim().length > 0);
       await fetch(`${BOT_URL}/post`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: content })
+        body: JSON.stringify({ text: content, comments: filteredComments })
       });
-      toast.success('Post-Text an Bot übertragen');
+      setBotPost(content);
+      const commentCount = filteredComments.length;
+      toast.success(`Post${commentCount > 0 ? ` + ${commentCount} Kommentar(e)` : ''} an Bot übertragen`);
     } catch (e) {
       toast.error('Fehler beim Senden');
     }
+  };
+
+  const addBotComment = () => {
+    setBotComments([...botComments, '']);
+  };
+
+  const updateBotComment = (index, value) => {
+    const updated = [...botComments];
+    updated[index] = value;
+    setBotComments(updated);
+  };
+
+  const removeBotComment = (index) => {
+    setBotComments(botComments.filter((_, i) => i !== index));
   };
 
   const startBot = async (dryRun = false) => {
@@ -998,28 +1022,58 @@ Wir suchen motivierte Mitarbeiter für unser Hotel...
               )}
             </div>
 
-            {/* Anleitung */}
+            {/* Kommentare */}
             <div className="card">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Terminal className="h-5 w-5 text-gray-400" />
-                Anleitung
-              </h3>
-              <ol className="text-sm text-gray-600 space-y-2">
-                <li><strong>1.</strong> Gruppen im "Gruppen" Tab hinzufügen</li>
-                <li><strong>2.</strong> Post im "Post erstellen" Tab schreiben</li>
-                <li><strong>3.</strong> Bot-Server starten (Terminal)</li>
-                <li><strong>4.</strong> "Gruppen sync" klicken</li>
-                <li><strong>5.</strong> "Post übertragen" klicken</li>
-                <li><strong>6.</strong> "Test (Dry Run)" zum Testen</li>
-                <li><strong>7.</strong> "Posten starten" für echtes Posten</li>
-              </ol>
-              <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <p className="text-xs text-yellow-800">
-                  <strong>⚠️ Hinweis:</strong> Der Bot öffnet einen Browser und postet automatisch.
-                  Beim ersten Start musst du dich bei Facebook einloggen.
-                </p>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-purple-500" />
+                  Kommentare unter dem Post
+                </h3>
+                <button
+                  onClick={addBotComment}
+                  className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                >
+                  + Kommentar
+                </button>
               </div>
+              <p className="text-xs text-gray-500 mb-3">
+                Diese Kommentare werden automatisch unter deinen Post geschrieben (für mehr Sichtbarkeit).
+              </p>
+              <div className="space-y-2">
+                {botComments.map((comment, index) => (
+                  <div key={index} className="flex gap-2">
+                    <textarea
+                      value={comment}
+                      onChange={(e) => updateBotComment(index, e.target.value)}
+                      className="input flex-1 text-sm"
+                      rows={2}
+                      placeholder={`Kommentar ${index + 1}, z.B. "👉 Mehr Infos: https://jobon.work"`}
+                    />
+                    {botComments.length > 1 && (
+                      <button
+                        onClick={() => removeBotComment(index)}
+                        className="p-2 text-gray-400 hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {botComments.filter(c => c.trim()).length > 0 && (
+                <p className="text-xs text-green-600 mt-2">
+                  ✓ {botComments.filter(c => c.trim()).length} Kommentar(e) werden gepostet
+                </p>
+              )}
             </div>
+
+            {/* Aktuelle Bot-Konfiguration */}
+            {botPost && (
+              <div className="card bg-gray-50">
+                <h3 className="font-semibold text-gray-900 mb-2 text-sm">Aktuell im Bot:</h3>
+                <p className="text-xs text-gray-600 line-clamp-3 whitespace-pre-wrap">{botPost}</p>
+              </div>
+            )}
           </div>
 
           {/* Rechte Spalte: Logs */}

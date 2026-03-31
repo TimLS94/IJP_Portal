@@ -54,6 +54,42 @@ function savePost(text) {
   fs.writeFileSync(postFile, text);
 }
 
+// Kommentare speichern
+function saveComments(comments) {
+  const commentsFile = path.join(__dirname, 'comments.txt');
+  if (!comments || comments.length === 0) {
+    // Keine Kommentare = Datei löschen
+    if (fs.existsSync(commentsFile)) {
+      fs.unlinkSync(commentsFile);
+    }
+    return;
+  }
+  // Kommentare mit --- trennen
+  const content = comments.join('\n---\n');
+  fs.writeFileSync(commentsFile, content);
+}
+
+// Kommentare laden
+function loadComments() {
+  const commentsFile = path.join(__dirname, 'comments.txt');
+  if (fs.existsSync(commentsFile)) {
+    const content = fs.readFileSync(commentsFile, 'utf-8').trim();
+    if (content) {
+      return content.split('---').map(c => c.trim()).filter(c => c.length > 0);
+    }
+  }
+  return [];
+}
+
+// Post-Text laden
+function loadPost() {
+  const postFile = path.join(__dirname, 'post.txt');
+  if (fs.existsSync(postFile)) {
+    return fs.readFileSync(postFile, 'utf-8').trim();
+  }
+  return '';
+}
+
 // Bot starten
 function startBot(options = {}) {
   if (botProcess) {
@@ -135,7 +171,9 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({
         status: botStatus,
         logs: botLogs.slice(-20),
-        groups: loadGroups().length
+        groups: loadGroups().length,
+        post: loadPost(),
+        comments: loadComments()
       }));
       return;
     }
@@ -162,10 +200,29 @@ const server = http.createServer(async (req, res) => {
 
     // Post-Text setzen
     if (url.pathname === '/post' && req.method === 'POST') {
-      const { text } = JSON.parse(body);
+      const { text, comments } = JSON.parse(body);
       savePost(text);
+      if (comments !== undefined) {
+        saveComments(comments);
+      }
       res.writeHead(200, corsHeaders);
       res.end(JSON.stringify({ success: true }));
+      return;
+    }
+
+    // Kommentare setzen
+    if (url.pathname === '/comments' && req.method === 'POST') {
+      const { comments } = JSON.parse(body);
+      saveComments(comments);
+      res.writeHead(200, corsHeaders);
+      res.end(JSON.stringify({ success: true, count: comments ? comments.length : 0 }));
+      return;
+    }
+
+    // Kommentare abrufen
+    if (url.pathname === '/comments' && req.method === 'GET') {
+      res.writeHead(200, corsHeaders);
+      res.end(JSON.stringify({ comments: loadComments() }));
       return;
     }
 
