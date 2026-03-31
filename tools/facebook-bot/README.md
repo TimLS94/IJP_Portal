@@ -50,6 +50,22 @@ Jetzt bewerben: https://www.jobon.work
 #Job #Arbeit #JobOn
 ```
 
+### 3. Kommentare hinzufügen (optional)
+
+Erstelle `comments.txt` mit Kommentaren, die unter deinen Post geschrieben werden.
+Trenne mehrere Kommentare mit `---`:
+
+```
+👉 Mehr Infos: https://www.jobon.work
+---
+🏨 Unterkunft wird gestellt!
+💰 Faire Bezahlung!
+---
+Fragen? Schreibt mir gerne! 💬
+```
+
+Der Bot postet erst den Hauptpost und fügt dann automatisch die Kommentare hinzu.
+
 ## Nutzung
 
 ### Erster Start (Login)

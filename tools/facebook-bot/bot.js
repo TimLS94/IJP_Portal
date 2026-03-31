@@ -218,10 +218,129 @@ async function postToGroup(page, group, postText, dryRun = false) {
     await randomDelay(DELAYS.afterPosting);
     
     log(`Erfolgreich gepostet in: ${group.name}`, 'success');
-    return { success: true };
+    return { success: true, postCreated: true };
     
   } catch (error) {
     log(`Fehler bei ${group.name}: ${error.message}`, 'error');
+    return { success: false, error: error.message };
+  }
+}
+
+// Kommentar unter den eigenen Post schreiben
+async function addCommentToOwnPost(page, group, comments, dryRun = false) {
+  if (!comments || comments.length === 0) {
+    return { success: true, skipped: true };
+  }
+  
+  log(`Füge ${comments.length} Kommentar(e) hinzu in: ${group.name}`, 'wait');
+  
+  try {
+    // Zur Gruppe navigieren (falls nicht schon dort)
+    if (!page.url().includes(group.url.split('/').pop())) {
+      await page.goto(group.url, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(3000);
+    }
+    
+    // Den neuesten eigenen Post finden
+    // Wir suchen nach Posts mit "Gerade eben" oder "vor X Minuten" vom eigenen Profil
+    await page.waitForTimeout(2000);
+    
+    // Scroll zum Feed um Posts zu laden
+    await page.evaluate(() => window.scrollBy(0, 300));
+    await page.waitForTimeout(2000);
+    
+    // Finde den Kommentar-Button beim ersten Post (der neueste, also unser gerade erstellter)
+    const commentButtonSelectors = [
+      'div[aria-label="Einen Kommentar schreiben"]',
+      'div[aria-label="Kommentieren"]',
+      'span:has-text("Kommentieren")',
+      'div[role="button"]:has-text("Kommentieren")',
+    ];
+    
+    let commentButton = null;
+    for (const selector of commentButtonSelectors) {
+      try {
+        const buttons = await page.$$(selector);
+        if (buttons.length > 0) {
+          commentButton = buttons[0]; // Erster = neuester Post
+          break;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    
+    if (!commentButton) {
+      log(`Konnte Kommentar-Button nicht finden in: ${group.name}`, 'warning');
+      return { success: false, error: 'Kommentar-Button nicht gefunden' };
+    }
+    
+    // Für jeden Kommentar
+    for (let i = 0; i < comments.length; i++) {
+      const comment = comments[i];
+      
+      if (dryRun) {
+        log(`[DRY RUN] Würde Kommentar ${i + 1} hinzufügen: "${comment.substring(0, 50)}..."`, 'warning');
+        continue;
+      }
+      
+      // Kommentar-Button klicken
+      await commentButton.click();
+      await randomDelay(DELAYS.beforeTyping);
+      
+      // Kommentar-Textfeld finden
+      const commentBoxSelectors = [
+        'div[aria-label="Schreibe einen Kommentar"][contenteditable="true"]',
+        'div[aria-label="Schreibe einen Kommentar..."][contenteditable="true"]',
+        'div[contenteditable="true"][role="textbox"]',
+      ];
+      
+      let commentBox = null;
+      for (const selector of commentBoxSelectors) {
+        try {
+          commentBox = await page.waitForSelector(selector, { timeout: 5000 });
+          if (commentBox) break;
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      if (!commentBox) {
+        log(`Konnte Kommentar-Feld nicht finden für Kommentar ${i + 1}`, 'warning');
+        continue;
+      }
+      
+      // Kommentar eingeben
+      await commentBox.click();
+      await page.waitForTimeout(500);
+      
+      await page.evaluate((text) => {
+        const box = document.querySelector('div[contenteditable="true"][role="textbox"]:focus') ||
+                    document.querySelector('div[aria-label="Schreibe einen Kommentar"][contenteditable="true"]');
+        if (box) {
+          box.focus();
+          document.execCommand('insertText', false, text);
+        }
+      }, comment);
+      
+      await randomDelay(DELAYS.beforePosting);
+      
+      // Enter drücken oder Absenden-Button klicken
+      await page.keyboard.press('Enter');
+      await randomDelay({ min: 3000, max: 5000 });
+      
+      log(`Kommentar ${i + 1}/${comments.length} hinzugefügt`, 'success');
+      
+      // Pause zwischen Kommentaren
+      if (i < comments.length - 1) {
+        await randomDelay({ min: 5000, max: 10000 });
+      }
+    }
+    
+    return { success: true, commentsAdded: comments.length };
+    
+  } catch (error) {
+    log(`Fehler beim Kommentieren in ${group.name}: ${error.message}`, 'error');
     return { success: false, error: error.message };
   }
 }
@@ -261,8 +380,25 @@ async function runBot(options = {}) {
     }
   }
   
+  // Kommentare laden (optional)
+  let comments = [];
+  const commentsFile = path.join(__dirname, 'comments.txt');
+  
+  if (fs.existsSync(commentsFile)) {
+    const commentsContent = fs.readFileSync(commentsFile, 'utf-8').trim();
+    if (commentsContent) {
+      // Kommentare sind durch "---" getrennt
+      comments = commentsContent.split('---').map(c => c.trim()).filter(c => c.length > 0);
+      log(`${comments.length} Kommentar(e) aus comments.txt geladen`, 'info');
+    }
+  }
+  
   console.log('\n--- Post-Vorschau ---');
   console.log(postText);
+  if (comments.length > 0) {
+    console.log('\n--- Kommentare ---');
+    comments.forEach((c, i) => console.log(`[${i + 1}] ${c.substring(0, 80)}${c.length > 80 ? '...' : ''}`));
+  }
   console.log('--- Ende Vorschau ---\n');
   
   if (!test) {
@@ -312,6 +448,13 @@ async function runBot(options = {}) {
       
       const result = await postToGroup(page, group, postText, dryRun);
       results.push({ group: group.name, ...result });
+      
+      // Kommentare hinzufügen wenn Post erfolgreich war
+      if (result.success && comments.length > 0) {
+        await randomDelay({ min: 3000, max: 5000 });
+        const commentResult = await addCommentToOwnPost(page, group, comments, dryRun);
+        results[results.length - 1].comments = commentResult;
+      }
       
       // Verzögerung zwischen Gruppen (außer bei letzter)
       if (i < GROUPS.length - 1) {
