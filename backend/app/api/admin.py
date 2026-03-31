@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, EmailStr
+from zoneinfo import ZoneInfo
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -36,8 +37,26 @@ async def get_dashboard_stats(
 ):
     """Holt Statistiken für das Admin-Dashboard mit wählbarem Zeitraum"""
     
-    # Zeitraum für Statistiken
-    period_start = datetime.utcnow() - timedelta(days=days)
+    # Deutsche Zeitzone für korrekte Tagesberechnung
+    berlin_tz = ZoneInfo("Europe/Berlin")
+    now_berlin = datetime.now(berlin_tz)
+    
+    # "Heute" in deutscher Zeit = 0:00 Uhr Berlin, konvertiert zu UTC für DB-Abfrage
+    today_start_berlin = now_berlin.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start_utc = today_start_berlin.astimezone(timezone.utc).replace(tzinfo=None)
+    
+    # Wochenstart (7 Tage zurück, 0:00 Uhr Berlin)
+    week_start_berlin = (now_berlin - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start_utc = week_start_berlin.astimezone(timezone.utc).replace(tzinfo=None)
+    
+    # Monatsstart (30 Tage zurück, 0:00 Uhr Berlin)
+    month_start_berlin = (now_berlin - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start_utc = month_start_berlin.astimezone(timezone.utc).replace(tzinfo=None)
+    
+    # Zeitraum für gewählte Periode
+    period_start_berlin = (now_berlin - timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0)
+    period_start_utc = period_start_berlin.astimezone(timezone.utc).replace(tzinfo=None)
+    
     now = datetime.utcnow()
     
     # Basis-Statistiken
@@ -49,19 +68,19 @@ async def get_dashboard_stats(
             "companies": db.query(User).filter(User.role == UserRole.COMPANY).count(),
             "active": db.query(User).filter(User.is_active == True).count(),
             "inactive": db.query(User).filter(User.is_active == False).count(),
-            "new_in_period": db.query(User).filter(User.created_at >= period_start).count(),
+            "new_in_period": db.query(User).filter(User.created_at >= period_start_utc).count(),
             "logins_in_period": db.query(User).filter(
-                User.last_login_at >= period_start,
+                User.last_login_at >= period_start_utc,
                 User.last_login_at != None
             ).count(),
             "logins_today": db.query(User).filter(
-                User.last_login_at >= datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+                User.last_login_at >= today_start_utc
             ).count(),
             "logins_this_week": db.query(User).filter(
-                User.last_login_at >= datetime.utcnow() - timedelta(days=7)
+                User.last_login_at >= week_start_utc
             ).count(),
             "logins_this_month": db.query(User).filter(
-                User.last_login_at >= datetime.utcnow() - timedelta(days=30)
+                User.last_login_at >= month_start_utc
             ).count()
         },
         "jobs": {
@@ -74,8 +93,8 @@ async def get_dashboard_stats(
                 JobPosting.deadline < now.date(),
                 JobPosting.is_active == True
             ).count(),
-            "new_in_period": db.query(JobPosting).filter(JobPosting.created_at >= period_start).count(),
-            "archived_in_period": db.query(JobPosting).filter(JobPosting.archived_at >= period_start).count()
+            "new_in_period": db.query(JobPosting).filter(JobPosting.created_at >= period_start_utc).count(),
+            "archived_in_period": db.query(JobPosting).filter(JobPosting.archived_at >= period_start_utc).count()
         },
         "applications": {
             "total": db.query(Application).count(),
@@ -84,13 +103,13 @@ async def get_dashboard_stats(
             "rejected": db.query(Application).filter(Application.status == ApplicationStatus.REJECTED).count(),
             "in_review": db.query(Application).filter(Application.status == ApplicationStatus.COMPANY_REVIEW).count(),
             "interview": db.query(Application).filter(Application.status == ApplicationStatus.INTERVIEW_SCHEDULED).count(),
-            "new_in_period": db.query(Application).filter(Application.applied_at >= period_start).count(),
+            "new_in_period": db.query(Application).filter(Application.applied_at >= period_start_utc).count(),
             "new_this_week": db.query(Application).filter(
-                Application.applied_at >= datetime.utcnow() - timedelta(days=7)
+                Application.applied_at >= week_start_utc
             ).count(),
             "accepted_in_period": db.query(Application).filter(
                 Application.status == ApplicationStatus.ACCEPTED,
-                Application.updated_at >= period_start
+                Application.updated_at >= period_start_utc
             ).count()
         },
         "position_types": {}
