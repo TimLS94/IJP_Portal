@@ -54,7 +54,14 @@ async def get_dashboard_stats(
     month_start_utc = month_start_berlin.astimezone(timezone.utc).replace(tzinfo=None)
     
     # Zeitraum für gewählte Periode
-    period_start_berlin = (now_berlin - timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0)
+    # Bei days=1 ("Heute") soll ab heute 0:00 Uhr gezählt werden, nicht ab gestern
+    # Daher: days-1 Tage zurück, damit days=1 = heute, days=7 = letzte 7 Tage inkl. heute
+    if days == 1:
+        # "Heute" = ab heute 0:00 Uhr
+        period_start_berlin = now_berlin.replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        # "Letzte X Tage" = ab vor (days-1) Tagen 0:00 Uhr (inkl. heute)
+        period_start_berlin = (now_berlin - timedelta(days=days-1)).replace(hour=0, minute=0, second=0, microsecond=0)
     period_start_utc = period_start_berlin.astimezone(timezone.utc).replace(tzinfo=None)
     
     now = datetime.utcnow()
