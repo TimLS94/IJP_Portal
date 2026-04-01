@@ -1104,9 +1104,8 @@ Wir suchen motivierte Mitarbeiter für unser Hotel...
               )}
             </div>
 
-            {/* Kommentare für Page */}
-            {pageStatus?.valid && (
-              <div className="card">
+            {/* Kommentare für Page - immer anzeigen */}
+            <div className="card">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     <MessageSquare className="h-5 w-5 text-blue-500" />
@@ -1149,7 +1148,6 @@ Wir suchen motivierte Mitarbeiter für unser Hotel...
                   </p>
                 )}
               </div>
-            )}
 
             {/* Info */}
             <div className="card bg-blue-50 border border-blue-200">
