@@ -4,11 +4,18 @@ from sqlalchemy import desc
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
+import logging
 
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
 from app.models.facebook_post import FacebookGroup, FacebookPostTemplate, FacebookPost, FacebookPostLog
+from app.services.facebook_api import (
+    post_to_page, comment_on_post, post_with_comments, 
+    get_page_info, check_token_validity, FacebookAPIError
+)
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/facebook", tags=["Facebook"])
 
@@ -399,3 +406,103 @@ async def get_facebook_stats(
         "favorite_posts": favorite_posts,
         "total_posted": total_logs
     }
+
+
+# ============ Facebook Page API Endpoints ============
+
+class PagePostRequest(BaseModel):
+    message: str
+    comments: Optional[List[str]] = None
+    link: Optional[str] = None
+
+
+class PagePostResponse(BaseModel):
+    success: bool
+    post_id: Optional[str] = None
+    comments: Optional[List[dict]] = None
+    error: Optional[str] = None
+
+
+@router.get("/page/status")
+async def get_page_status(
+    current_user: User = Depends(get_current_user)
+):
+    """Prüft ob die Facebook Page API konfiguriert und der Token gültig ist."""
+    require_admin(current_user)
+    
+    result = await check_token_validity()
+    return result
+
+
+@router.get("/page/info")
+async def get_facebook_page_info(
+    current_user: User = Depends(get_current_user)
+):
+    """Holt Informationen über die verknüpfte Facebook Page."""
+    require_admin(current_user)
+    
+    try:
+        info = await get_page_info()
+        return {"success": True, **info}
+    except FacebookAPIError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/page/post", response_model=PagePostResponse)
+async def post_to_facebook_page(
+    request: PagePostRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Postet direkt auf die Facebook Page (über die offizielle API).
+    Optional können Kommentare unter dem Post hinzugefügt werden.
+    """
+    require_admin(current_user)
+    
+    try:
+        if request.comments:
+            result = await post_with_comments(
+                message=request.message,
+                comments=request.comments,
+                link=request.link
+            )
+        else:
+            result = await post_to_page(
+                message=request.message,
+                link=request.link
+            )
+        
+        # Log erstellen
+        log = FacebookPostLog(
+            group_name="JobOn Page (API)",
+            post_content=request.message[:500],
+            success=True,
+            facebook_post_id=result.get("post_id")
+        )
+        db.add(log)
+        db.commit()
+        
+        return PagePostResponse(
+            success=True,
+            post_id=result.get("post_id"),
+            comments=result.get("comments")
+        )
+        
+    except FacebookAPIError as e:
+        logger.error(f"Facebook API Error: {e}")
+        
+        # Fehler-Log erstellen
+        log = FacebookPostLog(
+            group_name="JobOn Page (API)",
+            post_content=request.message[:500],
+            success=False,
+            error_message=str(e)
+        )
+        db.add(log)
+        db.commit()
+        
+        return PagePostResponse(
+            success=False,
+            error=str(e)
+        )

@@ -359,6 +359,12 @@ export const adminAPI = {
   getFacebookLogs: (limit) => api.get('/facebook/logs', { params: { limit: limit || 100 } }),
   createFacebookLog: (data) => api.post('/facebook/logs', data),
   getFacebookStats: () => api.get('/facebook/stats'),
+  
+  // Facebook Page API (direkt über offizielle API posten)
+  getFacebookPageStatus: () => api.get('/facebook/page/status'),
+  getFacebookPageInfo: () => api.get('/facebook/page/info'),
+  postToFacebookPage: (message, comments = [], link = null) => 
+    api.post('/facebook/page/post', { message, comments, link }),
 };
 
 // Auth API Erweiterung für Einladungs-Token-Prüfung

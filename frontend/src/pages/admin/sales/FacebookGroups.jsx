@@ -52,10 +52,16 @@ function FacebookGroups() {
   const [botPost, setBotPost] = useState(''); // Aktueller Post im Bot
   const BOT_URL = 'http://localhost:3847';
 
+  // Facebook Page API States
+  const [pageStatus, setPageStatus] = useState(null);
+  const [pageComments, setPageComments] = useState(['']);
+  const [pagePosting, setPagePosting] = useState(false);
+
   // Load Data
   useEffect(() => {
     loadData();
     checkBotStatus();
+    checkPageStatus();
     // Bot-Status alle 5 Sekunden prüfen wenn Tab aktiv
     const interval = setInterval(() => {
       if (activeTab === 'bot') checkBotStatus();
@@ -146,6 +152,57 @@ function FacebookGroups() {
 
   const removeBotComment = (index) => {
     setBotComments(botComments.filter((_, i) => i !== index));
+  };
+
+  // ============ Facebook Page API Functions ============
+  const checkPageStatus = async () => {
+    try {
+      const res = await adminAPI.getFacebookPageStatus();
+      setPageStatus(res.data);
+    } catch (e) {
+      setPageStatus({ valid: false, error: 'Nicht konfiguriert' });
+    }
+  };
+
+  const addPageComment = () => {
+    setPageComments([...pageComments, '']);
+  };
+
+  const updatePageComment = (index, value) => {
+    const updated = [...pageComments];
+    updated[index] = value;
+    setPageComments(updated);
+  };
+
+  const removePageComment = (index) => {
+    setPageComments(pageComments.filter((_, i) => i !== index));
+  };
+
+  const postToPage = async () => {
+    const content = composeMode === 'freetext' ? freeText : generatedPost;
+    if (!content) {
+      toast.error('Kein Post-Text vorhanden');
+      return;
+    }
+    
+    setPagePosting(true);
+    try {
+      const filteredComments = pageComments.filter(c => c.trim().length > 0);
+      const res = await adminAPI.postToFacebookPage(content, filteredComments);
+      
+      if (res.data.success) {
+        toast.success('Erfolgreich auf Facebook Page gepostet!');
+        // Stats neu laden
+        const statsRes = await adminAPI.getFacebookStats();
+        setStats(statsRes.data);
+      } else {
+        toast.error(res.data.error || 'Fehler beim Posten');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Fehler beim Posten');
+    } finally {
+      setPagePosting(false);
+    }
   };
 
   const startBot = async (dryRun = false) => {
@@ -454,12 +511,13 @@ function FacebookGroups() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b pb-2">
+      <div className="flex gap-2 border-b pb-2 overflow-x-auto">
         {[
           { id: 'compose', label: 'Post erstellen', icon: PenLine },
           { id: 'saved', label: `Gespeicherte Posts (${savedPosts.length})`, icon: Save },
           { id: 'groups', label: `Gruppen (${groups.length})`, icon: Users },
           { id: 'templates', label: `Vorlagen (${templates.length})`, icon: FileText },
+          { id: 'page', label: 'Page posten', icon: Facebook, badge: pageStatus?.valid ? '🟢' : '⚪' },
           { id: 'bot', label: 'Auto-Poster', icon: Bot, badge: botConnected ? (botStatus === 'running' ? '🟢' : '🔵') : '🔴' },
         ].map(tab => (
           <button
@@ -915,6 +973,183 @@ Wir suchen motivierte Mitarbeiter für unser Hotel...
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Page Tab - Direkt auf Facebook Page posten */}
+      {activeTab === 'page' && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Linke Spalte: Page-Steuerung */}
+          <div className="space-y-4">
+            {/* Status Card */}
+            <div className={`card border-2 ${
+              pageStatus?.valid 
+                ? 'border-green-400 bg-green-50'
+                : 'border-yellow-400 bg-yellow-50'
+            }`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-xl ${
+                    pageStatus?.valid ? 'bg-green-100' : 'bg-yellow-100'
+                  }`}>
+                    <Facebook className={`h-8 w-8 ${pageStatus?.valid ? 'text-green-600' : 'text-yellow-600'}`} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Facebook Page API</h2>
+                    <p className={`text-sm ${pageStatus?.valid ? 'text-green-600' : 'text-yellow-600'}`}>
+                      {pageStatus?.valid ? `Verbunden: ${pageStatus.page_name}` : 'Nicht konfiguriert'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={checkPageStatus}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                </button>
+              </div>
+
+              {!pageStatus?.valid && (
+                <div className="bg-white rounded-lg p-4 border border-yellow-200">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-900">API nicht konfiguriert</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Setze die Umgebungsvariablen in Render:
+                      </p>
+                      <code className="block bg-gray-100 text-xs p-2 rounded mt-2 font-mono">
+                        FACEBOOK_PAGE_ACCESS_TOKEN=dein_token<br/>
+                        FACEBOOK_PAGE_ID=1086507384540518
+                      </code>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {pageStatus?.valid && (
+                <div className="space-y-3">
+                  {/* Post-Vorschau */}
+                  <div className="bg-white rounded-lg p-3 border">
+                    <p className="text-xs text-gray-500 mb-1">Aktueller Post:</p>
+                    <p className="text-sm text-gray-700 line-clamp-3">
+                      {currentContent || 'Kein Post-Text vorhanden'}
+                    </p>
+                  </div>
+
+                  {/* Posten Button */}
+                  <button
+                    onClick={postToPage}
+                    disabled={!currentContent || pagePosting}
+                    className="w-full btn-primary bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {pagePosting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Wird gepostet...
+                      </>
+                    ) : (
+                      <>
+                        <Facebook className="h-4 w-4" />
+                        Auf Page posten
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Kommentare für Page */}
+            {pageStatus?.valid && (
+              <div className="card">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-blue-500" />
+                    Kommentare unter dem Post
+                  </h3>
+                  <button
+                    onClick={addPageComment}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    + Kommentar
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  Diese Kommentare werden automatisch unter deinen Post geschrieben.
+                </p>
+                <div className="space-y-2">
+                  {pageComments.map((comment, index) => (
+                    <div key={index} className="flex gap-2">
+                      <textarea
+                        value={comment}
+                        onChange={(e) => updatePageComment(index, e.target.value)}
+                        className="input flex-1 text-sm"
+                        rows={2}
+                        placeholder={`Kommentar ${index + 1}, z.B. "👉 Mehr Infos: https://jobon.work"`}
+                      />
+                      {pageComments.length > 1 && (
+                        <button
+                          onClick={() => removePageComment(index)}
+                          className="p-2 text-gray-400 hover:text-red-500"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {pageComments.filter(c => c.trim()).length > 0 && (
+                  <p className="text-xs text-green-600 mt-2">
+                    ✓ {pageComments.filter(c => c.trim()).length} Kommentar(e) werden gepostet
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Info */}
+            <div className="card bg-blue-50 border border-blue-200">
+              <h3 className="font-semibold text-blue-900 mb-2">ℹ️ Über die Page API</h3>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• Postet direkt auf deine Facebook Page</li>
+                <li>• Funktioniert automatisch (kein Bot nötig)</li>
+                <li>• Kann später zeitgesteuert werden</li>
+                <li>• Für externe Gruppen nutze den Auto-Poster Bot</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Rechte Spalte: Post-Vorschau */}
+          <div className="card">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Eye className="h-5 w-5 text-gray-400" />
+              Post-Vorschau
+            </h3>
+            <div className="bg-white rounded-lg border p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold">J</span>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{pageStatus?.page_name || 'JobOn'}</p>
+                  <p className="text-xs text-gray-500">Gerade eben · 🌐</p>
+                </div>
+              </div>
+              <div className="whitespace-pre-wrap text-gray-800 text-sm">
+                {currentContent || 'Erstelle einen Post im "Post erstellen" Tab...'}
+              </div>
+              {pageComments.filter(c => c.trim()).length > 0 && (
+                <div className="mt-4 pt-4 border-t space-y-2">
+                  <p className="text-xs text-gray-500">Kommentare:</p>
+                  {pageComments.filter(c => c.trim()).map((comment, i) => (
+                    <div key={i} className="bg-gray-50 rounded-lg p-2 text-sm">
+                      <span className="font-medium text-blue-600">{pageStatus?.page_name || 'JobOn'}</span>
+                      <span className="text-gray-600 ml-2">{comment}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
