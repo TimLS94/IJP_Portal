@@ -172,8 +172,9 @@ async def get_dashboard_stats(
         JobPosting.deletion_reason,
         func.count(JobPosting.id)
     ).filter(
+        JobPosting.deleted_at.isnot(None),
         JobPosting.deleted_at >= period_start_utc,
-        JobPosting.deletion_reason != None
+        JobPosting.deletion_reason.isnot(None)
     ).group_by(JobPosting.deletion_reason).all()
     
     for reason, count in period_deletions:
