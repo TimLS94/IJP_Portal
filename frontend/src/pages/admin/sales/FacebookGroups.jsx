@@ -205,6 +205,36 @@ function FacebookGroups() {
     }
   };
 
+  const savePostWithComments = async () => {
+    const content = composeMode === 'freetext' ? freeText : generatedPost;
+    if (!content) {
+      toast.error('Kein Post-Text vorhanden');
+      return;
+    }
+    
+    try {
+      const filteredComments = pageComments.filter(c => c.trim().length > 0);
+      // Speichere Post mit Kommentaren als JSON in variables
+      const postData = {
+        title: postTitle || `Post vom ${new Date().toLocaleDateString('de-DE')}`,
+        content: content,
+        variables: {
+          comments: filteredComments
+        }
+      };
+      
+      await adminAPI.createFacebookPost(postData);
+      toast.success('Post mit Kommentaren gespeichert!');
+      
+      // Posts neu laden
+      const postsRes = await adminAPI.getFacebookPosts();
+      setSavedPosts(postsRes.data);
+    } catch (e) {
+      toast.error('Fehler beim Speichern');
+    }
+  };
+
+
   const startBot = async (dryRun = false) => {
     if (!botConnected) {
       toast.error('Bot-Server nicht erreichbar');
@@ -397,8 +427,16 @@ function FacebookGroups() {
   const loadSavedPost = (post) => {
     setFreeText(post.content);
     setComposeMode('freetext');
-    setActiveTab('compose');
-    toast.success('Post geladen');
+    
+    // Kommentare laden falls vorhanden
+    if (post.variables?.comments && Array.isArray(post.variables.comments)) {
+      setPageComments(post.variables.comments.length > 0 ? post.variables.comments : ['']);
+    } else {
+      setPageComments(['']);
+    }
+    
+    setActiveTab('page');
+    toast.success('Post mit Kommentaren geladen');
   };
 
   // ============ Post Generator ============
@@ -802,10 +840,17 @@ Wir suchen motivierte Mitarbeiter für unser Hotel...
                       <p className="text-sm text-gray-600 line-clamp-3 whitespace-pre-wrap">
                         {post.content}
                       </p>
-                      <p className="text-xs text-gray-400 mt-2">
-                        <Clock className="h-3 w-3 inline mr-1" />
-                        {new Date(post.created_at).toLocaleDateString('de-DE')}
-                      </p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <p className="text-xs text-gray-400">
+                          <Clock className="h-3 w-3 inline mr-1" />
+                          {new Date(post.created_at).toLocaleDateString('de-DE')}
+                        </p>
+                        {post.variables?.comments?.length > 0 && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                            💬 {post.variables.comments.length} Kommentar{post.variables.comments.length > 1 ? 'e' : ''}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
@@ -1120,11 +1165,21 @@ Wir suchen motivierte Mitarbeiter für unser Hotel...
 
           {/* Rechte Spalte: Post-Vorschau */}
           <div className="card">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Eye className="h-5 w-5 text-gray-400" />
-              Post-Vorschau
-            </h3>
-            <div className="bg-white rounded-lg border p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Eye className="h-5 w-5 text-gray-400" />
+                Post-Vorschau
+              </h3>
+              <button
+                onClick={savePostWithComments}
+                disabled={!currentContent}
+                className="btn-secondary text-sm flex items-center gap-1 disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" />
+                Post speichern
+              </button>
+            </div>
+            <div className="bg-white rounded-lg border p-4 max-h-[500px] overflow-y-auto">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-bold">J</span>
@@ -1134,16 +1189,21 @@ Wir suchen motivierte Mitarbeiter für unser Hotel...
                   <p className="text-xs text-gray-500">Gerade eben · 🌐</p>
                 </div>
               </div>
-              <div className="whitespace-pre-wrap text-gray-800 text-sm">
+              <div className="whitespace-pre-wrap text-gray-800 text-sm leading-relaxed">
                 {currentContent || 'Erstelle einen Post im "Post erstellen" Tab...'}
               </div>
               {pageComments.filter(c => c.trim()).length > 0 && (
-                <div className="mt-4 pt-4 border-t space-y-2">
-                  <p className="text-xs text-gray-500">Kommentare:</p>
+                <div className="mt-4 pt-4 border-t space-y-3">
+                  <p className="text-xs text-gray-500 font-medium">Kommentare:</p>
                   {pageComments.filter(c => c.trim()).map((comment, i) => (
-                    <div key={i} className="bg-gray-50 rounded-lg p-2 text-sm">
-                      <span className="font-medium text-blue-600">{pageStatus?.page_name || 'JobOn'}</span>
-                      <span className="text-gray-600 ml-2">{comment}</span>
+                    <div key={i} className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">J</span>
+                        </div>
+                        <span className="font-medium text-blue-600 text-sm">{pageStatus?.page_name || 'JobOn'}</span>
+                      </div>
+                      <p className="text-gray-700 text-sm whitespace-pre-wrap pl-8">{comment}</p>
                     </div>
                   ))}
                 </div>
