@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { jobsAPI } from '../../lib/api';
-import { MapPin, Calendar, Building2, Search, Filter, Briefcase, ChevronDown, X, Languages } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import toast from 'react-hot-toast';
+import { MapPin, Calendar, Building2, Search, Filter, Briefcase, ChevronDown, X, Languages, Heart, Loader2 } from 'lucide-react';
 
 const positionTypeColors = {
   general: 'bg-gray-100 text-gray-800 border-gray-200',
@@ -29,6 +31,7 @@ const languageLevelColors = {
 
 function Jobs() {
   const { t, i18n } = useTranslation();
+  const { isApplicant } = useAuth();
   
   // Helper: HTML-Tags und Entities entfernen für Plain-Text Anzeige
   const stripHtml = (text) => {
@@ -108,10 +111,60 @@ function Jobs() {
   const [location, setLocation] = useState(searchParams.get('location') || '');
   const [germanLevel, setGermanLevel] = useState(searchParams.get('german') || '');
   const [accommodationOnly, setAccommodationOnly] = useState(searchParams.get('accommodation') === 'true');
+  
+  // Gemerkte Stellen
+  const [likedJobs, setLikedJobs] = useState(new Set());
+  const [likingJob, setLikingJob] = useState(null);
 
   useEffect(() => {
     loadJobs();
   }, [positionType, location, germanLevel, accommodationOnly]);
+  
+  // Gemerkte Stellen laden wenn Bewerber eingeloggt
+  useEffect(() => {
+    if (isApplicant) {
+      loadLikedJobs();
+    }
+  }, [isApplicant]);
+  
+  const loadLikedJobs = async () => {
+    try {
+      const response = await jobsAPI.getLikedJobs();
+      const likedIds = new Set(response.data.map(j => j.id));
+      setLikedJobs(likedIds);
+    } catch (error) {
+      console.error('Fehler beim Laden der gemerkten Stellen');
+    }
+  };
+  
+  const handleLike = async (e, jobId) => {
+    e.preventDefault(); // Verhindert Navigation zum Job
+    e.stopPropagation();
+    
+    if (!isApplicant) {
+      toast.error('Bitte melden Sie sich als Bewerber an');
+      return;
+    }
+    
+    setLikingJob(jobId);
+    try {
+      const response = await jobsAPI.likeJob(jobId);
+      if (response.data.liked) {
+        setLikedJobs(prev => new Set([...prev, jobId]));
+      } else {
+        setLikedJobs(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(jobId);
+          return newSet;
+        });
+      }
+      toast.success(response.data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Fehler');
+    } finally {
+      setLikingJob(null);
+    }
+  };
 
   const loadJobs = async () => {
     setLoading(true);
@@ -471,7 +524,27 @@ function Jobs() {
                   )}
                 </div>
                 
-                <div className="text-right flex-shrink-0">
+                <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
+                  {/* Like Button für Bewerber */}
+                  {isApplicant && (
+                    <button
+                      onClick={(e) => handleLike(e, job.id)}
+                      disabled={likingJob === job.id}
+                      className={`p-2 rounded-full transition-all ${
+                        likedJobs.has(job.id)
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                          : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-500'
+                      }`}
+                      title={likedJobs.has(job.id) ? 'Gemerkt' : 'Merken'}
+                    >
+                      {likingJob === job.id ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Heart className={`h-5 w-5 ${likedJobs.has(job.id) ? 'fill-red-500' : ''}`} />
+                      )}
+                    </button>
+                  )}
+                  
                   {(job.salary_min || job.salary_max) && (
                     <p className="text-lg font-bold text-primary-600">
                       {job.salary_min && job.salary_max ? (
@@ -486,7 +559,7 @@ function Jobs() {
                       </span>
                     </p>
                   )}
-                  <p className="text-sm text-gray-400 mt-2">
+                  <p className="text-sm text-gray-400">
                     {new Date(job.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </p>
                 </div>

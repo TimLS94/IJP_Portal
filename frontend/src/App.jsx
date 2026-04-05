@@ -20,6 +20,7 @@ import ApplicantProfile from './pages/applicant/Profile';
 import ApplicantApplications from './pages/applicant/Applications';
 import ApplicantDocuments from './pages/applicant/Documents';
 import ApplicantJobRequest from './pages/applicant/JobRequest';
+import LikedJobs from './pages/applicant/LikedJobs';
 
 // Firmen-Seiten
 import CompanyDashboard from './pages/company/Dashboard';
@@ -108,6 +109,7 @@ function App() {
             <Route path="profile" element={<ApplicantProfile />} />
             <Route path="applications" element={<ApplicantApplications />} />
             <Route path="documents" element={<ApplicantDocuments />} />
+            <Route path="liked-jobs" element={<LikedJobs />} />
             <Route path="ijp-auftrag" element={<ApplicantJobRequest />} />
             <Route path="settings" element={<AccountSettings />} />
           </Route>

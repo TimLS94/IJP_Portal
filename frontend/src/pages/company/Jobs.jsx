@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { jobsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, FileText, Search, X, LayoutGrid, List, Languages, ArrowDown, ArrowUp, ArrowUpDown, Lock, Unlock, Copy } from 'lucide-react';
+import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, FileText, Search, X, LayoutGrid, List, Languages, ArrowDown, ArrowUp, ArrowUpDown, Lock, Unlock, Copy, ChevronDown } from 'lucide-react';
 
 const positionTypeLabels = {
   general: 'Allgemein',
@@ -388,28 +388,38 @@ function CompanyJobs() {
           </div>
           
           {/* Status-Filter */}
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="input-styled py-2 text-sm w-auto"
-          >
-            <option value="all">Alle Status</option>
-            <option value="active">Aktiv</option>
-            <option value="inactive">Inaktiv</option>
-            <option value="draft">Entwürfe</option>
-          </select>
+          <div className="relative">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="appearance-none px-4 py-2 pr-10 bg-white border-2 border-gray-200 rounded-xl 
+                       focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
+                       transition-all cursor-pointer text-gray-700 font-medium text-sm"
+            >
+              <option value="all">Alle Status</option>
+              <option value="active">Aktiv</option>
+              <option value="inactive">Inaktiv</option>
+              <option value="draft">Entwürfe</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          </div>
           
           {/* Sortierung */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="input-styled py-2 text-sm w-auto"
-          >
-            <option value="created_desc">Neueste zuerst</option>
-            <option value="created_asc">Älteste zuerst</option>
-            <option value="deadline">Nach Deadline</option>
-            <option value="views">Nach Aufrufen</option>
-          </select>
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="appearance-none px-4 py-2 pr-10 bg-white border-2 border-gray-200 rounded-xl 
+                       focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
+                       transition-all cursor-pointer text-gray-700 font-medium text-sm"
+            >
+              <option value="created_desc">Neueste zuerst</option>
+              <option value="created_asc">Älteste zuerst</option>
+              <option value="deadline">Nach Deadline</option>
+              <option value="views">Nach Aufrufen</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          </div>
           
           {/* Ansicht umschalten */}
           <div className="flex gap-1 bg-gray-100 rounded-lg p-1">

@@ -301,6 +301,20 @@ function EditJob() {
       cleanData.position_types = selectedPositionTypes;
       
       await jobsAPI.update(id, cleanData);
+      
+      // Auto-Übersetzung: Wenn Sprachen ausgewählt aber noch nicht übersetzt
+      if (selectedTranslationLanguages.length > 0) {
+        toast.loading('Übersetze automatisch...', { id: 'auto-translate' });
+        try {
+          const translateResponse = await jobsAPI.translate(id, selectedTranslationLanguages);
+          if (translateResponse.data.success) {
+            toast.success(`Automatisch übersetzt in: ${translateResponse.data.translated_languages.join(', ')}`, { id: 'auto-translate' });
+          }
+        } catch (translateError) {
+          toast.error('Auto-Übersetzung fehlgeschlagen', { id: 'auto-translate' });
+        }
+      }
+      
       toast.success('Stellenangebot aktualisiert!');
       navigate('/company/jobs');
     } catch (error) {

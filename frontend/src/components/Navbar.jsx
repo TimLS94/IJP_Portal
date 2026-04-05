@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Briefcase, User, Building2, LogOut, Menu, X, FileText, Shield, 
   BookOpen, Settings, ClipboardList, Users, ChevronDown, Home,
-  LayoutDashboard, FolderOpen, GraduationCap, Info, Mail, Calendar, Link2, Rocket
+  LayoutDashboard, FolderOpen, GraduationCap, Info, Mail, Calendar, Link2, Rocket, Heart
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -41,6 +41,7 @@ function Navbar() {
         { to: '/applicant/profile', icon: User, label: t('nav.profile') },
         { to: '/applicant/documents', icon: FolderOpen, label: t('nav.documents') },
         { to: '/applicant/applications', icon: FileText, label: t('nav.applications') },
+        { to: '/applicant/liked-jobs', icon: Heart, label: 'Gemerkte Stellen' },
         { to: '/applicant/ijp-auftrag', icon: ClipboardList, label: t('nav.ijpRequest') },
         { divider: true },
         { to: '/applicant/settings', icon: Settings, label: t('nav.settings') },
@@ -56,6 +57,7 @@ function Navbar() {
         { to: '/company/team', icon: Users, label: 'Team' },
         { to: '/company/ijp-auftrag', icon: Briefcase, label: 'IJP beauftragen' },
         { to: '/company/rejection-settings', icon: Mail, label: 'Absage-E-Mail' },
+        { to: '/company/digest-settings', icon: Mail, label: 'Bewerber-Digest' },
         { divider: true },
         { to: '/company/settings', icon: Settings, label: t('nav.settings') },
       ];
