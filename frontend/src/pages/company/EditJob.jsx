@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { 
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
   Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
-  ListTodo, FileText, MessageCircle
+  ListTodo, FileText, MessageCircle, Globe, Sparkles, Check
 } from 'lucide-react';
 import RichTextEditor from '../../components/RichTextEditor';
 
@@ -116,6 +116,17 @@ function EditJob() {
   const [adminTranslated, setAdminTranslated] = useState(false);
   const [adminTranslatedLanguages, setAdminTranslatedLanguages] = useState([]);
   const [selectedPositionTypes, setSelectedPositionTypes] = useState([]);
+  
+  // DeepL Übersetzung
+  const [availableLanguages, setAvailableLanguages] = useState(['de']);
+  const [selectedTranslationLanguages, setSelectedTranslationLanguages] = useState([]);
+  const [translating, setTranslating] = useState(false);
+  
+  const TRANSLATION_LANGUAGES = [
+    { code: 'en', name: 'English', flag: '🇬🇧' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+    { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+  ];
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm();
 
   const germanRequired = watch('german_required') || 'not_required';
@@ -179,6 +190,9 @@ function EditJob() {
       setAdminTranslated(job.admin_translated || false);
       setAdminTranslatedLanguages(job.admin_translated_languages || []);
       
+      // Verfügbare Sprachen setzen
+      setAvailableLanguages(job.available_languages || ['de']);
+      
       // Position Types setzen
       if (job.position_types && job.position_types.length > 0) {
         setSelectedPositionTypes(job.position_types);
@@ -205,6 +219,41 @@ function EditJob() {
     const updated = [...otherLanguages];
     updated[index][field] = value;
     setOtherLanguages(updated);
+  };
+
+  // DeepL Übersetzung
+  const toggleTranslationLanguage = (code) => {
+    setSelectedTranslationLanguages(prev => 
+      prev.includes(code) 
+        ? prev.filter(l => l !== code)
+        : [...prev, code]
+    );
+  };
+
+  const handleTranslate = async () => {
+    if (selectedTranslationLanguages.length === 0) {
+      toast.error('Bitte wählen Sie mindestens eine Sprache aus');
+      return;
+    }
+    
+    setTranslating(true);
+    try {
+      const response = await jobsAPI.translate(id, selectedTranslationLanguages);
+      if (response.data.success) {
+        toast.success(`Übersetzt in: ${response.data.translated_languages.join(', ')}`);
+        setAvailableLanguages(prev => [...new Set([...prev, ...response.data.translated_languages])]);
+        setSelectedTranslationLanguages([]);
+      } else {
+        toast.error('Übersetzung fehlgeschlagen');
+      }
+      if (response.data.errors?.length > 0) {
+        response.data.errors.forEach(err => toast.error(err));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Fehler bei der Übersetzung');
+    } finally {
+      setTranslating(false);
+    }
   };
 
   // Konvertiert deutsche Zahlenformate (Komma) zu Float
@@ -871,6 +920,82 @@ function EditJob() {
               Wenn keine Frist gesetzt wird, bleibt die Stelle unbegrenzt aktiv.
             </p>
           </div>
+        </div>
+
+        {/* ========== 8. ÜBERSETZUNG ========== */}
+        <div className="card border-l-4 border-l-purple-500">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <Globe className="h-5 w-5 text-purple-600" />
+            Übersetzung (DeepL)
+          </h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Übersetzen Sie Ihre Stellenanzeige automatisch mit DeepL, um mehr internationale Bewerber zu erreichen.
+          </p>
+          
+          {/* Bereits übersetzte Sprachen */}
+          {availableLanguages.length > 1 && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800 flex items-center gap-2">
+                <Check className="h-4 w-4" />
+                Bereits verfügbar in: {availableLanguages.map(l => {
+                  const lang = TRANSLATION_LANGUAGES.find(tl => tl.code === l);
+                  return lang ? `${lang.flag} ${lang.name}` : l.toUpperCase();
+                }).join(', ')}
+              </p>
+            </div>
+          )}
+          
+          {/* Sprachen auswählen */}
+          <div className="mb-4">
+            <label className="label mb-2">In welche Sprachen übersetzen?</label>
+            <div className="flex flex-wrap gap-2">
+              {TRANSLATION_LANGUAGES.map((lang) => {
+                const isTranslated = availableLanguages.includes(lang.code);
+                const isSelected = selectedTranslationLanguages.includes(lang.code);
+                
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => !isTranslated && toggleTranslationLanguage(lang.code)}
+                    disabled={isTranslated}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                      isTranslated
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : isSelected
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span>{lang.flag}</span>
+                    <span>{lang.name}</span>
+                    {isTranslated && <Check className="h-4 w-4" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Übersetzen Button */}
+          {selectedTranslationLanguages.length > 0 && (
+            <button
+              type="button"
+              onClick={handleTranslate}
+              disabled={translating}
+              className="btn-primary bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+            >
+              {translating ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Sparkles className="h-5 w-5" />
+              )}
+              {translating ? 'Übersetze...' : `Mit DeepL übersetzen (${selectedTranslationLanguages.length} Sprache${selectedTranslationLanguages.length > 1 ? 'n' : ''})`}
+            </button>
+          )}
+          
+          <p className="text-xs text-gray-500 mt-3">
+            Die Übersetzung erfolgt automatisch mit DeepL. Titel, Beschreibung, Aufgaben, Anforderungen und Benefits werden übersetzt.
+          </p>
         </div>
 
         {/* Speichern Button */}

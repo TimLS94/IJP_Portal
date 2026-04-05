@@ -7,7 +7,8 @@ import toast from 'react-hot-toast';
 import { 
   MapPin, Calendar, Building2, Euro, Clock, Globe, 
   ArrowLeft, Send, CheckCircle, Languages, AlertTriangle, FileText, Loader2, ClipboardList,
-  Sparkles, TrendingUp, TrendingDown, Minus, User, Phone, Mail, Briefcase, ListTodo, Globe2
+  Sparkles, TrendingUp, TrendingDown, Minus, User, Phone, Mail, Briefcase, ListTodo, Globe2,
+  Heart, Flag, X
 } from 'lucide-react';
 
 // Verfügbare Sprachen
@@ -190,6 +191,24 @@ function JobDetail() {
   const [selectedDocIds, setSelectedDocIds] = useState([]);
   const [showDocumentSelection, setShowDocumentSelection] = useState(false);
   
+  // Like/Report
+  const [liked, setLiked] = useState(false);
+  const [reported, setReported] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportNote, setReportNote] = useState('');
+  const [liking, setLiking] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  
+  const REPORT_REASONS = [
+    { value: 'not_relevant', label: 'Nicht relevant für mich' },
+    { value: 'misleading', label: 'Irreführende Beschreibung' },
+    { value: 'duplicate', label: 'Doppelte Stelle' },
+    { value: 'spam', label: 'Spam/Fake' },
+    { value: 'inappropriate', label: 'Unangemessener Inhalt' },
+    { value: 'other', label: 'Sonstiges' },
+  ];
+  
   // Helper: Text in der gewählten Sprache abrufen (mit Fallback auf Deutsch)
   const getTranslatedText = (field) => {
     if (!job) return '';
@@ -288,8 +307,56 @@ function JobDetail() {
       loadRequirements();
       loadMatchScore();
       loadMyDocuments();
+      loadInteractionStatus();
     }
   }, [isApplicant, job?.id]);
+  
+  const loadInteractionStatus = async () => {
+    try {
+      const response = await jobsAPI.getJobInteraction(job.id);
+      setLiked(response.data.liked);
+      setReported(response.data.reported);
+    } catch (error) {
+      console.error('Fehler beim Laden des Interaktionsstatus');
+    }
+  };
+  
+  const handleLike = async () => {
+    if (!isApplicant) {
+      toast.error('Bitte melden Sie sich als Bewerber an');
+      return;
+    }
+    
+    setLiking(true);
+    try {
+      const response = await jobsAPI.likeJob(job.id);
+      setLiked(response.data.liked);
+      toast.success(response.data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Fehler');
+    } finally {
+      setLiking(false);
+    }
+  };
+  
+  const handleReport = async () => {
+    if (!reportReason) {
+      toast.error('Bitte wählen Sie einen Grund');
+      return;
+    }
+    
+    setReporting(true);
+    try {
+      const response = await jobsAPI.reportJob(job.id, reportReason, reportNote);
+      setReported(true);
+      setShowReportModal(false);
+      toast.success(response.data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Fehler');
+    } finally {
+      setReporting(false);
+    }
+  };
   
   const loadMyDocuments = async () => {
     try {
@@ -1101,6 +1168,48 @@ function JobDetail() {
             </div>
           </div>
 
+          {/* Like/Report Box für Bewerber */}
+          {isApplicant && (
+            <div className="card">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Stelle merken</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleLike}
+                  disabled={liking}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-medium transition-all ${
+                    liked 
+                      ? 'bg-red-100 text-red-700 border-2 border-red-300' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {liking ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Heart className={`h-4 w-4 ${liked ? 'fill-red-500' : ''}`} />
+                  )}
+                  {liked ? 'Gemerkt' : 'Merken'}
+                </button>
+                
+                {!reported && (
+                  <button
+                    onClick={() => setShowReportModal(true)}
+                    className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-medium bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-all"
+                    title="Stelle melden"
+                  >
+                    <Flag className="h-4 w-4" />
+                  </button>
+                )}
+                
+                {reported && (
+                  <div className="flex items-center gap-2 py-2 px-4 rounded-lg bg-orange-100 text-orange-700">
+                    <Flag className="h-4 w-4" />
+                    <span className="text-sm">Gemeldet</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* IJP beauftragen Box */}
           {isApplicant && (
             <div className="card bg-gradient-to-br from-primary-50 to-blue-50 border-2 border-primary-200">
@@ -1191,6 +1300,91 @@ function JobDetail() {
           )}
         </div>
       </div>
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Flag className="h-5 w-5 text-orange-600" />
+                Stelle melden
+              </h3>
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <p className="text-gray-600 text-sm mb-4">
+              Warum möchten Sie diese Stelle melden?
+            </p>
+            
+            <div className="space-y-2 mb-4">
+              {REPORT_REASONS.map((reason) => (
+                <label
+                  key={reason.value}
+                  className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                    reportReason === reason.value
+                      ? 'bg-orange-100 border-2 border-orange-300'
+                      : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="reportReason"
+                    value={reason.value}
+                    checked={reportReason === reason.value}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    className="sr-only"
+                  />
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    reportReason === reason.value ? 'border-orange-500 bg-orange-500' : 'border-gray-300'
+                  }`}>
+                    {reportReason === reason.value && (
+                      <div className="w-2 h-2 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <span className="text-gray-700">{reason.label}</span>
+                </label>
+              ))}
+            </div>
+            
+            {reportReason === 'other' && (
+              <textarea
+                value={reportNote}
+                onChange={(e) => setReportNote(e.target.value)}
+                placeholder="Bitte beschreiben Sie das Problem..."
+                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none mb-4"
+                rows={3}
+              />
+            )}
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="flex-1 py-2 px-4 rounded-lg font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleReport}
+                disabled={reporting || !reportReason}
+                className="flex-1 py-2 px-4 rounded-lg font-medium bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {reporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Flag className="h-4 w-4" />
+                )}
+                Melden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

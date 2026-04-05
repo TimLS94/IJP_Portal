@@ -10,7 +10,7 @@ import {
   Globe, Loader2, ChevronDown, ChevronUp, Search, Filter, 
   ArrowUpDown, SlidersHorizontal, LayoutGrid, List, CalendarPlus,
   Clock, Video, MapPinned, CheckCircle, XCircle, AlertTriangle,
-  Sparkles, TrendingUp, TrendingDown, Minus, FilePlus, Send
+  Sparkles, TrendingUp, TrendingDown, Minus, FilePlus, Send, StickyNote, Save
 } from 'lucide-react';
 
 const statusOptions = [
@@ -78,6 +78,11 @@ function CompanyApplications() {
   const [selectedDocTypes, setSelectedDocTypes] = useState([]);
   const [docRequestMessage, setDocRequestMessage] = useState('');
   const [submittingDocRequest, setSubmittingDocRequest] = useState(false);
+  
+  // Firmen-Notizen
+  const [companyNotes, setCompanyNotes] = useState('');
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [savingNotes, setSavingNotes] = useState(false);
 
   useEffect(() => {
     loadApplications();
@@ -183,6 +188,7 @@ function CompanyApplications() {
     setPendingStatus(null); // Reset pending status
     setPendingInterview(null); // Reset pending interview
     setMatchScore(null); // Reset match score
+    setCompanyNotes(''); // Reset notes
     try {
       const response = await applicationsAPI.getApplicantDetails(appId);
       setApplicantDetails(response.data);
@@ -191,11 +197,39 @@ function CompanyApplications() {
       loadInterviews(appId);
       // Lade Matching-Score
       loadMatchScore(appId);
+      // Lade Firmen-Notizen
+      loadCompanyNotes(appId);
     } catch (error) {
       toast.error('Fehler beim Laden der Details');
       setSelectedApp(null);
     } finally {
       setDetailsLoading(false);
+    }
+  };
+  
+  const loadCompanyNotes = async (appId) => {
+    setNotesLoading(true);
+    try {
+      const response = await applicationsAPI.getCompanyNotes(appId);
+      setCompanyNotes(response.data.notes || '');
+    } catch (error) {
+      console.error('Fehler beim Laden der Notizen');
+    } finally {
+      setNotesLoading(false);
+    }
+  };
+  
+  const saveCompanyNotes = async () => {
+    if (!selectedApp) return;
+    
+    setSavingNotes(true);
+    try {
+      await applicationsAPI.updateCompanyNotes(selectedApp, companyNotes);
+      toast.success('Notizen gespeichert');
+    } catch (error) {
+      toast.error('Fehler beim Speichern der Notizen');
+    } finally {
+      setSavingNotes(false);
     }
   };
   
@@ -1130,6 +1164,45 @@ function CompanyApplications() {
                       </p>
                     </div>
                   )}
+
+                  {/* Firmen-Notizen */}
+                  <div className="md:col-span-2 bg-yellow-50 rounded-xl p-5 border border-yellow-200">
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <StickyNote className="h-5 w-5 text-yellow-600" />
+                      Interne Notizen
+                      <span className="text-xs font-normal text-gray-500">(nur für Ihr Team sichtbar)</span>
+                    </h3>
+                    {notesLoading ? (
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Laden...
+                      </div>
+                    ) : (
+                      <>
+                        <textarea
+                          value={companyNotes}
+                          onChange={(e) => setCompanyNotes(e.target.value)}
+                          placeholder="Notizen zu diesem Bewerber hinzufügen..."
+                          className="w-full p-3 border-2 border-yellow-200 rounded-lg focus:border-yellow-400 focus:outline-none bg-white resize-none"
+                          rows={3}
+                        />
+                        <div className="flex justify-end mt-2">
+                          <button
+                            onClick={saveCompanyNotes}
+                            disabled={savingNotes}
+                            className="px-4 py-2 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                          >
+                            {savingNotes ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Save className="h-4 w-4" />
+                            )}
+                            Notizen speichern
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
 
                   {/* Dokumente */}
                   <div className="md:col-span-2 bg-gray-50 rounded-xl p-5">
