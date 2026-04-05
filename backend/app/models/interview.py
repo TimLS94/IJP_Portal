@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, Enum, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
 import enum
-from app.core.database import Base
+from app.core.database import Base, utc_now
 
 
 class InterviewStatus(str, enum.Enum):
@@ -55,8 +54,8 @@ class Interview(Base):
     reminder_sent = Column(Boolean, default=False)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     
     # Relationships
     application = relationship("Application", back_populates="interviews")

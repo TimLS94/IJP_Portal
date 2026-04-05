@@ -5,7 +5,7 @@ Ermöglicht mehrere Benutzer pro Firma mit verschiedenen Rollen.
 """
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from app.core.database import utc_now
 import enum
 from app.core.database import Base
 
@@ -40,13 +40,13 @@ class CompanyMember(Base):
     
     # Einladung
     invited_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    invited_at = Column(DateTime, default=datetime.utcnow)
+    invited_at = Column(DateTime(timezone=True), default=utc_now)
     
     # Status
     is_active = Column(Boolean, default=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id], back_populates="company_memberships")

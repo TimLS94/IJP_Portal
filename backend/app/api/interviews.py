@@ -10,7 +10,7 @@ Workflow:
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timedelta
@@ -717,7 +717,10 @@ async def get_company_calendar(
             InterviewStatus.DECLINED,
             InterviewStatus.CANCELLED
         ])
-    ).order_by(Interview.confirmed_date.desc().nullsfirst()).all()
+    ).order_by(
+        # Sortiere nach bestätigtem Datum, falls nicht vorhanden nach vorgeschlagenem Datum
+        func.coalesce(Interview.confirmed_date, Interview.proposed_date_1).asc()
+    ).all()
     
     # Formatierte Antwort
     calendar_events = []

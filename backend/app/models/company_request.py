@@ -6,7 +6,7 @@ Bewerbungsprozess zu unterstützen, wird hier ein Auftrag erstellt.
 """
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, Boolean, Enum, JSON
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from app.core.database import utc_now
 import enum
 from app.core.database import Base
 
@@ -143,8 +143,8 @@ class CompanyRequest(Base):
     candidates_hired = Column(Integer, default=0)     # Eingestellte Kandidaten
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     completed_at = Column(DateTime)
     
     # Relationships

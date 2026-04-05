@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
 import enum
-from app.core.database import Base
+from app.core.database import Base, utc_now
 
 
 class DocumentType(str, enum.Enum):
@@ -152,7 +151,7 @@ class Document(Base):
     is_verified = Column(Boolean, default=False)  # Von Admin geprüft?
     
     # Timestamps
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    uploaded_at = Column(DateTime(timezone=True), default=utc_now)
     
     # Relationships
     applicant = relationship("Applicant", back_populates="documents")

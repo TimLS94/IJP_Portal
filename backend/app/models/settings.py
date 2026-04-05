@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
-from datetime import datetime
-from app.core.database import Base
+from app.core.database import Base, utc_now
 
 
 class GlobalSettings(Base):
@@ -12,7 +11,7 @@ class GlobalSettings(Base):
     value = Column(Text)  # Wert als String (wird je nach Typ konvertiert)
     value_type = Column(String(20), default="string")  # string, boolean, integer, json
     description = Column(Text)  # Beschreibung für Admin-UI
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     updated_by = Column(Integer)  # User-ID des Admins
 
 

@@ -212,3 +212,72 @@ async def reset_rejection_settings(
         "rejection_email_subject": DEFAULT_REJECTION_SUBJECT,
         "rejection_email_text": DEFAULT_REJECTION_TEXT
     }
+
+
+# ============ Bewerber-Digest Einstellungen ============
+
+class DigestSettingsUpdate(BaseModel):
+    enabled: Optional[bool] = None
+    days: Optional[str] = None  # z.B. "1,2,3,4,5" für Mo-Fr
+    hour: Optional[int] = None  # 0-23 UTC
+
+
+@router.get("/me/digest-settings")
+async def get_digest_settings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Gibt die Bewerber-Digest E-Mail Einstellungen zurück"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+    
+    company = get_company_or_404(current_user, db)
+    
+    return {
+        "enabled": company.applicant_digest_enabled if company.applicant_digest_enabled is not None else True,
+        "days": company.applicant_digest_days or "1,2,3,4,5",
+        "hour": company.applicant_digest_hour if company.applicant_digest_hour is not None else 8
+    }
+
+
+@router.put("/me/digest-settings")
+async def update_digest_settings(
+    settings: DigestSettingsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert die Bewerber-Digest E-Mail Einstellungen"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+    
+    company = get_company_or_404(current_user, db)
+    
+    if settings.enabled is not None:
+        company.applicant_digest_enabled = settings.enabled
+    
+    if settings.days is not None:
+        # Validiere Tage (0-6)
+        try:
+            days_list = [int(d.strip()) for d in settings.days.split(",") if d.strip()]
+            if all(0 <= d <= 6 for d in days_list):
+                company.applicant_digest_days = settings.days
+            else:
+                raise HTTPException(status_code=400, detail="Ungültige Tage (0-6 erlaubt)")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Ungültiges Format für Tage")
+    
+    if settings.hour is not None:
+        if 0 <= settings.hour <= 23:
+            company.applicant_digest_hour = settings.hour
+        else:
+            raise HTTPException(status_code=400, detail="Ungültige Stunde (0-23 erlaubt)")
+    
+    db.commit()
+    db.refresh(company)
+    
+    return {
+        "message": "Einstellungen gespeichert",
+        "enabled": company.applicant_digest_enabled,
+        "days": company.applicant_digest_days,
+        "hour": company.applicant_digest_hour
+    }

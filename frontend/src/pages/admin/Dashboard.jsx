@@ -249,6 +249,10 @@ function AdminDashboard() {
                   <span className="text-sm text-gray-700">Nicht besetzt</span>
                   <span className="font-bold text-gray-600">{stats.deletion_reasons.position_cancelled}</span>
                 </div>
+                <div className="flex items-center justify-between p-3 bg-amber-100 rounded-lg">
+                  <span className="text-sm text-amber-800">⏰ Abgelaufen</span>
+                  <span className="font-bold text-amber-700">{stats.deletion_reasons.expired || 0}</span>
+                </div>
                 <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
                   <span className="text-sm text-gray-700">Sonstige</span>
                   <span className="font-bold text-gray-600">

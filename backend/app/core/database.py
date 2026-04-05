@@ -1,7 +1,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime, timezone
 from app.core.config import settings
+
+
+def utc_now():
+    """Gibt aktuelle UTC-Zeit mit Timezone-Info zurück"""
+    return datetime.now(timezone.utc)
 
 # SQLite benötigt spezielle Einstellungen
 if settings.DATABASE_URL.startswith("sqlite"):

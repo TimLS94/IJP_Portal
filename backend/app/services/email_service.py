@@ -1111,6 +1111,106 @@ class EmailService:
         )
 
 
+    @_safe_email_call
+    def send_company_applicant_digest(
+        self,
+        to_email: str,
+        company_name: str,
+        applicants_data: List[dict]
+    ) -> bool:
+        """
+        Sendet eine tägliche Übersicht neuer Bewerber an eine Firma.
+        applicants_data: Liste von {name, job_title, matching_score, applied_at, application_id}
+        """
+        if not applicants_data:
+            return True  # Keine Bewerber = keine E-Mail nötig
+        
+        # Sortiere nach Matching Score (höchster zuerst)
+        sorted_applicants = sorted(applicants_data, key=lambda x: x.get('matching_score', 0), reverse=True)
+        
+        # Bewerber-Tabelle erstellen
+        applicant_rows = ""
+        for app in sorted_applicants:
+            score = app.get('matching_score', 0)
+            score_color = "#22c55e" if score >= 80 else "#f59e0b" if score >= 60 else "#6b7280"
+            applicant_rows += f"""
+            <tr>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+                    <strong>{app.get('name', 'Unbekannt')}</strong>
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+                    {app.get('job_title', '-')}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">
+                    <span style="background: {score_color}; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold;">
+                        {score}%
+                    </span>
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+                    {app.get('applied_at', '-')}
+                </td>
+            </tr>
+            """
+        
+        subject = f"📋 {len(applicants_data)} neue Bewerber für {company_name}"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; background: #f9fafb;">
+            <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px; text-align: center;">
+                <h1 style="margin: 0;">Neue Bewerber-Übersicht</h1>
+                <p style="margin: 10px 0 0 0; opacity: 0.9;">Täglicher Digest für {company_name}</p>
+            </div>
+            
+            <div style="padding: 30px; background: white;">
+                <p style="color: #374151; font-size: 16px;">
+                    Sie haben <strong>{len(applicants_data)} neue Bewerbung(en)</strong> erhalten.
+                    Die Bewerber sind nach Matching-Score sortiert.
+                </p>
+                
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                    <thead>
+                        <tr style="background: #f3f4f6;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Bewerber</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Stelle</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb;">Match</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Datum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {applicant_rows}
+                    </tbody>
+                </table>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="https://jobon.work/company/applications" 
+                       style="display: inline-block; background: #2563eb; color: white; padding: 14px 28px; 
+                              text-decoration: none; border-radius: 8px; font-weight: bold;">
+                        Alle Bewerbungen ansehen →
+                    </a>
+                </div>
+            </div>
+            
+            <div style="background: #f3f4f6; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="color: #6b7280; font-size: 12px; margin: 0 0 10px 0;">
+                    Sie erhalten diese E-Mail, weil Sie den Bewerber-Digest aktiviert haben.
+                </p>
+                <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                    <a href="https://jobon.work/company/settings" style="color: #2563eb;">E-Mail-Einstellungen ändern</a>
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            email_type="company_digest"
+        )
+
+
 # Singleton - CRASH-SAFE initialisiert
 try:
     email_service = EmailService()

@@ -938,6 +938,101 @@ async def delete_job_permanent(
     }
 
 
+from pydantic import BaseModel
+
+class TranslateJobRequest(BaseModel):
+    languages: List[str]  # z.B. ["en", "es", "ru"]
+
+
+@router.post("/{job_id}/translate")
+async def translate_job(
+    job_id: int,
+    request: TranslateJobRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Firma übersetzt ihre eigene Stellenanzeige in die gewählten Sprachen.
+    Verwendet DeepL API.
+    """
+    from app.services.translation_service import translate_job_fields, get_deepl_status
+    from sqlalchemy.orm.attributes import flag_modified
+    
+    # Firma prüfen
+    company = get_company_for_user(current_user, db)
+    if not company:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    # Job laden und prüfen ob er zur Firma gehört
+    job = db.query(JobPosting).filter(
+        JobPosting.id == job_id,
+        JobPosting.company_id == company.id
+    ).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden oder keine Berechtigung")
+    
+    # DeepL Status prüfen
+    deepl_status = get_deepl_status()
+    if not deepl_status.get("configured"):
+        raise HTTPException(
+            status_code=503, 
+            detail="Übersetzungsservice nicht verfügbar. Bitte kontaktieren Sie den Support."
+        )
+    
+    # Verfügbare Sprachen
+    valid_languages = ["en", "es", "ru"]
+    languages_to_translate = [lang for lang in request.languages if lang in valid_languages]
+    
+    if not languages_to_translate:
+        raise HTTPException(status_code=400, detail="Keine gültigen Sprachen angegeben")
+    
+    # Bestehende Übersetzungen laden oder initialisieren
+    translations = job.translations or {}
+    available_languages = job.available_languages or ["de"]
+    
+    translated_languages = []
+    errors = []
+    
+    for target_lang in languages_to_translate:
+        try:
+            # Übersetzen
+            translated = await translate_job_fields(
+                title=job.title,
+                description=job.description,
+                tasks=job.tasks,
+                requirements=job.requirements,
+                benefits=job.benefits,
+                target_lang=target_lang,
+                source_lang='de'
+            )
+            
+            if translated and translated.get('title'):
+                translations[target_lang] = translated
+                if target_lang not in available_languages:
+                    available_languages.append(target_lang)
+                translated_languages.append(target_lang)
+            else:
+                errors.append(f"{target_lang}: Übersetzung fehlgeschlagen")
+                
+        except Exception as e:
+            errors.append(f"{target_lang}: {str(e)}")
+    
+    # Job aktualisieren
+    if translated_languages:
+        job.translations = translations
+        job.available_languages = available_languages
+        flag_modified(job, "translations")
+        flag_modified(job, "available_languages")
+        db.commit()
+    
+    return {
+        "success": len(translated_languages) > 0,
+        "translated_languages": translated_languages,
+        "errors": errors,
+        "available_languages": job.available_languages
+    }
+
+
 @router.get("/{job_id}/match")
 async def get_job_match_score(
     job_id: int,
@@ -971,3 +1066,185 @@ async def get_job_match_score(
         "job_id": job_id,
         **match
     }
+
+
+# ============ Job Interactions (Like/Report) ============
+
+class LikeJobRequest(BaseModel):
+    pass  # Keine Parameter nötig
+
+
+class ReportJobRequest(BaseModel):
+    reason: str  # ReportReason value
+    note: Optional[str] = None
+
+
+@router.post("/{job_id}/like")
+async def like_job(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Bewerber merkt sich eine Stelle (Like)"""
+    from app.models.job_interaction import JobInteraction, InteractionType
+    from app.models.applicant import Applicant
+    
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(status_code=403, detail="Nur für Bewerber")
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber-Profil nicht gefunden")
+    
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
+    
+    # Prüfen ob bereits geliked
+    existing = db.query(JobInteraction).filter(
+        JobInteraction.applicant_id == applicant.id,
+        JobInteraction.job_posting_id == job_id,
+        JobInteraction.interaction_type == InteractionType.LIKE
+    ).first()
+    
+    if existing:
+        # Unlike - entfernen
+        db.delete(existing)
+        db.commit()
+        return {"liked": False, "message": "Stelle aus Merkliste entfernt"}
+    
+    # Like hinzufügen
+    interaction = JobInteraction(
+        applicant_id=applicant.id,
+        job_posting_id=job_id,
+        interaction_type=InteractionType.LIKE
+    )
+    db.add(interaction)
+    db.commit()
+    
+    return {"liked": True, "message": "Stelle gemerkt"}
+
+
+@router.post("/{job_id}/report")
+async def report_job(
+    job_id: int,
+    request: ReportJobRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Bewerber meldet eine Stelle negativ"""
+    from app.models.job_interaction import JobInteraction, InteractionType, ReportReason
+    from app.models.applicant import Applicant
+    
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(status_code=403, detail="Nur für Bewerber")
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber-Profil nicht gefunden")
+    
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
+    
+    # Validiere Grund
+    try:
+        reason = ReportReason(request.reason)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungültiger Meldegrund")
+    
+    # Prüfen ob bereits gemeldet
+    existing = db.query(JobInteraction).filter(
+        JobInteraction.applicant_id == applicant.id,
+        JobInteraction.job_posting_id == job_id,
+        JobInteraction.interaction_type == InteractionType.REPORT
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Stelle bereits gemeldet")
+    
+    # Report hinzufügen
+    interaction = JobInteraction(
+        applicant_id=applicant.id,
+        job_posting_id=job_id,
+        interaction_type=InteractionType.REPORT,
+        report_reason=reason,
+        report_note=request.note
+    )
+    db.add(interaction)
+    db.commit()
+    
+    return {"reported": True, "message": "Stelle gemeldet"}
+
+
+@router.get("/my/liked")
+async def get_liked_jobs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Gibt alle gemerkten Stellen des Bewerbers zurück"""
+    from app.models.job_interaction import JobInteraction, InteractionType
+    from app.models.applicant import Applicant
+    
+    if current_user.role != UserRole.APPLICANT:
+        raise HTTPException(status_code=403, detail="Nur für Bewerber")
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        return {"jobs": [], "total": 0}
+    
+    liked_interactions = db.query(JobInteraction).filter(
+        JobInteraction.applicant_id == applicant.id,
+        JobInteraction.interaction_type == InteractionType.LIKE
+    ).all()
+    
+    job_ids = [i.job_posting_id for i in liked_interactions]
+    
+    jobs = db.query(JobPosting).filter(
+        JobPosting.id.in_(job_ids),
+        JobPosting.is_active == True
+    ).all()
+    
+    return {
+        "jobs": [
+            {
+                "id": job.id,
+                "title": job.title,
+                "company_name": job.company.company_name if job.company else None,
+                "location": job.location,
+                "position_type": job.position_type.value if job.position_type else None,
+                "deadline": job.deadline.isoformat() if job.deadline else None,
+                "liked_at": next((i.created_at.isoformat() for i in liked_interactions if i.job_posting_id == job.id), None)
+            }
+            for job in jobs
+        ],
+        "total": len(jobs)
+    }
+
+
+@router.get("/{job_id}/interaction")
+async def get_job_interaction(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Gibt den Interaktionsstatus für eine Stelle zurück (liked/reported)"""
+    from app.models.job_interaction import JobInteraction, InteractionType
+    from app.models.applicant import Applicant
+    
+    if current_user.role != UserRole.APPLICANT:
+        return {"liked": False, "reported": False}
+    
+    applicant = db.query(Applicant).filter(Applicant.user_id == current_user.id).first()
+    if not applicant:
+        return {"liked": False, "reported": False}
+    
+    interactions = db.query(JobInteraction).filter(
+        JobInteraction.applicant_id == applicant.id,
+        JobInteraction.job_posting_id == job_id
+    ).all()
+    
+    liked = any(i.interaction_type == InteractionType.LIKE for i in interactions)
+    reported = any(i.interaction_type == InteractionType.REPORT for i in interactions)
+    
+    return {"liked": liked, "reported": reported}

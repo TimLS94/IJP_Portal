@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum
 from sqlalchemy.orm import relationship
-from datetime import datetime
 import enum
-from app.core.database import Base
+from app.core.database import Base, utc_now
 
 
 class BlogCategory(str, enum.Enum):
@@ -64,8 +63,8 @@ class BlogPost(Base):
     view_count = Column(Integer, default=0)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     published_at = Column(DateTime)  # Wann veröffentlicht
     
     # Relationships

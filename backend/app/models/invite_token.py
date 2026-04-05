@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import secrets
 
-from app.core.database import Base
+from app.core.database import Base, utc_now
 
 
 class InviteToken(Base):
@@ -35,8 +35,8 @@ class InviteToken(Base):
     is_active = Column(Boolean, default=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
     
     @staticmethod
     def generate_token():
@@ -49,7 +49,7 @@ class InviteToken(Base):
             return False
         
         # Ablaufdatum prüfen
-        if self.expires_at and datetime.utcnow() > self.expires_at:
+        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:
             return False
         
         # Nutzungslimit prüfen
@@ -61,4 +61,4 @@ class InviteToken(Base):
     def use(self):
         """Markiert den Token als verwendet"""
         self.current_uses += 1
-        self.last_used_at = datetime.utcnow()
+        self.last_used_at = datetime.now(timezone.utc)

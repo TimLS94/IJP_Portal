@@ -872,3 +872,74 @@ async def get_shared_documents_for_application(
         }
         for sd in shared_docs
     ]
+
+
+# ============ Firmen-Notizen ============
+
+class CompanyNotesUpdate(BaseModel):
+    notes: Optional[str] = None
+
+
+@router.get("/company/{application_id}/notes")
+async def get_company_notes(
+    application_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Gibt die Firmen-Notizen für eine Bewerbung zurück"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    company = get_company_for_user(current_user, db)
+    if not company:
+        raise HTTPException(status_code=403, detail="Firma nicht gefunden")
+    
+    application = db.query(Application).join(
+        JobPosting, Application.job_posting_id == JobPosting.id
+    ).filter(
+        Application.id == application_id,
+        JobPosting.company_id == company.id
+    ).first()
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Bewerbung nicht gefunden")
+    
+    return {
+        "application_id": application_id,
+        "notes": application.company_notes or ""
+    }
+
+
+@router.put("/company/{application_id}/notes")
+async def update_company_notes(
+    application_id: int,
+    data: CompanyNotesUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert die Firmen-Notizen für eine Bewerbung"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    company = get_company_for_user(current_user, db)
+    if not company:
+        raise HTTPException(status_code=403, detail="Firma nicht gefunden")
+    
+    application = db.query(Application).join(
+        JobPosting, Application.job_posting_id == JobPosting.id
+    ).filter(
+        Application.id == application_id,
+        JobPosting.company_id == company.id
+    ).first()
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Bewerbung nicht gefunden")
+    
+    application.company_notes = data.notes
+    db.commit()
+    
+    return {
+        "message": "Notizen gespeichert",
+        "application_id": application_id,
+        "notes": application.company_notes or ""
+    }

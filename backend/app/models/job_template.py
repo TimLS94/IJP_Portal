@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, JSON
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from app.core.database import utc_now
 from app.core.database import Base
 
 
@@ -54,8 +54,8 @@ class JobTemplate(Base):
     available_languages = Column(JSON, default=["de"])
     
     # Metadaten
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     
     # Relationship
     company = relationship("Company", backref="job_templates")

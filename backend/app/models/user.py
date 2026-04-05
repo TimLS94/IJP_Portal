@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
 from sqlalchemy.orm import relationship
-from datetime import datetime
 import enum
-from app.core.database import Base
+from app.core.database import Base, utc_now
 
 
 class UserRole(str, enum.Enum):
@@ -19,8 +18,8 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     role = Column(Enum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     last_login_at = Column(DateTime, nullable=True)  # Letzter Login-Zeitpunkt
     
     # E-Mail-Präferenzen (DSGVO-konform)

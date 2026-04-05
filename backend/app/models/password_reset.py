@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
-from datetime import datetime, timedelta
-from app.core.database import Base
+from datetime import datetime, timedelta, timezone
+from app.core.database import Base, utc_now
 import secrets
 
 
@@ -12,7 +12,7 @@ class PasswordResetToken(Base):
     token = Column(String(100), unique=True, index=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     is_used = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
     
     @staticmethod
     def generate_token():
@@ -22,8 +22,8 @@ class PasswordResetToken(Base):
     @staticmethod
     def get_expiry():
         """Token ist 1 Stunde gültig"""
-        return datetime.utcnow() + timedelta(hours=1)
+        return datetime.now(timezone.utc) + timedelta(hours=1)
     
     def is_valid(self):
         """Prüft ob der Token noch gültig ist"""
-        return not self.is_used and datetime.utcnow() < self.expires_at
+        return not self.is_used and datetime.now(timezone.utc) < self.expires_at

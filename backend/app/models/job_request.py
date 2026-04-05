@@ -6,9 +6,8 @@ wird hier ein Auftrag erstellt mit Datenschutz-Zustimmung.
 """
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, Boolean, Enum
 from sqlalchemy.orm import relationship
-from datetime import datetime
 import enum
-from app.core.database import Base
+from app.core.database import Base, utc_now
 from app.models.applicant import PositionType
 
 
@@ -138,8 +137,8 @@ class JobRequest(Base):
     assigned_admin_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     
     # Relationships
     applicant = relationship("Applicant", back_populates="job_requests")

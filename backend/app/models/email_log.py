@@ -2,7 +2,7 @@
 E-Mail Log Model für Statistiken
 """
 from sqlalchemy import Column, Integer, String, DateTime, Enum as SQLEnum
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
 
 from app.core.database import Base
@@ -35,4 +35,4 @@ class EmailLog(Base):
     subject = Column(String(500))
     success = Column(Integer, default=1)  # 1 = erfolgreich, 0 = fehlgeschlagen
     sent_by_user_id = Column(Integer, nullable=True, index=True)  # Wer hat gesendet (für Kaltakquise-Tracking)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)

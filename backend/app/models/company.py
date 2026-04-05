@@ -53,6 +53,11 @@ class Company(Base):
     rejection_email_subject = Column(String(255), default=DEFAULT_REJECTION_SUBJECT)
     rejection_email_text = Column(Text, default=DEFAULT_REJECTION_TEXT)
     
+    # Bewerber-Digest E-Mail Einstellungen (tägliche Übersicht neuer Bewerber)
+    applicant_digest_enabled = Column(Boolean, default=True)  # Digest aktiviert?
+    applicant_digest_days = Column(String(20), default="1,2,3,4,5")  # Wochentage (0=So, 1=Mo, ..., 6=Sa)
+    applicant_digest_hour = Column(Integer, default=8)  # Uhrzeit (0-23, UTC)
+    
     # Relationships
     user = relationship("User", back_populates="company")
     job_postings = relationship("JobPosting", back_populates="company")

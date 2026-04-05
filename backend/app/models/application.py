@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, Enum, JSON, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
 import enum
-from app.core.database import Base
+from app.core.database import Base, utc_now
 
 
 class ApplicationStatus(str, enum.Enum):
@@ -82,7 +81,7 @@ class Application(Base):
     
     # Notizen
     applicant_message = Column(Text)  # Nachricht vom Bewerber
-    company_notes = Column(Text)      # Interne Notizen der Firma
+    company_notes = Column(Text)      # Notizen der Firma (nur für Firmenmitglieder sichtbar)
     admin_notes = Column(Text)        # Interne Notizen von IJP Admin
     
     # Angeforderte Dokumente von Firma/Admin
@@ -90,8 +89,8 @@ class Application(Base):
     requested_documents = Column(JSON, default=[])
     
     # Timestamps
-    applied_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    applied_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     
     # Relationships
     applicant = relationship("Applicant", back_populates="applications")
@@ -109,7 +108,7 @@ class ApplicationDocument(Base):
     document_id = Column(Integer, ForeignKey("documents.id"), nullable=False)
     
     # Wann wurde das Dokument freigegeben
-    shared_at = Column(DateTime, default=datetime.utcnow)
+    shared_at = Column(DateTime(timezone=True), default=utc_now)
     
     # Wurde es nachgereicht (auf Anforderung)?
     is_follow_up = Column(Boolean, default=False)

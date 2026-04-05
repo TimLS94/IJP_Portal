@@ -155,10 +155,12 @@ async def get_dashboard_stats(
         "company_closed": 0,
         "seasonal_end": 0,
         "budget_reasons": 0,
+        "expired": 0,  # Deadline abgelaufen
         "other": 0,
         "in_period": {
             "total": 0,
-            "filled_via_jobon": 0
+            "filled_via_jobon": 0,
+            "expired": 0
         }
     }
     
@@ -182,6 +184,8 @@ async def get_dashboard_stats(
             deletion_stats["in_period"]["total"] += count
             if reason.value == "filled_via_jobon":
                 deletion_stats["in_period"]["filled_via_jobon"] = count
+            elif reason.value == "expired":
+                deletion_stats["in_period"]["expired"] = count
     
     stats["deletion_reasons"] = deletion_stats
     stats["success_rate"] = {

@@ -92,6 +92,8 @@ def cleanup_jobs():
         logger.info(f"Job-Cleanup: Archiv-Löschfrist ist {archive_deletion_days} Tage")
         
         # 1. Abgelaufene Stellen archivieren
+        from app.models.job_posting import JobDeletionReason
+        
         expired_jobs = db.query(JobPosting).filter(
             JobPosting.is_archived == False,
             JobPosting.deadline != None,
@@ -102,6 +104,8 @@ def cleanup_jobs():
             job.is_active = False
             job.is_archived = True
             job.archived_at = datetime.utcnow()
+            job.deletion_reason = JobDeletionReason.EXPIRED
+            job.deleted_at = datetime.utcnow()
             logger.info(f"Job {job.id} '{job.title}' archiviert (Deadline abgelaufen)")
         
         if expired_jobs:
@@ -202,6 +206,102 @@ async def weekly_job_digest():
             logger.error(f"Fehler beim Weekly Digest: {e}")
 
 
+async def company_applicant_digest():
+    """Background-Task für tägliche Bewerber-Digest E-Mails an Firmen"""
+    from datetime import datetime, timedelta
+    from app.core.database import SessionLocal
+    from app.models.company import Company
+    from app.models.application import Application
+    from app.models.job_posting import JobPosting
+    from app.models.applicant import Applicant
+    from app.services.email_service import email_service
+    from app.services.matching_service import calculate_match_score
+    
+    while True:
+        now = datetime.utcnow()
+        current_weekday = now.weekday()  # 0=Mo, 6=So
+        current_hour = now.hour
+        
+        db = SessionLocal()
+        try:
+            # Alle Firmen mit aktiviertem Digest laden
+            companies = db.query(Company).filter(
+                Company.applicant_digest_enabled == True
+            ).all()
+            
+            for company in companies:
+                # Prüfe ob heute ein Digest-Tag ist
+                digest_days = company.applicant_digest_days or "1,2,3,4,5"
+                digest_days_list = [int(d) for d in digest_days.split(",") if d.strip()]
+                
+                # Konvertiere Python-Wochentag (0=Mo) zu unserem Format (1=Mo)
+                current_day_num = current_weekday + 1  # 1=Mo, 7=So
+                if current_day_num == 7:
+                    current_day_num = 0  # Sonntag = 0
+                
+                if current_day_num not in digest_days_list:
+                    continue
+                
+                # Prüfe ob es die richtige Stunde ist
+                digest_hour = company.applicant_digest_hour or 8
+                if current_hour != digest_hour:
+                    continue
+                
+                # Hole neue Bewerbungen der letzten 24h
+                yesterday = now - timedelta(hours=24)
+                
+                new_applications = db.query(Application).join(
+                    JobPosting, Application.job_posting_id == JobPosting.id
+                ).filter(
+                    JobPosting.company_id == company.id,
+                    Application.applied_at >= yesterday
+                ).all()
+                
+                if not new_applications:
+                    continue
+                
+                # Bewerber-Daten mit Matching Score sammeln
+                applicants_data = []
+                for app in new_applications:
+                    applicant = app.applicant
+                    job = app.job_posting
+                    
+                    if not applicant:
+                        continue
+                    
+                    # Matching Score berechnen
+                    try:
+                        match_result = calculate_match_score(applicant, job)
+                        matching_score = match_result.get('total_score', 0)
+                    except:
+                        matching_score = 0
+                    
+                    applicants_data.append({
+                        'name': f"{applicant.first_name} {applicant.last_name}",
+                        'job_title': job.title if job else '-',
+                        'matching_score': matching_score,
+                        'applied_at': app.applied_at.strftime('%d.%m.%Y') if app.applied_at else '-',
+                        'application_id': app.id
+                    })
+                
+                if applicants_data:
+                    # E-Mail senden
+                    email_service.send_company_applicant_digest(
+                        to_email=company.user.email,
+                        company_name=company.company_name,
+                        applicants_data=applicants_data
+                    )
+                    logger.info(f"Bewerber-Digest an {company.company_name} gesendet ({len(applicants_data)} Bewerber)")
+        
+        except Exception as e:
+            logger.error(f"Fehler beim Company Applicant Digest: {e}")
+        finally:
+            db.close()
+        
+        # Warte 1 Stunde bis zur nächsten Prüfung
+        await asyncio.sleep(3600)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle-Handler für App-Start und -Stopp"""
@@ -214,14 +314,19 @@ async def lifespan(app: FastAPI):
     # Starte wöchentlichen Job-Digest Task
     digest_task = asyncio.create_task(weekly_job_digest())
     
+    # Starte Firmen-Bewerber-Digest Task
+    company_digest_task = asyncio.create_task(company_applicant_digest())
+    
     yield
     
     # Cleanup bei Shutdown
     cleanup_task.cancel()
     digest_task.cancel()
+    company_digest_task.cancel()
     try:
         await cleanup_task
         await digest_task
+        await company_digest_task
     except asyncio.CancelledError:
         pass
 

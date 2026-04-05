@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Date, Boolean, DateTime, Enum, JSON, Float
 from sqlalchemy.orm import relationship
-from datetime import datetime
 import enum
-from app.core.database import Base
+from app.core.database import Base, utc_now
 from app.models.applicant import PositionType
 
 
@@ -53,6 +52,7 @@ class JobDeletionReason(str, enum.Enum):
     COMPANY_CLOSED = "company_closed"               # Unternehmen geschlossen/pausiert
     SEASONAL_END = "seasonal_end"                   # Saison beendet
     BUDGET_REASONS = "budget_reasons"               # Budgetgründe
+    EXPIRED = "expired"                             # Deadline abgelaufen (automatisch)
     OTHER = "other"                                 # Sonstiges
 
 
@@ -64,6 +64,7 @@ DELETION_REASON_LABELS = {
     JobDeletionReason.COMPANY_CLOSED: "Unternehmen geschlossen/pausiert",
     JobDeletionReason.SEASONAL_END: "Saison beendet",
     JobDeletionReason.BUDGET_REASONS: "Budgetgründe",
+    JobDeletionReason.EXPIRED: "Deadline abgelaufen",
     JobDeletionReason.OTHER: "Sonstiges",
 }
 
@@ -120,8 +121,8 @@ class JobPosting(Base):
     is_draft = Column(Boolean, default=False)  # NEU: Entwurf (nicht veröffentlicht)
     is_archived = Column(Boolean, default=False)  # Für archivierte Stellen (reaktivierbar)
     keep_archived = Column(Boolean, default=False)  # NEU: Nicht automatisch löschen (permanent archiviert)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     
     # Deadline (dynamisch aus Admin-Settings)
     deadline = Column(Date)  # Bewerbungsschluss

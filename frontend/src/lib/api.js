@@ -89,6 +89,9 @@ export const companyAPI = {
   getRejectionSettings: () => api.get('/companies/me/rejection-settings'),
   updateRejectionSettings: (data) => api.put('/companies/me/rejection-settings', data),
   resetRejectionSettings: () => api.post('/companies/me/rejection-settings/reset'),
+  // Bewerber-Digest Einstellungen
+  getDigestSettings: () => api.get('/companies/me/digest-settings'),
+  updateDigestSettings: (data) => api.put('/companies/me/digest-settings', data),
 };
 
 // Jobs API
@@ -122,6 +125,13 @@ export const jobsAPI = {
   deleteTemplate: (id) => api.delete(`/jobs/templates/${id}`),
   // Keep Archived Flag
   setKeepArchived: (id, keepArchived) => api.put(`/jobs/${id}`, { keep_archived: keepArchived }),
+  // Übersetzung (für Firmen)
+  translate: (id, languages) => api.post(`/jobs/${id}/translate`, { languages }),
+  // Job Interactions (für Bewerber)
+  likeJob: (id) => api.post(`/jobs/${id}/like`),
+  reportJob: (id, reason, note) => api.post(`/jobs/${id}/report`, { reason, note }),
+  getLikedJobs: () => api.get('/jobs/my/liked'),
+  getJobInteraction: (id) => api.get(`/jobs/${id}/interaction`),
 };
 
 // Applications API
@@ -146,6 +156,9 @@ export const applicationsAPI = {
   shareDocuments: (applicationId, documentIds) => api.post(`/applications/my/${applicationId}/share-documents`, { document_ids: documentIds }),
   // Bewerber: Freigegebene Dokumente für Bewerbung abrufen
   getSharedDocuments: (applicationId) => api.get(`/applications/my/${applicationId}/shared-documents`),
+  // Firma: Notizen bei Bewerbern
+  getCompanyNotes: (applicationId) => api.get(`/applications/company/${applicationId}/notes`),
+  updateCompanyNotes: (applicationId, notes) => api.put(`/applications/company/${applicationId}/notes`, { notes }),
 };
 
 // Documents API
