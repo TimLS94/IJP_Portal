@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { 
   Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown,
   Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2,
-  ListTodo, Award, Gift, FileText, Globe, Eye, X, Copy, MessageCircle
+  ListTodo, Award, Gift, FileText, Globe, Eye, X, Copy, MessageCircle, Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RichTextEditor from '../../components/RichTextEditor';
@@ -234,6 +234,64 @@ function CreateJob() {
       if (activeLanguage === langCode) setActiveLanguage('de');
     } else {
       setEnabledLanguages([...enabledLanguages, langCode]);
+    }
+  };
+  
+  // DeepL Übersetzung State
+  const [translating, setTranslating] = useState(false);
+  
+  // DeepL Übersetzung - übersetzt deutschen Text in alle aktivierten Sprachen
+  const handleDeepLTranslate = async () => {
+    // Prüfen ob deutscher Text vorhanden
+    if (!translations.de.title?.trim() && !translations.de.description?.trim()) {
+      toast.error('Bitte füllen Sie zuerst die deutschen Texte aus');
+      return;
+    }
+    
+    // Sprachen zum Übersetzen (alle aktivierten außer Deutsch)
+    const targetLanguages = enabledLanguages.filter(l => l !== 'de');
+    if (targetLanguages.length === 0) {
+      toast.error('Bitte aktivieren Sie mindestens eine weitere Sprache');
+      return;
+    }
+    
+    setTranslating(true);
+    toast.loading('Übersetze mit DeepL...', { id: 'deepl-translate' });
+    
+    try {
+      // Für jede Zielsprache übersetzen
+      for (const targetLang of targetLanguages) {
+        const response = await jobsAPI.translateText({
+          texts: {
+            title: translations.de.title || '',
+            description: translations.de.description || '',
+            tasks: translations.de.tasks || '',
+            requirements: translations.de.requirements || '',
+            benefits: translations.de.benefits || ''
+          },
+          target_language: targetLang
+        });
+        
+        if (response.data) {
+          setTranslations(prev => ({
+            ...prev,
+            [targetLang]: {
+              title: response.data.title || prev[targetLang].title,
+              description: response.data.description || prev[targetLang].description,
+              tasks: response.data.tasks || prev[targetLang].tasks,
+              requirements: response.data.requirements || prev[targetLang].requirements,
+              benefits: response.data.benefits || prev[targetLang].benefits
+            }
+          }));
+        }
+      }
+      
+      toast.success(`Übersetzt in ${targetLanguages.length} Sprache${targetLanguages.length > 1 ? 'n' : ''}`, { id: 'deepl-translate' });
+    } catch (error) {
+      console.error('DeepL Fehler:', error);
+      toast.error(error.response?.data?.detail || 'Übersetzung fehlgeschlagen', { id: 'deepl-translate' });
+    } finally {
+      setTranslating(false);
     }
   };
 
@@ -493,10 +551,30 @@ function CreateJob() {
           </div>
           
           {enabledLanguages.length > 1 && (
-            <p className="text-indigo-700 text-sm bg-indigo-50 rounded-lg p-3">
-              <Globe className="h-4 w-4 inline mr-1" />
-              <strong>{enabledLanguages.length} Sprachen aktiviert.</strong> Bewerber können zwischen den Sprachen wechseln, um die Stelle in ihrer bevorzugten Sprache zu lesen.
-            </p>
+            <div className="space-y-3">
+              <p className="text-indigo-700 text-sm bg-indigo-50 rounded-lg p-3">
+                <Globe className="h-4 w-4 inline mr-1" />
+                <strong>{enabledLanguages.length} Sprachen aktiviert.</strong> Bewerber können zwischen den Sprachen wechseln, um die Stelle in ihrer bevorzugten Sprache zu lesen.
+              </p>
+              
+              {/* DeepL Übersetzungs-Button */}
+              <button
+                type="button"
+                onClick={handleDeepLTranslate}
+                disabled={translating}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-all disabled:opacity-50"
+              >
+                {translating ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-5 w-5" />
+                )}
+                {translating ? 'Übersetze...' : `Mit DeepL automatisch übersetzen`}
+              </button>
+              <p className="text-xs text-gray-500 text-center">
+                Übersetzt den deutschen Text automatisch in alle aktivierten Sprachen
+              </p>
+            </div>
           )}
         </div>
 

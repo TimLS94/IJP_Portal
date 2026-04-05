@@ -127,6 +127,7 @@ export const jobsAPI = {
   setKeepArchived: (id, keepArchived) => api.put(`/jobs/${id}`, { keep_archived: keepArchived }),
   // Übersetzung (für Firmen)
   translate: (id, languages) => api.post(`/jobs/${id}/translate`, { languages }),
+  translateText: (data) => api.post('/jobs/translate-text', data),
   // Job Interactions (für Bewerber)
   likeJob: (id) => api.post(`/jobs/${id}/like`),
   reportJob: (id, reason, note) => api.post(`/jobs/${id}/report`, { reason, note }),

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { companyAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
-  Mail, Save, Loader2, Clock, Calendar, Bell, BellOff
+  Mail, Save, Loader2, Clock, Calendar, Bell, BellOff, ChevronDown
 } from 'lucide-react';
 
 const WEEKDAYS = [
@@ -87,7 +87,7 @@ function DigestSettings() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
           <Mail className="h-7 w-7 text-primary-600" />
-          Bewerber-Digest Einstellungen
+          E-Mail-Benachrichtigungen
         </h1>
         <p className="text-gray-600 mt-2">
           Erhalten Sie eine tägliche Übersicht neuer Bewerber per E-Mail, sortiert nach Matching-Score.
@@ -158,17 +158,22 @@ function DigestSettings() {
                 <Clock className="h-4 w-4" />
                 Um welche Uhrzeit? (UTC)
               </label>
-              <select
-                value={settings.hour}
-                onChange={(e) => setSettings({ ...settings, hour: parseInt(e.target.value) })}
-                className="input-styled w-48"
-              >
-                {Array.from({ length: 24 }, (_, i) => (
-                  <option key={i} value={i}>
-                    {i.toString().padStart(2, '0')}:00 Uhr
-                  </option>
-                ))}
-              </select>
+              <div className="relative w-48">
+                <select
+                  value={settings.hour}
+                  onChange={(e) => setSettings({ ...settings, hour: parseInt(e.target.value) })}
+                  className="appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 
+                           focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none
+                           transition-all cursor-pointer text-gray-700 font-medium"
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i}>
+                      {i.toString().padStart(2, '0')}:00 Uhr
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+              </div>
               <p className="text-xs text-gray-500 mt-2">
                 Hinweis: Die Zeit ist in UTC. In Deutschland (MEZ/MESZ) ist es 1-2 Stunden später.
               </p>

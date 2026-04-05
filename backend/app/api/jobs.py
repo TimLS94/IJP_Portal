@@ -1033,6 +1033,59 @@ async def translate_job(
     }
 
 
+class TranslateTextRequest(BaseModel):
+    texts: dict  # {"title": "...", "description": "...", etc.}
+    target_language: str  # "en", "es", "ru"
+
+
+@router.post("/translate-text")
+async def translate_text_direct(
+    request: TranslateTextRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Direkte Textübersetzung für Firmen (ohne Job-ID).
+    Wird verwendet beim Erstellen neuer Stellen.
+    """
+    from app.services.translation_service import translate_job_fields, get_deepl_status
+    
+    # Firma prüfen
+    company = get_company_for_user(current_user, db)
+    if not company:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    
+    # DeepL Status prüfen
+    deepl_status = get_deepl_status()
+    if not deepl_status.get("configured"):
+        raise HTTPException(
+            status_code=503, 
+            detail="Übersetzungsservice nicht verfügbar"
+        )
+    
+    # Gültige Sprachen
+    valid_languages = ["en", "es", "ru"]
+    target_lang = request.target_language.lower()
+    if target_lang not in valid_languages:
+        raise HTTPException(status_code=400, detail="Ungültige Zielsprache")
+    
+    try:
+        translated = await translate_job_fields(
+            title=request.texts.get("title", ""),
+            description=request.texts.get("description", ""),
+            tasks=request.texts.get("tasks", ""),
+            requirements=request.texts.get("requirements", ""),
+            benefits=request.texts.get("benefits", ""),
+            target_lang=target_lang,
+            source_lang='de'
+        )
+        
+        return translated
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Übersetzung fehlgeschlagen: {str(e)}")
+
+
 @router.get("/{job_id}/match")
 async def get_job_match_score(
     job_id: int,

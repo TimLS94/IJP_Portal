@@ -57,7 +57,7 @@ function Navbar() {
         { to: '/company/team', icon: Users, label: 'Team' },
         { to: '/company/ijp-auftrag', icon: Briefcase, label: 'IJP beauftragen' },
         { to: '/company/rejection-settings', icon: Mail, label: 'Absage-E-Mail' },
-        { to: '/company/digest-settings', icon: Mail, label: 'Bewerber-Digest' },
+        { to: '/company/digest-settings', icon: Mail, label: 'E-Mail-Benachrichtigungen' },
         { divider: true },
         { to: '/company/settings', icon: Settings, label: t('nav.settings') },
       ];
