@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
 import { accountAPI, authAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { 
   Settings as SettingsIcon, Lock, Mail, Trash2, Eye, EyeOff, 
-  Loader2, AlertTriangle, CheckCircle, User, Shield, Bell, BellOff
+  Loader2, AlertTriangle, CheckCircle, User, Shield, Bell, BellOff,
+  ChevronRight, FileText, Clock
 } from 'lucide-react';
 
 function Settings() {
@@ -342,6 +343,50 @@ function Settings() {
           </label>
         </div>
       </div>
+
+      {/* Firmen-spezifische E-Mail-Einstellungen */}
+      {user?.role === 'company' && (
+        <div className="card">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Mail className="h-6 w-6 text-primary-600" />
+            Firmen E-Mail-Einstellungen
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Verwalten Sie Ihre automatischen E-Mail-Benachrichtigungen und Vorlagen.
+          </p>
+          <div className="space-y-3">
+            {/* Bewerber-Digest */}
+            <Link 
+              to="/company/digest-settings"
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-primary-600" />
+                <div>
+                  <p className="font-medium text-gray-900">Bewerber-Digest</p>
+                  <p className="text-sm text-gray-500">Tägliche Zusammenfassung neuer Bewerbungen per E-Mail</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />
+            </Link>
+
+            {/* Absage-E-Mail */}
+            <Link 
+              to="/company/rejection-settings"
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-primary-600" />
+                <div>
+                  <p className="font-medium text-gray-900">Absage-E-Mail Vorlage</p>
+                  <p className="text-sm text-gray-500">Passen Sie Ihre automatische Absage-E-Mail an</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Gefahrenzone */}
       <div className="card border-2 border-red-200">
