@@ -130,7 +130,8 @@ function Jobs() {
   const loadLikedJobs = async () => {
     try {
       const response = await jobsAPI.getLikedJobs();
-      const likedIds = new Set(response.data.map(j => j.id));
+      // API gibt {jobs: [...], total: ...} zurück
+      const likedIds = new Set((response.data.jobs || []).map(j => j.id));
       setLikedJobs(likedIds);
     } catch (error) {
       console.error('Fehler beim Laden der gemerkten Stellen');

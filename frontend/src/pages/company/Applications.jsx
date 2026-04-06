@@ -39,8 +39,9 @@ function CompanyApplications() {
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
   const [jobFilter, setJobFilter] = useState(searchParams.get('job') || 'all');
+  const [scoreFilter, setScoreFilter] = useState('all'); // 'all', 'high', 'medium', 'low'
   const [highlightAppId, setHighlightAppId] = useState(searchParams.get('highlight') || null);
-  const [sortBy, setSortBy] = useState('applied_at');
+  const [sortBy, setSortBy] = useState('match_score'); // Default: nach Score sortieren
   const [sortOrder, setSortOrder] = useState('desc');
   const [viewMode, setViewMode] = useState('table'); // 'table' oder 'cards'
   
@@ -156,6 +157,17 @@ function CompanyApplications() {
     if (jobFilter !== 'all') {
       filtered = filtered.filter(a => (a.job_id || a.job_posting_id) === parseInt(jobFilter));
     }
+    
+    // Score-Filter
+    if (scoreFilter !== 'all') {
+      filtered = filtered.filter(a => {
+        const score = a.match_score || 0;
+        if (scoreFilter === 'high') return score >= 70;
+        if (scoreFilter === 'medium') return score >= 40 && score < 70;
+        if (scoreFilter === 'low') return score < 40;
+        return true;
+      });
+    }
 
     // Sortierung
     filtered.sort((a, b) => {
@@ -171,6 +183,9 @@ function CompanyApplications() {
           const statusOrder = statusOptions.map(s => s.value);
           comparison = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
           break;
+        case 'match_score':
+          comparison = (a.match_score || 0) - (b.match_score || 0);
+          break;
         case 'applied_at':
         default:
           comparison = new Date(a.applied_at) - new Date(b.applied_at);
@@ -180,7 +195,7 @@ function CompanyApplications() {
     });
 
     return filtered;
-  }, [applications, searchTerm, statusFilter, jobFilter, sortBy, sortOrder]);
+  }, [applications, searchTerm, statusFilter, jobFilter, scoreFilter, sortBy, sortOrder]);
 
   const loadApplicantDetails = async (appId) => {
     setSelectedApp(appId);
@@ -675,6 +690,21 @@ function CompanyApplications() {
             <Briefcase className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
           </div>
 
+          {/* Score Filter */}
+          <div className="relative">
+            <select
+              value={scoreFilter}
+              onChange={(e) => setScoreFilter(e.target.value)}
+              className="input-styled pr-10 appearance-none min-w-[140px]"
+            >
+              <option value="all">Alle Scores</option>
+              <option value="high">🟢 Hoch (70%+)</option>
+              <option value="medium">🟡 Mittel (40-69%)</option>
+              <option value="low">🔴 Niedrig (&lt;40%)</option>
+            </select>
+            <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          </div>
+
           {/* Ansicht umschalten */}
           <div className="flex border rounded-lg overflow-hidden">
             <button
@@ -693,7 +723,7 @@ function CompanyApplications() {
         </div>
 
         {/* Aktive Filter anzeigen */}
-        {(searchTerm || statusFilter !== 'all' || jobFilter !== 'all') && (
+        {(searchTerm || statusFilter !== 'all' || jobFilter !== 'all' || scoreFilter !== 'all') && (
           <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t">
             <span className="text-sm text-gray-500">Filter:</span>
             {searchTerm && (
@@ -720,8 +750,16 @@ function CompanyApplications() {
                 </button>
               </span>
             )}
+            {scoreFilter !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-lg text-sm">
+                Score: {scoreFilter === 'high' ? '🟢 Hoch' : scoreFilter === 'medium' ? '🟡 Mittel' : '🔴 Niedrig'}
+                <button onClick={() => setScoreFilter('all')} className="hover:text-red-600">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
             <button
-              onClick={() => { setSearchTerm(''); setStatusFilter('all'); setJobFilter('all'); }}
+              onClick={() => { setSearchTerm(''); setStatusFilter('all'); setJobFilter('all'); setScoreFilter('all'); }}
               className="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
               Alle zurücksetzen
@@ -762,6 +800,15 @@ function CompanyApplications() {
                       className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
                     >
                       Stelle <SortIcon column="job_title" />
+                    </button>
+                  </th>
+                  <th className="text-center px-4 py-3">
+                    <button 
+                      onClick={() => handleSort('match_score')}
+                      className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Score <SortIcon column="match_score" />
                     </button>
                   </th>
                   <th className="text-left px-4 py-3">
@@ -809,6 +856,30 @@ function CompanyApplications() {
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-gray-900">{app.job_title}</p>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {app.match_score !== null ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-bold ${
+                            app.match_score >= 70 
+                              ? 'bg-green-100 text-green-700' 
+                              : app.match_score >= 40 
+                                ? 'bg-yellow-100 text-yellow-700' 
+                                : 'bg-red-100 text-red-700'
+                          }`}>
+                            {app.match_score >= 70 ? (
+                              <TrendingUp className="h-3 w-3" />
+                            ) : app.match_score >= 40 ? (
+                              <Minus className="h-3 w-3" />
+                            ) : (
+                              <TrendingDown className="h-3 w-3" />
+                            )}
+                            {app.match_score}%
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-sm">
                       {formatDate(app.applied_at)}

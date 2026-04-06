@@ -313,6 +313,8 @@ async def get_company_applications(
     db: Session = Depends(get_db)
 ):
     """Listet alle Bewerbungen für die Firma"""
+    from app.services.matching_service import calculate_match_score
+    
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -351,6 +353,15 @@ async def get_company_applications(
             }
             interview_status_label = status_labels.get(interview_status, interview_status)
         
+        # Matching Score berechnen
+        match_score = None
+        if app.applicant and app.job_posting:
+            try:
+                match_result = calculate_match_score(app.applicant, app.job_posting)
+                match_score = match_result.get('total_score', 0)
+            except Exception:
+                match_score = None
+        
         app_dict = {
             "id": app.id,
             "applicant_id": app.applicant_id,
@@ -364,7 +375,8 @@ async def get_company_applications(
             "job_title": app.job_posting.title if app.job_posting else None,
             "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None,
             "interview_status": interview_status,
-            "interview_status_label": interview_status_label
+            "interview_status_label": interview_status_label,
+            "match_score": match_score
         }
         result.append(app_dict)
     

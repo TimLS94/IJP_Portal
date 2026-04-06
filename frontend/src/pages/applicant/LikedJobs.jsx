@@ -36,7 +36,8 @@ function LikedJobs() {
   const loadLikedJobs = async () => {
     try {
       const response = await jobsAPI.getLikedJobs();
-      setJobs(response.data);
+      // API gibt {jobs: [...], total: ...} zurück
+      setJobs(response.data.jobs || []);
     } catch (error) {
       toast.error('Fehler beim Laden der gemerkten Stellen');
     } finally {
