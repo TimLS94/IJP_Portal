@@ -40,3 +40,4 @@ class ApplicationWithDetails(ApplicationResponse):
     job_id: Optional[int] = None  # Alias für Frontend-Filter
     interview_status: Optional[str] = None  # Status des Vorstellungsgesprächs
     interview_status_label: Optional[str] = None  # Lesbares Label für den Status
+    match_score: Optional[int] = None  # Matching-Score (0-100)

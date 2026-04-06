@@ -858,7 +858,7 @@ function CompanyApplications() {
                       <p className="text-gray-900">{app.job_title}</p>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {app.match_score !== null ? (
+                      {app.match_score != null && app.match_score !== undefined ? (
                         <div className="flex items-center justify-center gap-1">
                           <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-bold ${
                             app.match_score >= 70 
@@ -874,11 +874,11 @@ function CompanyApplications() {
                             ) : (
                               <TrendingDown className="h-3 w-3" />
                             )}
-                            {app.match_score}%
+                            {Math.round(app.match_score)}%
                           </span>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-sm">-</span>
+                        <span className="text-gray-400 text-sm">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-sm">

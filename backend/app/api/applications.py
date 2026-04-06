@@ -314,6 +314,9 @@ async def get_company_applications(
 ):
     """Listet alle Bewerbungen für die Firma"""
     from app.services.matching_service import calculate_match_score
+    from app.services.settings_service import is_company_matching_enabled
+    
+    matching_enabled = is_company_matching_enabled(db)
     
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(
@@ -353,13 +356,15 @@ async def get_company_applications(
             }
             interview_status_label = status_labels.get(interview_status, interview_status)
         
-        # Matching Score berechnen
+        # Matching Score berechnen (nur wenn Feature aktiviert)
         match_score = None
-        if app.applicant and app.job_posting:
+        if matching_enabled and app.applicant and app.job_posting:
             try:
                 match_result = calculate_match_score(app.applicant, app.job_posting)
-                match_score = match_result.get('total_score', 0)
-            except Exception:
+                score = match_result.get('total_score', 0)
+                match_score = int(round(score)) if score is not None else None
+            except Exception as e:
+                print(f"Matching Score Fehler für Bewerbung {app.id}: {e}")
                 match_score = None
         
         app_dict = {
