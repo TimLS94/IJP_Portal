@@ -10,7 +10,7 @@ class PasswordResetToken(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     token = Column(String(100), unique=True, index=True, nullable=False)
-    expires_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)  # Mit Zeitzone!
     is_used = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=utc_now)
     
@@ -26,4 +26,9 @@ class PasswordResetToken(Base):
     
     def is_valid(self):
         """Prüft ob der Token noch gültig ist"""
-        return not self.is_used and datetime.now(timezone.utc) < self.expires_at
+        now = datetime.now(timezone.utc)
+        # Falls expires_at keine Zeitzone hat, füge UTC hinzu
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return not self.is_used and now < expires

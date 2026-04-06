@@ -25,7 +25,7 @@ class InviteToken(Base):
     description = Column(Text, nullable=True)
     
     # Gültigkeit
-    expires_at = Column(DateTime, nullable=True)  # None = unbegrenzt
+    expires_at = Column(DateTime(timezone=True), nullable=True)  # None = unbegrenzt
     
     # Nutzungslimit
     max_uses = Column(Integer, nullable=True)  # None = unbegrenzt
@@ -49,8 +49,14 @@ class InviteToken(Base):
             return False
         
         # Ablaufdatum prüfen
-        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:
-            return False
+        if self.expires_at:
+            now = datetime.now(timezone.utc)
+            expires = self.expires_at
+            # Falls expires_at keine Zeitzone hat, füge UTC hinzu
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if now > expires:
+                return False
         
         # Nutzungslimit prüfen
         if self.max_uses is not None and self.current_uses >= self.max_uses:
