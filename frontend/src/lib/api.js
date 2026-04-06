@@ -353,6 +353,10 @@ export const adminAPI = {
   deleteInviteToken: (id) => api.delete(`/admin/invite-tokens/${id}`),
   toggleInviteToken: (id) => api.put(`/admin/invite-tokens/${id}/toggle`),
   
+  // Gemeldete Stellen (Job Reports)
+  getJobReports: () => api.get('/admin/job-reports'),
+  dismissJobReport: (id) => api.delete(`/admin/job-reports/${id}`),
+  
   // Facebook Gruppen & Posts
   getFacebookGroups: (type) => api.get('/facebook/groups', { params: type ? { type } : {} }),
   createFacebookGroup: (data) => api.post('/facebook/groups', data),

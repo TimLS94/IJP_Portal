@@ -1927,3 +1927,69 @@ async def toggle_invite_token(
         "is_active": token.is_active,
         "message": "Token aktiviert" if token.is_active else "Token deaktiviert"
     }
+
+
+# ============ Gemeldete Stellen (Job Reports) ============
+
+@router.get("/job-reports")
+async def get_job_reports(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Listet alle gemeldeten Stellen für Admins"""
+    from app.models.job_interaction import JobInteraction, InteractionType, REPORT_REASON_LABELS
+    from sqlalchemy.orm import joinedload
+    
+    reports = db.query(JobInteraction).options(
+        joinedload(JobInteraction.applicant),
+        joinedload(JobInteraction.job_posting)
+    ).filter(
+        JobInteraction.interaction_type == InteractionType.REPORT
+    ).order_by(JobInteraction.created_at.desc()).all()
+    
+    result = []
+    for report in reports:
+        job = report.job_posting
+        applicant = report.applicant
+        
+        result.append({
+            "id": report.id,
+            "job_id": job.id if job else None,
+            "job_title": job.title if job else "Gelöscht",
+            "job_company": job.company.company_name if job and job.company else None,
+            "job_is_active": job.is_active if job else False,
+            "reporter_name": f"{applicant.first_name} {applicant.last_name}" if applicant else "Unbekannt",
+            "reporter_email": applicant.user.email if applicant and applicant.user else None,
+            "reason": report.report_reason.value if report.report_reason else None,
+            "reason_label": REPORT_REASON_LABELS.get(report.report_reason, "Unbekannt") if report.report_reason else "Unbekannt",
+            "note": report.report_note,
+            "created_at": report.created_at.isoformat() if report.created_at else None
+        })
+    
+    return {
+        "reports": result,
+        "total": len(result)
+    }
+
+
+@router.delete("/job-reports/{report_id}")
+async def dismiss_job_report(
+    report_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Verwirft/löscht eine Meldung (Admin hat sie bearbeitet)"""
+    from app.models.job_interaction import JobInteraction, InteractionType
+    
+    report = db.query(JobInteraction).filter(
+        JobInteraction.id == report_id,
+        JobInteraction.interaction_type == InteractionType.REPORT
+    ).first()
+    
+    if not report:
+        raise HTTPException(status_code=404, detail="Meldung nicht gefunden")
+    
+    db.delete(report)
+    db.commit()
+    
+    return {"message": "Meldung verworfen"}

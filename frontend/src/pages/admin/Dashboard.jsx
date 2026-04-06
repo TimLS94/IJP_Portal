@@ -6,7 +6,7 @@ import {
   Shield, Users, Briefcase, FileText, TrendingUp,
   UserCheck, Building2, Clock, BookOpen, ClipboardList,
   Archive, CheckCircle, AlertTriangle, FileX, Mail, Send,
-  Calendar, LogIn, UserPlus, BarChart3
+  Calendar, LogIn, UserPlus, BarChart3, Flag, Trash2, ExternalLink, Loader2
 } from 'lucide-react';
 
 const positionTypeLabels = {
@@ -21,6 +21,9 @@ function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [emailStats, setEmailStats] = useState(null);
   const [coldOutreachStats, setColdOutreachStats] = useState(null);
+  const [jobReports, setJobReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [dismissingReport, setDismissingReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [periodDays, setPeriodDays] = useState(7);
@@ -29,6 +32,7 @@ function AdminDashboard() {
 
   useEffect(() => {
     loadStats(periodDays, !stats);
+    loadJobReports();
   }, [periodDays]);
 
   const loadStats = async (days, isInitial = false) => {
@@ -51,6 +55,31 @@ function AdminDashboard() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+  
+  const loadJobReports = async () => {
+    setReportsLoading(true);
+    try {
+      const response = await adminAPI.getJobReports();
+      setJobReports(response.data.reports || []);
+    } catch (error) {
+      console.error('Fehler beim Laden der Meldungen:', error);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+  
+  const handleDismissReport = async (reportId) => {
+    setDismissingReport(reportId);
+    try {
+      await adminAPI.dismissJobReport(reportId);
+      setJobReports(prev => prev.filter(r => r.id !== reportId));
+      toast.success('Meldung verworfen');
+    } catch (error) {
+      toast.error('Fehler beim Verwerfen der Meldung');
+    } finally {
+      setDismissingReport(null);
     }
   };
 
@@ -634,6 +663,79 @@ function AdminDashboard() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Gemeldete Stellen */}
+      {jobReports.length > 0 && (
+        <div className="card border-2 border-red-200 bg-red-50">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-red-800 flex items-center gap-2">
+              <Flag className="h-6 w-6" />
+              Gemeldete Stellen ({jobReports.length})
+            </h2>
+          </div>
+          <div className="space-y-3">
+            {jobReports.slice(0, 5).map((report) => (
+              <div key={report.id} className="bg-white rounded-lg p-4 border border-red-200">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-gray-900">{report.job_title}</span>
+                      {!report.job_is_active && (
+                        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">Inaktiv</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Firma: {report.job_company || 'Unbekannt'}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded font-medium">
+                        {report.reason_label}
+                      </span>
+                      <span className="text-gray-500">
+                        von {report.reporter_name}
+                      </span>
+                      <span className="text-gray-400">
+                        {new Date(report.created_at).toLocaleDateString('de-DE')}
+                      </span>
+                    </div>
+                    {report.note && (
+                      <p className="text-sm text-gray-600 mt-2 italic">"{report.note}"</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {report.job_id && (
+                      <Link
+                        to={`/admin/jobs`}
+                        className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Stelle ansehen"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => handleDismissReport(report.id)}
+                      disabled={dismissingReport === report.id}
+                      className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      title="Meldung verwerfen (bearbeitet)"
+                    >
+                      {dismissingReport === report.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {jobReports.length > 5 && (
+              <p className="text-sm text-red-600 text-center">
+                + {jobReports.length - 5} weitere Meldungen
+              </p>
+            )}
+          </div>
         </div>
       )}
 
