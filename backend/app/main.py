@@ -62,6 +62,36 @@ def ensure_slug_column():
 
 ensure_slug_column()
 
+# Google OAuth: google_id Spalte hinzufügen falls nicht vorhanden
+def ensure_google_id_column():
+    """Fügt die google_id Spalte zur users Tabelle hinzu falls nicht vorhanden"""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        # Prüfen ob Spalte existiert
+        result = db.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'users' AND column_name = 'google_id'
+        """))
+        if not result.fetchone():
+            logger.info("Adding 'google_id' column to users table...")
+            db.execute(text("ALTER TABLE users ADD COLUMN google_id VARCHAR(255)"))
+            db.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_google_id ON users (google_id)"))
+            # password_hash nullable machen für OAuth-User
+            db.execute(text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"))
+            db.commit()
+            logger.info("'google_id' column added successfully")
+        else:
+            logger.info("'google_id' column already exists")
+    except Exception as e:
+        logger.error(f"Error adding google_id column: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+ensure_google_id_column()
+
 # Testdaten einfügen (nur in Entwicklung)
 if settings.DEBUG:
     db = SessionLocal()
