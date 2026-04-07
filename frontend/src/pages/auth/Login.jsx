@@ -138,7 +138,7 @@ function Login() {
             </div>
           </div>
           <div className="mt-4">
-            <GoogleLoginButton />
+            <GoogleLoginButton buttonText={t('auth.loginWithGoogle')} />
           </div>
           <p className="text-xs text-gray-500 text-center mt-2">
             {t('auth.googleLoginOnlyApplicants')}

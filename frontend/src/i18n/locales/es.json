@@ -105,6 +105,7 @@
     "hasAccount": "¿Ya está registrado?",
     "or": "o",
     "orWithEmail": "o con correo electrónico",
+    "loginWithGoogle": "Iniciar sesión con Google",
     "registerWithGoogle": "Registrarse con Google",
     "googleLoginOnlyApplicants": "El inicio de sesión con Google solo está disponible para solicitantes",
     "loginSuccess": "¡Sesión iniciada con éxito!",

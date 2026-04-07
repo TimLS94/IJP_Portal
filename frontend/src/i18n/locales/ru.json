@@ -105,6 +105,7 @@
     "hasAccount": "Уже зарегистрированы?",
     "or": "или",
     "orWithEmail": "или по электронной почте",
+    "loginWithGoogle": "Войти через Google",
     "registerWithGoogle": "Зарегистрироваться через Google",
     "googleLoginOnlyApplicants": "Вход через Google доступен только для соискателей",
     "loginSuccess": "Вход выполнен успешно!",

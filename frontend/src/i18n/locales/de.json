@@ -105,6 +105,7 @@
     "hasAccount": "Bereits registriert?",
     "or": "oder",
     "orWithEmail": "oder mit E-Mail",
+    "loginWithGoogle": "Mit Google anmelden",
     "registerWithGoogle": "Mit Google registrieren",
     "googleLoginOnlyApplicants": "Google Login ist nur für Bewerber verfügbar",
     "loginSuccess": "Erfolgreich angemeldet!",
