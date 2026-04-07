@@ -228,13 +228,13 @@ function Register() {
         {/* Google Login für Bewerber */}
         {userType === 'applicant' && (
           <div className="mb-6">
-            <GoogleLoginButton buttonText="Mit Google registrieren" />
+            <GoogleLoginButton buttonText={t('auth.registerWithGoogle')} />
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">oder mit E-Mail</span>
+                <span className="px-2 bg-white text-gray-500">{t('auth.orWithEmail')}</span>
               </div>
             </div>
           </div>

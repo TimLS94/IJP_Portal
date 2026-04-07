@@ -134,14 +134,14 @@ function Login() {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">oder</span>
+              <span className="px-2 bg-white text-gray-500">{t('auth.or')}</span>
             </div>
           </div>
           <div className="mt-4">
             <GoogleLoginButton />
           </div>
           <p className="text-xs text-gray-500 text-center mt-2">
-            Google Login ist nur für Bewerber verfügbar
+            {t('auth.googleLoginOnlyApplicants')}
           </p>
         </div>
 
