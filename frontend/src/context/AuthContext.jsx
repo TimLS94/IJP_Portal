@@ -64,10 +64,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Direkter Login mit Token und User (für OAuth)
+  const setAuth = (token, userData) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+  };
+
   const value = {
     user,
     loading,
     login,
+    setAuth,
     registerApplicant,
     registerCompany,
     logout,

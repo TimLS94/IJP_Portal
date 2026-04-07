@@ -13,7 +13,7 @@ function GoogleLoginButton({ onSuccess, buttonText = "Mit Google anmelden" }) {
   const [googleConfig, setGoogleConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const { login } = useAuth();
+  const { setAuth } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -95,7 +95,7 @@ function GoogleLoginButton({ onSuccess, buttonText = "Mit Google anmelden" }) {
       localStorage.setItem('user', JSON.stringify(user));
 
       // Auth Context aktualisieren
-      login(access_token, user);
+      setAuth(access_token, user);
 
       if (is_new_user) {
         toast.success('Willkommen! Dein Konto wurde erstellt.');
