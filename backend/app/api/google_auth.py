@@ -129,8 +129,8 @@ async def google_login(
     user.last_login_at = datetime.now(timezone.utc)
     db.commit()
     
-    # JWT Token erstellen
-    access_token = create_access_token(data={"sub": user.email})
+    # JWT Token erstellen (sub muss User-ID sein, nicht Email!)
+    access_token = create_access_token(data={"sub": str(user.id)})
     
     # Applicant-Daten laden
     applicant = db.query(Applicant).filter(Applicant.user_id == user.id).first()
