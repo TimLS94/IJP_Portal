@@ -1633,13 +1633,21 @@ Wir suchen motivierte Mitarbeiter für unser Hotel...
   );
 }
 
-// Group Card Component
-function GroupCard({ group, onEdit, onDelete }) {
+// Group Card Component - mit klickbarem Link
+function GroupCard({ group, onEdit, onDelete, onOpenAndCopy, showCopyButton = false }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-all">
+    <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-all group/card">
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 truncate">{group.name}</p>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <a 
+          href={group.url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="font-medium text-blue-600 hover:text-blue-800 hover:underline truncate block"
+          title={group.url}
+        >
+          {group.name}
+        </a>
+        <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
           {group.members > 0 && (
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" />
@@ -1652,26 +1660,41 @@ function GroupCard({ group, onEdit, onDelete }) {
               Eigene
             </span>
           )}
+          {group.notes && (
+            <span className="text-gray-400 truncate max-w-[150px]" title={group.notes}>
+              {group.notes}
+            </span>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-1">
+        {showCopyButton && onOpenAndCopy && (
+          <button
+            onClick={() => onOpenAndCopy(group)}
+            className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1"
+            title="Text kopieren & Gruppe öffnen"
+          >
+            <ClipboardCopy className="h-3 w-3" />
+            Kopieren & Öffnen
+          </button>
+        )}
         <button
           onClick={() => window.open(group.url, '_blank')}
-          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded opacity-0 group-hover/card:opacity-100 transition-opacity"
           title="Gruppe öffnen"
         >
           <ExternalLink className="h-4 w-4" />
         </button>
         <button
           onClick={onEdit}
-          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded opacity-0 group-hover/card:opacity-100 transition-opacity"
           title="Bearbeiten"
         >
           <Edit2 className="h-4 w-4" />
         </button>
         <button
           onClick={onDelete}
-          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover/card:opacity-100 transition-opacity"
           title="Löschen"
         >
           <Trash2 className="h-4 w-4" />

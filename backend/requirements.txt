@@ -63,3 +63,6 @@ google-generativeai==0.4.0
 
 # HTTP Client (für Google Indexing API)
 httpx==0.27.0
+
+# Google OAuth
+google-auth==2.27.0

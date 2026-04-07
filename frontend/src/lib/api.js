@@ -59,6 +59,9 @@ export const authAPI = {
   // E-Mail-Präferenzen
   getEmailPreferences: () => api.get('/auth/email-preferences'),
   updateEmailPreferences: (data) => api.put('/auth/email-preferences', data),
+  // Google OAuth
+  getGoogleConfig: () => api.get('/auth/google/config'),
+  googleLogin: (credential) => api.post('/auth/google/login', { credential }),
 };
 
 // Applicant API

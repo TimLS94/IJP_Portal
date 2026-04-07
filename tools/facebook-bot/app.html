@@ -84,8 +84,23 @@
               🔄 Von API laden
             </button>
           </div>
+          
+          <!-- Manuelle Gruppen-Eingabe -->
+          <div class="mb-3">
+            <label class="text-sm text-gray-600 mb-1 block">Gruppen-URLs (eine pro Zeile):</label>
+            <textarea 
+              id="manualGroups" 
+              class="w-full border rounded-lg p-2 text-sm h-24 resize-none"
+              placeholder="https://www.facebook.com/groups/123456&#10;https://www.facebook.com/groups/789012"
+              onchange="parseManualGroups()"
+            ></textarea>
+            <button onclick="parseManualGroups()" class="mt-2 text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+              Gruppen hinzufügen
+            </button>
+          </div>
+          
           <div id="groupsContainer" class="space-y-2 max-h-48 overflow-y-auto">
-            <p class="text-gray-500 text-sm">Keine Gruppen geladen</p>
+            <p class="text-gray-500 text-sm">Keine Gruppen - füge URLs oben ein</p>
           </div>
           <div class="mt-3 pt-3 border-t">
             <p class="text-xs text-gray-500" id="groupsCount">0 Gruppen ausgewählt</p>
@@ -138,30 +153,37 @@
       </div>
     </div>
 
-    <!-- API Token Eingabe (versteckt) -->
+    <!-- API Login -->
     <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
-      <h2 class="text-lg font-bold text-gray-900 mb-4">🔑 API Verbindung</h2>
-      <div class="flex gap-3">
+      <h2 class="text-lg font-bold text-gray-900 mb-4">🔑 JobOn Login</h2>
+      <div class="space-y-3">
+        <input 
+          type="email" 
+          id="loginEmail" 
+          class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500"
+          placeholder="E-Mail"
+          value="t.schaefer@internationaljobplacement.com"
+        >
         <input 
           type="password" 
-          id="apiToken" 
-          class="flex-1 border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500"
-          placeholder="JobOn API Token (aus localStorage)"
+          id="loginPassword" 
+          class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500"
+          placeholder="Passwort"
         >
-        <button onclick="saveToken()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium">
-          Speichern
+        <button onclick="loginToAPI()" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium">
+          🔐 Einloggen & Daten laden
         </button>
       </div>
-      <p class="text-xs text-gray-500 mt-2">
-        Token findest du in jobon.work → Browser DevTools → Application → localStorage → "token"
+      <p class="text-xs text-gray-500 mt-2" id="loginStatus">
+        Logge dich ein um Posts und Gruppen von jobon.work zu laden.
       </p>
     </div>
   </div>
 
   <script>
-    // Konfiguration
+    // Konfiguration - nutzt lokalen Proxy um CORS zu umgehen
     const BOT_URL = 'http://localhost:3847';
-    const API_URL = 'https://ijp-portal.onrender.com/api/v1';
+    const API_URL = 'http://localhost:3847/api'; // Proxy über Bot-Server
     
     let groups = [];
     let selectedGroups = new Set();
@@ -173,12 +195,47 @@
       return localStorage.getItem('jobon_api_token') || '';
     }
 
-    function saveToken() {
-      const token = document.getElementById('apiToken').value;
+    function saveToken(token) {
       localStorage.setItem('jobon_api_token', token);
-      addLog('✅ Token gespeichert', 'success');
-      loadPostsFromAPI();
-      loadGroupsFromAPI();
+    }
+
+    // Login zur API (über lokalen Proxy)
+    async function loginToAPI() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const statusEl = document.getElementById('loginStatus');
+      
+      if (!email || !password) {
+        statusEl.innerHTML = '<span class="text-red-500">❌ E-Mail und Passwort eingeben</span>';
+        return;
+      }
+      
+      statusEl.innerHTML = '<span class="text-blue-500">⏳ Logge ein...</span>';
+      
+      try {
+        const res = await fetch(`${API_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        if (!res.ok) {
+          throw new Error('Login fehlgeschlagen');
+        }
+        
+        const data = await res.json();
+        saveToken(data.access_token);
+        
+        statusEl.innerHTML = '<span class="text-green-500">✅ Eingeloggt!</span>';
+        addLog('✅ Login erfolgreich', 'success');
+        
+        // Daten laden
+        loadPostsFromAPI();
+        loadGroupsFromAPI();
+      } catch (e) {
+        statusEl.innerHTML = '<span class="text-red-500">❌ Login fehlgeschlagen - Passwort korrekt?</span>';
+        addLog('❌ Login fehlgeschlagen', 'error');
+      }
     }
 
     // Bot Status prüfen
@@ -229,7 +286,7 @@
       }
 
       try {
-        const res = await fetch(`${API_URL}/facebook/posts`, {
+        const res = await fetch(`${API_URL}/posts`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -290,7 +347,7 @@
       }
 
       try {
-        const res = await fetch(`${API_URL}/facebook/groups`, {
+        const res = await fetch(`${API_URL}/groups`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -340,8 +397,44 @@
     }
 
     function updateGroupsCount() {
+      const activeCount = groups.filter(g => g.is_active !== false).length;
       document.getElementById('groupsCount').textContent = 
-        `${selectedGroups.size} von ${groups.filter(g => g.is_active).length} Gruppen ausgewählt`;
+        `${selectedGroups.size} von ${activeCount} Gruppen ausgewählt`;
+    }
+
+    // Manuelle Gruppen-Eingabe parsen
+    function parseManualGroups() {
+      const textarea = document.getElementById('manualGroups');
+      const urls = textarea.value.split('\n').filter(url => url.trim().length > 0);
+      
+      if (urls.length === 0) return;
+      
+      // Gruppen aus URLs erstellen
+      const newGroups = urls.map((url, i) => {
+        const cleanUrl = url.trim();
+        const name = cleanUrl.includes('/groups/') 
+          ? 'Gruppe ' + (cleanUrl.split('/groups/')[1]?.split('/')[0]?.split('?')[0] || (i + 1))
+          : 'Gruppe ' + (i + 1);
+        return {
+          id: Date.now() + i,
+          name: name,
+          url: cleanUrl,
+          is_active: true
+        };
+      });
+      
+      // Zu bestehenden Gruppen hinzufügen (keine Duplikate)
+      const existingUrls = new Set(groups.map(g => g.url));
+      const uniqueNewGroups = newGroups.filter(g => !existingUrls.has(g.url));
+      
+      groups = [...groups, ...uniqueNewGroups];
+      
+      // Alle neuen Gruppen auswählen
+      uniqueNewGroups.forEach(g => selectedGroups.add(g.id));
+      
+      renderGroups();
+      syncGroupsToBot();
+      addLog(`👥 ${uniqueNewGroups.length} Gruppen hinzugefügt`, 'success');
     }
 
     async function syncGroupsToBot() {
@@ -508,12 +601,6 @@
 
     // Init
     async function init() {
-      // Token aus Input laden falls vorhanden
-      const savedToken = getToken();
-      if (savedToken) {
-        document.getElementById('apiToken').value = savedToken;
-      }
-
       // Bot Status prüfen
       const botOnline = await checkBotStatus();
       
@@ -524,6 +611,7 @@
       }
 
       // Daten laden wenn Token vorhanden
+      const savedToken = getToken();
       if (savedToken) {
         loadPostsFromAPI();
         loadGroupsFromAPI();

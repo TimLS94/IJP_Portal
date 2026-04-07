@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { authAPI, verifyInviteToken } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { Mail, Lock, User, Building2, Loader2, CheckCircle, Clock, MapPin, Phone, Eye, EyeOff } from 'lucide-react';
+import GoogleLoginButton from '../../components/GoogleLoginButton';
 
 const LEGAL_FORMS = [
   { value: 'gmbh', label: 'GmbH' },
@@ -223,6 +224,21 @@ function Register() {
             )}
           </button>
         </div>
+
+        {/* Google Login für Bewerber */}
+        {userType === 'applicant' && (
+          <div className="mb-6">
+            <GoogleLoginButton buttonText="Mit Google registrieren" />
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">oder mit E-Mail</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {userType === 'applicant' ? (

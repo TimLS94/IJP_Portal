@@ -19,12 +19,10 @@ const readline = require('readline-sync');
 
 // Deine Facebook Gruppen URLs
 const GROUPS = [
-  // Eigene Gruppen
-  // { url: 'https://www.facebook.com/groups/DEINE_GRUPPE_1', name: 'Meine Gruppe 1', own: true },
-  // { url: 'https://www.facebook.com/groups/DEINE_GRUPPE_2', name: 'Meine Gruppe 2', own: true },
-  
-  // Externe Gruppen
-  // { url: 'https://www.facebook.com/groups/EXTERNE_GRUPPE', name: 'Jobs Berlin', own: false },
+  { url: 'https://www.facebook.com/groups/3387164798052306', name: 'Ofertas de empleo en Alemania', own: false },
+  { url: 'https://www.facebook.com/groups/655674328929397?locale=de_DE', name: 'Trabajar en Alemania', own: false },
+  { url: 'https://www.facebook.com/groups/919554058677856', name: 'Trabajo en Alemania', own: false },
+  { url: 'https://www.facebook.com/groups/655674328929397', name: 'Gruppe 655674328929397', own: false },
 ];
 
 // Verzögerungen (in Millisekunden) - wichtig für Anti-Detection
@@ -92,7 +90,7 @@ async function initBrowser() {
 async function checkLogin(page) {
   log('Prüfe Login-Status...', 'wait');
   
-  await page.goto('https://www.facebook.com', { waitUntil: 'networkidle' });
+  await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForTimeout(3000);
   
   // Prüfen ob eingeloggt
@@ -112,36 +110,60 @@ async function postToGroup(page, group, postText, dryRun = false) {
   log(`Navigiere zu: ${group.name}`, 'wait');
   
   try {
-    await page.goto(group.url, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(3000);
+    await page.goto(group.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForTimeout(5000);
     
     // "Schreibe etwas..." Button finden und klicken
-    // Facebook ändert die Selektoren oft, daher mehrere Varianten
+    // Facebook ändert die Selektoren oft, daher mehrere Varianten (DE, EN, ES)
     const postBoxSelectors = [
+      // Deutsch
       '[aria-label="Schreibe etwas..."]',
       '[aria-label="Was machst du gerade?"]',
       '[aria-label="Beitrag erstellen"]',
-      'div[role="button"]:has-text("Schreibe etwas")',
-      'div[role="button"]:has-text("Was beschäftigt dich")',
-      'span:has-text("Schreibe etwas...")',
+      // Englisch
+      '[aria-label="Write something..."]',
+      '[aria-label="What\'s on your mind?"]',
+      '[aria-label="Create a post"]',
+      '[aria-label="Create post"]',
+      // Spanisch
+      '[aria-label="Escribe algo..."]',
+      '[aria-label="¿Qué estás pensando?"]',
+      '[aria-label="Crear una publicación"]',
+      '[aria-label="Crear publicación"]',
+      // Composer Box - der Bereich wo man klickt um zu posten
+      'div[data-pagelet="GroupInlineComposer"] div[role="button"]',
+      'div[aria-label*="publicación"] div[role="button"]',
+      'div[aria-label*="post"] div[role="button"]',
     ];
     
     let postBox = null;
     for (const selector of postBoxSelectors) {
       try {
-        postBox = await page.waitForSelector(selector, { timeout: 5000 });
-        if (postBox) break;
+        postBox = await page.waitForSelector(selector, { timeout: 3000 });
+        if (postBox) {
+          log(`Post-Box gefunden mit: ${selector}`, 'info');
+          break;
+        }
       } catch (e) {
         continue;
       }
     }
     
     if (!postBox) {
-      log(`Konnte Post-Box nicht finden in: ${group.name}`, 'error');
-      return { success: false, error: 'Post-Box nicht gefunden' };
+      // Fallback: Versuche per Text zu finden
+      log('Versuche Post-Box per Text zu finden...', 'wait');
+      try {
+        // Suche nach Text der auf "Schreibe etwas" hinweist
+        postBox = await page.locator('span:text-matches("(Escribe|Write|Schreibe)", "i")').first();
+        await postBox.waitFor({ timeout: 5000 });
+      } catch (e) {
+        log(`Konnte Post-Box nicht finden in: ${group.name}`, 'error');
+        return { success: false, error: 'Post-Box nicht gefunden' };
+      }
     }
     
     await postBox.click();
+    await page.waitForTimeout(2000);
     await randomDelay(DELAYS.beforeTyping);
     
     // Warten auf das Textfeld im Modal
@@ -190,12 +212,20 @@ async function postToGroup(page, group, postText, dryRun = false) {
       return { success: true, dryRun: true };
     }
     
-    // "Posten" Button finden und klicken
+    // "Posten" Button finden und klicken (DE, EN, ES)
     const postButtonSelectors = [
+      // Deutsch
       'div[aria-label="Posten"]',
-      'div[aria-label="Post"]',
       'span:has-text("Posten")',
       'div[role="button"]:has-text("Posten")',
+      // Englisch
+      'div[aria-label="Post"]',
+      'span:has-text("Post")',
+      'div[role="button"]:has-text("Post")',
+      // Spanisch
+      'div[aria-label="Publicar"]',
+      'span:has-text("Publicar")',
+      'div[role="button"]:has-text("Publicar")',
     ];
     
     let postButton = null;
@@ -237,8 +267,8 @@ async function addCommentToOwnPost(page, group, comments, dryRun = false) {
   try {
     // Zur Gruppe navigieren (falls nicht schon dort)
     if (!page.url().includes(group.url.split('/').pop())) {
-      await page.goto(group.url, { waitUntil: 'networkidle' });
-      await page.waitForTimeout(3000);
+      await page.goto(group.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.waitForTimeout(5000);
     }
     
     // Den neuesten eigenen Post finden
@@ -401,7 +431,10 @@ async function runBot(options = {}) {
   }
   console.log('--- Ende Vorschau ---\n');
   
-  if (!test) {
+  // Wenn --auto Flag gesetzt ist, keine Bestätigung nötig (für Server-Modus)
+  const autoMode = process.argv.includes('--auto');
+  
+  if (!test && !autoMode) {
     const confirm = readline.question(`\nIn ${GROUPS.length} Gruppen posten? (j/n): `);
     if (confirm.toLowerCase() !== 'j') {
       log('Abgebrochen.', 'warning');
@@ -419,15 +452,28 @@ async function runBot(options = {}) {
       log('Du bist nicht bei Facebook eingeloggt!', 'error');
       log('Bitte logge dich im Browser-Fenster ein und starte dann neu.', 'warning');
       
-      // Warte auf manuellen Login
-      console.log('\nDrücke ENTER wenn du eingeloggt bist...');
-      readline.question('');
-      
-      const stillNotLoggedIn = !(await checkLogin(page));
-      if (stillNotLoggedIn) {
-        log('Immer noch nicht eingeloggt. Abbruch.', 'error');
-        await browser.close();
-        return;
+      // Im Auto-Modus (Server) nicht auf Eingabe warten
+      if (autoMode) {
+        log('Auto-Modus: Warte 60 Sekunden auf manuellen Login im Browser...', 'warning');
+        await page.waitForTimeout(60000);
+        
+        const stillNotLoggedIn = !(await checkLogin(page));
+        if (stillNotLoggedIn) {
+          log('Immer noch nicht eingeloggt. Abbruch.', 'error');
+          await browser.close();
+          return;
+        }
+      } else {
+        // Warte auf manuellen Login
+        console.log('\nDrücke ENTER wenn du eingeloggt bist...');
+        readline.question('');
+        
+        const stillNotLoggedIn = !(await checkLogin(page));
+        if (stillNotLoggedIn) {
+          log('Immer noch nicht eingeloggt. Abbruch.', 'error');
+          await browser.close();
+          return;
+        }
       }
     }
     

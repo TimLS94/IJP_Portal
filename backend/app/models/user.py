@@ -15,12 +15,15 @@ class User(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=True)  # Nullable für OAuth-User
     role = Column(Enum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=utc_now)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     last_login_at = Column(DateTime, nullable=True)  # Letzter Login-Zeitpunkt
+    
+    # OAuth (Google Login für Bewerber)
+    google_id = Column(String(255), unique=True, nullable=True, index=True)
     
     # E-Mail-Präferenzen (DSGVO-konform)
     email_newsletter = Column(Boolean, default=True)  # Newsletter/Marketing E-Mails

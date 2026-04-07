@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     FROM_EMAIL: str = "noreply@internationaljobplacement.com"
     FROM_NAME: str = "International Job Placement"
     
+    # Google OAuth (nur für Bewerber)
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    
     @property
     def cors_origins_list(self) -> List[str]:
         """Gibt CORS_ORIGINS als Liste zurück"""

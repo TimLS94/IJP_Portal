@@ -6,9 +6,12 @@
  */
 
 const http = require('http');
+const https = require('https');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+
+const API_URL = 'https://ijp-portal.onrender.com/api/v1';
 
 const PORT = 3847; // Ungewöhnlicher Port für lokalen Zugriff
 
@@ -20,7 +23,7 @@ let botLogs = [];
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Content-Type': 'application/json'
 };
 
@@ -96,7 +99,7 @@ function startBot(options = {}) {
     return { success: false, error: 'Bot läuft bereits' };
   }
 
-  const args = ['bot.js', '--post'];
+  const args = ['bot.js', '--post', '--auto'];
   if (options.dryRun) args.push('--dry');
 
   botStatus = 'running';
@@ -247,6 +250,88 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/logs' && req.method === 'GET') {
       res.writeHead(200, corsHeaders);
       res.end(JSON.stringify({ logs: botLogs }));
+      return;
+    }
+
+    // API Proxy - Login
+    if (url.pathname === '/api/login' && req.method === 'POST') {
+      const { email, password } = JSON.parse(body);
+      const postData = `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
+      
+      const apiReq = https.request(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      }, (apiRes) => {
+        let data = '';
+        apiRes.on('data', chunk => data += chunk);
+        apiRes.on('end', () => {
+          res.writeHead(apiRes.statusCode, corsHeaders);
+          res.end(data);
+        });
+      });
+      
+      apiReq.on('error', (e) => {
+        res.writeHead(500, corsHeaders);
+        res.end(JSON.stringify({ error: e.message }));
+      });
+      
+      apiReq.write(postData);
+      apiReq.end();
+      return;
+    }
+
+    // API Proxy - Posts laden
+    if (url.pathname === '/api/posts' && req.method === 'GET') {
+      const token = req.headers.authorization;
+      
+      https.get(`${API_URL}/facebook/posts`, {
+        headers: { 'Authorization': token }
+      }, (apiRes) => {
+        let data = '';
+        apiRes.on('data', chunk => data += chunk);
+        apiRes.on('end', () => {
+          res.writeHead(apiRes.statusCode, corsHeaders);
+          res.end(data);
+        });
+      }).on('error', (e) => {
+        res.writeHead(500, corsHeaders);
+        res.end(JSON.stringify({ error: e.message }));
+      });
+      return;
+    }
+
+    // API Proxy - Gruppen laden
+    if (url.pathname === '/api/groups' && req.method === 'GET') {
+      const token = req.headers.authorization;
+      
+      https.get(`${API_URL}/facebook/groups`, {
+        headers: { 'Authorization': token }
+      }, (apiRes) => {
+        let data = '';
+        apiRes.on('data', chunk => data += chunk);
+        apiRes.on('end', () => {
+          res.writeHead(apiRes.statusCode, corsHeaders);
+          res.end(data);
+        });
+      }).on('error', (e) => {
+        res.writeHead(500, corsHeaders);
+        res.end(JSON.stringify({ error: e.message }));
+      });
+      return;
+    }
+
+    // App HTML ausliefern
+    if (url.pathname === '/' || url.pathname === '/app') {
+      const appFile = path.join(__dirname, 'app.html');
+      const html = fs.readFileSync(appFile, 'utf-8');
+      res.writeHead(200, { 
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(html);
       return;
     }
 

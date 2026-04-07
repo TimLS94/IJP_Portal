@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { Mail, Lock, Loader2, LogIn, Eye, EyeOff } from 'lucide-react';
+import GoogleLoginButton from '../../components/GoogleLoginButton';
 
 function Login() {
   const { t } = useTranslation();
@@ -125,6 +126,24 @@ function Login() {
             )}
           </button>
         </form>
+
+        {/* Google Login für Bewerber */}
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">oder</span>
+            </div>
+          </div>
+          <div className="mt-4">
+            <GoogleLoginButton />
+          </div>
+          <p className="text-xs text-gray-500 text-center mt-2">
+            Google Login ist nur für Bewerber verfügbar
+          </p>
+        </div>
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">
