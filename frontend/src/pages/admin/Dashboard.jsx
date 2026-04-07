@@ -602,7 +602,8 @@ function AdminDashboard() {
                     <span className="text-gray-700 flex-1 truncate">{email.recipient}</span>
                     <span className="text-gray-400 text-xs">
                       {email.created_at ? new Date(email.created_at).toLocaleString('de-DE', { 
-                        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' 
+                        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                        timeZone: 'Europe/Berlin'
                       }) : ''}
                     </span>
                   </div>

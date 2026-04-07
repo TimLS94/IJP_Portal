@@ -270,6 +270,15 @@ async def get_email_stats(
         EmailLog.created_at.desc()
     ).limit(10).all()
     
+    def format_datetime_utc(dt):
+        """Stellt sicher, dass datetime als UTC ISO-String zurückgegeben wird"""
+        if dt is None:
+            return None
+        # Falls keine Zeitzone, nehme UTC an
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+    
     result["recent"] = [
         {
             "type": (e.email_type.lower() if e.email_type else "other"),
@@ -277,7 +286,7 @@ async def get_email_stats(
             "recipient": e.recipient_email,
             "subject": e.subject,
             "success": e.success == 1,
-            "created_at": e.created_at.isoformat() if e.created_at else None
+            "created_at": format_datetime_utc(e.created_at)
         }
         for e in recent_emails
     ]

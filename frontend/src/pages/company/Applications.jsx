@@ -341,7 +341,8 @@ function CompanyApplications() {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'Europe/Berlin'
     });
   };
 
@@ -398,13 +399,13 @@ function CompanyApplications() {
         const dates = [
           new Date(pendingInterview.proposed_date_1).toLocaleString('de-DE', {
             weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
+            hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin'
           })
         ];
         if (pendingInterview.proposed_date_2) {
           dates.push(new Date(pendingInterview.proposed_date_2).toLocaleString('de-DE', {
             weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
+            hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin'
           }));
         }
         emailData.interview_dates = dates;
