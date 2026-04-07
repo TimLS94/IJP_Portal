@@ -592,23 +592,26 @@ function Settings() {
                 </ul>
               </div>
               
-              <div>
-                <label className="label">{t('settings.passwordForConfirmation')}</label>
-                <div className="relative">
-                  <input
-                    type={showPasswords.deletePassword ? 'text' : 'password'}
-                    className="input-styled pr-10"
-                    {...deleteForm.register('password', { required: true })}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility('deletePassword')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  >
-                    {showPasswords.deletePassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
+              {/* Passwort nur anzeigen wenn User ein Passwort hat (nicht für OAuth-User) */}
+              {accountInfo?.has_password && (
+                <div>
+                  <label className="label">{t('settings.passwordForConfirmation')}</label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.deletePassword ? 'text' : 'password'}
+                      className="input-styled pr-10"
+                      {...deleteForm.register('password', { required: accountInfo?.has_password })}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('deletePassword')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    >
+                      {showPasswords.deletePassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
               
               <div>
                 <label className="label">

@@ -58,7 +58,7 @@ class ChangeEmailRequest(BaseModel):
 
 
 class DeleteAccountRequest(BaseModel):
-    password: str
+    password: str = None  # Optional für OAuth-User ohne Passwort
     confirmation: str  # Muss "DELETE" sein
 
 
@@ -270,12 +270,19 @@ async def delete_account(
             detail="Bitte geben Sie 'DELETE' zur Bestätigung ein"
         )
     
-    # Passwort prüfen
-    if not verify_password(data.password, current_user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Passwort ist falsch"
-        )
+    # Passwort prüfen (nur wenn User ein Passwort hat - OAuth-User haben keins)
+    if current_user.password_hash:
+        if not data.password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Passwort ist erforderlich"
+            )
+        if not verify_password(data.password, current_user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Passwort ist falsch"
+            )
+    # OAuth-User (ohne Passwort) können ohne Passwort löschen
     
     user_id = current_user.id
     user_role = current_user.role
@@ -367,7 +374,9 @@ async def get_account_info(
         "email": current_user.email,
         "role": current_user.role.value,
         "is_active": current_user.is_active,
-        "created_at": current_user.created_at
+        "created_at": current_user.created_at,
+        "has_password": current_user.password_hash is not None,
+        "has_google": current_user.google_id is not None
     }
     
     if current_user.role == UserRole.APPLICANT:
