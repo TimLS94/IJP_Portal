@@ -114,8 +114,7 @@ async def google_login(
             applicant = Applicant(
                 user_id=user.id,
                 first_name=given_name or "Vorname",
-                last_name=family_name or "Nachname",
-                email=email
+                last_name=family_name or "Nachname"
             )
             db.add(applicant)
             db.commit()
