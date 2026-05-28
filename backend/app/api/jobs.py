@@ -1363,3 +1363,76 @@ async def get_job_interaction(
     reported = any(i.interaction_type == InteractionType.REPORT for i in interactions)
     
     return {"liked": liked, "reported": reported}
+
+
+
+@router.post("/admin/reindex-all")
+async def reindex_all_jobs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Admin: Alle aktiven Jobs an Google Indexing API senden.
+    Nutze dies einmalig um bereits bestehende Jobs zu indexieren.
+    Limit: Google erlaubt 200 Anfragen pro Tag (kostenfrei).
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Nur für Admins")
+
+    jobs = db.query(JobPosting).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_archived == False,
+        JobPosting.is_draft == False,
+    ).all()
+
+    total = len(jobs)
+    sent = 0
+    errors = 0
+    skipped = 0
+    results = []
+
+    # Google erlaubt 200 Indexing-Requests/Tag — bei mehr Jobs: Sitemap-Ping reicht
+    DAILY_LIMIT = 200
+
+    if not google_indexing_service.is_configured():
+        # Kein API-Key: Sitemap-Ping als Fallback
+        await google_indexing_service.ping_sitemap()
+        return {
+            "message": "Google Indexing API nicht konfiguriert. Sitemap-Ping gesendet.",
+            "total_jobs": total,
+            "api_configured": False,
+        }
+
+    for job in jobs[:DAILY_LIMIT]:
+        if not job.slug:
+            from app.services.slug_service import generate_job_slug as _gen_slug
+            job.slug = _gen_slug(job.title, job.location, job.accommodation_provided)
+            db.commit()
+
+        url = f"https://www.jobon.work/jobs/{job.slug}-{job.id}"
+        try:
+            import asyncio
+            success = await google_indexing_service.request_indexing(url, "URL_UPDATED")
+            if success:
+                sent += 1
+                results.append({"url": url, "status": "ok"})
+            else:
+                errors += 1
+                results.append({"url": url, "status": "error"})
+            # Rate-Limit: kurze Pause zwischen Anfragen
+            await asyncio.sleep(0.1)
+        except Exception as e:
+            errors += 1
+            results.append({"url": url, "status": f"error: {str(e)}"})
+
+    skipped = max(0, total - DAILY_LIMIT)
+
+    return {
+        "message": f"{sent} Jobs zur Indexierung angemeldet, {errors} Fehler, {skipped} übersprungen (Daily Limit).",
+        "total_jobs": total,
+        "sent": sent,
+        "errors": errors,
+        "skipped_due_to_limit": skipped,
+        "api_configured": True,
+        "results": results,
+    }
