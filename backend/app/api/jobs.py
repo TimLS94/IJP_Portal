@@ -269,16 +269,27 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
         "admin_translated": job.admin_translated or False,
         "admin_translated_at": job.admin_translated_at,
         "admin_translated_languages": job.admin_translated_languages or [],
+        "company_id": job.company.id if job.company else None,
         "company_name": job.company.company_name if job.company else None,
         "company_logo": job.company.logo if job.company else None,
+        "company_industry": job.company.industry if job.company else None,
+        "company_city": job.company.city if job.company else None,
+        "company_country": job.company.country if job.company else None,
+        "company_description": job.company.description if job.company else None,
+        "company_website": job.company.website if job.company else None,
         # Statistiken
         "view_count": job.view_count or 0,
         # SEO-spezifische Felder
         "canonical_url": canonical_url,
         "url_slug": canonical_slug,
         "needs_redirect": needs_redirect,
+        # Externe Jobs
+        "is_external": job.is_external or False,
+        "external_source": job.external_source,
+        "external_url": job.external_url,
+        "external_employer_name": job.external_employer_name,
     }
-    
+
     return job_data
 
 
@@ -838,12 +849,16 @@ async def reactivate_job(
     return job
 
 
-@router.get("/my/jobs", response_model=List[JobPostingResponse])
+@router.get("/my/jobs")
 async def get_my_jobs(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Listet alle eigenen Stellenangebote (nur Firmen)"""
+    """Listet alle eigenen Stellenangebote (nur Firmen) mit Statistiken"""
+    from app.models.job_interaction import JobInteraction, InteractionType
+    from app.models.application import Application
+    from sqlalchemy import func
+    
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -859,10 +874,61 @@ async def get_my_jobs(
     
     jobs = db.query(JobPosting).filter(
         JobPosting.company_id == company.id,
-        (JobPosting.is_archived == False) | (JobPosting.is_archived == None)  # Archivierte ausblenden, NULL als nicht-archiviert behandeln
+        (JobPosting.is_archived == False) | (JobPosting.is_archived == None)
     ).order_by(JobPosting.created_at.desc()).all()
     
-    return jobs
+    # Statistiken für alle Jobs auf einmal laden (effizienter)
+    job_ids = [job.id for job in jobs]
+    
+    # Wenn keine Jobs, leere Dicts
+    like_counts = {}
+    application_counts = {}
+    
+    if job_ids:
+        # Like-Counts pro Job
+        like_counts = dict(
+            db.query(JobInteraction.job_posting_id, func.count(JobInteraction.id))
+            .filter(
+                JobInteraction.job_posting_id.in_(job_ids),
+                JobInteraction.interaction_type == InteractionType.LIKE
+            )
+            .group_by(JobInteraction.job_posting_id)
+            .all()
+        )
+        
+        # Application-Counts pro Job
+        application_counts = dict(
+            db.query(Application.job_posting_id, func.count(Application.id))
+            .filter(Application.job_posting_id.in_(job_ids))
+            .group_by(Application.job_posting_id)
+            .all()
+        )
+    
+    # Jobs mit Statistiken zurückgeben
+    result = []
+    for job in jobs:
+        position_type_value = job.position_type.value if job.position_type else None
+        job_dict = {
+            "id": job.id,
+            "title": job.title,
+            "slug": job.slug,
+            "location": job.location,
+            "is_active": job.is_active,
+            "is_draft": job.is_draft,
+            "created_at": job.created_at,
+            "deadline": job.deadline,
+            "position_type": position_type_value,
+            "position_types": [position_type_value] if position_type_value else [],  # Abwärtskompatibilität für altes Frontend
+            "admin_translated": job.admin_translated,
+            "admin_translated_at": job.admin_translated_at,
+            "keep_archived": job.keep_archived,
+            "view_count": job.view_count or 0,
+            "like_count": like_counts.get(job.id, 0),
+            "application_count": application_counts.get(job.id, 0),
+        }
+        result.append(job_dict)
+    
+    return result
 
 
 @router.get("/my/jobs/archived", response_model=List[JobPostingResponse])

@@ -35,9 +35,11 @@ class ApplicationWithDetails(ApplicationResponse):
     job_title: Optional[str] = None
     company_name: Optional[str] = None
     applicant_name: Optional[str] = None
+    applicant_email: Optional[str] = None
     job_translations: Optional[Dict[str, Any]] = None
     requested_documents: Optional[List[Dict[str, Any]]] = None
     job_id: Optional[int] = None  # Alias für Frontend-Filter
     interview_status: Optional[str] = None  # Status des Vorstellungsgesprächs
     interview_status_label: Optional[str] = None  # Lesbares Label für den Status
     match_score: Optional[int] = None  # Matching-Score (0-100)
+    is_filtered: Optional[bool] = None  # True = unter Score-Schwellenwert (in "Weitere Bewerbungen" Tab)

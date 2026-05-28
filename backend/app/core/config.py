@@ -58,6 +58,15 @@ class Settings(BaseSettings):
     # Google OAuth (nur für Bewerber)
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
+
+    # Bundesagentur für Arbeit – offizielle Jobsuche-API (https://jobsuche.api.bund.dev/)
+    BA_CLIENT_ID: str = ""
+    BA_CLIENT_SECRET: str = ""
+
+    # KI-Aufbereitung gescrapter Jobanzeigen
+    OPENAI_API_KEY: str = ""
+    ANTHROPIC_API_KEY: str = ""
+    GOOGLE_AI_API_KEY: str = ""  # Kostenlos: https://aistudio.google.com/app/apikey
     
     @property
     def cors_origins_list(self) -> List[str]:

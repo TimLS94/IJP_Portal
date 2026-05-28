@@ -46,6 +46,8 @@ class MemberResponse(BaseModel):
     is_active: bool
     invited_at: datetime
     invited_by: Optional[str] = None
+    has_registered: bool = False  # True wenn User sich mindestens einmal eingeloggt hat
+    last_login_at: Optional[datetime] = None
 
 
 # ========== HELPER FUNCTIONS ==========
@@ -133,7 +135,9 @@ async def get_members(
             role_label=COMPANY_ROLE_LABELS.get(member.role, "Mitarbeiter"),
             is_active=member.is_active,
             invited_at=member.invited_at or member.created_at,
-            invited_by=invited_by_name
+            invited_by=invited_by_name,
+            has_registered=user.last_login_at is not None,
+            last_login_at=user.last_login_at
         ))
     
     return result

@@ -88,6 +88,17 @@ class Application(Base):
     # Format: [{"type": "cv", "requested_by": "company", "requested_at": "...", "message": "..."}]
     requested_documents = Column(JSON, default=[])
     
+    # Matching Score (bei Bewerbung berechnet)
+    match_score = Column(Integer, nullable=True)  # 0-100
+    
+    # Score-Filter: Bewerbung unter Schwellenwert? (wird nicht in Haupt-Liste angezeigt)
+    is_filtered = Column(Boolean, default=False)  # True = unter Score-Schwellenwert, in "Weitere Bewerbungen" Tab
+    
+    # Legacy Auto-Ablehnung Felder (nicht mehr verwendet, für DB-Kompatibilität)
+    auto_reject_scheduled = Column(Boolean, default=False)  # LEGACY - nicht mehr verwendet
+    auto_reject_at = Column(DateTime(timezone=True), nullable=True)  # LEGACY - nicht mehr verwendet
+    auto_reject_reason = Column(String(255), nullable=True)  # LEGACY - nicht mehr verwendet
+    
     # Timestamps
     applied_at = Column(DateTime(timezone=True), default=utc_now)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)

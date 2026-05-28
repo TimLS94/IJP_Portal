@@ -77,14 +77,15 @@ def check_application_requirements(applicant: Applicant, job: JobPosting, db: Se
     uploaded_docs = db.query(Document).filter(Document.applicant_id == applicant.id).all()
     uploaded_types = [doc.document_type.value if hasattr(doc.document_type, 'value') else str(doc.document_type) for doc in uploaded_docs]
     
-    # CV-PFLICHT: Nur bei Work and Holiday ist ein Lebenslauf zwingend erforderlich
-    # Bei anderen Stellenarten ist es eine Empfehlung (kann nachgereicht werden)
+    # CV-PFLICHT: Bei allen Stellenarten außer Studentenferienjob ist ein Lebenslauf Pflicht
     job_position_value = job_position.value if hasattr(job_position, 'value') else str(job_position) if job_position else None
     if 'cv' not in uploaded_types:
-        if job_position_value == 'workandholiday':
+        if job_position_value == 'studentenferienjob':
+            # Bei Ferienjob ist CV optional
+            warnings.append("Lebenslauf empfohlen: Ein Lebenslauf erhöht Ihre Chancen (kann nachgereicht werden)")
+        else:
+            # Bei allen anderen Stellenarten ist CV Pflicht
             errors.append("Lebenslauf erforderlich: Bitte laden Sie einen Lebenslauf in Ihrem Profil hoch")
-        elif job_position_value != 'studentenferienjob':
-            warnings.append("Lebenslauf empfohlen: Bitte laden Sie einen Lebenslauf hoch (kann nachgereicht werden)")
     
     # Pflichtdokumente prüfen (optional - nur wenn Stellenart gesetzt)
     if applicant_position:
@@ -199,10 +200,37 @@ async def create_application(
             detail=f"Bewerbung nicht möglich: {'; '.join(requirements['errors'])}"
         )
     
+    # Firmen-Daten für Score-Filter holen
+    company = db.query(Company).filter(Company.id == job.company_id).first()
+    company_user = db.query(User).filter(User.id == company.user_id).first() if company else None
+    
+    # Match-Score berechnen
+    from app.services.matching_service import calculate_match_score
+    from app.services.settings_service import is_company_matching_enabled
+    
+    match_score = None
+    is_filtered = False
+    
+    if is_company_matching_enabled(db):
+        try:
+            match_result = calculate_match_score(applicant, job)
+            match_score = match_result.get("total_score", 0)
+            
+            # Score-Filter prüfen: Ist der Score unter dem Schwellenwert?
+            if company and company.auto_reject_enabled:
+                threshold = company.auto_reject_threshold or 50
+                if match_score < threshold:
+                    is_filtered = True
+                    logger.info(f"Bewerbung gefiltert: Score {match_score}% < Schwellenwert {threshold}%")
+        except Exception as e:
+            logger.error(f"Fehler beim Berechnen des Match-Scores: {e}")
+    
     application = Application(
         applicant_id=applicant.id,
         job_posting_id=job.id,
-        applicant_message=application_data.applicant_message
+        applicant_message=application_data.applicant_message,
+        match_score=match_score,
+        is_filtered=is_filtered
     )
     db.add(application)
     db.commit()
@@ -225,13 +253,10 @@ async def create_application(
             db.add(app_doc)
         db.commit()
     
-    # Firmen-Daten für E-Mail holen
-    company = db.query(Company).filter(Company.id == job.company_id).first()
-    company_user = db.query(User).filter(User.id == company.user_id).first() if company else None
-    
     # E-Mails senden (Fehler dürfen Bewerbung nicht beeinflussen)
     user = db.query(User).filter(User.id == current_user.id).first()
     
+    # E-Mail an Bewerber immer senden
     try:
         email_service.send_application_received(
             to_email=user.email,
@@ -242,8 +267,9 @@ async def create_application(
     except Exception as e:
         logger.error(f"Fehler beim Senden der Bewerber-E-Mail: {e}")
     
-    # E-Mail an Firma über neue Bewerbung
-    if company_user:
+    # E-Mail an Firma NUR wenn Bewerbung NICHT gefiltert ist
+    # Gefilterte Bewerbungen sind "stille" Bewerbungen ohne Benachrichtigung
+    if company_user and not is_filtered:
         try:
             logger.info(f"Sende Bewerbungs-Benachrichtigung an Firma: {company_user.email}")
             email_service.send_new_application_notification(
@@ -258,6 +284,8 @@ async def create_application(
             )
         except Exception as e:
             logger.error(f"Fehler beim Senden der Firmen-E-Mail: {e}")
+    elif is_filtered:
+        logger.info(f"Keine Firmen-E-Mail gesendet: Bewerbung ist gefiltert (Score unter Schwellenwert)")
     else:
         logger.warning(f"Keine Firmen-E-Mail gesendet: company={company}, company_user={company_user}")
     
@@ -310,9 +338,15 @@ async def get_my_applications(
 @router.get("/company", response_model=List[ApplicationWithDetails])
 async def get_company_applications(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    include_filtered: bool = False  # Wenn True, nur gefilterte Bewerbungen zurückgeben
 ):
-    """Listet alle Bewerbungen für die Firma"""
+    """
+    Listet Bewerbungen für die Firma.
+    
+    - include_filtered=False (Standard): Nur normale Bewerbungen (nicht gefiltert)
+    - include_filtered=True: Nur gefilterte Bewerbungen (unter Score-Schwellenwert)
+    """
     from app.services.matching_service import calculate_match_score
     from app.services.settings_service import is_company_matching_enabled
     
@@ -328,13 +362,22 @@ async def get_company_applications(
     if not company:
         return []
     
-    applications = db.query(Application).options(
+    # Filter nach is_filtered Status
+    query = db.query(Application).options(
         joinedload(Application.applicant),
         joinedload(Application.job_posting),
         joinedload(Application.interviews)
     ).join(JobPosting).filter(
         JobPosting.company_id == company.id
-    ).order_by(Application.applied_at.desc()).all()
+    )
+    
+    # Gefilterte vs. normale Bewerbungen
+    if include_filtered:
+        query = query.filter(Application.is_filtered == True)
+    else:
+        query = query.filter((Application.is_filtered == False) | (Application.is_filtered == None))
+    
+    applications = query.order_by(Application.applied_at.desc()).all()
     
     result = []
     for app in applications:
@@ -379,9 +422,11 @@ async def get_company_applications(
             "updated_at": app.updated_at,
             "job_title": app.job_posting.title if app.job_posting else None,
             "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None,
+            "applicant_email": app.applicant.user.email if app.applicant and hasattr(app.applicant, 'user') and app.applicant.user else None,
             "interview_status": interview_status,
             "interview_status_label": interview_status_label,
-            "match_score": match_score
+            "match_score": match_score,
+            "is_filtered": app.is_filtered or False
         }
         result.append(app_dict)
     

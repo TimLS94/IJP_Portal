@@ -261,6 +261,77 @@ class StorageService:
                 return False
         else:
             return os.path.exists(file_path_or_key)
+    
+    async def upload_generic(
+        self,
+        file_content: bytes,
+        storage_path: str,
+        content_type: str = 'application/octet-stream'
+    ) -> Tuple[bool, str, str]:
+        """
+        Generischer Upload mit beliebigem Pfad (für Logos etc.)
+        
+        Args:
+            file_content: Dateiinhalt
+            storage_path: Pfad im Storage (z.B. "company-logos/123/logo.png")
+            content_type: MIME-Type
+            
+        Returns:
+            Tuple[success, file_path_or_key, error_message]
+        """
+        if self.use_r2:
+            try:
+                self.s3_client.put_object(
+                    Bucket=self.bucket_name,
+                    Key=storage_path,
+                    Body=file_content,
+                    ContentType=content_type
+                )
+                logger.info(f"✅ Datei zu R2 hochgeladen: {storage_path}")
+                return True, storage_path, ""
+            except Exception as e:
+                error_msg = f"R2 Upload-Fehler: {e}"
+                logger.error(error_msg)
+                return False, "", error_msg
+        else:
+            try:
+                import aiofiles
+                from app.core.config import settings
+                
+                # Vollständigen lokalen Pfad erstellen
+                full_path = os.path.join(settings.UPLOAD_DIR, storage_path)
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                
+                async with aiofiles.open(full_path, "wb") as f:
+                    await f.write(file_content)
+                
+                logger.info(f"✅ Datei lokal gespeichert: {full_path}")
+                return True, storage_path, ""
+            except Exception as e:
+                error_msg = f"Lokaler Upload-Fehler: {e}"
+                logger.error(error_msg)
+                return False, "", error_msg
+    
+    def get_public_url(self, storage_path: str) -> str:
+        """
+        Generiert eine öffentliche URL für eine Datei.
+        
+        Für R2: Verwendet die Public Bucket URL
+        Für lokal: Verwendet den API-Endpunkt
+        """
+        from app.core.config import settings
+        
+        if self.use_r2:
+            # R2 Public URL (muss im Cloudflare Dashboard aktiviert sein)
+            r2_public_url = getattr(settings, 'R2_PUBLIC_URL', None)
+            if r2_public_url:
+                return f"{r2_public_url}/{storage_path}"
+            else:
+                # Fallback: API-Endpunkt für Datei-Download
+                return f"/api/v1/files/{storage_path}"
+        else:
+            # Lokaler Storage: API-Endpunkt
+            return f"/api/v1/files/{storage_path}"
 
 
 # Singleton-Instanz

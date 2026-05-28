@@ -89,9 +89,13 @@ class EmailService:
         text_content: Optional[str] = None,
         email_type: str = "other",
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
+        attachments: Optional[List[dict]] = None
     ) -> bool:
-        """Sendet eine E-Mail über SendGrid HTTP API - CRASH-SAFE"""
+        """Sendet eine E-Mail über SendGrid HTTP API - CRASH-SAFE
+        
+        attachments: Liste von dicts mit keys: filename, content (base64), type (mime)
+        """
         
         # Verwende übergebene Absender oder Standard
         sender_email = from_email or self.from_email
@@ -99,7 +103,8 @@ class EmailService:
         
         # Debug-Modus: Nur loggen
         if self.debug:
-            logger.info(f"[DEBUG-EMAIL] Von: {sender_email} | An: {to_email} | Betreff: {subject}")
+            att_info = f" + {len(attachments)} Anhänge" if attachments else ""
+            logger.info(f"[DEBUG-EMAIL] Von: {sender_email} | An: {to_email} | Betreff: {subject}{att_info}")
             try:
                 log_email(email_type, to_email, subject, True)
             except Exception as e:
@@ -113,7 +118,7 @@ class EmailService:
         
         # SendGrid API verwenden
         from sendgrid import SendGridAPIClient
-        from sendgrid.helpers.mail import Mail, Email, To, Content
+        from sendgrid.helpers.mail import Mail, Email, To, Content, Attachment, FileContent, FileName, FileType, Disposition
         
         message = Mail(
             from_email=Email(sender_email, sender_name),
@@ -125,11 +130,23 @@ class EmailService:
         if text_content:
             message.add_content(Content("text/plain", text_content))
         
+        # Anhänge hinzufügen
+        if attachments:
+            for att in attachments:
+                attachment = Attachment(
+                    FileContent(att["content"]),
+                    FileName(att["filename"]),
+                    FileType(att["type"]),
+                    Disposition("attachment")
+                )
+                message.add_attachment(attachment)
+        
         sg = SendGridAPIClient(self.api_key)
         response = sg.send(message)
         
         if response.status_code in [200, 201, 202]:
-            logger.info(f"✅ E-Mail gesendet an {to_email} (Status: {response.status_code})")
+            att_info = f" + {len(attachments)} Anhänge" if attachments else ""
+            logger.info(f"✅ E-Mail gesendet an {to_email} (Status: {response.status_code}){att_info}")
             try:
                 log_email(email_type, to_email, subject, True)
             except Exception as e:

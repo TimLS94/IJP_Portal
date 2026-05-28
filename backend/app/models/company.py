@@ -47,6 +47,9 @@ class Company(Base):
     
     # Logo
     logo = Column(String(255))
+
+    # Scraper-Flag (Firma ohne echten Account, vom BA-Scraper angelegt)
+    is_scraped = Column(Boolean, default=False)
     
     # Absage-E-Mail Einstellungen
     rejection_email_enabled = Column(Boolean, default=True)  # Absage-E-Mail aktiviert?
@@ -57,6 +60,12 @@ class Company(Base):
     applicant_digest_enabled = Column(Boolean, default=True)  # Digest aktiviert?
     applicant_digest_days = Column(String(20), default="1,2,3,4,5")  # Wochentage (0=So, 1=Mo, ..., 6=Sa)
     applicant_digest_hour = Column(Integer, default=8)  # Uhrzeit (0-23, UTC)
+    
+    # Score-Filter Einstellungen (Bewerbungen mit niedrigem Score werden gefiltert/ausgeblendet)
+    # HINWEIS: Felder heißen noch "auto_reject_*" für DB-Kompatibilität, Funktion ist jetzt Filter
+    auto_reject_enabled = Column(Boolean, default=False)  # Score-Filter aktiviert?
+    auto_reject_threshold = Column(Integer, default=50)  # Schwellenwert (0-100) - unter diesem Score wird gefiltert
+    auto_reject_delay_days = Column(Integer, default=7)  # NICHT MEHR VERWENDET (Legacy)
     
     # Relationships
     user = relationship("User", back_populates="company")

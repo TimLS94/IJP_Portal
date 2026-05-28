@@ -487,3 +487,175 @@ async def fetch_pdf_for_university(
         )
 
 
+# ============================================================
+# Datenbank-Scraper Endpoints
+# ============================================================
+
+from app.services.anabin_scraper_service import anabin_scraper_service, COUNTRY_GROUPS, DEFAULT_COUNTRIES
+
+
+class ScrapeRequest(BaseModel):
+    """Request für Scrape-Vorgang"""
+    countries: Optional[list[str]] = None  # None = Standard-Länder
+    country_groups: Optional[list[str]] = None  # z.B. ["zentralasien", "suedamerika"]
+    merge_with_existing: bool = True  # Bestehende Daten beibehalten
+
+
+@router.get("/database/info")
+async def get_database_info(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gibt Informationen über die aktuelle Anabin-Datenbank zurück.
+    Nur für Admins.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Admins können auf diese Funktion zugreifen"
+        )
+    
+    db_info = anabin_scraper_service.get_database_info()
+    service_info = anabin_service.get_database_info()
+    
+    return {
+        "database": db_info,
+        "service": service_info,
+        "available_country_groups": COUNTRY_GROUPS,
+        "default_countries": DEFAULT_COUNTRIES,
+    }
+
+
+@router.get("/database/scrape-status")
+async def get_scrape_status(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gibt den aktuellen Status des Scrape-Vorgangs zurück.
+    Nur für Admins.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Admins können auf diese Funktion zugreifen"
+        )
+    
+    return anabin_scraper_service.get_progress()
+
+
+@router.post("/database/scrape")
+async def start_database_scrape(
+    data: ScrapeRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Startet einen Scrape-Vorgang um die Anabin-Datenbank zu aktualisieren.
+    Der Vorgang läuft im Hintergrund.
+    Nur für Admins.
+    
+    Body:
+    - countries: Liste spezifischer Länder (optional)
+    - country_groups: Liste von Ländergruppen wie "zentralasien", "suedamerika" (optional)
+    - merge_with_existing: Bestehende Daten beibehalten (default: true)
+    
+    Wenn weder countries noch country_groups angegeben sind, werden die Standard-Länder verwendet.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Admins können auf diese Funktion zugreifen"
+        )
+    
+    if anabin_scraper_service.is_running():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Ein Scrape-Vorgang läuft bereits. Bitte warten oder abbrechen."
+        )
+    
+    # Länder zusammenstellen
+    countries = []
+    
+    if data.countries:
+        countries.extend(data.countries)
+    
+    if data.country_groups:
+        for group in data.country_groups:
+            group_lower = group.lower()
+            if group_lower in COUNTRY_GROUPS:
+                countries.extend(COUNTRY_GROUPS[group_lower])
+    
+    # Duplikate entfernen
+    countries = list(dict.fromkeys(countries)) if countries else None
+    
+    # Scrape im Hintergrund starten
+    async def run_scrape():
+        await anabin_scraper_service.scrape_countries(
+            countries=countries,
+            merge_with_existing=data.merge_with_existing,
+            headless=True
+        )
+        # Nach erfolgreichem Scrape: Service-Datenbank neu laden
+        anabin_service._load_database()
+    
+    background_tasks.add_task(run_scrape)
+    
+    return {
+        "success": True,
+        "message": "Scrape-Vorgang gestartet",
+        "countries": countries or DEFAULT_COUNTRIES,
+        "merge_with_existing": data.merge_with_existing,
+        "hint": "Verwende GET /anabin/database/scrape-status um den Fortschritt zu prüfen"
+    }
+
+
+@router.post("/database/scrape-cancel")
+async def cancel_database_scrape(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Bricht den laufenden Scrape-Vorgang ab.
+    Nur für Admins.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Admins können auf diese Funktion zugreifen"
+        )
+    
+    if not anabin_scraper_service.is_running():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Kein Scrape-Vorgang läuft"
+        )
+    
+    cancelled = anabin_scraper_service.cancel_scrape()
+    
+    return {
+        "success": cancelled,
+        "message": "Abbruch angefordert" if cancelled else "Konnte nicht abbrechen"
+    }
+
+
+@router.post("/database/reload")
+async def reload_database(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lädt die Anabin-Datenbank neu (ohne Scraping).
+    Nützlich nach manuellem Bearbeiten der JSON-Datei.
+    Nur für Admins.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Admins können auf diese Funktion zugreifen"
+        )
+    
+    anabin_service._load_database()
+    
+    return {
+        "success": True,
+        "message": f"Datenbank neu geladen: {len(anabin_service.universities)} Universitäten",
+        "count": len(anabin_service.universities)
+    }

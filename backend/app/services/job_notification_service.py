@@ -60,27 +60,22 @@ def get_matching_applicants(job: JobPosting, db: Session, threshold: int = 85) -
 
 def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
     """
-    Sends email notifications to all matching applicants about a new job.
+    Sends email notifications and creates in-app notifications for all matching applicants about a new job.
     
     Args:
         job: The newly created/activated job posting
         db: Database session
     
     Returns:
-        Number of emails sent
+        Number of notifications sent
     """
     from app.services.email_service import email_service
+    from app.models.notification import Notification
     
     # Check if notifications are enabled
     notifications_enabled = get_setting(db, "job_notifications_enabled", True)
     if not notifications_enabled:
         logger.info("Job notifications are disabled in settings")
-        return 0
-    
-    # Check if instant notifications are enabled
-    instant_enabled = get_setting(db, "instant_job_notifications_enabled", True)
-    if not instant_enabled:
-        logger.info("Instant job notifications are disabled - skipping")
         return 0
     
     # Get threshold from settings
@@ -95,33 +90,61 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
     
     logger.info(f"Found {len(matching)} matching applicants for job {job.id}")
     
+    notifications_created = 0
     emails_sent = 0
+    
     for match in matching:
         applicant = match["applicant"]
         score = match["score"]
         
-        # Get user email
+        # Get user
         user = db.query(User).filter(User.id == applicant.user_id).first()
-        if not user or not user.email:
+        if not user:
             continue
         
+        # Create in-app notification
         try:
-            success = email_service.send_matching_job_notification(
-                to_email=user.email,
-                applicant_name=f"{applicant.first_name} {applicant.last_name}",
-                job_title=job.title,
-                company_name=job.company.company_name if job.company else "Unknown",
-                location=job.location or "Germany",
-                match_score=score,
-                job_slug=job.slug or str(job.id)
+            company_name = job.company.company_name if job.company else "Unbekannt"
+            notification = Notification(
+                user_id=user.id,
+                type="new_job",
+                reference_id=job.id,
+                reference_type="job",
+                title=f"Neue passende Stelle: {job.title}",
+                message=f"{company_name} in {job.location or 'Deutschland'} - {score}% Match"
             )
-            if success:
-                emails_sent += 1
+            db.add(notification)
+            notifications_created += 1
         except Exception as e:
-            logger.error(f"Failed to send notification to {user.email}: {e}")
+            logger.error(f"Failed to create notification for user {user.id}: {e}")
+        
+        # Send email notification (if instant notifications enabled)
+        instant_enabled = get_setting(db, "instant_job_notifications_enabled", True)
+        if instant_enabled and user.email:
+            try:
+                success = email_service.send_matching_job_notification(
+                    to_email=user.email,
+                    applicant_name=f"{applicant.first_name} {applicant.last_name}",
+                    job_title=job.title,
+                    company_name=job.company.company_name if job.company else "Unknown",
+                    location=job.location or "Germany",
+                    match_score=score,
+                    job_slug=job.slug or str(job.id)
+                )
+                if success:
+                    emails_sent += 1
+            except Exception as e:
+                logger.error(f"Failed to send notification to {user.email}: {e}")
     
-    logger.info(f"Sent {emails_sent} job notification emails for job {job.id}")
-    return emails_sent
+    # Commit all notifications
+    try:
+        db.commit()
+    except Exception as e:
+        logger.error(f"Failed to commit notifications: {e}")
+        db.rollback()
+    
+    logger.info(f"Created {notifications_created} in-app notifications and sent {emails_sent} emails for job {job.id}")
+    return notifications_created
 
 
 def get_matching_jobs_for_applicant(applicant: Applicant, db: Session, threshold: int = 70, days: int = 7) -> List[dict]:

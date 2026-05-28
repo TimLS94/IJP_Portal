@@ -15,11 +15,14 @@ from app.models.job_template import JobTemplate
 from app.models.invite_token import InviteToken
 from app.models.email_log import EmailLog, EmailType
 from app.models.job_interaction import JobInteraction, InteractionType, ReportReason
+from app.models.notification import Notification
+from app.models.applicant_invite import ApplicantInviteToken
 
 __all__ = [
     "User", "Applicant", "Company", "CompanyMember", "CompanyRole", "JobPosting", 
     "Application", "Document", "BlogPost", "PasswordResetToken", "JobRequest",
     "Interview", "InterviewStatus", "GlobalSettings", "CompanyRequest", 
     "CompanyRequestType", "CompanyRequestStatus", "JobTemplate", "InviteToken",
-    "JobInteraction", "InteractionType", "ReportReason"
+    "JobInteraction", "InteractionType", "ReportReason", "Notification",
+    "ApplicantInviteToken"
 ]

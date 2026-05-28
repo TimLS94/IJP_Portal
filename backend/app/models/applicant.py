@@ -128,6 +128,12 @@ class Applicant(Base):
     anabin_checked_at = Column(Date)  # Wann geprüft
     anabin_checked_by = Column(Integer, ForeignKey("users.id"))  # Wer hat geprüft
     
+    # ========== EINLADUNGS-QUELLE (Tracking) ==========
+    # Wird gesetzt wenn Bewerber sich über Einladungslink registriert
+    invite_source = Column(String(255), nullable=True)  # z.B. "Sprachschule Taschkent"
+    invite_source_country = Column(String(100), nullable=True)  # z.B. "Usbekistan"
+    invite_token_id = Column(Integer, ForeignKey("applicant_invite_tokens.id"), nullable=True)
+    
     # Relationships
     user = relationship("User", back_populates="applicant", foreign_keys=[user_id])
     applications = relationship("Application", back_populates="applicant", cascade="all, delete-orphan")

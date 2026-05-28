@@ -11,8 +11,10 @@ class FacebookGroup(Base):
     url = Column(String(500), nullable=False)
     facebook_group_id = Column(String(100), nullable=True)  # Für API-Integration
     type = Column(String(50), default="external")  # 'own' oder 'external'
+    cluster = Column(String(100), nullable=True)  # z.B. 'deutsch', 'spanisch', 'englisch'
     members = Column(Integer, default=0)
     notes = Column(Text, nullable=True)
+    last_posted_at = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

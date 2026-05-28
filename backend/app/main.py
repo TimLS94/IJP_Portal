@@ -19,7 +19,7 @@ logger.info("Config loaded")
 from app.core.database import engine, Base, SessionLocal
 logger.info("Database module loaded")
 
-from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales, facebook, google_auth
+from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales, facebook, google_auth, files, notifications, ba_scraper
 logger.info("API routers loaded")
 
 # Import Models für create_all
@@ -91,6 +91,197 @@ def ensure_google_id_column():
         db.close()
 
 ensure_google_id_column()
+
+
+def ensure_new_application_columns():
+    """Fügt neue Spalten zur applications Tabelle hinzu falls nicht vorhanden"""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        # is_filtered: Score-Filter Flag (Boolean, default False)
+        try:
+            db.execute(text("ALTER TABLE applications ADD COLUMN is_filtered BOOLEAN DEFAULT FALSE"))
+            db.commit()
+            logger.info("'is_filtered' column added to applications table")
+        except Exception:
+            db.rollback()  # Spalte existiert bereits oder anderer Fehler - OK
+
+    except Exception as e:
+        logger.error(f"Error in ensure_new_application_columns: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+ensure_new_application_columns()
+
+
+def ensure_external_job_columns():
+    """Fügt Spalten für externe Jobs (BA-Scraper) hinzu, falls noch nicht vorhanden."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db_url = str(engine.url)
+        is_sqlite = db_url.startswith("sqlite")
+
+        new_columns = [
+            ("job_postings", "is_external", "BOOLEAN DEFAULT FALSE"),
+            ("job_postings", "external_source", "VARCHAR(50)"),
+            ("job_postings", "external_url", "VARCHAR(500)"),
+            ("job_postings", "external_id", "VARCHAR(100)"),
+            ("job_postings", "external_employer_name", "VARCHAR(255)"),
+            ("companies", "is_scraped", "BOOLEAN DEFAULT FALSE"),
+        ]
+
+        for table, col, col_def in new_columns:
+            try:
+                if is_sqlite:
+                    result = db.execute(text(f"PRAGMA table_info({table})"))
+                    existing = {row[1] for row in result.fetchall()}
+                    if col not in existing:
+                        db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"))
+                        db.commit()
+                        logger.info(f"Spalte '{col}' zu '{table}' hinzugefügt")
+                else:
+                    # PostgreSQL: Prüfen ob Spalte existiert
+                    result = db.execute(text(f"""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name = '{table}' AND column_name = '{col}'
+                    """))
+                    if not result.fetchone():
+                        db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"))
+                        db.commit()
+                        logger.info(f"Spalte '{col}' zu '{table}' hinzugefügt (PostgreSQL)")
+            except Exception as e:
+                db.rollback()
+                logger.debug(f"Spalte '{col}' existiert bereits oder Fehler: {e}")
+
+        # Index für externe Job-Deduplizierung (funktioniert für beide DBs)
+        try:
+            db.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_job_postings_external_id ON job_postings (external_id)"
+            ))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+    except Exception as exc:
+        logger.error(f"Fehler in ensure_external_job_columns: {exc}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+ensure_external_job_columns()
+
+
+def ensure_applicant_invite_columns():
+    """Fügt Spalten für Bewerber-Einladungs-Tracking hinzu, falls noch nicht vorhanden."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db_url = str(engine.url)
+        is_sqlite = db_url.startswith("sqlite")
+
+        new_columns = [
+            ("applicants", "invite_source", "VARCHAR(255)"),
+            ("applicants", "invite_source_country", "VARCHAR(100)"),
+            ("applicants", "invite_token_id", "INTEGER"),
+        ]
+
+        for table, col, col_def in new_columns:
+            try:
+                if is_sqlite:
+                    result = db.execute(text(f"PRAGMA table_info({table})"))
+                    existing = {row[1] for row in result.fetchall()}
+                    if col not in existing:
+                        db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"))
+                        db.commit()
+                        logger.info(f"Spalte '{col}' zu '{table}' hinzugefügt")
+                else:
+                    # PostgreSQL: Prüfen ob Spalte existiert
+                    result = db.execute(text(f"""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name = '{table}' AND column_name = '{col}'
+                    """))
+                    if not result.fetchone():
+                        db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"))
+                        db.commit()
+                        logger.info(f"Spalte '{col}' zu '{table}' hinzugefügt (PostgreSQL)")
+            except Exception as e:
+                db.rollback()
+                logger.debug(f"Spalte '{col}' existiert bereits oder Fehler: {e}")
+
+    except Exception as exc:
+        logger.error(f"Fehler in ensure_applicant_invite_columns: {exc}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+ensure_applicant_invite_columns()
+
+
+def backfill_is_filtered():
+    """
+    Setzt is_filtered korrekt für bestehende Bewerbungen:
+    - Hat die Firma auto_reject aktiviert und der Score liegt unter dem Schwellenwert → is_filtered=True
+    - Für Bewerbungen ohne gespeicherten Score wird der Score live berechnet und gespeichert.
+    """
+    db = SessionLocal()
+    try:
+        from app.models.company import Company
+        from app.models.job_posting import JobPosting
+        from app.models.application import Application
+        from app.services.matching_service import calculate_match_score
+        from app.services.settings_service import is_company_matching_enabled
+
+        if not is_company_matching_enabled(db):
+            return
+
+        companies = db.query(Company).filter(Company.auto_reject_enabled == True).all()
+        total_updated = 0
+
+        for company in companies:
+            threshold = company.auto_reject_threshold or 50
+
+            # Alle nicht-gefilterten Bewerbungen dieser Firma
+            apps = db.query(Application).join(
+                JobPosting, Application.job_posting_id == JobPosting.id
+            ).filter(
+                JobPosting.company_id == company.id,
+                Application.is_filtered == False
+            ).all()
+
+            for app in apps:
+                score = app.match_score
+
+                # Score fehlt → live berechnen und persistieren
+                if score is None and app.applicant and app.job_posting:
+                    try:
+                        result = calculate_match_score(app.applicant, app.job_posting)
+                        score = int(round(result.get('total_score', 0)))
+                        app.match_score = score
+                    except Exception:
+                        continue
+
+                if score is not None and score < threshold:
+                    app.is_filtered = True
+                    total_updated += 1
+
+        if total_updated > 0:
+            db.commit()
+            logger.info(f"Backfill: {total_updated} Bewerbung(en) als gefiltert markiert")
+
+    except Exception as e:
+        logger.error(f"Error in backfill_is_filtered: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+backfill_is_filtered()
+
 
 # Testdaten einfügen (nur in Entwicklung)
 if settings.DEBUG:
@@ -256,7 +447,8 @@ async def company_applicant_digest():
         try:
             # Alle Firmen mit aktiviertem Digest laden
             companies = db.query(Company).filter(
-                Company.applicant_digest_enabled == True
+                Company.applicant_digest_enabled == True,
+                Company.is_scraped == False,
             ).all()
             
             for company in companies:
@@ -407,6 +599,9 @@ app.include_router(company_requests.router, prefix=settings.API_V1_PREFIX)
 app.include_router(sales.router, prefix=settings.API_V1_PREFIX)
 app.include_router(facebook.router, prefix=settings.API_V1_PREFIX)
 app.include_router(google_auth.router, prefix=settings.API_V1_PREFIX)
+app.include_router(files.router, prefix=settings.API_V1_PREFIX)
+app.include_router(notifications.router, prefix=settings.API_V1_PREFIX)
+app.include_router(ba_scraper.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

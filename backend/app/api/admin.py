@@ -372,6 +372,95 @@ async def get_cold_outreach_stats(
     }
 
 
+class EmailAttachment(BaseModel):
+    filename: str
+    content: str  # Base64 encoded
+    type: str  # MIME type
+
+
+class ColdOutreachEmailRequest(BaseModel):
+    to: str
+    subject: str
+    content: str
+    is_html: bool = False
+    from_email: Optional[str] = "business@jobon.work"
+    from_name: Optional[str] = "JobOn"
+    attachments: Optional[List[EmailAttachment]] = []
+
+
+@router.post("/cold-outreach/send")
+async def send_cold_outreach_email(
+    request: ColdOutreachEmailRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Sendet eine Kaltakquise-E-Mail mit optionalen Anhängen"""
+    from app.models.email_log import EmailLog
+    from app.services.email_service import EmailService
+    
+    email_service = EmailService()
+    
+    try:
+        # E-Mail senden - HTML oder Plain Text
+        if request.is_html:
+            html_content = request.content
+        else:
+            # Plain Text zu einfachem HTML konvertieren
+            html_content = request.content.replace('\n', '<br>')
+            html_content = f"<div style='font-family: Arial, sans-serif;'>{html_content}</div>"
+        
+        # Anhänge vorbereiten
+        attachments_data = None
+        if request.attachments:
+            attachments_data = [
+                {
+                    "filename": att.filename,
+                    "content": att.content,
+                    "type": att.type
+                }
+                for att in request.attachments
+            ]
+        
+        success = email_service.send_email(
+            to_email=request.to,
+            subject=request.subject,
+            html_content=html_content,
+            email_type="cold_outreach",
+            from_email=request.from_email or "business@jobon.work",
+            from_name=request.from_name or "JobOn",
+            attachments=attachments_data
+        )
+        
+        # Log erstellen
+        log = EmailLog(
+            email_type="cold_outreach",
+            recipient_email=request.to,
+            subject=request.subject,
+            success=1 if success else 0,
+            sent_by_user_id=current_user.id
+        )
+        db.add(log)
+        db.commit()
+        
+        if success:
+            return {"success": True, "message": "E-Mail gesendet"}
+        else:
+            raise HTTPException(status_code=500, detail="E-Mail konnte nicht gesendet werden")
+            
+    except Exception as e:
+        # Fehler loggen
+        log = EmailLog(
+            email_type="cold_outreach",
+            recipient_email=request.to,
+            subject=request.subject,
+            success=0,
+            sent_by_user_id=current_user.id
+        )
+        db.add(log)
+        db.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/users")
 async def list_users(
     role: Optional[UserRole] = None,
@@ -538,10 +627,56 @@ async def admin_delete_job(
     return {"message": "Stellenangebot gelöscht"}
 
 
+class AdminUpdateJobRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    tasks: Optional[str] = None
+    requirements: Optional[str] = None
+    benefits: Optional[str] = None
+    translations: Optional[dict] = None
+
+
+@router.put("/jobs/{job_id}")
+async def admin_update_job(
+    job_id: int,
+    request: AdminUpdateJobRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert ein Stellenangebot (Admin - für Formatierungskorrekturen)"""
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stellenangebot nicht gefunden"
+        )
+    
+    # Update fields if provided
+    if request.title is not None:
+        job.title = request.title
+    if request.description is not None:
+        job.description = request.description
+    if request.tasks is not None:
+        job.tasks = request.tasks
+    if request.requirements is not None:
+        job.requirements = request.requirements
+    if request.benefits is not None:
+        job.benefits = request.benefits
+    if request.translations is not None:
+        job.translations = request.translations
+    
+    job.updated_at = datetime.utcnow()
+    db.commit()
+    
+    return {"message": "Stellenangebot aktualisiert", "id": job.id}
+
+
 @router.get("/applications")
 async def list_all_applications(
     status_filter: Optional[ApplicationStatus] = None,
     position_type: Optional[PositionType] = None,
+    invite_source: Optional[str] = None,
     search: Optional[str] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
@@ -556,6 +691,9 @@ async def list_all_applications(
     
     if position_type:
         query = query.filter(Applicant.position_type == position_type)
+    
+    if invite_source:
+        query = query.filter(Applicant.invite_source.ilike(f"%{invite_source}%"))
     
     if search:
         search_term = f"%{search}%"
@@ -588,6 +726,8 @@ async def list_all_applications(
             "applicant_email": applicant_user.email if applicant_user else None,
             "applicant_phone": applicant.phone if applicant else None,
             "position_type": applicant.position_type.value if applicant and applicant.position_type else None,
+            "invite_source": applicant.invite_source if applicant else None,
+            "invite_source_country": applicant.invite_source_country if applicant else None,
             "job_id": job.id if job else None,
             "job_title": job.title if job else "Unbekannt",
             "company_name": company.company_name if company else "Unbekannt",
@@ -596,6 +736,21 @@ async def list_all_applications(
         })
     
     return {"total": total, "applications": result}
+
+
+@router.get("/applications/invite-sources")
+async def get_invite_sources(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Gibt alle verwendeten Einladungsquellen zurück"""
+    sources = db.query(Applicant.invite_source).filter(
+        Applicant.invite_source.isnot(None)
+    ).distinct().all()
+    
+    return {
+        "sources": [s[0] for s in sources if s[0]]
+    }
 
 
 @router.get("/applications/{application_id}")
@@ -873,6 +1028,7 @@ async def download_all_documents(
 async def list_all_applicants(
     position_type: Optional[PositionType] = None,
     search: Optional[str] = None,
+    invite_source: Optional[str] = None,  # Filter nach Einladungsquelle
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(require_admin),
@@ -890,6 +1046,9 @@ async def list_all_applicants(
             (Applicant.first_name.ilike(search_term)) |
             (Applicant.last_name.ilike(search_term))
         )
+    
+    if invite_source:
+        query = query.filter(Applicant.invite_source.ilike(f"%{invite_source}%"))
     
     total = query.count()
     applicants = query.order_by(Applicant.id.desc()).offset(skip).limit(limit).all()
@@ -911,9 +1070,68 @@ async def list_all_applicants(
             "city": applicant.city,
             "application_count": app_count,
             "document_count": doc_count,
+            "invite_source": applicant.invite_source,
+            "invite_source_country": applicant.invite_source_country,
         })
     
     return {"total": total, "applicants": result}
+
+
+@router.get("/applicants/export/csv")
+async def export_applicants_csv(
+    invite_source: Optional[str] = None,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Exportiert Bewerber als CSV (mit Einladungsquelle)"""
+    from fastapi.responses import StreamingResponse
+    import csv
+    import io
+    
+    query = db.query(Applicant).join(User, Applicant.user_id == User.id)
+    
+    if invite_source:
+        query = query.filter(Applicant.invite_source.ilike(f"%{invite_source}%"))
+    
+    applicants = query.order_by(Applicant.id.desc()).all()
+    
+    # CSV erstellen
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    
+    # Header
+    writer.writerow([
+        'ID', 'Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Nationalität',
+        'Stadt', 'Land', 'Positionstyp', 'Deutschkenntnisse', 'Englischkenntnisse',
+        'Einladungsquelle', 'Einladungsland', 'Registriert am'
+    ])
+    
+    # Daten
+    for a in applicants:
+        writer.writerow([
+            a.id,
+            a.first_name,
+            a.last_name,
+            a.user.email if a.user else '',
+            a.phone or '',
+            a.nationality or '',
+            a.city or '',
+            a.country or '',
+            a.position_type.value if a.position_type else '',
+            a.german_level.value if a.german_level else '',
+            a.english_level.value if a.english_level else '',
+            a.invite_source or '',
+            a.invite_source_country or '',
+            a.user.created_at.strftime('%Y-%m-%d %H:%M') if a.user and a.user.created_at else ''
+        ])
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=bewerber_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"}
+    )
 
 
 class CreateAdminRequest(BaseModel):
@@ -2002,3 +2220,275 @@ async def dismiss_job_report(
     db.commit()
     
     return {"message": "Meldung verworfen"}
+
+
+@router.get("/timeline")
+async def get_timeline_stats(
+    days: int = Query(30, ge=7, le=365, description="Zeitraum in Tagen"),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Holt tägliche Statistiken für Timeline-Charts"""
+    from zoneinfo import ZoneInfo
+    
+    berlin_tz = ZoneInfo("Europe/Berlin")
+    now_berlin = datetime.now(berlin_tz)
+    
+    # Startdatum berechnen
+    start_date = (now_berlin - timedelta(days=days-1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    start_utc = start_date.astimezone(timezone.utc).replace(tzinfo=None)
+    
+    # SQLite-kompatible Datums-Extraktion mit func.date()
+    # Tägliche Registrierungen
+    daily_users = db.query(
+        func.date(User.created_at).label("date"),
+        func.count(User.id).label("count")
+    ).filter(
+        User.created_at >= start_utc
+    ).group_by(func.date(User.created_at)).all()
+    
+    # Tägliche Bewerbungen
+    daily_applications = db.query(
+        func.date(Application.applied_at).label("date"),
+        func.count(Application.id).label("count")
+    ).filter(
+        Application.applied_at >= start_utc
+    ).group_by(func.date(Application.applied_at)).all()
+    
+    # Tägliche neue Stellen
+    daily_jobs = db.query(
+        func.date(JobPosting.created_at).label("date"),
+        func.count(JobPosting.id).label("count")
+    ).filter(
+        JobPosting.created_at >= start_utc
+    ).group_by(func.date(JobPosting.created_at)).all()
+    
+    # Tägliche Logins
+    daily_logins = db.query(
+        func.date(User.last_login_at).label("date"),
+        func.count(User.id).label("count")
+    ).filter(
+        User.last_login_at >= start_utc
+    ).group_by(func.date(User.last_login_at)).all()
+    
+    # Daten in ein Dictionary umwandeln für einfachen Zugriff
+    users_dict = {str(d) if d else "": c for d, c in daily_users if d}
+    apps_dict = {str(d) if d else "": c for d, c in daily_applications if d}
+    jobs_dict = {str(d) if d else "": c for d, c in daily_jobs if d}
+    logins_dict = {str(d) if d else "": c for d, c in daily_logins if d}
+    
+    # Timeline-Daten für jeden Tag erstellen
+    timeline = []
+    current_date = start_date.date()
+    end_date = now_berlin.date()
+    
+    while current_date <= end_date:
+        date_str = str(current_date)
+        timeline.append({
+            "date": date_str,
+            "label": current_date.strftime("%d.%m."),
+            "users": users_dict.get(date_str, 0),
+            "applications": apps_dict.get(date_str, 0),
+            "jobs": jobs_dict.get(date_str, 0),
+            "logins": logins_dict.get(date_str, 0)
+        })
+        current_date += timedelta(days=1)
+    
+    # Kumulative Summen berechnen
+    cumulative = {
+        "users": 0,
+        "applications": 0,
+        "jobs": 0
+    }
+    
+    for day in timeline:
+        cumulative["users"] += day["users"]
+        cumulative["applications"] += day["applications"]
+        cumulative["jobs"] += day["jobs"]
+        day["cumulative_users"] = cumulative["users"]
+        day["cumulative_applications"] = cumulative["applications"]
+        day["cumulative_jobs"] = cumulative["jobs"]
+    
+    return {
+        "period_days": days,
+        "timeline": timeline,
+        "totals": {
+            "users": cumulative["users"],
+            "applications": cumulative["applications"],
+            "jobs": cumulative["jobs"]
+        }
+    }
+
+
+# ==================== BEWERBER-EINLADUNGS-TOKENS ====================
+
+class ApplicantInviteCreate(BaseModel):
+    source_name: str  # Pflicht: z.B. "Sprachschule Taschkent"
+    source_country: Optional[str] = None  # z.B. "Usbekistan"
+    description: Optional[str] = None
+    expires_in_days: Optional[int] = None  # None = unbegrenzt
+    max_uses: Optional[int] = None  # None = unbegrenzt
+
+
+@router.get("/applicant-invites")
+async def list_applicant_invites(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Listet alle Bewerber-Einladungs-Tokens mit Statistiken"""
+    from app.models.applicant_invite import ApplicantInviteToken
+    from app.models.applicant import Applicant
+    
+    tokens = db.query(ApplicantInviteToken).order_by(ApplicantInviteToken.created_at.desc()).all()
+    
+    result = []
+    for t in tokens:
+        # Zähle registrierte Bewerber mit diesem Token
+        registered_count = db.query(Applicant).filter(Applicant.invite_token_id == t.id).count()
+        
+        result.append({
+            "id": t.id,
+            "token": t.token,
+            "source_name": t.source_name,
+            "source_country": t.source_country,
+            "description": t.description,
+            "is_active": t.is_active,
+            "is_valid": t.is_valid(),
+            "expires_at": t.expires_at.isoformat() if t.expires_at else None,
+            "max_uses": t.max_uses,
+            "current_uses": t.current_uses,
+            "registered_applicants": registered_count,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "last_used_at": t.last_used_at.isoformat() if t.last_used_at else None,
+            "created_by_email": t.created_by.email if t.created_by else None,
+            "registration_url": f"/register?source={t.token}",
+        })
+    
+    return {
+        "invites": result,
+        "total": len(result)
+    }
+
+
+@router.post("/applicant-invites")
+async def create_applicant_invite(
+    data: ApplicantInviteCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Erstellt einen neuen Bewerber-Einladungs-Token"""
+    from app.models.applicant_invite import ApplicantInviteToken
+    
+    if not data.source_name or not data.source_name.strip():
+        raise HTTPException(status_code=400, detail="Quellenname ist erforderlich")
+    
+    expires_at = None
+    if data.expires_in_days:
+        expires_at = datetime.utcnow() + timedelta(days=data.expires_in_days)
+    
+    token = ApplicantInviteToken(
+        token=ApplicantInviteToken.generate_token(data.source_name.strip()),
+        created_by_id=current_user.id,
+        source_name=data.source_name.strip(),
+        source_country=data.source_country.strip() if data.source_country else None,
+        description=data.description,
+        expires_at=expires_at,
+        max_uses=data.max_uses
+    )
+    
+    db.add(token)
+    db.commit()
+    db.refresh(token)
+    
+    return {
+        "id": token.id,
+        "token": token.token,
+        "source_name": token.source_name,
+        "source_country": token.source_country,
+        "description": token.description,
+        "is_active": token.is_active,
+        "is_valid": token.is_valid(),
+        "expires_at": token.expires_at.isoformat() if token.expires_at else None,
+        "max_uses": token.max_uses,
+        "current_uses": 0,
+        "registered_applicants": 0,
+        "created_at": token.created_at.isoformat() if token.created_at else None,
+        "last_used_at": None,
+        "created_by_email": current_user.email,
+        "registration_url": f"/register?source={token.token}"
+    }
+
+
+@router.delete("/applicant-invites/{invite_id}")
+async def delete_applicant_invite(
+    invite_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Löscht einen Bewerber-Einladungs-Token"""
+    from app.models.applicant_invite import ApplicantInviteToken
+    
+    token = db.query(ApplicantInviteToken).filter(ApplicantInviteToken.id == invite_id).first()
+    if not token:
+        raise HTTPException(status_code=404, detail="Einladung nicht gefunden")
+    
+    db.delete(token)
+    db.commit()
+    
+    return {"message": "Einladung gelöscht"}
+
+
+@router.put("/applicant-invites/{invite_id}/toggle")
+async def toggle_applicant_invite(
+    invite_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Aktiviert/Deaktiviert einen Bewerber-Einladungs-Token"""
+    from app.models.applicant_invite import ApplicantInviteToken
+    
+    token = db.query(ApplicantInviteToken).filter(ApplicantInviteToken.id == invite_id).first()
+    if not token:
+        raise HTTPException(status_code=404, detail="Einladung nicht gefunden")
+    
+    token.is_active = not token.is_active
+    db.commit()
+    
+    return {
+        "id": token.id,
+        "is_active": token.is_active,
+        "message": "Einladung aktiviert" if token.is_active else "Einladung deaktiviert"
+    }
+
+
+@router.get("/applicant-invites/{invite_id}/applicants")
+async def get_invite_applicants(
+    invite_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Listet alle Bewerber, die sich über diesen Einladungslink registriert haben"""
+    from app.models.applicant_invite import ApplicantInviteToken
+    from app.models.applicant import Applicant
+    
+    token = db.query(ApplicantInviteToken).filter(ApplicantInviteToken.id == invite_id).first()
+    if not token:
+        raise HTTPException(status_code=404, detail="Einladung nicht gefunden")
+    
+    applicants = db.query(Applicant).filter(Applicant.invite_token_id == invite_id).all()
+    
+    return {
+        "source_name": token.source_name,
+        "source_country": token.source_country,
+        "applicants": [
+            {
+                "id": a.id,
+                "name": f"{a.first_name} {a.last_name}",
+                "email": a.user.email if a.user else None,
+                "nationality": a.nationality,
+                "registered_at": a.user.created_at.isoformat() if a.user and a.user.created_at else None,
+            }
+            for a in applicants
+        ],
+        "total": len(applicants)
+    }

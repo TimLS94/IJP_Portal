@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
+import uuid
+import os
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -117,6 +119,45 @@ async def get_company(
             detail="Firma nicht gefunden"
         )
     return company
+
+
+@router.get("/{company_id}/jobs")
+async def get_company_jobs(
+    company_id: int,
+    db: Session = Depends(get_db)
+):
+    """Gibt alle aktiven Stellenangebote einer Firma zurück (öffentlich)"""
+    from app.models.job_posting import JobPosting
+    
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Firma nicht gefunden"
+        )
+    
+    jobs = db.query(JobPosting).filter(
+        JobPosting.company_id == company_id,
+        JobPosting.is_active == True,
+        JobPosting.is_archived == False,
+        JobPosting.is_draft == False
+    ).order_by(JobPosting.created_at.desc()).all()
+    
+    return [
+        {
+            "id": job.id,
+            "slug": job.slug,
+            "title": job.title,
+            "location": job.location,
+            "position_type": job.position_type.value if job.position_type else None,
+            "employment_type": job.employment_type.value if job.employment_type else None,
+            "salary_min": job.salary_min,
+            "salary_max": job.salary_max,
+            "created_at": job.created_at,
+            "is_active": job.is_active,
+        }
+        for job in jobs
+    ]
 
 
 # ========== ABSAGE-E-MAIL EINSTELLUNGEN ==========
@@ -281,3 +322,163 @@ async def update_digest_settings(
         "days": company.applicant_digest_days,
         "hour": company.applicant_digest_hour
     }
+
+
+# ============ Score-Filter Einstellungen ============
+# Bewerbungen unter dem Schwellenwert werden gefiltert (in separatem Tab angezeigt)
+# und keine E-Mail-Benachrichtigung an die Firma gesendet
+
+class ScoreFilterSettingsUpdate(BaseModel):
+    enabled: Optional[bool] = None
+    threshold: Optional[int] = None  # 0-100
+
+
+@router.get("/me/score-filter-settings")
+async def get_score_filter_settings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Gibt die Score-Filter Einstellungen zurück"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+    
+    company = get_company_or_404(current_user, db)
+    
+    return {
+        "enabled": company.auto_reject_enabled if company.auto_reject_enabled is not None else False,
+        "threshold": company.auto_reject_threshold if company.auto_reject_threshold is not None else 50
+    }
+
+
+# Legacy endpoint für Abwärtskompatibilität
+@router.get("/me/auto-reject-settings")
+async def get_auto_reject_settings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """LEGACY: Gibt die Score-Filter Einstellungen zurück (alter Endpunkt)"""
+    return await get_score_filter_settings(current_user, db)
+
+
+@router.put("/me/score-filter-settings")
+async def update_score_filter_settings(
+    settings: ScoreFilterSettingsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert die Score-Filter Einstellungen"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+    
+    company = get_company_or_404(current_user, db)
+    
+    if settings.enabled is not None:
+        company.auto_reject_enabled = settings.enabled
+    
+    if settings.threshold is not None:
+        if 0 <= settings.threshold <= 100:
+            company.auto_reject_threshold = settings.threshold
+        else:
+            raise HTTPException(status_code=400, detail="Schwellenwert muss zwischen 0 und 100 liegen")
+    
+    db.commit()
+    db.refresh(company)
+    
+    return {
+        "message": "Einstellungen gespeichert",
+        "enabled": company.auto_reject_enabled,
+        "threshold": company.auto_reject_threshold
+    }
+
+
+# Legacy endpoint für Abwärtskompatibilität
+@router.put("/me/auto-reject-settings")
+async def update_auto_reject_settings(
+    settings: ScoreFilterSettingsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """LEGACY: Aktualisiert die Score-Filter Einstellungen (alter Endpunkt)"""
+    return await update_score_filter_settings(settings, current_user, db)
+
+
+# ========== LOGO UPLOAD ==========
+
+ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
+MAX_LOGO_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+@router.post("/me/logo")
+async def upload_logo(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Lädt ein Firmenlogo hoch"""
+    from app.services.storage_service import storage_service
+    
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+    
+    company = get_company_or_404(current_user, db)
+    
+    # Validierung
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Nur Bilder erlaubt (JPG, PNG, GIF, WebP, SVG)")
+    
+    content = await file.read()
+    if len(content) > MAX_LOGO_SIZE:
+        raise HTTPException(status_code=400, detail="Datei zu groß (max. 5 MB)")
+    
+    # Altes Logo löschen falls vorhanden (nur den Pfad, nicht die URL)
+    if company.logo and not company.logo.startswith("http"):
+        try:
+            await storage_service.delete_file(company.logo)
+        except:
+            pass
+    
+    # Neues Logo hochladen
+    file_ext = os.path.splitext(file.filename or "logo.png")[1] or ".png"
+    storage_path = f"company-logos/{company.id}/{uuid.uuid4()}{file_ext}"
+    
+    success, saved_path, error = await storage_service.upload_generic(
+        file_content=content,
+        storage_path=storage_path,
+        content_type=file.content_type
+    )
+    
+    if not success:
+        raise HTTPException(status_code=500, detail=f"Upload fehlgeschlagen: {error}")
+    
+    # URL generieren
+    logo_url = storage_service.get_public_url(saved_path)
+    
+    # In DB speichern
+    company.logo = logo_url
+    db.commit()
+    
+    return {"logo_url": logo_url, "message": "Logo hochgeladen"}
+
+
+@router.delete("/me/logo")
+async def delete_logo(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Löscht das Firmenlogo"""
+    from app.services.storage_service import storage_service
+    
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+    
+    company = get_company_or_404(current_user, db)
+    
+    if company.logo:
+        try:
+            await storage_service.delete_file(company.logo)
+        except:
+            pass
+        company.logo = None
+        db.commit()
+    
+    return {"message": "Logo gelöscht"}

@@ -365,6 +365,8 @@ async def list_job_requests(
             "notes": req.notes,
             "admin_notes": req.admin_notes,
             "document_count": doc_count,
+            "invite_source": applicant.invite_source if applicant else None,
+            "invite_source_country": applicant.invite_source_country if applicant else None,
             "created_at": req.created_at,
             "updated_at": req.updated_at,
         })

@@ -27,6 +27,7 @@ class GroupCreate(BaseModel):
     url: str
     facebook_group_id: Optional[str] = None
     type: str = "external"
+    cluster: Optional[str] = None
     members: int = 0
     notes: Optional[str] = None
 
@@ -36,6 +37,7 @@ class GroupUpdate(BaseModel):
     url: Optional[str] = None
     facebook_group_id: Optional[str] = None
     type: Optional[str] = None
+    cluster: Optional[str] = None
     members: Optional[int] = None
     notes: Optional[str] = None
     is_active: Optional[bool] = None
@@ -47,8 +49,10 @@ class GroupResponse(BaseModel):
     url: str
     facebook_group_id: Optional[str]
     type: str
+    cluster: Optional[str]
     members: int
     notes: Optional[str]
+    last_posted_at: Optional[datetime]
     is_active: bool
     created_at: datetime
 
@@ -138,9 +142,25 @@ def require_admin(user: User):
 
 # ============ Groups Endpoints ============
 
+@router.get("/groups/clusters")
+async def get_group_clusters(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Gibt alle verfügbaren Cluster zurück"""
+    require_admin(current_user)
+    clusters = db.query(FacebookGroup.cluster).filter(
+        FacebookGroup.is_active == True,
+        FacebookGroup.cluster != None,
+        FacebookGroup.cluster != ""
+    ).distinct().all()
+    return [c[0] for c in clusters if c[0]]
+
+
 @router.get("/groups", response_model=List[GroupResponse])
 async def get_groups(
     type: Optional[str] = None,
+    cluster: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -148,7 +168,9 @@ async def get_groups(
     query = db.query(FacebookGroup).filter(FacebookGroup.is_active == True)
     if type:
         query = query.filter(FacebookGroup.type == type)
-    return query.order_by(FacebookGroup.type, FacebookGroup.name).all()
+    if cluster:
+        query = query.filter(FacebookGroup.cluster == cluster)
+    return query.order_by(FacebookGroup.cluster, FacebookGroup.name).all()
 
 
 @router.post("/groups", response_model=GroupResponse)

@@ -125,6 +125,7 @@ async def register_applicant(
     user_data: UserRegister,
     first_name: str,
     last_name: str,
+    source_token: Optional[str] = None,  # Einladungs-Token für Quellen-Tracking
     db: Session = Depends(get_db)
 ):
     """Registriert einen neuen Bewerber"""
@@ -142,6 +143,23 @@ async def register_applicant(
             detail="E-Mail-Adresse bereits registriert"
         )
     
+    # Einladungs-Token prüfen (optional)
+    invite_source = None
+    invite_source_country = None
+    invite_token_id = None
+    
+    if source_token:
+        from app.models.applicant_invite import ApplicantInviteToken
+        invite = db.query(ApplicantInviteToken).filter(
+            ApplicantInviteToken.token == source_token
+        ).first()
+        
+        if invite and invite.is_valid():
+            invite_source = invite.source_name
+            invite_source_country = invite.source_country
+            invite_token_id = invite.id
+            invite.use()  # Nutzungszähler erhöhen
+    
     # Benutzer erstellen
     user = User(
         email=user_data.email,
@@ -153,11 +171,14 @@ async def register_applicant(
     db.commit()
     db.refresh(user)
     
-    # Bewerber-Profil erstellen
+    # Bewerber-Profil erstellen (mit Einladungs-Quelle falls vorhanden)
     applicant = Applicant(
         user_id=user.id,
         first_name=first_name,
-        last_name=last_name
+        last_name=last_name,
+        invite_source=invite_source,
+        invite_source_country=invite_source_country,
+        invite_token_id=invite_token_id
     )
     db.add(applicant)
     db.commit()

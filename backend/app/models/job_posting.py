@@ -135,6 +135,13 @@ class JobPosting(Base):
     
     # Statistiken
     view_count = Column(Integer, default=0)  # Anzahl der Aufrufe
+
+    # ========== EXTERNE JOBS (z.B. Bundesagentur für Arbeit) ==========
+    is_external = Column(Boolean, default=False)           # Extern gescraptes Inserat
+    external_source = Column(String(50))                   # z.B. "bundesagentur"
+    external_url = Column(String(500))                     # Link zum Originalinserat
+    external_id = Column(String(100), index=True)          # BA Referenznummer (Deduplizierung)
+    external_employer_name = Column(String(255))           # Echter Arbeitgebername
     
     # ========== MEHRSPRACHIGE INHALTE ==========
     # Struktur: {"en": {"title": "...", "description": "...", "tasks": "...", "requirements": "...", "benefits": "..."}, "es": {...}, "ru": {...}}

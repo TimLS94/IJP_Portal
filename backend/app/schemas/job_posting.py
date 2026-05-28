@@ -167,11 +167,11 @@ class JobPostingUpdate(BaseModel):
 class JobPostingResponse(JobPostingBase):
     id: int
     company_id: int
-    slug: Optional[str] = None  # SEO: URL-Slug
+    slug: Optional[str] = None
     is_active: bool
-    is_draft: Optional[bool] = False  # NEU: Entwurf
+    is_draft: Optional[bool] = False
     is_archived: Optional[bool] = False
-    keep_archived: Optional[bool] = False  # NEU: Nicht automatisch löschen
+    keep_archived: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
     archived_at: Optional[datetime] = None
@@ -182,7 +182,12 @@ class JobPostingResponse(JobPostingBase):
     admin_translated: Optional[bool] = False
     admin_translated_at: Optional[datetime] = None
     admin_translated_languages: Optional[List[str]] = None
-    
+    # Externe Jobs (BA-Scraper)
+    is_external: Optional[bool] = False
+    external_source: Optional[str] = None
+    external_url: Optional[str] = None
+    external_employer_name: Optional[str] = None
+
     class Config:
         from_attributes = True
 
