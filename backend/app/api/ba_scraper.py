@@ -89,9 +89,14 @@ async def run_scraper(
         raise HTTPException(status_code=500, detail=f"Scraper-Fehler: {str(exc)}")
 
     # Neue Jobs sofort bei Google zur Indexierung anmelden
-    if google_indexing_service.is_configured():
-        for slug, job_id in result.get("new_job_refs", []):
-            asyncio.create_task(google_indexing_service.index_job(slug, job_id))
+    new_job_refs = result.get("new_job_refs", [])
+    if new_job_refs:
+        if google_indexing_service.is_configured():
+            for slug, job_id in new_job_refs:
+                asyncio.create_task(google_indexing_service.index_job(slug, job_id))
+        else:
+            # Fallback: Sitemap-Ping damit Google die neuen BA-Jobs findet
+            asyncio.create_task(google_indexing_service.ping_sitemap())
 
     result_clean = {k: v for k, v in result.items() if k != "new_job_refs"}
     return result_clean
