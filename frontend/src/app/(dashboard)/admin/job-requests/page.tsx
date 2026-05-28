@@ -120,7 +120,7 @@ export default function AdminJobRequests() {
     }
   };
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(0);
     loadRequests();
