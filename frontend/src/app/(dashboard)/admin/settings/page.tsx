@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { adminAPI } from "@/lib/api";
+import { adminAPI, jobsAPI } from "@/lib/api";
 import toast from "react-hot-toast";
-import { 
-  Settings as SettingsIcon, ToggleLeft, ToggleRight, Save, Loader2, 
+import {
+  Settings as SettingsIcon, ToggleLeft, ToggleRight, Save, Loader2,
   Sparkles, Building2, Users, AlertTriangle, RefreshCw, Clock, Trash2,
-  ChevronDown, ChevronUp, Calendar, Mail, Bell, Send, Eye, Zap, CalendarDays
+  ChevronDown, ChevronUp, Calendar, Mail, Bell, Send, Eye, Zap, CalendarDays,
+  Search, CheckCircle, XCircle
 } from "lucide-react";
 
 interface Flags {
@@ -84,6 +85,17 @@ export default function AdminSettingsPage() {
   const [emailTemplates, setEmailTemplates] = useState<Record<string, EmailTemplate> | null>(null);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
+  // Google Reindex State
+  const [reindexing, setReindexing] = useState(false);
+  interface ReindexResult {
+    sent: number;
+    errors: number;
+    skipped_due_to_limit: number;
+    api_configured: boolean;
+    sitemap_pinged?: boolean;
+  }
+  const [reindexResult, setReindexResult] = useState<ReindexResult | null>(null);
 
   useEffect(() => {
     loadFlags();
@@ -262,6 +274,24 @@ export default function AdminSettingsPage() {
       toast.error("Fehler beim Laden der Vorlagen");
     } finally {
       setLoadingTemplates(false);
+    }
+  };
+
+  const reindexAllJobs = async () => {
+    setReindexing(true);
+    setReindexResult(null);
+    try {
+      const response = await jobsAPI.reindexAll();
+      setReindexResult(response.data);
+      if (response.data.api_configured) {
+        toast.success(`${response.data.sent} Jobs bei Google zur Indexierung angemeldet`);
+      } else {
+        toast.success("Sitemap-Ping an Google gesendet (Indexing API nicht konfiguriert)");
+      }
+    } catch {
+      toast.error("Fehler beim Senden der Indexierungsanfragen");
+    } finally {
+      setReindexing(false);
     }
   };
 
@@ -955,6 +985,83 @@ export default function AdminSettingsPage() {
                   Speichern
                 </button>
               </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Google Indexierung */}
+      <div className="card mb-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Search className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Google Indexierung</h2>
+            <p className="text-sm text-gray-600">Alle aktiven Stellen sofort bei Google zur Indexierung anmelden</p>
+          </div>
+        </div>
+
+        <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 mb-4">
+          <p className="text-sm text-blue-800">
+            <strong>Wann sinnvoll:</strong> Wenn du neue Stellen schnell in der Google-Suche sehen möchtest.
+            Neue Stellen werden automatisch indexiert — dieser Button ist für bestehende Stellen, die noch nicht bei Google angemeldet wurden.
+            Google erlaubt max. 200 Anfragen pro Tag.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button
+            onClick={reindexAllJobs}
+            disabled={reindexing}
+            className="btn-primary flex items-center gap-2"
+          >
+            {reindexing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+            {reindexing ? "Wird gesendet..." : "Alle Jobs bei Google anmelden"}
+          </button>
+        </div>
+
+        {reindexResult && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <h3 className="font-medium text-gray-900 mb-3">Ergebnis</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{reindexResult.sent}</div>
+                <div className="text-xs text-gray-500 mt-1">Gesendet</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-500">{reindexResult.errors}</div>
+                <div className="text-xs text-gray-500 mt-1">Fehler</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-600">{reindexResult.skipped_due_to_limit}</div>
+                <div className="text-xs text-gray-500 mt-1">Limit erreicht</div>
+              </div>
+              <div className="text-center">
+                <div className="flex justify-center mb-1">
+                  {reindexResult.api_configured ? (
+                    <CheckCircle className="h-7 w-7 text-green-500" />
+                  ) : (
+                    <XCircle className="h-7 w-7 text-gray-400" />
+                  )}
+                </div>
+                <div className="text-xs text-gray-500">Indexing API</div>
+              </div>
+            </div>
+            {!reindexResult.api_configured && (
+              <p className="text-xs text-gray-500 mt-3">
+                Google Indexing API ist nicht konfiguriert — Sitemap-Ping wurde gesendet.
+                Für direkte Indexierung <strong>GOOGLE_INDEXING_CREDENTIALS</strong> in Render setzen.
+              </p>
+            )}
+            {reindexResult.skipped_due_to_limit > 0 && (
+              <p className="text-xs text-yellow-700 mt-2">
+                {reindexResult.skipped_due_to_limit} Jobs wurden wegen des Google-Tageslimits (200/Tag) nicht gesendet. Morgen erneut ausführen.
+              </p>
             )}
           </div>
         )}

@@ -144,6 +144,8 @@ export const jobsAPI = {
   reportJob: (id, reason, note) => api.post(`/jobs/${id}/report`, { reason, note }),
   getLikedJobs: () => api.get('/jobs/my/liked'),
   getJobInteraction: (id) => api.get(`/jobs/${id}/interaction`),
+  // Google Indexing
+  reindexAll: () => api.post('/jobs/admin/reindex-all'),
 };
 
 // Applications API
