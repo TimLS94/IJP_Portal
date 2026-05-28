@@ -126,7 +126,7 @@ export default function AdminJobRequests() {
     loadRequests();
   };
 
-  const loadRequestDetails = async (reqId) => {
+  const loadRequestDetails = async (reqId: number) => {
     setDetailsLoading(true);
     setSelectedRequest(reqId);
     try {
@@ -193,7 +193,7 @@ export default function AdminJobRequests() {
     }
   };
 
-  const handleDownloadDocuments = async (requestId, applicantName) => {
+  const handleDownloadDocuments = async (requestId: number, applicantName: string) => {
     try {
       const response = await jobRequestsAPI.downloadDocuments(requestId);
       
@@ -211,7 +211,7 @@ export default function AdminJobRequests() {
     }
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('de-DE', {
       day: '2-digit',
@@ -220,7 +220,7 @@ export default function AdminJobRequests() {
     });
   };
 
-  const formatDateTime = (dateString) => {
+  const formatDateTime = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('de-DE', {
       day: '2-digit',
