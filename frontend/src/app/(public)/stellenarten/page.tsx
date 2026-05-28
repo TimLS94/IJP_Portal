@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { 
+import {
   Clock, FileText, Globe, Users, CheckCircle, ArrowRight,
   MapPin, Euro, Info
 } from "lucide-react";
@@ -12,6 +12,7 @@ interface Category {
   id: string;
   emoji: string;
   gradient: string;
+  legalBasisText: string;
   title: string;
   subtitle: string;
   shortDesc: string;
@@ -21,187 +22,36 @@ interface Category {
   process: string[];
   durationText: string;
   salaryText: string;
-  legalBasisText: string;
   sectors: string;
 }
 
-const categories: Category[] = [
-  {
-    id: "studentenferienjob",
-    emoji: "🎓",
-    gradient: "from-blue-500 to-blue-600",
-    title: "Studentenferienjob",
-    subtitle: "Für Studierende in den Semesterferien",
-    shortDesc: "Verdienen Sie Geld während Ihrer Semesterferien und sammeln Sie wertvolle Berufserfahrung in Deutschland.",
-    description: "Studentenferienjobs sind ideal für Studierende aus dem Ausland, die während ihrer Semesterferien in Deutschland arbeiten möchten. Sie können bis zu 90 Tage oder 180 halbe Tage pro Jahr arbeiten und dabei wertvolle Erfahrungen sammeln.",
-    forWhom: [
-      "Eingeschriebene Studierende an einer Hochschule",
-      "Mindestalter 18 Jahre",
-      "Gute Deutschkenntnisse von Vorteil"
-    ],
-    docs: [
-      "Gültiger Reisepass",
-      "Immatrikulationsbescheinigung",
-      "Arbeitserlaubnis (je nach Herkunftsland)",
-      "Krankenversicherungsnachweis"
-    ],
-    process: [
-      "Registrierung",
-      "Profil erstellen",
-      "Bewerbung",
-      "Vermittlung",
-      "Arbeitsstart"
-    ],
-    durationText: "1-3 Monate",
-    salaryText: "12-15€/Stunde",
-    legalBasisText: "§16b AufenthG",
-    sectors: "Produktion, Logistik, Gastronomie"
-  },
-  {
-    id: "saisonjob",
-    emoji: "🌾",
-    gradient: "from-orange-500 to-orange-600",
-    title: "Saisonjob",
-    subtitle: "Saisonale Beschäftigung",
-    shortDesc: "Arbeiten Sie in der Landwirtschaft, im Tourismus oder in anderen saisonalen Branchen.",
-    description: "Saisonjobs bieten flexible Beschäftigungsmöglichkeiten in Branchen mit saisonalem Arbeitskräftebedarf. Typische Einsatzgebiete sind Landwirtschaft, Weinbau, Tourismus und Gastronomie.",
-    forWhom: [
-      "Arbeitssuchende aus EU und Drittstaaten",
-      "Körperlich belastbar",
-      "Flexibel und teamfähig"
-    ],
-    docs: [
-      "Gültiger Reisepass",
-      "Arbeitserlaubnis",
-      "Gesundheitszeugnis (je nach Branche)",
-      "Führerschein (von Vorteil)"
-    ],
-    process: [
-      "Registrierung",
-      "Profil erstellen",
-      "Vermittlung",
-      "Visum beantragen",
-      "Arbeitsstart"
-    ],
-    durationText: "3-9 Monate",
-    salaryText: "12-14€/Stunde",
-    legalBasisText: "§19c AufenthG",
-    sectors: "Landwirtschaft, Tourismus, Gastronomie"
-  },
-  {
-    id: "workandholiday",
-    emoji: "✈️",
-    gradient: "from-teal-500 to-teal-600",
-    title: "Work & Holiday",
-    subtitle: "Arbeiten und Reisen kombinieren",
-    shortDesc: "Kombinieren Sie Arbeit und Urlaub in Deutschland mit dem Work & Holiday Visum.",
-    description: "Das Work & Holiday Programm ermöglicht jungen Menschen, Deutschland zu bereisen und gleichzeitig zu arbeiten. Ideal für alle, die Kultur und Berufserfahrung verbinden möchten.",
-    forWhom: [
-      "18-30 Jahre alt (je nach Abkommen)",
-      "Aus teilnehmenden Ländern",
-      "Grundkenntnisse Deutsch oder Englisch"
-    ],
-    docs: [
-      "Gültiger Reisepass",
-      "Work & Holiday Visum",
-      "Finanznachweis",
-      "Rückflugticket oder Nachweis"
-    ],
-    process: [
-      "Visum beantragen",
-      "Registrierung",
-      "Job suchen",
-      "Arbeiten & Reisen",
-      "Erfahrungen sammeln"
-    ],
-    durationText: "Bis 12 Monate",
-    salaryText: "12-16€/Stunde",
-    legalBasisText: "Bilaterale Abkommen",
-    sectors: "Gastronomie, Tourismus, Au-pair"
-  },
-  {
-    id: "fachkraft",
-    emoji: "👔",
-    gradient: "from-purple-500 to-purple-600",
-    title: "Fachkraft",
-    subtitle: "Qualifizierte Beschäftigung",
-    shortDesc: "Starten Sie Ihre Karriere als qualifizierte Fachkraft in Deutschland.",
-    description: "Als Fachkraft haben Sie die Möglichkeit, eine unbefristete Stelle in Deutschland anzutreten. Wir vermitteln qualifizierte Fachkräfte in verschiedene Branchen mit Perspektive auf dauerhafte Beschäftigung.",
-    forWhom: [
-      "Abgeschlossene Berufsausbildung oder Studium",
-      "Berufserfahrung von Vorteil",
-      "Deutschkenntnisse B1-B2"
-    ],
-    docs: [
-      "Anerkannte Qualifikation",
-      "Lebenslauf und Zeugnisse",
-      "Sprachzertifikat",
-      "Arbeitsvertrag für Visum"
-    ],
-    process: [
-      "Qualifikation prüfen",
-      "Anerkennung beantragen",
-      "Stellensuche",
-      "Visum beantragen",
-      "Arbeitsstart"
-    ],
-    durationText: "Unbefristet",
-    salaryText: "2.500-5.000€/Monat",
-    legalBasisText: "Fachkräfteeinwanderungsgesetz",
-    sectors: "Pflege, IT, Handwerk, Technik"
-  },
-  {
-    id: "ausbildung",
-    emoji: "📚",
-    gradient: "from-green-500 to-green-600",
-    title: "Ausbildung",
-    subtitle: "Duale Berufsausbildung",
-    shortDesc: "Starten Sie eine duale Ausbildung in Deutschland und erwerben Sie einen anerkannten Berufsabschluss.",
-    description: "Die duale Ausbildung in Deutschland kombiniert praktische Arbeit im Betrieb mit theoretischem Unterricht in der Berufsschule. Sie erhalten eine Vergütung und einen international anerkannten Abschluss.",
-    forWhom: [
-      "Schulabschluss (mind. Hauptschule)",
-      "17-35 Jahre alt",
-      "Deutschkenntnisse mind. B1"
-    ],
-    docs: [
-      "Schulzeugnisse (übersetzt)",
-      "Sprachzertifikat B1",
-      "Motivationsschreiben",
-      "Ausbildungsvertrag für Visum"
-    ],
-    process: [
-      "Deutsch lernen",
-      "Ausbildungsplatz suchen",
-      "Vertrag unterschreiben",
-      "Visum beantragen",
-      "Ausbildung starten"
-    ],
-    durationText: "2-3,5 Jahre",
-    salaryText: "800-1.200€/Monat",
-    legalBasisText: "§16a AufenthG",
-    sectors: "Pflege, Handwerk, Gastronomie, IT"
-  }
+const CATEGORY_META = [
+  { id: "studentenferienjob", emoji: "🎓", gradient: "from-blue-500 to-blue-600", legalBasisText: "§16b AufenthG" },
+  { id: "saisonjob", emoji: "🌾", gradient: "from-orange-500 to-orange-600", legalBasisText: "§19c AufenthG" },
+  { id: "workandholiday", emoji: "✈️", gradient: "from-teal-500 to-teal-600", legalBasisText: "Bilaterale Abkommen" },
+  { id: "fachkraft", emoji: "👔", gradient: "from-purple-500 to-purple-600", legalBasisText: "Fachkräfteeinwanderungsgesetz" },
+  { id: "ausbildung", emoji: "📚", gradient: "from-green-500 to-green-600", legalBasisText: "§16a AufenthG" },
 ];
 
-function CategoryCard({ 
-  category, 
-  isExpanded, 
+function CategoryCard({
+  category,
+  isExpanded,
   onToggle,
   t
-}: { 
-  category: Category; 
-  isExpanded: boolean; 
+}: {
+  category: Category;
+  isExpanded: boolean;
   onToggle: () => void;
   t: (key: string) => string;
 }) {
   return (
-    <div 
+    <div
       className={`bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ${
         isExpanded ? "ring-2 ring-primary-500" : "hover:shadow-xl"
       }`}
     >
       {/* Header */}
-      <div 
+      <div
         className={`bg-gradient-to-r ${category.gradient} p-6 text-white cursor-pointer`}
         onClick={onToggle}
       >
@@ -332,6 +182,20 @@ export default function StellenartenPage() {
   const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<string | null>("studentenferienjob");
 
+  const categories: Category[] = CATEGORY_META.map((meta) => ({
+    ...meta,
+    title: t(`stellenarten.categories.${meta.id}.title`),
+    subtitle: t(`stellenarten.categories.${meta.id}.subtitle`),
+    shortDesc: t(`stellenarten.categories.${meta.id}.shortDesc`),
+    description: t(`stellenarten.categories.${meta.id}.description`),
+    forWhom: t(`stellenarten.categories.${meta.id}.forWhom`, { returnObjects: true }) as string[],
+    docs: t(`stellenarten.categories.${meta.id}.docs`, { returnObjects: true }) as string[],
+    process: t(`stellenarten.categories.${meta.id}.process`, { returnObjects: true }) as string[],
+    durationText: t(`stellenarten.categories.${meta.id}.durationText`),
+    salaryText: t(`stellenarten.categories.${meta.id}.salaryText`),
+    sectors: t(`stellenarten.categories.${meta.id}.sectors`),
+  }));
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Hero */}
@@ -381,14 +245,14 @@ export default function StellenartenPage() {
           {t("stellenarten.notSureDesc")}
         </p>
         <div className="flex justify-center gap-4 flex-wrap">
-          <Link 
-            href="/contact" 
+          <Link
+            href="/contact"
             className="bg-white text-primary-600 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all"
           >
             {t("stellenarten.contactUs")}
           </Link>
-          <Link 
-            href="/faq" 
+          <Link
+            href="/faq"
             className="border-2 border-white text-white px-6 py-3 rounded-xl font-bold hover:bg-white/10 transition-all"
           >
             {t("stellenarten.faq")}

@@ -47,6 +47,8 @@ interface JobFromAPI {
   company_country?: string;
   company_description?: string;
   company_website?: string;
+  translations?: Record<string, Record<string, string>>;
+  available_languages?: string[];
 }
 
 // Transformiertes Format für Client
@@ -91,6 +93,8 @@ interface Job {
   updated_at?: string;
   valid_until?: string;
   company: Company;
+  translations?: Record<string, Record<string, string>>;
+  available_languages?: string[];
 }
 
 // Transformiert API-Response zu Client-Format
@@ -101,6 +105,8 @@ function transformJob(apiJob: JobFromAPI): Job {
     english_level: apiJob.english_required,
     other_languages: apiJob.other_languages_required,
     valid_until: apiJob.deadline,
+    translations: apiJob.translations,
+    available_languages: apiJob.available_languages,
     company: {
       id: apiJob.company_id || 0,
       name: apiJob.company_name || "Unbekannt",
@@ -212,6 +218,38 @@ export async function generateMetadata({
   };
 }
 
+// City → Bundesland lookup for addressRegion in JobPosting schema
+const CITY_TO_STATE: Record<string, string> = {
+  berlin: "Berlin", münchen: "Bayern", munich: "Bayern",
+  hamburg: "Hamburg", köln: "Nordrhein-Westfalen", cologne: "Nordrhein-Westfalen",
+  frankfurt: "Hessen", stuttgart: "Baden-Württemberg", düsseldorf: "Nordrhein-Westfalen",
+  dortmund: "Nordrhein-Westfalen", essen: "Nordrhein-Westfalen", leipzig: "Sachsen",
+  bremen: "Bremen", dresden: "Sachsen", hannover: "Niedersachsen",
+  nürnberg: "Bayern", duisburg: "Nordrhein-Westfalen", bochum: "Nordrhein-Westfalen",
+  wuppertal: "Nordrhein-Westfalen", bielefeld: "Nordrhein-Westfalen", bonn: "Nordrhein-Westfalen",
+  münster: "Nordrhein-Westfalen", karlsruhe: "Baden-Württemberg", mannheim: "Baden-Württemberg",
+  augsburg: "Bayern", wiesbaden: "Hessen", gelsenkirchen: "Nordrhein-Westfalen",
+  mönchengladbach: "Nordrhein-Westfalen", braunschweig: "Niedersachsen", kiel: "Schleswig-Holstein",
+  chemnitz: "Sachsen", aachen: "Nordrhein-Westfalen", halle: "Sachsen-Anhalt",
+  magdeburg: "Sachsen-Anhalt", freiburg: "Baden-Württemberg", krefeld: "Nordrhein-Westfalen",
+  mainz: "Rheinland-Pfalz", lübeck: "Schleswig-Holstein", erfurt: "Thüringen",
+  oberhausen: "Nordrhein-Westfalen", rostock: "Mecklenburg-Vorpommern", kassel: "Hessen",
+  hagen: "Nordrhein-Westfalen", hamm: "Nordrhein-Westfalen", saarbrücken: "Saarland",
+  potsdam: "Brandenburg", mülheim: "Nordrhein-Westfalen", osnabrück: "Niedersachsen",
+  heidelberg: "Baden-Württemberg", darmstadt: "Hessen", regensburg: "Bayern",
+  ingolstadt: "Bayern", würzburg: "Bayern", ulm: "Baden-Württemberg",
+  wolfsburg: "Niedersachsen", göttingen: "Niedersachsen",
+};
+
+function getAddressRegion(location: string): string | undefined {
+  if (!location) return undefined;
+  // "City, State" format
+  const parts = location.split(",");
+  if (parts.length > 1) return parts[1].trim();
+  // Lookup by city name
+  return CITY_TO_STATE[location.toLowerCase().trim()];
+}
+
 // JSON-LD Schema für Google Jobs - erweitert für besseres Ranking
 function generateJobPostingSchema(job: Job) {
   const salaryValue = job.salary_min || job.salary_max
@@ -251,6 +289,7 @@ function generateJobPostingSchema(job: Job) {
       "@type": "PostalAddress",
       streetAddress: job.address || undefined,
       addressLocality: job.location,
+      addressRegion: getAddressRegion(job.location),
       postalCode: job.postal_code || undefined,
       addressCountry: "DE",
     },

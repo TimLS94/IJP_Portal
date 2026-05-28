@@ -301,7 +301,10 @@
     "alreadyApplied": "Sie haben sich bereits auf diese Stelle beworben",
     "ijpService": "IJP Vermittlungsservice",
     "ijpServiceDesc": "Lassen Sie IJP den passenden Job für Sie finden! Wir vermitteln Sie direkt an unsere Partnerunternehmen.",
-    "ijpServiceButton": "IJP beauftragen"
+    "ijpServiceButton": "IJP beauftragen",
+    "external": "Extern",
+    "loginToSave": "Bitte melden Sie sich als Bewerber an",
+    "likeError": "Fehler beim Merken"
   },
   "positionTypes": {
     "general": "Allgemein",
@@ -333,7 +336,144 @@
     "notSure": "Nicht sicher, welche Stellenart passt?",
     "notSureDesc": "Unser Team berät Sie gerne und hilft Ihnen, die richtige Entscheidung zu treffen. Kontaktieren Sie uns für eine persönliche Beratung.",
     "contactUs": "Kontakt aufnehmen",
-    "faq": "Häufige Fragen"
+    "faq": "Häufige Fragen",
+    "categories": {
+      "studentenferienjob": {
+        "title": "Studentenferienjob",
+        "subtitle": "Für Studierende in den Semesterferien",
+        "shortDesc": "Verdienen Sie Geld während Ihrer Semesterferien und sammeln Sie wertvolle Berufserfahrung in Deutschland.",
+        "description": "Studentenferienjobs sind ideal für Studierende aus dem Ausland, die während ihrer Semesterferien in Deutschland arbeiten möchten. Sie können bis zu 90 Tage oder 180 halbe Tage pro Jahr arbeiten und dabei wertvolle Erfahrungen sammeln.",
+        "forWhom": [
+          "Eingeschriebene Studierende an einer Hochschule",
+          "Mindestalter 18 Jahre",
+          "Gute Deutschkenntnisse von Vorteil"
+        ],
+        "docs": [
+          "Gültiger Reisepass",
+          "Immatrikulationsbescheinigung",
+          "Arbeitserlaubnis (je nach Herkunftsland)",
+          "Krankenversicherungsnachweis"
+        ],
+        "process": [
+          "Registrierung",
+          "Profil erstellen",
+          "Bewerbung",
+          "Vermittlung",
+          "Arbeitsstart"
+        ],
+        "durationText": "1-3 Monate",
+        "salaryText": "12-15€/Stunde",
+        "sectors": "Produktion, Logistik, Gastronomie"
+      },
+      "saisonjob": {
+        "title": "Saisonjob",
+        "subtitle": "Saisonale Beschäftigung",
+        "shortDesc": "Arbeiten Sie in der Landwirtschaft, im Tourismus oder in anderen saisonalen Branchen.",
+        "description": "Saisonjobs bieten flexible Beschäftigungsmöglichkeiten in Branchen mit saisonalem Arbeitskräftebedarf. Typische Einsatzgebiete sind Landwirtschaft, Weinbau, Tourismus und Gastronomie.",
+        "forWhom": [
+          "Arbeitssuchende aus EU und Drittstaaten",
+          "Körperlich belastbar",
+          "Flexibel und teamfähig"
+        ],
+        "docs": [
+          "Gültiger Reisepass",
+          "Arbeitserlaubnis",
+          "Gesundheitszeugnis (je nach Branche)",
+          "Führerschein (von Vorteil)"
+        ],
+        "process": [
+          "Registrierung",
+          "Profil erstellen",
+          "Vermittlung",
+          "Visum beantragen",
+          "Arbeitsstart"
+        ],
+        "durationText": "3-9 Monate",
+        "salaryText": "12-14€/Stunde",
+        "sectors": "Landwirtschaft, Tourismus, Gastronomie"
+      },
+      "workandholiday": {
+        "title": "Work & Holiday",
+        "subtitle": "Arbeiten und Reisen kombinieren",
+        "shortDesc": "Kombinieren Sie Arbeit und Urlaub in Deutschland mit dem Work & Holiday Visum.",
+        "description": "Das Work & Holiday Programm ermöglicht jungen Menschen, Deutschland zu bereisen und gleichzeitig zu arbeiten. Ideal für alle, die Kultur und Berufserfahrung verbinden möchten.",
+        "forWhom": [
+          "18-30 Jahre alt (je nach Abkommen)",
+          "Aus teilnehmenden Ländern",
+          "Grundkenntnisse Deutsch oder Englisch"
+        ],
+        "docs": [
+          "Gültiger Reisepass",
+          "Work & Holiday Visum",
+          "Finanznachweis",
+          "Rückflugticket oder Nachweis"
+        ],
+        "process": [
+          "Visum beantragen",
+          "Registrierung",
+          "Job suchen",
+          "Arbeiten & Reisen",
+          "Erfahrungen sammeln"
+        ],
+        "durationText": "Bis 12 Monate",
+        "salaryText": "12-16€/Stunde",
+        "sectors": "Gastronomie, Tourismus, Au-pair"
+      },
+      "fachkraft": {
+        "title": "Fachkraft",
+        "subtitle": "Qualifizierte Beschäftigung",
+        "shortDesc": "Starten Sie Ihre Karriere als qualifizierte Fachkraft in Deutschland.",
+        "description": "Als Fachkraft haben Sie die Möglichkeit, eine unbefristete Stelle in Deutschland anzutreten. Wir vermitteln qualifizierte Fachkräfte in verschiedene Branchen mit Perspektive auf dauerhafte Beschäftigung.",
+        "forWhom": [
+          "Abgeschlossene Berufsausbildung oder Studium",
+          "Berufserfahrung von Vorteil",
+          "Deutschkenntnisse B1-B2"
+        ],
+        "docs": [
+          "Anerkannte Qualifikation",
+          "Lebenslauf und Zeugnisse",
+          "Sprachzertifikat",
+          "Arbeitsvertrag für Visum"
+        ],
+        "process": [
+          "Qualifikation prüfen",
+          "Anerkennung beantragen",
+          "Stellensuche",
+          "Visum beantragen",
+          "Arbeitsstart"
+        ],
+        "durationText": "Unbefristet",
+        "salaryText": "2.500-5.000€/Monat",
+        "sectors": "Pflege, IT, Handwerk, Technik"
+      },
+      "ausbildung": {
+        "title": "Ausbildung",
+        "subtitle": "Duale Berufsausbildung",
+        "shortDesc": "Starten Sie eine duale Ausbildung in Deutschland und erwerben Sie einen anerkannten Berufsabschluss.",
+        "description": "Die duale Ausbildung in Deutschland kombiniert praktische Arbeit im Betrieb mit theoretischem Unterricht in der Berufsschule. Sie erhalten eine Vergütung und einen international anerkannten Abschluss.",
+        "forWhom": [
+          "Schulabschluss (mind. Hauptschule)",
+          "17-35 Jahre alt",
+          "Deutschkenntnisse mind. B1"
+        ],
+        "docs": [
+          "Schulzeugnisse (übersetzt)",
+          "Sprachzertifikat B1",
+          "Motivationsschreiben",
+          "Ausbildungsvertrag für Visum"
+        ],
+        "process": [
+          "Deutsch lernen",
+          "Ausbildungsplatz suchen",
+          "Vertrag unterschreiben",
+          "Visum beantragen",
+          "Ausbildung starten"
+        ],
+        "durationText": "2-3,5 Jahre",
+        "salaryText": "800-1.200€/Monat",
+        "sectors": "Pflege, Handwerk, Gastronomie, IT"
+      }
+    }
   },
   "applicationStatus": {
     "pending": "Eingereicht",
@@ -1423,9 +1563,9 @@
     "fulltime": "Vollzeit",
     "parttime": "Teilzeit",
     "fulltimeOrParttime": "Vollzeit oder Teilzeit",
-    "hourly": "Stunde",
-    "monthly": "Monat",
-    "yearly": "Jahr",
+    "hourly": "pro Stunde",
+    "monthly": "pro Monat",
+    "yearly": "pro Jahr",
     "german": "Deutsch",
     "english": "Englisch",
     "yourMatching": "Ihr Matching",
@@ -1455,7 +1595,24 @@
     "selectDocumentsToShare": "Wählen Sie aus, welche Dokumente freigegeben werden sollen:",
     "willBeShared": "wird geteilt",
     "privacyNotice": "Nur die ausgewählten {{count}} Dokument(e) werden für {{company}} sichtbar. Andere Firmen sehen diese Dokumente nicht.",
-    "privacy": "Datenschutz"
+    "privacy": "Datenschutz",
+    "profileIncomplete": "Profil unvollständig",
+    "completeProfile": "Profil vervollständigen",
+    "sending": "Wird gesendet...",
+    "messageOptionalPlaceholder": "Optionale Nachricht an das Unternehmen...",
+    "loginAndApply": "Anmelden zum Bewerben",
+    "externalJob": "Externe Stelle",
+    "externalJobDesc": "Diese Stelle wird vom Arbeitgeber direkt verwaltet. Bewerbungen laufen nicht über diese Plattform.",
+    "applyAtEmployer": "Jetzt beim Arbeitgeber bewerben",
+    "noDirectLink": "Kein direkter Bewerbungslink verfügbar.",
+    "sourceBA": "Quelle: Bundesagentur für Arbeit",
+    "employer": "Arbeitgeber",
+    "required": "Erforderlich",
+    "desirable": "Wünschenswert",
+    "cancel": "Abbrechen",
+    "remember": "Merken",
+    "remembered": "Gemerkt",
+    "applyNote": "um sich zu bewerben"
   },
   "matching": {
     "veryGood": "Sehr gute Übereinstimmung",
@@ -2026,5 +2183,14 @@
       "register": "Kostenlos registrieren",
       "contact": "IJP kontaktieren"
     }
+  },
+  "companyProfile": {
+    "currentJobs": "Aktuelle Stellenangebote",
+    "noOpenJobs": "Aktuell keine offenen Stellen bei diesem Unternehmen.",
+    "job": "Stelle",
+    "jobs": "Stellen",
+    "perHour": "pro Stunde",
+    "perMonth": "pro Monat",
+    "perYear": "pro Jahr"
   }
 }

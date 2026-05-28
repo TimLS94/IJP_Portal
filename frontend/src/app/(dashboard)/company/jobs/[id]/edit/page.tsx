@@ -108,13 +108,21 @@ export default function EditJobPage() {
     finally { setTranslating(false); }
   };
 
+  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, "").trim();
   const onSubmit = async (data: Record<string, unknown>) => {
     if (!translations.de.title?.trim()) { toast.error("Bitte Stellentitel eingeben"); return; }
-    if (!translations.de.description?.trim()) { toast.error("Bitte Beschreibung eingeben"); return; }
+    if (!stripHtml(translations.de.description || "")) { toast.error("Bitte Beschreibung eingeben"); return; }
+    const untranslated = enabledLanguages.filter(l => l !== "de" && !translations[l]?.title?.trim() && !stripHtml(translations[l]?.description || "") && !stripHtml(translations[l]?.tasks || "") && !stripHtml(translations[l]?.requirements || "") && !stripHtml(translations[l]?.benefits || ""));
+    if (untranslated.length > 0) {
+      const names = untranslated.map(c => JOB_LANGUAGES.find(l => l.code === c)?.name || c).join(", ");
+      toast.error(`${names} ${untranslated.length === 1 ? "hat" : "haben"} keine Übersetzung. Bitte den Inhalt übersetzen (DeepL-Button) oder die Sprache entfernen.`);
+      return;
+    }
     setSaving(true);
     try {
-      const d: Record<string, unknown> = { ...data, title: translations.de.title, description: translations.de.description, tasks: translations.de.tasks, requirements: translations.de.requirements, benefits: translations.de.benefits, position_type: selectedPositionTypes[0] || null, position_types: selectedPositionTypes, available_languages: enabledLanguages, other_languages_required: otherLanguages.filter(l => l.language) };
-      const tr: Record<string, Translation> = {}; enabledLanguages.filter(l => l !== "de").forEach(l => { if (translations[l].title || translations[l].description) tr[l] = translations[l]; }); d.translations = tr;
+      const translatedLangs = enabledLanguages.filter(l => l === "de" || translations[l]?.title?.trim() || translations[l]?.description?.trim());
+      const d: Record<string, unknown> = { ...data, title: translations.de.title, description: translations.de.description, tasks: translations.de.tasks, requirements: translations.de.requirements, benefits: translations.de.benefits, position_type: selectedPositionTypes[0] || null, position_types: selectedPositionTypes, available_languages: translatedLangs, other_languages_required: otherLanguages.filter(l => l.language) };
+      const tr: Record<string, Translation> = {}; translatedLangs.filter(l => l !== "de").forEach(l => { tr[l] = translations[l]; }); d.translations = tr;
       // Gehalt parsen oder entfernen wenn leer
       if (d.salary_min && String(d.salary_min).trim()) d.salary_min = parseFloat(String(d.salary_min).replace(",", ".")); else delete d.salary_min;
       if (d.salary_max && String(d.salary_max).trim()) d.salary_max = parseFloat(String(d.salary_max).replace(",", ".")); else delete d.salary_max;
@@ -171,7 +179,7 @@ export default function EditJobPage() {
         {/* Grundinfo */}
         <div className="card">
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary-600" />Grundinformationen</h2>
-          {enabledLanguages.length > 1 && <div className="flex gap-1 mb-6 p-1 bg-gray-100 rounded-lg w-fit">{enabledLanguages.map(c => { const l = JOB_LANGUAGES.find(x => x.code === c); return <button key={c} type="button" onClick={() => setActiveLanguage(c)} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${activeLanguage === c ? "bg-white text-gray-900 shadow-sm" : "text-gray-600"}`}><span>{l?.flag}</span>{l?.name}</button>; })}</div>}
+          {enabledLanguages.length > 1 && <div className="flex gap-1 mb-6 p-1 bg-gray-100 rounded-lg w-fit">{enabledLanguages.map(c => { const l = JOB_LANGUAGES.find(x => x.code === c); const missing = c !== "de" && !translations[c]?.title?.trim() && !translations[c]?.description?.trim(); return <button key={c} type="button" onClick={() => setActiveLanguage(c)} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${activeLanguage === c ? "bg-white text-gray-900 shadow-sm" : "text-gray-600"}`}><span>{l?.flag}</span>{l?.name}{missing && <span className="text-amber-500 text-xs" title="Kein Inhalt übersetzt">⚠</span>}</button>; })}</div>}
           <div className="space-y-4">
             <div><label className="label">Stellentitel *{activeLanguage !== "de" && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}</label><input type="text" className="input-styled" placeholder="z.B. Erntehelfer für Obstbau" value={translations[activeLanguage].title} onChange={e => updateTranslation("title", e.target.value)} /></div>
             <div className="grid md:grid-cols-2 gap-4">
@@ -189,7 +197,7 @@ export default function EditJobPage() {
         <div className="card border-l-4 border-l-purple-500">
           <h2 className="text-xl font-semibold mb-2 flex items-center gap-2"><FileText className="h-5 w-5 text-purple-600" />Aufgaben & Anforderungen</h2>
           <p className="text-gray-600 mb-6 text-sm">Beschreiben Sie die Aufgaben und welche Qualifikationen benötigt werden.</p>
-          {enabledLanguages.length > 1 && <div className="flex gap-1 mb-4 p-1 bg-gray-100 rounded-lg w-fit">{enabledLanguages.map(c => { const l = JOB_LANGUAGES.find(x => x.code === c); return <button key={c} type="button" onClick={() => setActiveLanguage(c)} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeLanguage === c ? "bg-white text-gray-900 shadow-sm" : "text-gray-600"}`}><span>{l?.flag}</span>{l?.name}</button>; })}</div>}
+          {enabledLanguages.length > 1 && <div className="flex gap-1 mb-4 p-1 bg-gray-100 rounded-lg w-fit">{enabledLanguages.map(c => { const l = JOB_LANGUAGES.find(x => x.code === c); const missing = c !== "de" && !translations[c]?.title?.trim() && !translations[c]?.description?.trim(); return <button key={c} type="button" onClick={() => setActiveLanguage(c)} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeLanguage === c ? "bg-white text-gray-900 shadow-sm" : "text-gray-600"}`}><span>{l?.flag}</span>{l?.name}{missing && <span className="text-amber-500 text-xs" title="Kein Inhalt übersetzt">⚠</span>}</button>; })}</div>}
           <div className="space-y-4">
             <div><label className="label">Aufgaben{activeLanguage !== "de" && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}</label><RichTextEditor value={translations[activeLanguage].tasks} onChange={(v: string) => updateTranslation("tasks", v)} placeholder="Was sind die Hauptaufgaben?" rows={5} helpText="Nutzen Sie Listen für eine übersichtliche Auflistung." /></div>
             <div><label className="label">Anforderungen{activeLanguage !== "de" && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}</label><RichTextEditor value={translations[activeLanguage].requirements} onChange={(v: string) => updateTranslation("requirements", v)} placeholder="Welche Qualifikationen werden benötigt?" rows={5} /></div>
@@ -298,6 +306,7 @@ export default function EditJobPage() {
             <div><label className="label">Zeitraum</label><select className="input-styled" {...register("salary_type")}><option value="">Wählen</option>{salaryTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
           </div>
           <div>
+            {enabledLanguages.length > 1 && <div className="flex gap-1 mb-4 p-1 bg-gray-100 rounded-lg w-fit">{enabledLanguages.map(c => { const l = JOB_LANGUAGES.find(x => x.code === c); const missing = c !== "de" && !translations[c]?.title?.trim() && !translations[c]?.description?.trim(); return <button key={c} type="button" onClick={() => setActiveLanguage(c)} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeLanguage === c ? "bg-white text-gray-900 shadow-sm" : "text-gray-600"}`}><span>{l?.flag}</span>{l?.name}{missing && <span className="text-amber-500 text-xs" title="Kein Inhalt übersetzt">⚠</span>}</button>; })}</div>}
             <label className="label">Benefits / Wir bieten{activeLanguage !== "de" && <span className="text-indigo-600 ml-2">({JOB_LANGUAGES.find(l => l.code === activeLanguage)?.name})</span>}</label>
             <RichTextEditor value={translations[activeLanguage].benefits} onChange={(v: string) => updateTranslation("benefits", v)} placeholder="Was bieten Sie den Bewerbern?" rows={4} helpText="Nutzen Sie Listen für eine übersichtliche Auflistung." />
           </div>

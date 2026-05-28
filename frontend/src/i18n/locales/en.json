@@ -301,7 +301,10 @@
     "alreadyApplied": "You have already applied for this position",
     "ijpService": "IJP Placement Service",
     "ijpServiceDesc": "Let IJP find the right job for you! We connect you directly with our partner companies.",
-    "ijpServiceButton": "Request IJP Service"
+    "ijpServiceButton": "Request IJP Service",
+    "external": "External",
+    "loginToSave": "Please log in as an applicant",
+    "likeError": "Error saving job"
   },
   "positionTypes": {
     "general": "General",
@@ -333,7 +336,144 @@
     "notSure": "Not sure which job type fits?",
     "notSureDesc": "Our team is happy to advise you and help you make the right decision. Contact us for personal consultation.",
     "contactUs": "Contact Us",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "categories": {
+      "studentenferienjob": {
+        "title": "Student Holiday Job",
+        "subtitle": "For students during semester breaks",
+        "shortDesc": "Earn money during your semester break and gain valuable work experience in Germany.",
+        "description": "Student holiday jobs are ideal for students from abroad who want to work in Germany during their semester breaks. You can work up to 90 days or 180 half days per year and gain valuable experience.",
+        "forWhom": [
+          "Enrolled students at a university",
+          "Minimum age 18 years",
+          "Good German skills are an advantage"
+        ],
+        "docs": [
+          "Valid passport",
+          "Enrollment certificate",
+          "Work permit (depending on country of origin)",
+          "Health insurance proof"
+        ],
+        "process": [
+          "Registration",
+          "Create profile",
+          "Application",
+          "Placement",
+          "Start work"
+        ],
+        "durationText": "1-3 months",
+        "salaryText": "12-15€/hour",
+        "sectors": "Production, Logistics, Hospitality"
+      },
+      "saisonjob": {
+        "title": "Seasonal Job",
+        "subtitle": "Seasonal employment",
+        "shortDesc": "Work in agriculture, tourism, or other seasonal industries.",
+        "description": "Seasonal jobs offer flexible employment opportunities in industries with seasonal labor demand. Typical sectors include agriculture, viticulture, tourism, and hospitality.",
+        "forWhom": [
+          "Job seekers from EU and third countries",
+          "Physically fit",
+          "Flexible and team-oriented"
+        ],
+        "docs": [
+          "Valid passport",
+          "Work permit",
+          "Health certificate (depending on sector)",
+          "Driver's license (advantageous)"
+        ],
+        "process": [
+          "Registration",
+          "Create profile",
+          "Placement",
+          "Apply for visa",
+          "Start work"
+        ],
+        "durationText": "3-9 months",
+        "salaryText": "12-14€/hour",
+        "sectors": "Agriculture, Tourism, Hospitality"
+      },
+      "workandholiday": {
+        "title": "Work & Holiday",
+        "subtitle": "Combine work and travel",
+        "shortDesc": "Combine work and vacation in Germany with the Work & Holiday visa.",
+        "description": "The Work & Holiday program allows young people to travel Germany and work at the same time. Ideal for those who want to combine culture and work experience.",
+        "forWhom": [
+          "18-30 years old (depending on agreement)",
+          "From participating countries",
+          "Basic German or English skills"
+        ],
+        "docs": [
+          "Valid passport",
+          "Work & Holiday Visa",
+          "Proof of funds",
+          "Return flight ticket or proof"
+        ],
+        "process": [
+          "Apply for visa",
+          "Registration",
+          "Find a job",
+          "Work & Travel",
+          "Gain experience"
+        ],
+        "durationText": "Up to 12 months",
+        "salaryText": "12-16€/hour",
+        "sectors": "Hospitality, Tourism, Au pair"
+      },
+      "fachkraft": {
+        "title": "Skilled Worker",
+        "subtitle": "Qualified employment",
+        "shortDesc": "Start your career as a qualified skilled worker in Germany.",
+        "description": "As a skilled worker, you have the opportunity to take up a permanent position in Germany. We place qualified specialists in various industries with the prospect of long-term employment.",
+        "forWhom": [
+          "Completed vocational training or university degree",
+          "Work experience is an advantage",
+          "German skills B1-B2"
+        ],
+        "docs": [
+          "Recognized qualification",
+          "CV and certificates",
+          "Language certificate",
+          "Employment contract for visa"
+        ],
+        "process": [
+          "Check qualifications",
+          "Apply for recognition",
+          "Job search",
+          "Apply for visa",
+          "Start work"
+        ],
+        "durationText": "Permanent",
+        "salaryText": "2,500-5,000€/month",
+        "sectors": "Nursing, IT, Skilled trades, Engineering"
+      },
+      "ausbildung": {
+        "title": "Vocational Training",
+        "subtitle": "Dual vocational training",
+        "shortDesc": "Start a dual vocational training in Germany and earn a recognized professional qualification.",
+        "description": "The dual vocational training in Germany combines practical work in a company with theoretical instruction at a vocational school. You receive a salary and an internationally recognized degree.",
+        "forWhom": [
+          "School leaving certificate (at least lower secondary)",
+          "17-35 years old",
+          "German skills at least B1"
+        ],
+        "docs": [
+          "School certificates (translated)",
+          "Language certificate B1",
+          "Motivation letter",
+          "Training contract for visa"
+        ],
+        "process": [
+          "Learn German",
+          "Find apprenticeship",
+          "Sign contract",
+          "Apply for visa",
+          "Start training"
+        ],
+        "durationText": "2-3.5 years",
+        "salaryText": "800-1,200€/month",
+        "sectors": "Nursing, Skilled trades, Hospitality, IT"
+      }
+    }
   },
   "applicationStatus": {
     "pending": "Submitted",
@@ -1423,9 +1563,9 @@
     "fulltime": "Full-time",
     "parttime": "Part-time",
     "fulltimeOrParttime": "Full-time or Part-time",
-    "hourly": "Hour",
-    "monthly": "Month",
-    "yearly": "Year",
+    "hourly": "per hour",
+    "monthly": "per month",
+    "yearly": "per year",
     "german": "German",
     "english": "English",
     "yourMatching": "Your Matching",
@@ -1455,7 +1595,24 @@
     "selectDocumentsToShare": "Select which documents to share:",
     "willBeShared": "will be shared",
     "privacyNotice": "Only the selected {{count}} document(s) will be visible to {{company}}. Other companies will not see these documents.",
-    "privacy": "Privacy"
+    "privacy": "Privacy",
+    "profileIncomplete": "Profile Incomplete",
+    "completeProfile": "Complete Profile",
+    "sending": "Sending...",
+    "messageOptionalPlaceholder": "Optional message to the company...",
+    "loginAndApply": "Login to Apply",
+    "externalJob": "External Position",
+    "externalJobDesc": "This job is managed directly by the employer. Applications are not processed through this platform.",
+    "applyAtEmployer": "Apply at Employer Now",
+    "noDirectLink": "No direct application link available.",
+    "sourceBA": "Source: Federal Employment Agency",
+    "employer": "Employer",
+    "required": "Required",
+    "desirable": "Desirable",
+    "cancel": "Cancel",
+    "remember": "Save",
+    "remembered": "Saved",
+    "applyNote": "to apply"
   },
   "matching": {
     "veryGood": "Very good match",
@@ -2026,5 +2183,14 @@
       "register": "Register for free",
       "contact": "Contact IJP"
     }
+  },
+  "companyProfile": {
+    "currentJobs": "Current Job Listings",
+    "noOpenJobs": "No open positions at this company currently.",
+    "job": "Position",
+    "jobs": "Positions",
+    "perHour": "per hour",
+    "perMonth": "per month",
+    "perYear": "per year"
   }
 }

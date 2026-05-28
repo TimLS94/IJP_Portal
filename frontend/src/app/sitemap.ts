@@ -7,7 +7,8 @@ const BASE_URL = "https://www.jobon.work";
 export const revalidate = 60;
 
 interface Job {
-  slug: string;
+  id: number;
+  slug?: string;
   title: string;
   updated_at?: string;
   created_at: string;
@@ -22,8 +23,7 @@ interface BlogPost {
 async function getJobs(): Promise<Job[]> {
   try {
     const res = await fetch(`${API_URL}/jobs/public`, {
-      next: { revalidate: 60 }, // Häufigere Aktualisierung
-      cache: "no-store", // Immer frische Daten
+      next: { revalidate: 60 },
     });
     if (!res.ok) return [];
     const data = await res.json();
@@ -121,7 +121,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Dynamische Job-Seiten
   const jobPages: MetadataRoute.Sitemap = jobs.map((job) => ({
-    url: `${BASE_URL}/jobs/${job.slug}`,
+    url: `${BASE_URL}/jobs/${job.slug ? `${job.slug}-${job.id}` : job.id}`,
     lastModified: new Date(job.updated_at || job.created_at),
     changeFrequency: "weekly" as const,
     priority: 0.8,

@@ -15,20 +15,16 @@ export default function RichTextEditor({
 }) {
   const editorRef = useRef(null);
   const [showHelp, setShowHelp] = useState(false);
-  const isInitializedRef = useRef(false);
+  const initializedRef = useRef(false);
   const lastValueRef = useRef(value);
 
-  // Initialen Wert setzen (nur einmal beim Mount oder wenn sich der Wert extern ändert)
+  // Beim ersten Mount immer setzen; danach nur bei externen Wertänderungen (z.B. Sprachwechsel)
   useEffect(() => {
-    if (editorRef.current) {
-      // Nur setzen wenn: 
-      // 1. Noch nicht initialisiert ODER
-      // 2. Der Wert sich extern geändert hat (nicht durch Eingabe)
-      if (!isInitializedRef.current || (value !== lastValueRef.current && value !== editorRef.current.innerHTML)) {
-        editorRef.current.innerHTML = value || '';
-        isInitializedRef.current = true;
-        lastValueRef.current = value;
-      }
+    if (!editorRef.current) return;
+    if (!initializedRef.current || value !== lastValueRef.current) {
+      editorRef.current.innerHTML = value || '';
+      lastValueRef.current = value;
+      initializedRef.current = true;
     }
   }, [value]);
 

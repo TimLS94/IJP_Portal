@@ -4,7 +4,7 @@ API Endpoints für IJP-Aufträge (Job Requests)
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel
 import csv
@@ -31,6 +31,7 @@ class CreateJobRequestSchema(BaseModel):
     preferred_location: Optional[str] = None
     preferred_start_date: Optional[datetime] = None
     notes: Optional[str] = None
+    selected_position_types: Optional[List[str]] = None
 
 
 class UpdateJobRequestStatusSchema(BaseModel):
@@ -181,23 +182,41 @@ async def create_job_requests(
                 detail=f"Bitte vervollständigen Sie Ihr Profil (fehlt: {field})"
             )
     
-    # Stellenarten sammeln (aus position_types Array oder fallback auf position_type)
-    position_types = []
+    # Alle Stellenarten aus dem Profil ermitteln
+    profile_types = []
     if getattr(applicant, 'position_types', None) and len(applicant.position_types) > 0:
-        # position_types ist ein JSON-Array mit Strings
         for pt in applicant.position_types:
             try:
-                position_types.append(PositionType(pt))
+                profile_types.append(PositionType(pt))
             except ValueError:
                 pass
     elif getattr(applicant, 'position_type', None):
-        position_types.append(applicant.position_type)
-    
-    if not position_types:
+        profile_types.append(applicant.position_type)
+
+    if not profile_types:
         raise HTTPException(
             status_code=400,
             detail="Bitte wählen Sie mindestens eine Stellenart in Ihrem Profil"
         )
+
+    # Wenn der Nutzer gezielt Stellenarten gewählt hat, nur diese verwenden
+    if data.selected_position_types:
+        selected = []
+        for pt_str in data.selected_position_types:
+            try:
+                pt = PositionType(pt_str)
+                if pt in profile_types:
+                    selected.append(pt)
+            except ValueError:
+                pass
+        if not selected:
+            raise HTTPException(
+                status_code=400,
+                detail="Keine gültige Stellenart ausgewählt"
+            )
+        position_types = selected
+    else:
+        position_types = profile_types
     
     # Prüfen welche Stellenarten bereits aktive Aufträge haben
     existing_requests = db.query(JobRequest).filter(

@@ -297,14 +297,18 @@
     "alreadyApplied": "Ya ha solicitado este puesto",
     "ijpService": "Servicio de colocación IJP",
     "ijpServiceDesc": "¡Deje que IJP encuentre el trabajo adecuado para usted! Le conectamos directamente con nuestras empresas asociadas.",
-    "ijpServiceButton": "Solicitar servicio IJP"
+    "ijpServiceButton": "Solicitar servicio IJP",
+    "external": "Externo",
+    "loginToSave": "Por favor, inicia sesión como solicitante",
+    "likeError": "Error al guardar la oferta"
   },
   "positionTypes": {
     "studentenferienjob": "Trabajo de verano estudiantil",
     "saisonjob": "Trabajo de temporada",
     "workandholiday": "Work & Holiday",
     "fachkraft": "Profesional cualificado",
-    "ausbildung": "Ausbildung"
+    "ausbildung": "Ausbildung",
+    "general": "General"
   },
   "positionTypeDescriptions": {
     "studentenferienjob": "Para estudiantes del extranjero que desean trabajar en Alemania durante las vacaciones del semestre. Máximo 90 días (3 meses) por año. Requisito: Matrícula activa en una universidad extranjera.",
@@ -328,7 +332,144 @@
     "notSure": "¿No está seguro qué tipo de empleo le conviene?",
     "notSureDesc": "Nuestro equipo estará encantado de asesorarle y ayudarle a tomar la decisión correcta. Contáctenos para una consulta personal.",
     "contactUs": "Contáctenos",
-    "faq": "Preguntas frecuentes"
+    "faq": "Preguntas frecuentes",
+    "categories": {
+      "studentenferienjob": {
+        "title": "Trabajo de vacaciones estudiantil",
+        "subtitle": "Para estudiantes durante las vacaciones semestrales",
+        "shortDesc": "Gana dinero durante tus vacaciones semestrales y adquiere experiencia laboral valiosa en Alemania.",
+        "description": "Los trabajos de vacaciones estudiantiles son ideales para estudiantes del extranjero que desean trabajar en Alemania durante sus vacaciones semestrales. Puedes trabajar hasta 90 días o 180 medios días al año.",
+        "forWhom": [
+          "Estudiantes matriculados en una universidad",
+          "Edad mínima 18 años",
+          "Buen nivel de alemán es una ventaja"
+        ],
+        "docs": [
+          "Pasaporte válido",
+          "Certificado de matrícula",
+          "Permiso de trabajo (según país de origen)",
+          "Prueba de seguro médico"
+        ],
+        "process": [
+          "Registro",
+          "Crear perfil",
+          "Solicitud",
+          "Colocación",
+          "Inicio del trabajo"
+        ],
+        "durationText": "1-3 meses",
+        "salaryText": "12-15€/hora",
+        "sectors": "Producción, Logística, Hostelería"
+      },
+      "saisonjob": {
+        "title": "Trabajo de temporada",
+        "subtitle": "Empleo estacional",
+        "shortDesc": "Trabaja en agricultura, turismo u otras industrias estacionales.",
+        "description": "Los trabajos de temporada ofrecen oportunidades de empleo flexible en industrias con demanda estacional de mano de obra. Las áreas típicas son agricultura, viticultura, turismo y hostelería.",
+        "forWhom": [
+          "Solicitantes de empleo de la UE y terceros países",
+          "Forma física adecuada",
+          "Flexibles y con capacidad de trabajo en equipo"
+        ],
+        "docs": [
+          "Pasaporte válido",
+          "Permiso de trabajo",
+          "Certificado médico (según sector)",
+          "Permiso de conducir (ventajoso)"
+        ],
+        "process": [
+          "Registro",
+          "Crear perfil",
+          "Colocación",
+          "Solicitar visado",
+          "Inicio del trabajo"
+        ],
+        "durationText": "3-9 meses",
+        "salaryText": "12-14€/hora",
+        "sectors": "Agricultura, Turismo, Hostelería"
+      },
+      "workandholiday": {
+        "title": "Work & Holiday",
+        "subtitle": "Combinar trabajo y viaje",
+        "shortDesc": "Combina trabajo y vacaciones en Alemania con el visado Work & Holiday.",
+        "description": "El programa Work & Holiday permite a los jóvenes viajar por Alemania y trabajar al mismo tiempo. Ideal para quienes desean combinar cultura y experiencia laboral.",
+        "forWhom": [
+          "18-30 años (según el acuerdo)",
+          "De países participantes",
+          "Conocimientos básicos de alemán o inglés"
+        ],
+        "docs": [
+          "Pasaporte válido",
+          "Visado Work & Holiday",
+          "Prueba de fondos",
+          "Billete de vuelta o prueba"
+        ],
+        "process": [
+          "Solicitar visado",
+          "Registro",
+          "Buscar trabajo",
+          "Trabajar & Viajar",
+          "Adquirir experiencia"
+        ],
+        "durationText": "Hasta 12 meses",
+        "salaryText": "12-16€/hora",
+        "sectors": "Hostelería, Turismo, Au pair"
+      },
+      "fachkraft": {
+        "title": "Trabajador cualificado",
+        "subtitle": "Empleo cualificado",
+        "shortDesc": "Inicia tu carrera como trabajador cualificado en Alemania.",
+        "description": "Como trabajador cualificado, tienes la oportunidad de ocupar un puesto permanente en Alemania. Colocamos especialistas cualificados en diversos sectores con perspectivas de empleo a largo plazo.",
+        "forWhom": [
+          "Formación profesional o universitaria completada",
+          "Experiencia laboral es una ventaja",
+          "Conocimientos de alemán B1-B2"
+        ],
+        "docs": [
+          "Cualificación reconocida",
+          "CV y certificados",
+          "Certificado de idioma",
+          "Contrato de trabajo para visado"
+        ],
+        "process": [
+          "Verificar cualificaciones",
+          "Solicitar reconocimiento",
+          "Búsqueda de empleo",
+          "Solicitar visado",
+          "Inicio del trabajo"
+        ],
+        "durationText": "Indefinido",
+        "salaryText": "2.500-5.000€/mes",
+        "sectors": "Enfermería, IT, Oficios, Ingeniería"
+      },
+      "ausbildung": {
+        "title": "Formación profesional",
+        "subtitle": "Formación profesional dual",
+        "shortDesc": "Inicia una formación profesional dual en Alemania y obtén una cualificación profesional reconocida.",
+        "description": "La formación profesional dual en Alemania combina trabajo práctico en una empresa con instrucción teórica en una escuela de formación profesional. Recibirás una remuneración y un título reconocido internacionalmente.",
+        "forWhom": [
+          "Título de educación secundaria (mínimo)",
+          "17-35 años",
+          "Conocimientos de alemán mínimo B1"
+        ],
+        "docs": [
+          "Certificados escolares (traducidos)",
+          "Certificado de idioma B1",
+          "Carta de motivación",
+          "Contrato de formación para visado"
+        ],
+        "process": [
+          "Aprender alemán",
+          "Buscar plaza de formación",
+          "Firmar contrato",
+          "Solicitar visado",
+          "Comenzar formación"
+        ],
+        "durationText": "2-3,5 años",
+        "salaryText": "800-1.200€/mes",
+        "sectors": "Enfermería, Oficios, Hostelería, IT"
+      }
+    }
   },
   "applicationStatus": {
     "pending": "Enviada",
@@ -1380,9 +1521,9 @@
     "fulltime": "Tiempo completo",
     "parttime": "Tiempo parcial",
     "fulltimeOrParttime": "Tiempo completo o parcial",
-    "hourly": "Hora",
-    "monthly": "Mes",
-    "yearly": "Año",
+    "hourly": "por hora",
+    "monthly": "por mes",
+    "yearly": "por año",
     "german": "Alemán",
     "english": "Inglés",
     "yourMatching": "Su compatibilidad",
@@ -1412,7 +1553,24 @@
     "selectDocumentsToShare": "Seleccione qué documentos compartir:",
     "willBeShared": "se compartirá",
     "privacyNotice": "Solo los {{count}} documento(s) seleccionados serán visibles para {{company}}. Otras empresas no verán estos documentos.",
-    "privacy": "Privacidad"
+    "privacy": "Privacidad",
+    "profileIncomplete": "Perfil incompleto",
+    "completeProfile": "Completar perfil",
+    "sending": "Enviando...",
+    "messageOptionalPlaceholder": "Mensaje opcional para la empresa...",
+    "loginAndApply": "Iniciar sesión para solicitar",
+    "externalJob": "Puesto externo",
+    "externalJobDesc": "Esta oferta es gestionada directamente por el empleador. Las solicitudes no se procesan a través de esta plataforma.",
+    "applyAtEmployer": "Solicitar con el empleador ahora",
+    "noDirectLink": "No hay enlace directo disponible.",
+    "sourceBA": "Fuente: Agencia Federal de Empleo",
+    "employer": "Empleador",
+    "required": "Requerido",
+    "desirable": "Deseable",
+    "cancel": "Cancelar",
+    "remember": "Guardar",
+    "remembered": "Guardado",
+    "applyNote": "para solicitar"
   },
   "matching": {
     "veryGood": "Muy buena coincidencia",
@@ -1943,5 +2101,14 @@
       "register": "Registrarse gratis",
       "contact": "Contactar IJP"
     }
+  },
+  "companyProfile": {
+    "currentJobs": "Ofertas de empleo actuales",
+    "noOpenJobs": "Actualmente no hay puestos abiertos en esta empresa.",
+    "job": "Puesto",
+    "jobs": "Puestos",
+    "perHour": "por hora",
+    "perMonth": "por mes",
+    "perYear": "por año"
   }
 }

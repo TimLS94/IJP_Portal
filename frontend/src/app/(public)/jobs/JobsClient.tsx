@@ -46,44 +46,6 @@ const positionTypeColors: Record<string, string> = {
   ausbildung: "bg-green-100 text-green-800 border-green-200",
 };
 
-const positionTypes = [
-  { value: "", label: "Alle Stellenarten" },
-  { value: "studentenferienjob", label: "Studentenferienjob" },
-  { value: "saisonjob", label: "Saisonjob" },
-  { value: "workandholiday", label: "Work & Holiday" },
-  { value: "fachkraft", label: "Fachkraft" },
-  { value: "ausbildung", label: "Ausbildung" },
-];
-
-const germanLevelFilter = [
-  { value: "", label: "Alle" },
-  { value: "not_required", label: "Keine erforderlich" },
-  { value: "a1", label: "A1 - Grundkenntnisse" },
-  { value: "a2", label: "A2 - Grundkenntnisse" },
-  { value: "b1", label: "B1 - Gute Kenntnisse" },
-  { value: "b2", label: "B2 - Sehr gute Kenntnisse" },
-  { value: "c1", label: "C1 - Fließend" },
-  { value: "c2", label: "C2 - Fließend" },
-];
-
-const employmentTypeLabels: Record<string, string> = {
-  fulltime: "Vollzeit",
-  parttime: "Teilzeit",
-  both: "Vollzeit/Teilzeit",
-};
-
-const languageLevelLabels: Record<string, string> = {
-  not_required: "",
-  a1: "A1 - Grundkenntnisse",
-  a2: "A2 - Grundkenntnisse",
-  b1: "B1 - Gute Kenntnisse",
-  b2: "B2 - Sehr gute Kenntnisse",
-  c1: "C1 - Fließend",
-  c2: "C2 - Fließend",
-  basic: "A2 - Grundkenntnisse",
-  good: "B1 - Gute Kenntnisse",
-  fluent: "C1 - Fließend",
-};
 
 const languageLevelColors: Record<string, string> = {
   a1: "bg-yellow-50 text-yellow-700 border-yellow-200",
@@ -120,6 +82,31 @@ interface JobsClientProps {
 export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
   const { isApplicant } = useAuth();
   const { t } = useTranslation();
+
+  const positionTypes = [
+    { value: "", label: t("jobs.allTypes") },
+    { value: "studentenferienjob", label: t("positionTypes.studentenferienjob") },
+    { value: "saisonjob", label: t("positionTypes.saisonjob") },
+    { value: "workandholiday", label: t("positionTypes.workandholiday") },
+    { value: "fachkraft", label: t("positionTypes.fachkraft") },
+    { value: "ausbildung", label: t("positionTypes.ausbildung") },
+  ];
+
+  const germanLevelFilter = [
+    { value: "", label: t("common.all") },
+    { value: "not_required", label: t("languageLevelOptions.not_required") },
+    { value: "a1", label: t("languageLevelOptions.a1") },
+    { value: "a2", label: t("languageLevelOptions.a2") },
+    { value: "b1", label: t("languageLevelOptions.b1") },
+    { value: "b2", label: t("languageLevelOptions.b2") },
+    { value: "c1", label: t("languageLevelOptions.c1") },
+    { value: "c2", label: t("languageLevelOptions.c2") },
+  ];
+
+  const getLangLevel = (level: string) => {
+    const aliases: Record<string, string> = { basic: "a2", good: "b1", fluent: "c1" };
+    return t(`languageLevelOptions.${aliases[level] || level}`, "");
+  };
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [loading, setLoading] = useState(initialJobs.length === 0);
   const [search, setSearch] = useState("");
@@ -156,7 +143,7 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
     e.stopPropagation();
 
     if (!isApplicant) {
-      toast.error("Bitte melden Sie sich als Bewerber an");
+      toast.error(t("jobs.loginToSave"));
       return;
     }
 
@@ -174,7 +161,7 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
       }
       toast.success(response.data.message);
     } catch {
-      toast.error("Fehler beim Merken");
+      toast.error(t("jobs.likeError"));
     } finally {
       setLikingJob(null);
     }
@@ -392,6 +379,8 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
             <Link
               key={job.id}
               href={`/jobs/${job.slug ? `${job.slug}-${job.id}` : job.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="card block hover:shadow-xl hover:border-primary-200 border-2 border-transparent transition-all group"
             >
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -406,12 +395,12 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
                           positionTypeColors[job.position_type] || positionTypeColors.general
                         }`}
                       >
-                        {positionTypes.find((t) => t.value === job.position_type)?.label || job.position_type}
+                        {t(`positionTypes.${job.position_type}`, job.position_type || "")}
                       </span>
                     )}
                     {job.is_external && (
                       <span className="px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-700 border border-orange-200">
-                        Extern
+                        {t("jobs.external")}
                       </span>
                     )}
                     {job.accommodation_provided && (
@@ -450,12 +439,12 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
                       <Languages className="h-4 w-4 text-gray-400" />
                       {job.german_required && job.german_required !== "not_required" && (
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${languageLevelColors[job.german_required] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
-                          🇩🇪 {languageLevelLabels[job.german_required]}
+                          🇩🇪 {getLangLevel(job.german_required)}
                         </span>
                       )}
                       {job.english_required && job.english_required !== "not_required" && (
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${languageLevelColors[job.english_required] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
-                          🇬🇧 {languageLevelLabels[job.english_required]}
+                          🇬🇧 {getLangLevel(job.english_required)}
                         </span>
                       )}
                       {job.other_languages_required && job.other_languages_required.length > 0 && (

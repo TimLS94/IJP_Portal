@@ -49,6 +49,7 @@ export default function ApplicantJobRequestPage() {
   const [preferredLocation, setPreferredLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   
   // Stornieren
   const [cancellingId, setCancellingId] = useState<number | null>(null);
@@ -78,10 +79,18 @@ export default function ApplicantJobRequestPage() {
     try {
       const res = await jobRequestsAPI.getPrivacyText();
       setPrivacyText(res.data.text);
+      // Alle verfügbaren Typen vorauswählen
+      setSelectedTypes(getAvailablePositionTypes());
       setShowModal(true);
     } catch (error) {
       toast.error(t('jobRequest.privacyLoadError'));
     }
+  };
+
+  const toggleType = (type: string) => {
+    setSelectedTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
   };
 
   const handleSubmit = async () => {
@@ -90,12 +99,17 @@ export default function ApplicantJobRequestPage() {
       return;
     }
 
+    if (selectedTypes.length === 0) {
+      toast.error(t('jobRequest.selectAtLeastOne', 'Bitte mindestens eine Stellenart auswählen'));
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await jobRequestsAPI.createRequests({
         privacy_consent: true,
         preferred_location: preferredLocation || null,
-        notes: notes || null
+        notes: notes || null,
+        selected_position_types: selectedTypes
       });
       toast.success(res.data.message || t('jobRequest.createSuccess'));
       setShowModal(false);
@@ -417,16 +431,27 @@ export default function ApplicantJobRequestPage() {
                 </button>
               </div>
               
-              {/* Stellenarten die beauftragt werden */}
+              {/* Stellenarten auswählen */}
               <div className="mt-4">
-                <p className="text-sm text-gray-600 mb-2">{t('jobRequest.ordersCreatedFor')}:</p>
-                <div className="flex flex-wrap gap-2">
+                <p className="text-sm font-medium text-gray-700 mb-3">{t('jobRequest.selectPositionTypes', 'Für welche Stellenarten möchtest du IJP beauftragen?')}</p>
+                <div className="space-y-2">
                   {getAvailablePositionTypes().map((type: string) => (
-                    <span key={type} className={`px-3 py-1 rounded-full text-white text-sm font-medium ${positionTypeColors[type] || 'bg-gray-500'}`}>
-                      {positionTypeLabels[type] || type}
-                    </span>
+                    <label key={type} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedTypes.includes(type) ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedTypes.includes(type)}
+                        onChange={() => toggleType(type)}
+                        className="h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${positionTypeColors[type] || 'bg-gray-500'}`}>
+                        {positionTypeLabels[type] || type}
+                      </span>
+                    </label>
                   ))}
                 </div>
+                {selectedTypes.length === 0 && (
+                  <p className="text-amber-600 text-sm mt-2">⚠ {t('jobRequest.selectAtLeastOne', 'Bitte mindestens eine Stellenart auswählen')}</p>
+                )}
               </div>
             </div>
 
@@ -487,7 +512,7 @@ export default function ApplicantJobRequestPage() {
                 className="btn-primary flex items-center gap-2 disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle className="h-5 w-5" />}
-                {t('jobRequest.createXOrders', { count: getAvailablePositionTypes().length })}
+                {t('jobRequest.createXOrders', { count: selectedTypes.length })}
               </button>
             </div>
           </div>

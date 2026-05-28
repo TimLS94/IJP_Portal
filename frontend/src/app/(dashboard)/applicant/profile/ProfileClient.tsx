@@ -746,7 +746,7 @@ export default function ProfileClient() {
           </button>
           <button 
             type="button" 
-            onClick={() => router.push("/applicant/job-request")} 
+            onClick={() => router.push("/applicant/ijp-auftrag")}
             className="btn-secondary flex items-center gap-2 px-6 py-3 text-lg border-primary-300 text-primary-700 hover:bg-primary-50"
           >
             <Sparkles className="h-5 w-5" />{t("profile.hireIJP")}
