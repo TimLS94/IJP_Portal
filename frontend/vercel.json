@@ -4,6 +4,7 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://ijp-portal.onrender.com/api/v1"
+    "NEXT_PUBLIC_API_URL": "https://ijp-portal.onrender.com/api/v1",
+    "VERCEL_BYPASS_FALLBACK_OVERSIZED_ERROR": "1"
   }
 }
