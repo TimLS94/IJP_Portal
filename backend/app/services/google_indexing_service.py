@@ -117,9 +117,24 @@ class GoogleIndexingService:
             logger.error(f"Fehler beim Abrufen des Google Access Tokens: {e}")
             return None
     
+    async def ping_sitemap(self) -> bool:
+        """Pingt Google mit der Sitemap-URL — kein Auth erforderlich, immer als Fallback."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                r = await client.get(
+                    "https://www.google.com/ping",
+                    params={"sitemap": "https://www.jobon.work/sitemap.xml"}
+                )
+                if r.status_code == 200:
+                    logger.info("✅ Google Sitemap-Ping erfolgreich")
+                    return True
+        except Exception as e:
+            logger.warning(f"Google Sitemap-Ping fehlgeschlagen: {e}")
+        return False
+
     async def request_indexing(
-        self, 
-        url: str, 
+        self,
+        url: str,
         action: Literal["URL_UPDATED", "URL_DELETED"] = "URL_UPDATED"
     ) -> bool:
         """
@@ -133,7 +148,9 @@ class GoogleIndexingService:
             True wenn erfolgreich, False bei Fehler
         """
         if not self.is_configured():
-            logger.debug("Google Indexing API nicht konfiguriert - überspringe")
+            # Fallback: Sitemap-Ping (kein Auth nötig) damit Google weiß, dass sich etwas geändert hat
+            if action == "URL_UPDATED":
+                await self.ping_sitemap()
             return False
         
         token = await self._get_access_token()

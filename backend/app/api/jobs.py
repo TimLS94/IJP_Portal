@@ -624,10 +624,9 @@ async def create_job(
         
         # Google Indexing: Neue Stelle zur Indexierung anmelden
         try:
-            slug = generate_job_slug(job.title, job.location, job.id)
             import asyncio
             asyncio.create_task(google_indexing_service.request_indexing(
-                f"https://www.jobon.work/jobs/{slug}",
+                f"https://www.jobon.work/jobs/{job.slug}-{job.id}",
                 "URL_UPDATED"
             ))
         except Exception as e:
@@ -732,10 +731,9 @@ async def delete_job(
         
         # Google Indexing: URL aus Index entfernen
         try:
-            slug = generate_job_slug(job.title, job.location, job.id)
             import asyncio
             asyncio.create_task(google_indexing_service.request_indexing(
-                f"https://www.jobon.work/jobs/{slug}",
+                f"https://www.jobon.work/jobs/{job.slug}-{job.id}",
                 "URL_DELETED"
             ))
         except Exception as e:
@@ -758,10 +756,9 @@ async def delete_job(
         
         # Google Indexing: URL aus Index entfernen
         try:
-            slug = generate_job_slug(job.title, job.location, job.id)
             import asyncio
             asyncio.create_task(google_indexing_service.request_indexing(
-                f"https://www.jobon.work/jobs/{slug}",
+                f"https://www.jobon.work/jobs/{job.slug}-{job.id}",
                 "URL_DELETED"
             ))
         except Exception as e:
@@ -836,10 +833,9 @@ async def reactivate_job(
     
     # Google Indexing: Reaktivierte Stelle zur Indexierung anmelden
     try:
-        slug = generate_job_slug(job.title, job.location, job.id)
         import asyncio
         asyncio.create_task(google_indexing_service.request_indexing(
-            f"https://www.jobon.work/jobs/{slug}",
+            f"https://www.jobon.work/jobs/{job.slug}-{job.id}",
             "URL_UPDATED"
         ))
     except Exception as e:
