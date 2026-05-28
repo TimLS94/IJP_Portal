@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// API URL - für Server und Client
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1';
+// In Produktion: VITE_API_URL aus Environment Variable
+// In Entwicklung: /api/v1 (wird durch Vite Proxy gehandhabt)
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -94,15 +95,6 @@ export const companyAPI = {
   // Bewerber-Digest Einstellungen
   getDigestSettings: () => api.get('/companies/me/digest-settings'),
   updateDigestSettings: (data) => api.put('/companies/me/digest-settings', data),
-  // Score-Filter Einstellungen (ersetzt Auto-Ablehnung)
-  getScoreFilterSettings: () => api.get('/companies/me/score-filter-settings'),
-  updateScoreFilterSettings: (data) => api.put('/companies/me/score-filter-settings', data),
-  // Legacy (für Abwärtskompatibilität)
-  getAutoRejectSettings: () => api.get('/companies/me/auto-reject-settings'),
-  updateAutoRejectSettings: (data) => api.put('/companies/me/auto-reject-settings', data),
-  // Logo
-  uploadLogo: (formData) => api.post('/companies/me/logo', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  deleteLogo: () => api.delete('/companies/me/logo'),
 };
 
 // Jobs API
@@ -150,8 +142,7 @@ export const jobsAPI = {
 export const applicationsAPI = {
   create: (data) => api.post('/applications', data),
   getMyApplications: () => api.get('/applications/my'),
-  getCompanyApplications: (includeFiltered = false) => api.get('/applications/company', { params: { include_filtered: includeFiltered } }),
-  getFilteredApplications: () => api.get('/applications/company', { params: { include_filtered: true } }),
+  getCompanyApplications: () => api.get('/applications/company'),
   update: (id, data) => api.put(`/applications/${id}`, data),
   withdraw: (id) => api.delete(`/applications/${id}`),
   // Neu: Voraussetzungen prüfen
@@ -231,15 +222,6 @@ export const blogAPI = {
   },
 };
 
-// Notifications API
-export const notificationsAPI = {
-  getCount: () => api.get('/notifications/count'),
-  getAll: (unreadOnly = false, limit = 50) => api.get('/notifications', { params: { unread_only: unreadOnly, limit } }),
-  markAsRead: (id) => api.post(`/notifications/${id}/read`),
-  markAllAsRead: () => api.post('/notifications/read-all'),
-  delete: (id) => api.delete(`/notifications/${id}`),
-};
-
 // Account API
 export const accountAPI = {
   forgotPassword: (email) => api.post('/account/forgot-password', { email }),
@@ -249,9 +231,6 @@ export const accountAPI = {
   changeEmail: (new_email, password) => api.post('/account/change-email', { new_email, password }),
   deleteAccount: (password, confirmation) => api.post('/account/delete-account', { password, confirmation }),
   getAccountInfo: () => api.get('/account/me'),
-  // Benachrichtigungseinstellungen
-  getNotificationSettings: () => api.get('/auth/email-preferences'),
-  updateNotificationSettings: (data) => api.put('/auth/email-preferences', data),
 };
 
 // Admin API
@@ -316,7 +295,6 @@ export const adminAPI = {
   getStats: (days = 7) => api.get('/admin/stats', { params: { days } }),
   getEmailStats: (days = 30) => api.get('/admin/email-stats', { params: { days } }),
   getColdOutreachStats: (days = 30) => api.get('/admin/cold-outreach-stats', { params: { days } }),
-  getTimeline: (days = 30) => api.get('/admin/timeline', { params: { days } }),
   // Feature Flags & Einstellungen
   getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
   setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),
@@ -336,7 +314,6 @@ export const adminAPI = {
   getApplicationDetails: (id) => api.get(`/admin/applications/${id}`),
   updateApplicationStatus: (id, data) => api.put(`/admin/applications/${id}/status`, data),
   exportApplicationsCSV: (params) => api.get('/admin/applications/export/csv', { params, responseType: 'blob' }),
-  getInviteSources: () => api.get('/admin/applications/invite-sources'),
   // Bewerber
   listApplicants: (params) => api.get('/admin/applicants', { params }),
   getApplicantDocuments: (id) => api.get(`/admin/applicants/${id}/documents`),
@@ -367,19 +344,11 @@ export const adminAPI = {
   // Anabin PDF-Abruf
   getAnabinPdfStatus: (applicantId) => api.get(`/anabin/pdf-status/${applicantId}`),
   getAnabinPdf: (applicantId, refresh = false) => api.get(`/anabin/pdf/${applicantId}${refresh ? '?refresh=true' : ''}`, { responseType: 'blob' }),
-  fetchAnabinPdfDirect: (universityName, country = "Usbekistan") => api.post(`/anabin/fetch-pdf?university_name=${encodeURIComponent(universityName)}&country=${encodeURIComponent(country)}`, {}, { responseType: 'blob' }),
   getCachedPdfs: () => api.get('/anabin/cached-pdfs'),
-  // Anabin Datenbank-Scraper
-  getAnabinDatabaseInfo: () => api.get('/anabin/database/info'),
-  getAnabinScrapeStatus: () => api.get('/anabin/database/scrape-status'),
-  startAnabinScrape: (data) => api.post('/anabin/database/scrape', data),
-  cancelAnabinScrape: () => api.post('/anabin/database/scrape-cancel'),
-  reloadAnabinDatabase: () => api.post('/anabin/database/reload'),
   
-  // Job Translation & Editing
+  // Job Translation
   translateJob: (jobId, languages) => api.post(`/admin/jobs/${jobId}/translate`, { languages }),
   getJobTranslationStatus: (jobId) => api.get(`/admin/jobs/${jobId}/translation-status`),
-  updateJob: (jobId, data) => api.put(`/admin/jobs/${jobId}`, data),
   
   // Einladungs-Tokens für Firmen
   listInviteTokens: () => api.get('/admin/invite-tokens'),
@@ -387,24 +356,12 @@ export const adminAPI = {
   deleteInviteToken: (id) => api.delete(`/admin/invite-tokens/${id}`),
   toggleInviteToken: (id) => api.put(`/admin/invite-tokens/${id}/toggle`),
   
-  // Bewerber-Einladungen (mit Quellen-Tracking)
-  listApplicantInvites: () => api.get('/admin/applicant-invites'),
-  createApplicantInvite: (data) => api.post('/admin/applicant-invites', data),
-  deleteApplicantInvite: (id) => api.delete(`/admin/applicant-invites/${id}`),
-  toggleApplicantInvite: (id) => api.put(`/admin/applicant-invites/${id}/toggle`),
-  getApplicantInviteApplicants: (id) => api.get(`/admin/applicant-invites/${id}/applicants`),
-  exportApplicantsCSV: () => api.get('/admin/applicants/export/csv', { responseType: 'blob' }),
-  
   // Gemeldete Stellen (Job Reports)
   getJobReports: () => api.get('/admin/job-reports'),
   dismissJobReport: (id) => api.delete(`/admin/job-reports/${id}`),
   
-  // Cold Outreach E-Mails
-  sendColdOutreachEmail: (data) => api.post('/admin/cold-outreach/send', data),
-
   // Facebook Gruppen & Posts
-  getFacebookGroups: (cluster) => api.get('/facebook/groups', { params: cluster ? { cluster } : {} }),
-  getFacebookGroupClusters: () => api.get('/facebook/groups/clusters'),
+  getFacebookGroups: (type) => api.get('/facebook/groups', { params: type ? { type } : {} }),
   createFacebookGroup: (data) => api.post('/facebook/groups', data),
   updateFacebookGroup: (id, data) => api.put(`/facebook/groups/${id}`, data),
   deleteFacebookGroup: (id) => api.delete(`/facebook/groups/${id}`),
@@ -429,16 +386,6 @@ export const adminAPI = {
   getFacebookPageInfo: () => api.get('/facebook/page/info'),
   postToFacebookPage: (message, comments = [], link = null) => 
     api.post('/facebook/page/post', { message, comments, link }),
-};
-
-// BA-Scraper API (Admin)
-export const baScraperAPI = {
-  getConfig: () => api.get('/admin/ba-scraper/config'),
-  updateConfig: (data) => api.put('/admin/ba-scraper/config', data),
-  run: () => api.post('/admin/ba-scraper/run'),
-  getStats: () => api.get('/admin/ba-scraper/stats'),
-  check: () => api.get('/admin/ba-scraper/check'),
-  deleteAll: () => api.delete('/admin/ba-scraper/jobs'),
 };
 
 // Auth API Erweiterung für Einladungs-Token-Prüfung

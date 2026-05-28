@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
 
 import de from './locales/de.json';
 import ru from './locales/ru.json';
@@ -13,29 +14,19 @@ const resources = {
   es: { translation: es }
 };
 
-if (!i18n.isInitialized) {
-  const setup = i18n.use(initReactI18next);
-
-  // Language detection only works in the browser
-  if (typeof window !== 'undefined') {
-    const LanguageDetector = require('i18next-browser-languagedetector').default;
-    setup.use(LanguageDetector);
-  }
-
-  setup.init({
+i18n
+  .use(LanguageDetector)
+  .use(initReactI18next)
+  .init({
     resources,
     fallbackLng: 'de',
-    lng: 'de',
     interpolation: {
       escapeValue: false
     },
-    ...(typeof window !== 'undefined' && {
-      detection: {
-        order: ['localStorage', 'navigator'],
-        caches: ['localStorage']
-      }
-    })
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage']
+    }
   });
-}
 
 export default i18n;
