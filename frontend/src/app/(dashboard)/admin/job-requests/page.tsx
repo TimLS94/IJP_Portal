@@ -55,6 +55,12 @@ interface StatusOption {
   color: string;
 }
 
+interface Document {
+  id: number;
+  original_name: string;
+  document_type: string;
+}
+
 export default function AdminJobRequests() {
   const [requests, setRequests] = useState<JobRequest[]>([]);
   const [total, setTotal] = useState(0);
@@ -163,7 +169,7 @@ export default function AdminJobRequests() {
       });
       toast.success('Status aktualisiert - E-Mail wurde gesendet');
       loadRequests();
-      loadRequestDetails(selectedRequest);
+      if (selectedRequest) loadRequestDetails(selectedRequest);
     } catch (error) {
       toast.error('Fehler beim Aktualisieren');
     } finally {
@@ -639,7 +645,7 @@ export default function AdminJobRequests() {
                         <p className="text-gray-500 text-sm">Keine Dokumente</p>
                       ) : (
                         <div className="space-y-2">
-                          {requestDetails.documents.map((doc) => (
+                          {requestDetails.documents.map((doc: Document) => (
                             <div key={doc.id} className="flex items-center justify-between p-2 bg-white rounded-lg">
                               <span className="text-sm">{doc.original_name}</span>
                               <span className="text-xs text-gray-500">{doc.document_type}</span>
@@ -767,7 +773,7 @@ export default function AdminJobRequests() {
                       <div className="mb-4 p-3 bg-white rounded-lg">
                         <p className="text-xs text-gray-500 mb-1">Aktueller Status:</p>
                         <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
-                          statusColors[statusOptions.find(s => s.value === requestDetails.request.status)?.color] || statusColors.gray
+                          statusColors[statusOptions.find(s => s.value === requestDetails.request.status)?.color ?? 'gray'] || statusColors.gray
                         }`}>
                           {statusOptions.find(s => s.value === requestDetails.request.status)?.label || requestDetails.request.status}
                         </span>
