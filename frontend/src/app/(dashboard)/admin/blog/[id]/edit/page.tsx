@@ -49,7 +49,9 @@ export default function BlogEditorPage() {
   const loadPost = async () => {
     try {
       const response = await blogAPI.adminGetPost(postId);
-      reset(response.data);
+      const post = response.data;
+      // Backend gibt is_published (bool), Form nutzt status (string)
+      reset({ ...post, status: post.is_published ? "published" : "draft" });
     } catch (error) {
       toast.error("Fehler beim Laden des Artikels");
       router.push("/admin/blog");
@@ -61,11 +63,13 @@ export default function BlogEditorPage() {
   const onSubmit = async (data: BlogForm) => {
     setIsLoading(true);
     try {
+      // status → is_published umwandeln für Backend
+      const payload = { ...data, is_published: data.status === "published" };
       if (isNew) {
-        await blogAPI.adminCreatePost(data);
+        await blogAPI.adminCreatePost(payload);
         toast.success("Artikel erstellt!");
       } else {
-        await blogAPI.adminUpdatePost(postId, data);
+        await blogAPI.adminUpdatePost(postId, payload);
         toast.success("Artikel aktualisiert!");
       }
       router.push("/admin/blog");
@@ -116,10 +120,12 @@ export default function BlogEditorPage() {
         </div>
         {!isNew && (
           <div className="flex gap-3">
-            <Link href={`/blog/${watch("slug")}`} target="_blank" className="btn-secondary flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              Vorschau
-            </Link>
+            {watch("status") === "published" && (
+              <Link href={`/blog/${watch("slug")}`} target="_blank" className="btn-secondary flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Vorschau
+              </Link>
+            )}
             <button onClick={handlePublishToggle} className="btn-secondary">
               {watch("status") === "published" ? "Zurückziehen" : "Veröffentlichen"}
             </button>
