@@ -764,25 +764,23 @@ export default function CompanyApplicationsPage() {
           </div>
         )}
         </div>
-      </div>
 
-      {/* Ergebnisse */}
-      {filteredApplications.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {activeTab === "filtered" ? t('companyApplications.noFilteredApplications') : t('companyApplications.noApplications')}
-          </h2>
-          <p className="text-gray-600">
-            {activeTab === "filtered"
-              ? t('companyApplications.noFilteredApplicationsDesc')
-              : applications.length === 0 
-                ? t('companyApplications.noApplicationsYet')
-                : t('companyApplications.noMatchingApplications')}
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        {/* Ergebnisse – gleiche Card wie Filter */}
+        {filteredApplications.length === 0 ? (
+          <div className="p-12 text-center">
+            <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {activeTab === "filtered" ? t('companyApplications.noFilteredApplications') : t('companyApplications.noApplications')}
+            </h2>
+            <p className="text-gray-600">
+              {activeTab === "filtered"
+                ? t('companyApplications.noFilteredApplicationsDesc')
+                : applications.length === 0
+                  ? t('companyApplications.noApplicationsYet')
+                  : t('companyApplications.noMatchingApplications')}
+            </p>
+          </div>
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
@@ -903,8 +901,8 @@ export default function CompanyApplicationsPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Detail Modal */}
       {selectedAppId && (

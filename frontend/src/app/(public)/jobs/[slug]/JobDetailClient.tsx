@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { applicationsAPI, jobsAPI } from "@/lib/api";
+import { applicationsAPI, jobsAPI, documentsAPI } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import {
@@ -164,6 +164,8 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
   const [reportNote, setReportNote] = useState("");
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
+  const [myDocuments, setMyDocuments] = useState<{ id: number; original_name: string; document_type: string }[]>([]);
+  const [selectedDocIds, setSelectedDocIds] = useState<number[]>([]);
   const job = initialJob;
 
   const parsedTranslations: Record<string, Record<string, string>> | undefined = (() => {
@@ -193,6 +195,12 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
     return () => { i18n.off("languageChanged", handleLangChange); };
   }, [i18n]);
 
+  useEffect(() => {
+    if (isAuthenticated && isApplicant) {
+      documentsAPI.list().then((r: any) => setMyDocuments(r.data || []));
+    }
+  }, [isAuthenticated, isApplicant]);
+
   const getTranslatedText = (field: "title" | "description" | "tasks" | "requirements" | "benefits"): string => {
     if (displayLanguage === "de") return job[field] || "";
     const translation = parsedTranslations?.[displayLanguage]?.[field];
@@ -221,10 +229,16 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
 
     setApplying(true);
     try {
-      await applicationsAPI.create({
+      const response = await applicationsAPI.create({
         job_posting_id: job.id,
         applicant_message: message || undefined,
       });
+      const newApp = response.data;
+      if (selectedDocIds.length > 0 && newApp?.id) {
+        try {
+          await applicationsAPI.shareDocuments(newApp.id, selectedDocIds);
+        } catch {}
+      }
       toast.success("Bewerbung erfolgreich eingereicht!");
       setApplied(true);
       setShowApplyForm(false);
@@ -554,6 +568,28 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
                         rows={4}
                       />
+                      {myDocuments.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-2">Dokumente freigeben (optional)</p>
+                          <div className="space-y-1 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                            {myDocuments.map((doc) => (
+                              <label key={doc.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded p-1">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedDocIds.includes(doc.id)}
+                                  onChange={(e) => {
+                                    setSelectedDocIds((prev) =>
+                                      e.target.checked ? [...prev, doc.id] : prev.filter((id) => id !== doc.id)
+                                    );
+                                  }}
+                                  className="accent-primary-600"
+                                />
+                                <span className="text-sm text-gray-700 truncate">{doc.original_name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <button
                         onClick={handleApply}
                         disabled={applying}
