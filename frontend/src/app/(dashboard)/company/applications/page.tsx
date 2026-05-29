@@ -655,7 +655,7 @@ export default function CompanyApplicationsPage() {
         )}
 
         {/* Filter-Bereich */}
-        <div className="p-4">
+        <div className="p-4 border-b border-gray-100">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Suche */}
             <div className="flex-1 relative">
@@ -825,6 +825,7 @@ export default function CompanyApplicationsPage() {
                       Status <SortIcon column="status" />
                     </button>
                   </th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{t('companyApplications.changeStatus')}</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-700">{t('common.actions')}</th>
                 </tr>
               </thead>
@@ -873,8 +874,20 @@ export default function CompanyApplicationsPage() {
                           )}
                         </div>
                       </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={app.status}
+                          onChange={(e) => updateStatus(app.id, e.target.value)}
+                          disabled={updatingStatus === app.id}
+                          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-primary-500 bg-white"
+                        >
+                          {statusOptions.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </td>
                       <td className="px-4 py-3 text-right">
-                        <button 
+                        <button
                           onClick={() => openDetails(app.id)}
                           className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
                         >

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import RedirectResponse, Response
+from sqlalchemy import exists as sa_exists
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime, timedelta, date
@@ -170,7 +171,11 @@ async def list_jobs(
                 (JobPosting.requirements.ilike(pattern)) |
                 (JobPosting.benefits.ilike(pattern)) |
                 (JobPosting.location.ilike(pattern)) |
-                (JobPosting.external_employer_name.ilike(pattern))
+                (JobPosting.external_employer_name.ilike(pattern)) |
+                (sa_exists().where(
+                    Company.id == JobPosting.company_id,
+                    Company.company_name.ilike(pattern)
+                ))
             )
 
     jobs = query.order_by(JobPosting.created_at.desc()).offset(skip).limit(limit).all()
