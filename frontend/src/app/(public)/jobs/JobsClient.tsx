@@ -123,6 +123,13 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
   }, [positionType, location, germanLevel, accommodationOnly]);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      loadJobs();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
     if (isApplicant) {
       loadLikedJobs();
     }
