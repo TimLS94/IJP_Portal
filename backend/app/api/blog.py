@@ -296,7 +296,14 @@ async def create_blog_post(
     db.add(post)
     db.commit()
     db.refresh(post)
-    
+
+    if post.is_published:
+        import asyncio
+        from app.services.google_indexing_service import google_indexing_service
+        asyncio.create_task(google_indexing_service.request_indexing(
+            f"https://www.jobon.work/blog/{post.slug}", "URL_UPDATED"
+        ))
+
     return add_category_label(post)
 
 
@@ -346,10 +353,17 @@ async def update_blog_post(
     
     for key, value in update_data.items():
         setattr(post, key, value)
-    
+
     db.commit()
     db.refresh(post)
-    
+
+    if post.is_published:
+        import asyncio
+        from app.services.google_indexing_service import google_indexing_service
+        asyncio.create_task(google_indexing_service.request_indexing(
+            f"https://www.jobon.work/blog/{post.slug}", "URL_UPDATED"
+        ))
+
     return add_category_label(post)
 
 
@@ -404,10 +418,19 @@ async def toggle_publish_post(
     post.is_published = not post.is_published
     if post.is_published and not post.published_at:
         post.published_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(post)
-    
+
+    # Google Indexierung / Deindexierung
+    import asyncio
+    from app.services.google_indexing_service import google_indexing_service
+    blog_url = f"https://www.jobon.work/blog/{post.slug}"
+    if post.is_published:
+        asyncio.create_task(google_indexing_service.request_indexing(blog_url, "URL_UPDATED"))
+    else:
+        asyncio.create_task(google_indexing_service.request_indexing(blog_url, "URL_DELETED"))
+
     return {
         "message": "Veröffentlicht" if post.is_published else "Versteckt",
         "is_published": post.is_published

@@ -170,7 +170,18 @@ async def generate_and_publish_blog_post(
         db.commit()
         db.refresh(post)
 
-        logger.info(f"✅ Blog-Post veröffentlicht: '{post.title}' (ID: {post.id})")
+        logger.info(f"✅ Blog-Post erstellt: '{post.title}' (ID: {post.id}, published: {auto_publish})")
+
+        if auto_publish:
+            try:
+                from app.services.google_indexing_service import google_indexing_service
+                import asyncio
+                asyncio.create_task(google_indexing_service.request_indexing(
+                    f"https://www.jobon.work/blog/{post.slug}", "URL_UPDATED"
+                ))
+            except Exception:
+                pass
+
         return {"id": post.id, "title": post.title, "slug": post.slug}
 
     except Exception as e:
