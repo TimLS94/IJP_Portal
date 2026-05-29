@@ -37,6 +37,14 @@ interface EmailTemplate {
   html: string;
 }
 
+interface ReindexResult {
+  sent: number;
+  errors: number;
+  skipped_due_to_limit: number;
+  api_configured: boolean;
+  sitemap_pinged?: boolean;
+}
+
 const flagConfig: Record<string, { title: string; description: string; icon: typeof Users; color: string }> = {
   matching_enabled_for_companies: {
     title: "Matching für Firmen",
@@ -88,13 +96,6 @@ export default function AdminSettingsPage() {
 
   // Google Reindex State
   const [reindexing, setReindexing] = useState(false);
-  interface ReindexResult {
-    sent: number;
-    errors: number;
-    skipped_due_to_limit: number;
-    api_configured: boolean;
-    sitemap_pinged?: boolean;
-  }
   const [reindexResult, setReindexResult] = useState<ReindexResult | null>(null);
 
   useEffect(() => {
