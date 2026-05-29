@@ -130,12 +130,20 @@ async def generate_and_publish_blog_post(
         )
 
         raw = message.content[0].text.strip()
-        json_match = re.search(r'\{.*\}', raw, re.DOTALL)
-        if not json_match:
-            logger.error(f"Kein JSON in Claude-Antwort: {raw[:200]}")
-            return None
 
-        data = json.loads(json_match.group())
+        # Markdown-Code-Block entfernen falls vorhanden (```json ... ```)
+        raw = re.sub(r'^```(?:json)?\s*\n?', '', raw)
+        raw = re.sub(r'\n?```\s*$', '', raw).strip()
+
+        # JSON parsen
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+            if not json_match:
+                logger.error(f"Kein JSON in Claude-Antwort: {raw[:300]}")
+                return None
+            data = json.loads(json_match.group())
 
         slug = _create_slug(data["title"])
         if db.query(BlogPost).filter(BlogPost.slug == slug).first():
