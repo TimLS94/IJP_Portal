@@ -209,8 +209,8 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
                     />
                   </div>
                 ) : (
-                  <div className="h-48 -mx-6 -mt-6 mb-4 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
-                    <Icon className="h-16 w-16 text-primary-400" />
+                  <div className="h-48 -mx-6 -mt-6 mb-4 bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
+                    <img src="/logo.png" alt="JobOn" className="h-16 w-auto opacity-40" />
                   </div>
                 )}
                 

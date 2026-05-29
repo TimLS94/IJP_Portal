@@ -202,15 +202,19 @@ export default function BlogDetailClient({ post, relatedPosts }: Props) {
       </header>
 
       {/* Featured Image */}
-      {post.featured_image && (
-        <div className="mb-8 rounded-2xl overflow-hidden shadow-lg">
-          <img 
-            src={post.featured_image} 
+      <div className="mb-8 rounded-2xl overflow-hidden shadow-lg">
+        {post.featured_image ? (
+          <img
+            src={post.featured_image}
             alt={post.title}
             className="w-full h-auto"
           />
-        </div>
-      )}
+        ) : (
+          <div className="h-56 bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
+            <img src="/logo.png" alt="JobOn" className="h-20 w-auto opacity-40" />
+          </div>
+        )}
+      </div>
 
       {/* Excerpt */}
       {post.excerpt && (

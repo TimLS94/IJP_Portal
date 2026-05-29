@@ -160,10 +160,10 @@ async def generate_and_publish_blog_post(
             meta_title=data["title"],
             meta_description=data.get("meta_description", ""),
             meta_keywords=data.get("meta_keywords", ""),
-            is_published=True,
+            is_published=False,
             is_featured=False,
             author_id=author_id,
-            published_at=datetime.utcnow(),
+            published_at=None,
         )
         db.add(post)
         db.commit()
