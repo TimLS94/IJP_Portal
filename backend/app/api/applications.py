@@ -897,9 +897,16 @@ async def share_documents_for_application(
             db.add(app_doc)
             added_count += 1
     
-    # Dokumentenanforderung als erfüllt markieren (leeren)
+    # Angeforderte Dokumente als erfüllt markieren (nicht löschen, für Firmen-Sicht)
     if added_count > 0 and application.requested_documents:
-        application.requested_documents = []
+        from datetime import datetime as _dt
+        shared_types = {doc.document_type for doc in docs}
+        updated_requests = []
+        for req in application.requested_documents:
+            if req.get("type") in shared_types and not req.get("fulfilled"):
+                req = {**req, "fulfilled": True, "fulfilled_at": _dt.utcnow().isoformat()}
+            updated_requests.append(req)
+        application.requested_documents = updated_requests
 
     db.commit()
 

@@ -415,7 +415,7 @@ export default function ApplicantApplicationsPage() {
                   )}
 
                   {/* Requested Documents Alert */}
-                  {app.requested_documents && app.requested_documents.length > 0 && (
+                  {app.requested_documents && app.requested_documents.some((d: any) => !d.fulfilled) && (
                     <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                       <div className="flex items-center gap-2 text-orange-700">
                         <FilePlus className="h-5 w-5" />
@@ -425,7 +425,7 @@ export default function ApplicantApplicationsPage() {
                         {t("applicantApplications.companyRequestedDocs", { company: app.company_name || t("common.theCompany") })}
                       </p>
                       <ul className="mt-2 space-y-1">
-                        {app.requested_documents.map((doc, idx) => (
+                        {app.requested_documents.filter((d: any) => !d.fulfilled).map((doc: any, idx: number) => (
                           <li key={idx} className="text-sm text-orange-700 flex items-center gap-2">
                             <span className="w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
                             {documentTypeLabels[doc.type] || doc.type}
