@@ -3,7 +3,6 @@ Automatische Blog-Post-Generierung mit Anthropic Claude.
 Wählt wöchentlich ein passendes Thema und veröffentlicht es direkt.
 """
 import os
-import json
 import re
 import random
 import logging
@@ -114,36 +113,38 @@ async def generate_and_publish_blog_post(
             messages=[{
                 "role": "user",
                 "content": (
-                    f"Schreibe einen vollständigen Blog-Artikel über dieses Thema:\n\n"
-                    f"**{topic}**\n\n"
-                    f"Antworte ausschließlich mit folgendem JSON (kein Text davor oder danach):\n"
-                    f'{{\n'
-                    f'  "title": "Genauer Artikeltitel",\n'
-                    f'  "excerpt": "2-3 Sätze Teaser für die Vorschau",\n'
-                    f'  "content": "Vollständiger HTML-Inhalt des Artikels",\n'
-                    f'  "tags": "tag1, tag2, tag3, tag4, tag5",\n'
-                    f'  "meta_description": "Max. 160 Zeichen SEO-Beschreibung",\n'
-                    f'  "meta_keywords": "keyword1, keyword2, keyword3"\n'
-                    f'}}'
+                    f"Schreibe einen vollständigen Blog-Artikel über dieses Thema: **{topic}**\n\n"
+                    f"Verwende EXAKT dieses Format mit den === Trennern (kein Text davor oder danach):\n\n"
+                    f"===TITEL===\n[Artikeltitel]\n\n"
+                    f"===EXCERPT===\n[2-3 Sätze Teaser für die Vorschau]\n\n"
+                    f"===INHALT===\n[Vollständiger HTML-Inhalt]\n\n"
+                    f"===TAGS===\n[5-8 Tags, komma-getrennt]\n\n"
+                    f"===META_DESCRIPTION===\n[Max. 160 Zeichen SEO-Beschreibung]\n\n"
+                    f"===META_KEYWORDS===\n[5-8 Keywords, komma-getrennt]"
                 )
             }]
         )
 
         raw = message.content[0].text.strip()
 
-        # Markdown-Code-Block entfernen falls vorhanden (```json ... ```)
-        raw = re.sub(r'^```(?:json)?\s*\n?', '', raw)
-        raw = re.sub(r'\n?```\s*$', '', raw).strip()
+        # Delimiter-basiertes Parsen — kein JSON-Escaping-Problem
+        def _extract(marker: str) -> str:
+            pattern = rf'==={marker}===\s*\n(.*?)(?====|\Z)'
+            m = re.search(pattern, raw, re.DOTALL)
+            return m.group(1).strip() if m else ""
 
-        # JSON parsen
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            json_match = re.search(r'\{.*\}', raw, re.DOTALL)
-            if not json_match:
-                logger.error(f"Kein JSON in Claude-Antwort: {raw[:300]}")
-                return None
-            data = json.loads(json_match.group())
+        data = {
+            "title": _extract("TITEL") or topic,
+            "excerpt": _extract("EXCERPT"),
+            "content": _extract("INHALT"),
+            "tags": _extract("TAGS"),
+            "meta_description": _extract("META_DESCRIPTION"),
+            "meta_keywords": _extract("META_KEYWORDS"),
+        }
+
+        if not data["content"]:
+            logger.error(f"Kein Inhalt in Claude-Antwort: {raw[:300]}")
+            return None
 
         slug = _create_slug(data["title"])
         if db.query(BlogPost).filter(BlogPost.slug == slug).first():
