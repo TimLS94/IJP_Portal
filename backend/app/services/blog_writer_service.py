@@ -108,7 +108,7 @@ async def generate_and_publish_blog_post(
 
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=2500,
+            max_tokens=4096,
             system=SYSTEM_PROMPT,
             messages=[{
                 "role": "user",
@@ -116,11 +116,11 @@ async def generate_and_publish_blog_post(
                     f"Schreibe einen vollständigen Blog-Artikel über dieses Thema: **{topic}**\n\n"
                     f"Verwende EXAKT dieses Format mit den === Trennern (kein Text davor oder danach):\n\n"
                     f"===TITEL===\n[Artikeltitel]\n\n"
-                    f"===EXCERPT===\n[2-3 Sätze Teaser für die Vorschau]\n\n"
-                    f"===INHALT===\n[Vollständiger HTML-Inhalt]\n\n"
+                    f"===EXCERPT===\n[2-3 Sätze Teaser]\n\n"
                     f"===TAGS===\n[5-8 Tags, komma-getrennt]\n\n"
                     f"===META_DESCRIPTION===\n[Max. 160 Zeichen SEO-Beschreibung]\n\n"
-                    f"===META_KEYWORDS===\n[5-8 Keywords, komma-getrennt]"
+                    f"===META_KEYWORDS===\n[5-8 Keywords, komma-getrennt]\n\n"
+                    f"===INHALT===\n[Vollständiger HTML-Inhalt des Artikels]"
                 )
             }]
         )
