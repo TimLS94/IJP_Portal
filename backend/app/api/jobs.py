@@ -142,7 +142,7 @@ async def list_jobs(
     location: Optional[str] = None,
     search: Optional[str] = None,
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db)
 ):
     """Listet alle aktiven Stellenangebote (öffentlich)"""
@@ -152,19 +152,27 @@ async def list_jobs(
         JobPosting.is_active == True,
         JobPosting.is_draft == False  # Entwürfe ausblenden
     )
-    
+
     if position_type:
         query = query.filter(JobPosting.position_type == position_type)
-    
+
     if location:
         query = query.filter(JobPosting.location.ilike(f"%{location}%"))
-    
+
     if search:
-        query = query.filter(
-            (JobPosting.title.ilike(f"%{search}%")) |
-            (JobPosting.description.ilike(f"%{search}%"))
-        )
-    
+        terms = [t.strip() for t in search.split() if t.strip()]
+        for term in terms:
+            pattern = f"%{term}%"
+            query = query.filter(
+                (JobPosting.title.ilike(pattern)) |
+                (JobPosting.description.ilike(pattern)) |
+                (JobPosting.tasks.ilike(pattern)) |
+                (JobPosting.requirements.ilike(pattern)) |
+                (JobPosting.benefits.ilike(pattern)) |
+                (JobPosting.location.ilike(pattern)) |
+                (JobPosting.external_employer_name.ilike(pattern))
+            )
+
     jobs = query.order_by(JobPosting.created_at.desc()).offset(skip).limit(limit).all()
     return jobs
 

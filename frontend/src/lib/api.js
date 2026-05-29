@@ -442,6 +442,11 @@ export const baScraperAPI = {
   getStats: () => api.get('/admin/ba-scraper/stats'),
   check: () => api.get('/admin/ba-scraper/check'),
   deleteAll: () => api.delete('/admin/ba-scraper/jobs'),
+  // Review-Workflow
+  getPending: () => api.get('/admin/ba-scraper/pending'),
+  approveJob: (id) => api.post(`/admin/ba-scraper/approve/${id}`),
+  approveAll: () => api.post('/admin/ba-scraper/approve-all'),
+  deletePending: (id) => api.delete(`/admin/ba-scraper/pending/${id}`),
 };
 
 // Auth API Erweiterung für Einladungs-Token-Prüfung

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { applicationsAPI } from "@/lib/api";
+import { applicationsAPI, jobsAPI } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import {
@@ -29,6 +29,7 @@ import {
   Loader2,
   CheckCircle,
   AlertTriangle,
+  Flag,
 } from "lucide-react";
 
 const JOB_LANGUAGES = [
@@ -158,6 +159,11 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
   const [showApplyForm, setShowApplyForm] = useState(false);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
   const [profileError, setProfileError] = useState("");
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportNote, setReportNote] = useState("");
+  const [reporting, setReporting] = useState(false);
+  const [reported, setReported] = useState(false);
   const job = initialJob;
 
   const parsedTranslations: Record<string, Record<string, string>> | undefined = (() => {
@@ -233,6 +239,24 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
       }
     } finally {
       setApplying(false);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!reportReason) {
+      toast.error("Bitte wähle einen Grund aus");
+      return;
+    }
+    setReporting(true);
+    try {
+      await jobsAPI.reportJob(job.id, reportReason, reportNote || undefined);
+      toast.success("Stelle wurde gemeldet — Danke für dein Feedback!");
+      setReported(true);
+      setShowReportModal(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Melden fehlgeschlagen");
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -720,8 +744,86 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
             )}
 
           </div>
+
+          {/* Stelle melden */}
+          {isApplicant && (
+            <div className="mt-4">
+              {reported ? (
+                <p className="text-xs text-gray-400 text-center">Stelle wurde gemeldet</p>
+              ) : (
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 mx-auto transition-colors"
+                >
+                  <Flag className="h-3 w-3" />
+                  Stelle melden
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <Flag className="h-5 w-5 text-red-500" />
+              Stelle melden
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">Was stimmt mit dieser Stelle nicht?</p>
+
+            <div className="space-y-2 mb-4">
+              {[
+                { value: "not_relevant", label: "Nicht relevant für mich" },
+                { value: "misleading", label: "Irreführende Beschreibung" },
+                { value: "duplicate", label: "Doppelte Stelle" },
+                { value: "spam", label: "Spam / Fake" },
+                { value: "inappropriate", label: "Unangemessener Inhalt" },
+                { value: "other", label: "Sonstiges" },
+              ].map((r) => (
+                <label key={r.value} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="report_reason"
+                    value={r.value}
+                    checked={reportReason === r.value}
+                    onChange={() => setReportReason(r.value)}
+                    className="accent-red-500"
+                  />
+                  <span className="text-sm text-gray-700">{r.label}</span>
+                </label>
+              ))}
+            </div>
+
+            <textarea
+              value={reportNote}
+              onChange={(e) => setReportNote(e.target.value)}
+              placeholder="Optionale Anmerkung..."
+              rows={2}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleReport}
+                disabled={reporting || !reportReason}
+                className="flex-1 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-1"
+              >
+                {reporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flag className="h-4 w-4" />}
+                Melden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

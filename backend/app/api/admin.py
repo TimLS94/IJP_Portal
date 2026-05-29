@@ -634,6 +634,9 @@ class AdminUpdateJobRequest(BaseModel):
     requirements: Optional[str] = None
     benefits: Optional[str] = None
     translations: Optional[dict] = None
+    salary_min: Optional[float] = None
+    salary_max: Optional[float] = None
+    salary_type: Optional[str] = None
 
 
 @router.put("/jobs/{job_id}")
@@ -645,13 +648,13 @@ async def admin_update_job(
 ):
     """Aktualisiert ein Stellenangebot (Admin - für Formatierungskorrekturen)"""
     job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
-    
+
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Stellenangebot nicht gefunden"
         )
-    
+
     # Update fields if provided
     if request.title is not None:
         job.title = request.title
@@ -665,10 +668,17 @@ async def admin_update_job(
         job.benefits = request.benefits
     if request.translations is not None:
         job.translations = request.translations
-    
+    # salary_min/max können explizit auf None gesetzt werden (Löschen)
+    if "salary_min" in request.model_fields_set:
+        job.salary_min = request.salary_min
+    if "salary_max" in request.model_fields_set:
+        job.salary_max = request.salary_max
+    if "salary_type" in request.model_fields_set:
+        job.salary_type = request.salary_type
+
     job.updated_at = datetime.utcnow()
     db.commit()
-    
+
     return {"message": "Stellenangebot aktualisiert", "id": job.id}
 
 

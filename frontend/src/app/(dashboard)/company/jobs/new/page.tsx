@@ -312,7 +312,31 @@ export default function CreateJobPage() {
       </form>
 
       {/* Vorschau Modal */}
-      {showPreview && (
+      {showPreview && (() => {
+        const salaryMin = watch("salary_min");
+        const salaryMax = watch("salary_max");
+        const salaryType = watch("salary_type");
+        const salaryTypeLabel = salaryTypes.find(s => s.value === salaryType)?.label || "";
+        const salaryStr = salaryMin && salaryMax
+          ? `${salaryMin} – ${salaryMax} € ${salaryTypeLabel}`
+          : salaryMin ? `ab ${salaryMin} € ${salaryTypeLabel}`
+          : salaryMax ? `bis ${salaryMax} € ${salaryTypeLabel}` : null;
+        const startDate = watch("start_date") as string;
+        const endDate = watch("end_date") as string;
+        const formatDate = (d: string) => d ? new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }) : "";
+        const contactPerson = watch("contact_person") as string;
+        const contactEmail = watch("contact_email") as string;
+        const contactPhone = watch("contact_phone") as string;
+        const contactWhatsapp = watch("contact_whatsapp") as string;
+        const remotePossible = watch("remote_possible");
+        const accommodationProvided = watch("accommodation_provided");
+        const germanReq = watch("german_required") as string;
+        const englishReq = watch("english_required") as string;
+        const location = watch("location") as string;
+        const address = watch("address") as string;
+        const postalCode = watch("postal_code") as string;
+        const employmentType = watch("employment_type") as string;
+        return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8">
             <div className="sticky top-0 bg-white border-b p-4 rounded-t-2xl flex items-center justify-between z-10">
@@ -320,28 +344,52 @@ export default function CreateJobPage() {
               <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="h-5 w-5" /></button>
             </div>
             <div className="p-6">
+              {/* Title + Position Types */}
               <div className="flex items-start justify-between gap-4 mb-4">
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{translations.de.title || "Stellentitel"}</h1>
                 <div className="flex flex-wrap gap-2">{selectedPositionTypes.map(t => <span key={t} className={`px-3 py-1 rounded-full text-sm font-semibold border ${positionTypeColors[t]}`}>{positionTypes.find(p => p.value === t)?.label}</span>)}</div>
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-6">
-                {watch("location") && <span className="flex items-center gap-1.5"><MapPin className="h-5 w-5 text-gray-400" />{watch("location")}</span>}
-                {watch("employment_type") && <span className="flex items-center gap-1.5"><Briefcase className="h-5 w-5 text-gray-400" />{employmentTypes.find(e => e.value === watch("employment_type"))?.label}</span>}
-                {(watch("salary_min") || watch("salary_max")) && <span className="flex items-center gap-1.5"><Euro className="h-5 w-5 text-gray-400" />{watch("salary_min") && watch("salary_max") ? `${watch("salary_min")} - ${watch("salary_max")}€` : watch("salary_min") ? `ab ${watch("salary_min")}€` : `bis ${watch("salary_max")}€`}</span>}
-                {startImmediate && <span className="flex items-center gap-1.5 text-green-600"><Zap className="h-5 w-5" />Ab sofort</span>}
+
+              {/* Quick Info Row */}
+              <div className="flex flex-wrap items-center gap-3 text-gray-600 mb-6">
+                {location && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-gray-400" />{postalCode ? `${postalCode} ` : ""}{location}{address ? `, ${address}` : ""}</span>}
+                {employmentType && <span className="flex items-center gap-1.5"><Briefcase className="h-4 w-4 text-gray-400" />{employmentTypes.find(e => e.value === employmentType)?.label}</span>}
+                {salaryStr && <span className="flex items-center gap-1.5 text-green-700 font-medium"><Euro className="h-4 w-4" />{salaryStr}</span>}
+                {startImmediate && <span className="flex items-center gap-1.5 text-green-600 font-medium"><Zap className="h-4 w-4" />Ab sofort</span>}
+                {!startImmediate && startDate && <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-gray-400" />ab {formatDate(startDate)}</span>}
+                {endDate && <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-gray-400" />bis {formatDate(endDate)}</span>}
+                {remotePossible && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">Remote möglich</span>}
+                {accommodationProvided && <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-sm font-medium flex items-center gap-1">🏠 Unterkunft vorhanden</span>}
               </div>
+
+              {/* Content Sections */}
               {translations.de.description && <div className="mb-6"><h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2"><FileText className="h-5 w-5 text-primary-600" />Stellenbeschreibung</h3><div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: translations.de.description }} /></div>}
               {translations.de.tasks && <div className="mb-6"><h3 className="text-lg font-semibold text-gray-900 mb-3">Ihre Aufgaben</h3><div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: translations.de.tasks }} /></div>}
               {translations.de.requirements && <div className="mb-6"><h3 className="text-lg font-semibold text-gray-900 mb-3">Anforderungen</h3><div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: translations.de.requirements }} /></div>}
               {translations.de.benefits && <div className="mb-6"><h3 className="text-lg font-semibold text-gray-900 mb-3">Wir bieten</h3><div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: translations.de.benefits }} /></div>}
+
+              {/* Language Requirements */}
               <div className="mb-6 bg-gray-50 rounded-xl p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2"><Languages className="h-5 w-5 text-primary-600" />Sprachanforderungen</h3>
                 <div className="flex flex-wrap gap-3">
-                  <span className="px-3 py-1.5 bg-white rounded-lg border text-sm">🇩🇪 Deutsch: {languageLevels.find(l => l.value === watch("german_required"))?.label || "Nicht erforderlich"}</span>
-                  <span className="px-3 py-1.5 bg-white rounded-lg border text-sm">🇬🇧 Englisch: {languageLevels.find(l => l.value === watch("english_required"))?.label || "Nicht erforderlich"}</span>
+                  <span className="px-3 py-1.5 bg-white rounded-lg border text-sm">🇩🇪 Deutsch: {languageLevels.find(l => l.value === germanReq)?.label || "Nicht erforderlich"}</span>
+                  <span className="px-3 py-1.5 bg-white rounded-lg border text-sm">🇬🇧 Englisch: {languageLevels.find(l => l.value === englishReq)?.label || "Nicht erforderlich"}</span>
                   {otherLanguages.filter(l => l.language).map((l, i) => <span key={i} className={`px-3 py-1.5 rounded-lg border text-sm ${l.required ? "bg-red-50 border-red-200 text-red-700" : "bg-green-50 border-green-200 text-green-700"}`}>{l.language}: {languageLevels.find(x => x.value === l.level)?.label} {l.required ? "(Voraussetzung)" : "(Wünschenswert)"}</span>)}
                 </div>
               </div>
+
+              {/* Contact Person */}
+              {(contactPerson || contactEmail || contactPhone || contactWhatsapp) && (
+                <div className="mb-6 bg-green-50 rounded-xl p-4 border border-green-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2"><User className="h-5 w-5 text-green-600" />Kontaktperson</h3>
+                  <div className="space-y-2">
+                    {contactPerson && <p className="font-semibold text-gray-900">{contactPerson}</p>}
+                    {contactEmail && <p className="flex items-center gap-2 text-gray-700"><Mail className="h-4 w-4 text-gray-400" />{contactEmail}</p>}
+                    {contactPhone && <p className="flex items-center gap-2 text-gray-700"><Phone className="h-4 w-4 text-gray-400" />{contactPhone}</p>}
+                    {contactWhatsapp && <p className="flex items-center gap-2 text-gray-700">💬 WhatsApp: {contactWhatsapp}</p>}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="sticky bottom-0 bg-white border-t p-4 rounded-b-2xl flex justify-end gap-3">
               <button onClick={() => setShowPreview(false)} className="btn-secondary">Schließen</button>
@@ -349,7 +397,8 @@ export default function CreateJobPage() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Template Modal */}
       {showTemplateModal && <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"><h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Copy className="h-5 w-5 text-primary-600" />Als Vorlage speichern</h2><div className="mb-6"><label className="label">Vorlagenname *</label><input type="text" className="input-styled" placeholder="z.B. Servicekraft Sommer" value={templateName} onChange={e => setTemplateName(e.target.value)} autoFocus /></div><div className="flex justify-end gap-3"><button onClick={() => { setShowTemplateModal(false); setTemplateName(""); }} className="btn-secondary">Abbrechen</button><button onClick={saveAsTemplate} disabled={savingTemplate || !templateName.trim()} className="btn-primary flex items-center gap-2">{savingTemplate ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}Speichern</button></div></div></div>}

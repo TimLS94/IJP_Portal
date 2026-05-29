@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import {
   Download, Play, Trash2, Settings, CheckCircle,
   AlertTriangle, RefreshCw, ExternalLink, Loader2, Sparkles, XCircle,
+  ClipboardList, ThumbsUp, Euro,
 } from "lucide-react";
 import { baScraperAPI } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -41,6 +42,20 @@ interface RunResult {
   timestamp: string;
 }
 
+interface PendingJob {
+  id: number;
+  title: string;
+  location: string;
+  employer: string;
+  position_type: string;
+  employment_type: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_type: string | null;
+  external_url: string;
+  created_at: string;
+}
+
 const ANGEBOTSART_OPTIONS = [
   { value: 1, label: "Arbeit (Vollzeit / Teilzeit)" },
   { value: 2, label: "Ausbildung / Praktikum" },
@@ -63,6 +78,9 @@ export default function BaScraperPage() {
   const [saving, setSaving] = useState(false);
   const [lastResult, setLastResult] = useState<RunResult | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingJobs, setPendingJobs] = useState<PendingJob[]>([]);
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [approvingAll, setApprovingAll] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -70,16 +88,18 @@ export default function BaScraperPage() {
 
   const loadData = async () => {
     try {
-      const [cfgRes, statsRes, checkRes] = await Promise.all([
+      const [cfgRes, statsRes, checkRes, pendingRes] = await Promise.all([
         baScraperAPI.getConfig(),
         baScraperAPI.getStats(),
         baScraperAPI.check(),
+        baScraperAPI.getPending(),
       ]);
       const cfg: Config = cfgRes.data;
       setConfig({ ...cfg, ai_provider: cfg.ai_provider ?? "none" });
       setKeywordsInput((cfg.keywords || []).join(", "));
       setStats(statsRes.data);
       setCheck(checkRes.data);
+      setPendingJobs(pendingRes.data || []);
     } catch {
       toast.error("Daten konnten nicht geladen werden");
     }
@@ -130,6 +150,53 @@ export default function BaScraperPage() {
     } catch {
       toast.error("Löschen fehlgeschlagen");
     }
+  };
+
+  const handleApprove = async (id: number) => {
+    setApprovingId(id);
+    try {
+      await baScraperAPI.approveJob(id);
+      toast.success("Stelle freigegeben und veröffentlicht");
+      setPendingJobs((prev) => prev.filter((j) => j.id !== id));
+    } catch {
+      toast.error("Freigabe fehlgeschlagen");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleApproveAll = async () => {
+    setApprovingAll(true);
+    try {
+      const res = await baScraperAPI.approveAll();
+      toast.success(`${res.data.approved} Stellen freigegeben`);
+      setPendingJobs([]);
+      await loadData();
+    } catch {
+      toast.error("Freigabe fehlgeschlagen");
+    } finally {
+      setApprovingAll(false);
+    }
+  };
+
+  const handleDeletePending = async (id: number) => {
+    try {
+      await baScraperAPI.deletePending(id);
+      toast.success("Stelle gelöscht");
+      setPendingJobs((prev) => prev.filter((j) => j.id !== id));
+    } catch {
+      toast.error("Löschen fehlgeschlagen");
+    }
+  };
+
+  const formatSalary = (job: PendingJob) => {
+    if (!job.salary_min) return null;
+    const type = job.salary_type === "hourly" ? "/Std" : job.salary_type === "monthly" ? "/Mon" : "/Jahr";
+    const min = job.salary_min.toFixed(2).replace(".", ",");
+    if (job.salary_max) {
+      return `${min} – ${job.salary_max.toFixed(2).replace(".", ",")} €${type}`;
+    }
+    return `ab ${min} €${type}`;
   };
 
   const formatDate = (iso: string | null) => {
@@ -419,6 +486,80 @@ export default function BaScraperPage() {
           Alle löschen
         </button>
       </div>
+
+      {/* Review Section: Pending Jobs */}
+      {pendingJobs.length > 0 && (
+        <div className="card space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-orange-500" />
+              Warten auf Freigabe
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-sm font-bold">
+                {pendingJobs.length}
+              </span>
+            </h2>
+            <button
+              onClick={handleApproveAll}
+              disabled={approvingAll}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {approvingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="h-4 w-4" />}
+              Alle freigeben ({pendingJobs.length})
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {pendingJobs.map((job) => {
+              const salary = formatSalary(job);
+              return (
+                <div key={job.id} className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 border border-orange-100">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 text-sm truncate">{job.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {job.employer} · {job.location}
+                      {salary && (
+                        <span className="ml-2 text-green-700 font-medium">
+                          <Euro className="h-3 w-3 inline mr-0.5" />{salary}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {job.external_url && (
+                      <a
+                        href={job.external_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Original bei BA ansehen"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                    <button
+                      onClick={() => handleApprove(job.id)}
+                      disabled={approvingId === job.id}
+                      className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      {approvingId === job.id
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <CheckCircle className="h-3 w-3" />}
+                      Freigeben
+                    </button>
+                    <button
+                      onClick={() => handleDeletePending(job.id)}
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Löschen"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && (

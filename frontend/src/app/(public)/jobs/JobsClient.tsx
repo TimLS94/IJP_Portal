@@ -170,7 +170,7 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
   const loadJobs = async () => {
     setLoading(true);
     try {
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = { limit: "200" };
       if (positionType) params.position_type = positionType;
       if (location) params.location = location;
       if (search) params.search = search;

@@ -31,6 +31,9 @@ interface JobData {
   company_name?: string;
   position_type?: string;
   is_active: boolean;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  salary_type?: string | null;
   translations?: Record<string, {
     title: string;
     description: string;
@@ -64,6 +67,11 @@ export default function AdminEditJobPage() {
   const [tasks, setTasks] = useState("");
   const [requirements, setRequirements] = useState("");
   const [benefits, setBenefits] = useState("");
+
+  // Salary
+  const [salaryMin, setSalaryMin] = useState<string>("");
+  const [salaryMax, setSalaryMax] = useState<string>("");
+  const [salaryType, setSalaryType] = useState<string>("hourly");
   
   // Translations
   const [translations, setTranslations] = useState<Record<string, {
@@ -83,14 +91,19 @@ export default function AdminEditJobPage() {
       const response = await jobsAPI.get(jobId);
       const data = response.data;
       setJob(data);
-      
+
       // Set German content
       setTitle(data.title || "");
       setDescription(data.description || "");
       setTasks(data.tasks || "");
       setRequirements(data.requirements || "");
       setBenefits(data.benefits || "");
-      
+
+      // Salary
+      setSalaryMin(data.salary_min != null ? String(data.salary_min) : "");
+      setSalaryMax(data.salary_max != null ? String(data.salary_max) : "");
+      setSalaryType(data.salary_type || "hourly");
+
       // Set translations
       if (data.translations) {
         setTranslations(data.translations);
@@ -134,13 +147,16 @@ export default function AdminEditJobPage() {
     setSaving(true);
     try {
       // Prepare update data
-      const updateData = {
+      const updateData: Record<string, unknown> = {
         title,
         description,
         tasks,
         requirements,
         benefits,
-        translations: Object.keys(translations).length > 0 ? translations : undefined
+        translations: Object.keys(translations).length > 0 ? translations : undefined,
+        salary_min: salaryMin ? parseFloat(salaryMin) : null,
+        salary_max: salaryMax ? parseFloat(salaryMax) : null,
+        salary_type: (salaryMin || salaryMax) ? salaryType : null,
       };
       
       await adminAPI.updateJob(parseInt(jobId), updateData);
@@ -339,6 +355,49 @@ export default function AdminEditJobPage() {
             onChange={(value: string) => updateContent("benefits", value)}
             placeholder="Was wir bieten..."
           />
+        </div>
+      </div>
+
+      {/* Salary */}
+      <div className="card mt-6">
+        <label className="block text-sm font-medium text-gray-700 mb-3">Gehalt / Vergütung</label>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Minimum (€)</label>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={salaryMin}
+              onChange={(e) => setSalaryMin(e.target.value)}
+              placeholder="z.B. 13.90"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Maximum (€, optional)</label>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={salaryMax}
+              onChange={(e) => setSalaryMax(e.target.value)}
+              placeholder="z.B. 16.00"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Typ</label>
+            <select
+              value={salaryType}
+              onChange={(e) => setSalaryType(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="hourly">Stundenlohn</option>
+              <option value="monthly">Monatslohn</option>
+              <option value="yearly">Jahreslohn</option>
+            </select>
+          </div>
         </div>
       </div>
 

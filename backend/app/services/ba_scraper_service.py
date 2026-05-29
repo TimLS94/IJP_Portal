@@ -167,6 +167,51 @@ def _parse_ba_description(raw: str) -> dict:
     return result
 
 
+def _parse_salary_from_text(text: str) -> tuple[Optional[float], Optional[float], Optional[str]]:
+    """Versucht Gehalt aus Beschreibungstext per Regex zu extrahieren."""
+    import re as _re2
+    if not text:
+        return None, None, None
+
+    # Stundenlohn: z.B. "13,90 €/Std", "13.90 €/h", "ab 14 Euro pro Stunde"
+    hourly_pattern = _re2.search(
+        r'(\d{1,3}(?:[.,]\d{1,2})?)\s*(?:–|-|bis)\s*(\d{1,3}(?:[.,]\d{1,2})?)\s*[€Ee]\w*/(?:Std|Stunde|h\b)',
+        text, _re2.IGNORECASE
+    )
+    if hourly_pattern:
+        mn = float(hourly_pattern.group(1).replace(',', '.'))
+        mx = float(hourly_pattern.group(2).replace(',', '.'))
+        return mn, mx, "hourly"
+
+    hourly_single = _re2.search(
+        r'(?:ab|mindestens|ca\.)?\s*(\d{1,3}(?:[.,]\d{1,2})?)\s*[€Ee]\w*/(?:Std|Stunde|h\b)',
+        text, _re2.IGNORECASE
+    )
+    if hourly_single:
+        val = float(hourly_single.group(1).replace(',', '.'))
+        return val, None, "hourly"
+
+    # Monatslohn: z.B. "2.500 € / Monat", "2500 - 3000 € monatlich"
+    monthly_range = _re2.search(
+        r'(\d{1,4}(?:[.,]\d{3})?)\s*(?:–|-|bis)\s*(\d{1,4}(?:[.,]\d{3})?)\s*[€Ee]\w*/(?:Monat|Monaten?|m\b)',
+        text, _re2.IGNORECASE
+    )
+    if monthly_range:
+        mn = float(monthly_range.group(1).replace('.', '').replace(',', '.'))
+        mx = float(monthly_range.group(2).replace('.', '').replace(',', '.'))
+        return mn, mx, "monthly"
+
+    monthly_single = _re2.search(
+        r'(?:ab|mindestens|ca\.)?\s*(\d{1,4}(?:[.,]\d{3})?)\s*[€Ee]\w*/(?:Monat|Monaten?|m\b)',
+        text, _re2.IGNORECASE
+    )
+    if monthly_single:
+        val = float(monthly_single.group(1).replace('.', '').replace(',', '.'))
+        return val, None, "monthly"
+
+    return None, None, None
+
+
 def _parse_detail(detail: dict) -> dict:
     """Extrahiert relevante Felder aus der Detail-Antwort."""
     raw_desc = detail.get("stellenangebotsBeschreibung", "").strip()
@@ -198,6 +243,35 @@ def _parse_detail(detail: dict) -> dict:
         if street.lower() == "null":
             street = ""
 
+    # Gehalt: aus BA-Feld "arbeitsentgelt" oder per Regex aus Beschreibung
+    salary_min = salary_max = salary_type = None
+    entgelt = detail.get("arbeitsentgelt") or {}
+    if isinstance(entgelt, dict):
+        brutto = entgelt.get("brutto")
+        zeitraum = entgelt.get("zeitraum", "").lower()
+        brutto_max = entgelt.get("bruttoMax")
+        if brutto:
+            try:
+                salary_min = float(str(brutto).replace(',', '.'))
+            except Exception:
+                pass
+        if brutto_max:
+            try:
+                salary_max = float(str(brutto_max).replace(',', '.'))
+            except Exception:
+                pass
+        if zeitraum:
+            if "stunde" in zeitraum or "hour" in zeitraum:
+                salary_type = "hourly"
+            elif "monat" in zeitraum or "month" in zeitraum:
+                salary_type = "monthly"
+            elif "jahr" in zeitraum or "year" in zeitraum or "annual" in zeitraum:
+                salary_type = "yearly"
+
+    # Fallback: Regex-Parsing aus Beschreibung
+    if not salary_min:
+        salary_min, salary_max, salary_type = _parse_salary_from_text(raw_desc)
+
     return {
         "raw_description": raw_desc,
         "description": parsed_fields["description"],
@@ -206,6 +280,9 @@ def _parse_detail(detail: dict) -> dict:
         "benefits": parsed_fields["benefits"],
         "employment_type": employment_type,
         "street": street,
+        "salary_min": salary_min,
+        "salary_max": salary_max,
+        "salary_type": salary_type,
     }
 
 
@@ -528,7 +605,9 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                         tasks = parsed["tasks"]
                         requirements = parsed["requirements"]
                         benefits = parsed["benefits"]
-                        salary_min = salary_max = salary_type = None
+                        salary_min = parsed.get("salary_min")
+                        salary_max = parsed.get("salary_max")
+                        salary_type = parsed.get("salary_type")
                         contact_person = contact_phone = None
 
                     job = JobPosting(
@@ -549,8 +628,8 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                         contact_person=contact_person,
                         contact_phone=contact_phone,
                         start_date=start_date,
-                        is_active=True,
-                        is_draft=False,
+                        is_active=False,
+                        is_draft=True,
                         slug=slug,
                         is_external=True,
                         external_source="bundesagentur",
@@ -654,6 +733,10 @@ def backfill_descriptions(db: Session, ai_provider: str = "none") -> dict:
             job.employment_type = parsed["employment_type"]
         if parsed["street"] and not job.address:
             job.address = parsed["street"]
+        if parsed.get("salary_min") and not job.salary_min:
+            job.salary_min = parsed["salary_min"]
+            job.salary_max = parsed.get("salary_max")
+            job.salary_type = parsed.get("salary_type")
         updated += 1
 
     db.commit()

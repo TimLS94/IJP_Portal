@@ -2,10 +2,13 @@
 Admin-Endpunkte für den Bundesagentur für Arbeit Job-Scraper.
 Nur für Admins zugänglich.
 """
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -169,3 +172,125 @@ def backfill_missing_descriptions(
 ):
     """Beschreibungen für bestehende BA-Jobs neu laden und strukturieren (optional mit KI)."""
     return backfill_descriptions(db, ai_provider=body.ai_provider)
+
+
+# ==================== Review-Workflow (Entwürfe prüfen & freigeben) ====================
+
+@router.get("/pending")
+def get_pending_jobs(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Alle BA-Jobs die als Entwurf warten und noch nicht veröffentlicht wurden."""
+    jobs = db.query(JobPosting).filter(
+        JobPosting.external_source == "bundesagentur",
+        JobPosting.is_draft == True,
+        JobPosting.is_archived == False,
+    ).order_by(JobPosting.created_at.desc()).all()
+
+    return [
+        {
+            "id": j.id,
+            "title": j.title,
+            "location": j.location,
+            "employer": j.external_employer_name,
+            "position_type": j.position_type,
+            "employment_type": j.employment_type,
+            "salary_min": j.salary_min,
+            "salary_max": j.salary_max,
+            "salary_type": j.salary_type,
+            "external_url": j.external_url,
+            "created_at": j.created_at.isoformat() if j.created_at else None,
+        }
+        for j in jobs
+    ]
+
+
+@router.post("/approve/{job_id}")
+async def approve_job(
+    job_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Einzelnen BA-Job freigeben (Entwurf → aktiv)."""
+    import asyncio
+    job = db.query(JobPosting).filter(
+        JobPosting.id == job_id,
+        JobPosting.external_source == "bundesagentur",
+    ).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job nicht gefunden")
+
+    job.is_draft = False
+    job.is_active = True
+    db.commit()
+    db.refresh(job)
+
+    # Google Indexing
+    if google_indexing_service.is_configured():
+        asyncio.create_task(google_indexing_service.index_job(job.slug, job.id))
+    else:
+        asyncio.create_task(google_indexing_service.ping_sitemap())
+
+    # Bewerber benachrichtigen
+    try:
+        from app.services.job_notification_service import notify_applicants_about_new_job
+        notify_applicants_about_new_job(job, db)
+    except Exception as exc:
+        logger.warning(f"Bewerber-Benachrichtigung fehlgeschlagen: {exc}")
+
+    return {"id": job.id, "title": job.title, "approved": True}
+
+
+@router.post("/approve-all")
+async def approve_all_jobs(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Alle wartenden BA-Jobs auf einmal freigeben."""
+    import asyncio
+    jobs = db.query(JobPosting).filter(
+        JobPosting.external_source == "bundesagentur",
+        JobPosting.is_draft == True,
+        JobPosting.is_archived == False,
+    ).all()
+
+    count = 0
+    for job in jobs:
+        job.is_draft = False
+        job.is_active = True
+        count += 1
+    db.commit()
+
+    for job in jobs:
+        if google_indexing_service.is_configured():
+            asyncio.create_task(google_indexing_service.index_job(job.slug, job.id))
+        try:
+            from app.services.job_notification_service import notify_applicants_about_new_job
+            notify_applicants_about_new_job(job, db)
+        except Exception:
+            pass
+
+    if not google_indexing_service.is_configured() and count:
+        asyncio.create_task(google_indexing_service.ping_sitemap())
+
+    return {"approved": count}
+
+
+@router.delete("/pending/{job_id}")
+def delete_pending_job(
+    job_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Einzelnen wartenden BA-Job löschen."""
+    job = db.query(JobPosting).filter(
+        JobPosting.id == job_id,
+        JobPosting.external_source == "bundesagentur",
+        JobPosting.is_draft == True,
+    ).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job nicht gefunden oder bereits freigegeben")
+    db.delete(job)
+    db.commit()
+    return {"deleted": True}
