@@ -770,22 +770,35 @@ async def request_documents_from_applicant(
     application.requested_documents = existing_requests
     db.commit()
     
-    # E-Mail an Bewerber senden
+    # E-Mail und In-App-Benachrichtigung an Bewerber senden
     if applicant_user and applicant:
         from app.models.document import DOCUMENT_REQUIREMENTS
         from app.schemas.document import DOCUMENT_TYPE_LABELS
-        
+        from app.models.notification import Notification
+
         doc_labels = [DOCUMENT_TYPE_LABELS.get(dt, dt) for dt in request_data.document_types]
-        
+        job_title = job.title if job else "Stelle"
+
         email_service.send_document_request(
             to_email=applicant_user.email,
             applicant_name=f"{applicant.first_name} {applicant.last_name}",
             company_name=company.company_name,
-            job_title=job.title if job else "Stelle",
+            job_title=job_title,
             requested_documents=doc_labels,
             message=request_data.message
         )
-    
+
+        notification = Notification(
+            user_id=applicant_user.id,
+            type="document_request",
+            reference_id=application_id,
+            reference_type="application",
+            title="Unterlagen angefordert",
+            message=f"{company.company_name} hat Unterlagen für Ihre Bewerbung auf \"{job_title}\" angefordert: {', '.join(doc_labels)}."
+        )
+        db.add(notification)
+        db.commit()
+
     return {
         "message": "Dokumentenanforderung gesendet",
         "requested_documents": request_data.document_types
@@ -884,8 +897,12 @@ async def share_documents_for_application(
             db.add(app_doc)
             added_count += 1
     
+    # Dokumentenanforderung als erfüllt markieren (leeren)
+    if added_count > 0 and application.requested_documents:
+        application.requested_documents = []
+
     db.commit()
-    
+
     return {
         "message": f"{added_count} Dokument(e) freigegeben",
         "shared_count": added_count

@@ -794,7 +794,11 @@
     "other": "Otro",
     "university_confirmation": "Confirmación universitaria vacaciones",
     "health_certificate": "Certificado de salud",
-    "police_clearance": "Certificado de antecedentes"
+    "police_clearance": "Certificado de antecedentes",
+    "language_cert": "Certificado de Idioma",
+    "school_cert": "Certificado Escolar",
+    "work_reference": "Referencia Laboral",
+    "visa": "Visado / Permiso de Residencia"
   },
   "company": {
     "dashboard": "Panel",

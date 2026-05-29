@@ -798,7 +798,11 @@
     "other": "Other",
     "university_confirmation": "University Confirmation Semester Break",
     "health_certificate": "Health Certificate",
-    "police_clearance": "Police Clearance"
+    "police_clearance": "Police Clearance",
+    "language_cert": "Language Certificate",
+    "school_cert": "School Certificate",
+    "work_reference": "Work Reference",
+    "visa": "Visa / Residence Permit"
   },
   "company": {
     "dashboard": "Dashboard",

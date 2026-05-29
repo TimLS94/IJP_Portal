@@ -798,7 +798,11 @@
     "other": "Sonstiges",
     "university_confirmation": "Uni-Bestätigung Semesterferien",
     "health_certificate": "Gesundheitszeugnis",
-    "police_clearance": "Führungszeugnis"
+    "police_clearance": "Führungszeugnis",
+    "language_cert": "Sprachzertifikat",
+    "school_cert": "Schulzeugnis",
+    "work_reference": "Arbeitszeugnis",
+    "visa": "Visum / Aufenthaltstitel"
   },
   "company": {
     "dashboard": "Dashboard",

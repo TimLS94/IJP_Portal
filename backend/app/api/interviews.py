@@ -187,13 +187,13 @@ async def propose_interview(
     db.commit()
     db.refresh(interview)
     
-    # Sende Email an Bewerber (nur wenn send_email=True)
-    if data.send_email:
-        applicant = application.applicant
-        if applicant and applicant.user and applicant.user.email:
-            job_title = application.job_posting.title if application.job_posting else "Stelle"
-            company_name = application.job_posting.company.company_name if application.job_posting and application.job_posting.company else "Unternehmen"
-            
+    # Sende Email und In-App-Benachrichtigung an Bewerber
+    applicant = application.applicant
+    job_title = application.job_posting.title if application.job_posting else "Stelle"
+    company_name = application.job_posting.company.company_name if application.job_posting and application.job_posting.company else "Unternehmen"
+
+    if applicant and applicant.user:
+        if data.send_email and applicant.user.email:
             email_service.send_interview_proposed(
                 to_email=applicant.user.email,
                 applicant_name=f"{applicant.first_name} {applicant.last_name}",
@@ -205,7 +205,19 @@ async def propose_interview(
                 meeting_link=data.meeting_link,
                 notes=data.notes,
             )
-    
+
+        from app.models.notification import Notification
+        notification = Notification(
+            user_id=applicant.user.id,
+            type="interview_proposed",
+            reference_id=interview.id,
+            reference_type="interview",
+            title="Terminvorschlag erhalten",
+            message=f"{company_name} hat Terminvorschläge für ein Vorstellungsgespräch zu \"{job_title}\" gesendet. Bitte bestätigen Sie einen Termin."
+        )
+        db.add(notification)
+        db.commit()
+
     return {
         "success": True,
         "message": "Terminvorschläge gespeichert",

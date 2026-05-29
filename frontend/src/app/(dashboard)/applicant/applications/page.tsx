@@ -241,6 +241,7 @@ export default function ApplicantApplicationsPage() {
       toast.success(t("applicantApplications.documentsShared"));
       setShowShareDocsModal(null);
       setSelectedDocIds([]);
+      loadApplications();
       if (expandedApp) {
         loadSharedDocuments(expandedApp);
       }

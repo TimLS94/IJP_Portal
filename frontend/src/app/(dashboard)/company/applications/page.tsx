@@ -9,7 +9,7 @@ import {
   MapPin, FilePlus, CheckCircle, Search, Filter, Briefcase,
   Users, ArrowUpDown, ChevronUp, ChevronDown, Sparkles,
   StickyNote, Save, CalendarPlus, Check, Clock, Video, MapPinned,
-  XCircle, Download, AlertTriangle
+  XCircle, Download, AlertTriangle, HelpCircle
 } from "lucide-react";
 
 interface Application {
@@ -24,6 +24,7 @@ interface Application {
   applied_at: string;
   match_score?: number;
   requested_documents?: { type: string }[];
+  interview_status?: string;
 }
 
 interface ApplicantAddress {
@@ -825,6 +826,7 @@ export default function CompanyApplicationsPage() {
                       Status <SortIcon column="status" />
                     </button>
                   </th>
+                  <th className="text-center px-4 py-3 font-semibold text-gray-700">Gespräch</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">{t('companyApplications.changeStatus')}</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-700">{t('common.actions')}</th>
                 </tr>
@@ -873,6 +875,17 @@ export default function CompanyApplicationsPage() {
                             </span>
                           )}
                         </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {app.interview_status === "confirmed" && (
+                          <span title="Termin bestätigt"><CheckCircle className="h-5 w-5 text-green-500 mx-auto" /></span>
+                        )}
+                        {app.interview_status === "declined" && (
+                          <span title="Termin abgelehnt"><XCircle className="h-5 w-5 text-red-500 mx-auto" /></span>
+                        )}
+                        {app.interview_status === "proposed" && (
+                          <span title="Warte auf Antwort"><HelpCircle className="h-5 w-5 text-yellow-500 mx-auto" /></span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <select
@@ -1045,6 +1058,24 @@ export default function CompanyApplicationsPage() {
                         {t('companyApplications.requestDocuments')}
                       </button>
                     </div>
+
+                    {/* Angeforderte Dokumente */}
+                    {selectedApp?.requested_documents && selectedApp.requested_documents.length > 0 && (
+                      <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p className="text-sm font-semibold text-orange-800 mb-2 flex items-center gap-1">
+                          <AlertTriangle className="h-4 w-4" />
+                          Angeforderte Unterlagen (ausstehend):
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedApp.requested_documents.map((doc, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium border border-orange-200">
+                              {t(`documentTypes.${doc.type}`, doc.type)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {!applicantDetails.documents || applicantDetails.documents.length === 0 ? (
                       <p className="text-gray-500">{t('companyApplications.noDocumentsShared')}</p>
                     ) : (
@@ -1058,7 +1089,7 @@ export default function CompanyApplicationsPage() {
                               <FileText className="h-5 w-5 text-gray-400 group-hover:text-primary-600" />
                               <div>
                                 <p className="font-medium text-gray-900 group-hover:text-primary-600">{doc.original_name}</p>
-                                <p className="text-xs text-gray-500">{doc.document_type}</p>
+                                <p className="text-xs text-gray-500">{t(`documentTypes.${doc.document_type}`, doc.document_type)}</p>
                               </div>
                             </div>
                           </div>
