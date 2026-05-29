@@ -536,6 +536,8 @@ async def weekly_blog_writer():
             enabled = get_setting(db, "blog_writer_enabled", True)
             interval_days = int(get_setting(db, "blog_writer_interval_days", 7))
             auto_publish = get_setting(db, "blog_writer_auto_publish", False)
+            run_hour = int(get_setting(db, "blog_writer_hour", 8))
+            weekdays = get_setting(db, "blog_writer_weekdays", [0])  # 0=Montag
         finally:
             db.close()
 
@@ -543,11 +545,26 @@ async def weekly_blog_writer():
             await asyncio.sleep(3600)
             continue
 
-        # Nächsten Lauf berechnen: interval_days ab jetzt 08:00 UTC
         now = datetime.utcnow()
-        next_run = now.replace(hour=8, minute=0, second=0, microsecond=0) + timedelta(days=interval_days)
-        wait_seconds = max(60, (next_run - now).total_seconds())
 
+        if interval_days in (7, 14) and weekdays:
+            # Nächsten passenden Wochentag finden
+            current_wd = now.weekday()  # 0=Montag
+            days_to_wait = None
+            for i in range(interval_days + 1):
+                check_wd = (current_wd + i) % 7
+                if check_wd in weekdays:
+                    if i == 0 and now.hour >= run_hour:
+                        continue
+                    days_to_wait = i
+                    break
+            if days_to_wait is None:
+                days_to_wait = interval_days
+            next_run = now.replace(hour=run_hour, minute=0, second=0, microsecond=0) + timedelta(days=days_to_wait)
+        else:
+            next_run = now.replace(hour=run_hour, minute=0, second=0, microsecond=0) + timedelta(days=interval_days)
+
+        wait_seconds = max(60, (next_run - now).total_seconds())
         logger.info(f"Blog-Writer: nächster Lauf {next_run} (in {wait_seconds/3600:.1f}h, Intervall: {interval_days}d, Auto-Publish: {auto_publish})")
         await asyncio.sleep(wait_seconds)
 

@@ -102,6 +102,8 @@ export default function AdminSettingsPage() {
   const [blogWriterEnabled, setBlogWriterEnabled] = useState(true);
   const [blogWriterInterval, setBlogWriterInterval] = useState(7);
   const [blogWriterAutoPublish, setBlogWriterAutoPublish] = useState(false);
+  const [blogWriterHour, setBlogWriterHour] = useState(8);
+  const [blogWriterWeekdays, setBlogWriterWeekdays] = useState<number[]>([1]); // 1=Montag
   const [savingBlogWriter, setSavingBlogWriter] = useState(false);
 
   useEffect(() => {
@@ -135,6 +137,12 @@ export default function AdminSettingsPage() {
       }
       if (response.data.blog_writer_auto_publish !== undefined) {
         setBlogWriterAutoPublish(response.data.blog_writer_auto_publish);
+      }
+      if (response.data.blog_writer_hour !== undefined) {
+        setBlogWriterHour(response.data.blog_writer_hour);
+      }
+      if (response.data.blog_writer_weekdays) {
+        setBlogWriterWeekdays(response.data.blog_writer_weekdays);
       }
     } catch {
       console.error("Fehler beim Laden");
@@ -318,6 +326,8 @@ export default function AdminSettingsPage() {
         adminAPI.setSetting("blog_writer_enabled", blogWriterEnabled),
         adminAPI.setSetting("blog_writer_interval_days", blogWriterInterval),
         adminAPI.setSetting("blog_writer_auto_publish", blogWriterAutoPublish),
+        adminAPI.setSetting("blog_writer_hour", blogWriterHour),
+        adminAPI.setSetting("blog_writer_weekdays", blogWriterWeekdays),
       ]);
       toast.success("KI-Blog Einstellungen gespeichert");
     } catch {
@@ -1071,6 +1081,49 @@ export default function AdminSettingsPage() {
                   {label}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Wochentage (nur bei wöchentlich/zweiwöchentlich) */}
+          {(blogWriterInterval === 7 || blogWriterInterval === 14) && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Wochentage</label>
+              <div className="flex gap-2">
+                {dayNames.map((name, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setBlogWriterWeekdays(prev =>
+                      prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i].sort()
+                    )}
+                    className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
+                      blogWriterWeekdays.includes(i)
+                        ? "bg-purple-500 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Uhrzeit */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Uhrzeit (UTC)</label>
+            <div className="flex items-center gap-3">
+              <select
+                value={blogWriterHour}
+                onChange={(e) => setBlogWriterHour(parseInt(e.target.value))}
+                className="input-styled w-32"
+              >
+                {Array.from({ length: 24 }, (_, i) => (
+                  <option key={i} value={i}>{i.toString().padStart(2, "0")}:00</option>
+                ))}
+              </select>
+              <span className="text-sm text-gray-500">
+                = {(blogWriterHour + 2) % 24}:00 Uhr MESZ / {(blogWriterHour + 1) % 24}:00 Uhr MEZ
+              </span>
             </div>
           </div>
 
