@@ -525,20 +525,30 @@ async def company_applicant_digest():
 
 
 async def weekly_blog_writer():
-    """Background-Task: Schreibt jeden Montag um 8:00 UTC automatisch einen Blog-Post mit Claude."""
+    """Background-Task: Generiert automatisch Blog-Posts mit Claude (Intervall und Modus konfigurierbar)."""
     from datetime import datetime, timedelta
     from app.core.database import SessionLocal
+    from app.services.settings_service import get_setting
 
     while True:
+        db = SessionLocal()
+        try:
+            enabled = get_setting(db, "blog_writer_enabled", True)
+            interval_days = int(get_setting(db, "blog_writer_interval_days", 7))
+            auto_publish = get_setting(db, "blog_writer_auto_publish", False)
+        finally:
+            db.close()
+
+        if not enabled:
+            await asyncio.sleep(3600)
+            continue
+
+        # Nächsten Lauf berechnen: interval_days ab jetzt 08:00 UTC
         now = datetime.utcnow()
-        # Nächsten Montag 08:00 UTC berechnen
-        days_until_monday = (7 - now.weekday()) % 7  # 0=Montag
-        if days_until_monday == 0 and now.hour >= 8:
-            days_until_monday = 7  # Diese Woche schon durch → nächste Woche
-        next_run = now.replace(hour=8, minute=0, second=0, microsecond=0) + timedelta(days=days_until_monday)
+        next_run = now.replace(hour=8, minute=0, second=0, microsecond=0) + timedelta(days=interval_days)
         wait_seconds = max(60, (next_run - now).total_seconds())
 
-        logger.info(f"Blog-Writer: nächster Lauf {next_run} (in {wait_seconds/3600:.1f}h)")
+        logger.info(f"Blog-Writer: nächster Lauf {next_run} (in {wait_seconds/3600:.1f}h, Intervall: {interval_days}d, Auto-Publish: {auto_publish})")
         await asyncio.sleep(wait_seconds)
 
         logger.info("Starte automatischen Blog-Writer...")
@@ -546,9 +556,10 @@ async def weekly_blog_writer():
             from app.services.blog_writer_service import generate_and_publish_blog_post
             db = SessionLocal()
             try:
-                result = await generate_and_publish_blog_post(db)
+                result = await generate_and_publish_blog_post(db, auto_publish=auto_publish)
                 if result:
-                    logger.info(f"✅ Blog-Writer: '{result['title']}' veröffentlicht")
+                    mode = "veröffentlicht" if auto_publish else "als Entwurf gespeichert"
+                    logger.info(f"✅ Blog-Writer: '{result['title']}' {mode}")
                 else:
                     logger.warning("Blog-Writer: kein Post generiert (API-Key fehlt?)")
             finally:

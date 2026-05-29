@@ -424,7 +424,9 @@ async def ai_generate_blog_post(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nur Admins")
 
     from app.services.blog_writer_service import generate_and_publish_blog_post
-    result = await generate_and_publish_blog_post(db, author_id=current_user.id)
+    from app.services.settings_service import get_setting
+    auto_publish = get_setting(db, "blog_writer_auto_publish", False)
+    result = await generate_and_publish_blog_post(db, author_id=current_user.id, auto_publish=auto_publish)
 
     if not result:
         raise HTTPException(status_code=500, detail="Blog-Generierung fehlgeschlagen. ANTHROPIC_API_KEY konfiguriert?")

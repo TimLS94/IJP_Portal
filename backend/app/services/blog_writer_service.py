@@ -74,6 +74,7 @@ async def generate_and_publish_blog_post(
     topic: Optional[str] = None,
     category: Optional[BlogCategory] = None,
     author_id: Optional[int] = None,
+    auto_publish: bool = False,
 ) -> Optional[dict]:
     """
     Generiert einen Blog-Post mit Claude und veröffentlicht ihn sofort.
@@ -160,10 +161,10 @@ async def generate_and_publish_blog_post(
             meta_title=data["title"],
             meta_description=data.get("meta_description", ""),
             meta_keywords=data.get("meta_keywords", ""),
-            is_published=False,
+            is_published=auto_publish,
             is_featured=False,
             author_id=author_id,
-            published_at=None,
+            published_at=datetime.utcnow() if auto_publish else None,
         )
         db.add(post)
         db.commit()

@@ -7,7 +7,7 @@ import {
   Settings as SettingsIcon, ToggleLeft, ToggleRight, Save, Loader2,
   Sparkles, Building2, Users, AlertTriangle, RefreshCw, Clock, Trash2,
   ChevronDown, ChevronUp, Calendar, Mail, Bell, Send, Eye, Zap, CalendarDays,
-  Search, CheckCircle, XCircle
+  Search, CheckCircle, XCircle, Bot
 } from "lucide-react";
 
 interface Flags {
@@ -98,6 +98,12 @@ export default function AdminSettingsPage() {
   const [reindexing, setReindexing] = useState(false);
   const [reindexResult, setReindexResult] = useState<ReindexResult | null>(null);
 
+  // KI-Blog-Writer State
+  const [blogWriterEnabled, setBlogWriterEnabled] = useState(true);
+  const [blogWriterInterval, setBlogWriterInterval] = useState(7);
+  const [blogWriterAutoPublish, setBlogWriterAutoPublish] = useState(false);
+  const [savingBlogWriter, setSavingBlogWriter] = useState(false);
+
   useEffect(() => {
     loadFlags();
   }, []);
@@ -120,6 +126,15 @@ export default function AdminSettingsPage() {
       }
       if (response.data.weekly_digest_hour !== undefined) {
         setDigestHour(response.data.weekly_digest_hour);
+      }
+      if (response.data.blog_writer_enabled !== undefined) {
+        setBlogWriterEnabled(response.data.blog_writer_enabled);
+      }
+      if (response.data.blog_writer_interval_days) {
+        setBlogWriterInterval(response.data.blog_writer_interval_days);
+      }
+      if (response.data.blog_writer_auto_publish !== undefined) {
+        setBlogWriterAutoPublish(response.data.blog_writer_auto_publish);
       }
     } catch {
       console.error("Fehler beim Laden");
@@ -293,6 +308,22 @@ export default function AdminSettingsPage() {
       toast.error("Fehler beim Senden der Indexierungsanfragen");
     } finally {
       setReindexing(false);
+    }
+  };
+
+  const saveBlogWriterSettings = async () => {
+    setSavingBlogWriter(true);
+    try {
+      await Promise.all([
+        adminAPI.setSetting("blog_writer_enabled", blogWriterEnabled),
+        adminAPI.setSetting("blog_writer_interval_days", blogWriterInterval),
+        adminAPI.setSetting("blog_writer_auto_publish", blogWriterAutoPublish),
+      ]);
+      toast.success("KI-Blog Einstellungen gespeichert");
+    } catch {
+      toast.error("Fehler beim Speichern");
+    } finally {
+      setSavingBlogWriter(false);
     }
   };
 
@@ -989,6 +1020,87 @@ export default function AdminSettingsPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* KI Blog-Writer */}
+      <div className="card mb-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-purple-100 rounded-lg">
+            <Bot className="h-5 w-5 text-purple-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">KI Blog-Writer</h2>
+            <p className="text-sm text-gray-600">Claude schreibt automatisch Blog-Artikel (benötigt ANTHROPIC_API_KEY)</p>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          {/* Aktiviert */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div>
+              <p className="font-medium text-gray-900">Automatischer Blog-Writer</p>
+              <p className="text-sm text-gray-500">Schreibt regelmäßig neue Artikel im eingestellten Intervall</p>
+            </div>
+            <button
+              onClick={() => setBlogWriterEnabled(!blogWriterEnabled)}
+              className={`p-1 rounded-full transition-colors ${blogWriterEnabled ? "bg-purple-500 hover:bg-purple-600" : "bg-gray-300 hover:bg-gray-400"}`}
+            >
+              {blogWriterEnabled ? <ToggleRight className="h-7 w-7 text-white" /> : <ToggleLeft className="h-7 w-7 text-white" />}
+            </button>
+          </div>
+
+          {/* Intervall */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Intervall</label>
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { days: 1, label: "Täglich" },
+                { days: 7, label: "Wöchentlich" },
+                { days: 14, label: "Zweiwöchentlich" },
+                { days: 30, label: "Monatlich" },
+              ].map(({ days, label }) => (
+                <button
+                  key={days}
+                  onClick={() => setBlogWriterInterval(days)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    blogWriterInterval === days
+                      ? "bg-purple-100 text-purple-700 border-2 border-purple-300"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Auto-Veröffentlichung */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div>
+              <p className="font-medium text-gray-900">Automatisch veröffentlichen</p>
+              <p className="text-sm text-gray-500">
+                {blogWriterAutoPublish
+                  ? "Artikel gehen sofort live — kein Review"
+                  : "Artikel werden als Entwurf gespeichert — du prüfst und veröffentlichst manuell"}
+              </p>
+            </div>
+            <button
+              onClick={() => setBlogWriterAutoPublish(!blogWriterAutoPublish)}
+              className={`p-1 rounded-full transition-colors ${blogWriterAutoPublish ? "bg-green-500 hover:bg-green-600" : "bg-gray-300 hover:bg-gray-400"}`}
+            >
+              {blogWriterAutoPublish ? <ToggleRight className="h-7 w-7 text-white" /> : <ToggleLeft className="h-7 w-7 text-white" />}
+            </button>
+          </div>
+
+          <button
+            onClick={saveBlogWriterSettings}
+            disabled={savingBlogWriter}
+            className="btn-primary flex items-center gap-2"
+          >
+            {savingBlogWriter ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Einstellungen speichern
+          </button>
+        </div>
       </div>
 
       {/* Google Indexierung */}

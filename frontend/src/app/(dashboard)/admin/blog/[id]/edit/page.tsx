@@ -63,7 +63,7 @@ export default function BlogEditorPage() {
   const onSubmit = async (data: BlogForm) => {
     setIsLoading(true);
     try {
-      // status → is_published umwandeln für Backend
+      // Status bleibt unverändert — nur über den Toggle-Button änderbar
       const payload = { ...data, is_published: data.status === "published" };
       if (isNew) {
         await blogAPI.adminCreatePost(payload);
@@ -204,12 +204,12 @@ export default function BlogEditorPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="label">Status</label>
-                  <select className="input" {...register("status")}>
-                    <option value="draft">Entwurf</option>
-                    <option value="published">Veröffentlicht</option>
-                  </select>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 border border-gray-200">
+                  <div className={`w-2 h-2 rounded-full ${watch("status") === "published" ? "bg-green-500" : "bg-yellow-400"}`} />
+                  <span className="text-sm text-gray-700">
+                    {watch("status") === "published" ? "Veröffentlicht" : "Entwurf"}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-auto">via Button oben ändern</span>
                 </div>
               </div>
             </div>
