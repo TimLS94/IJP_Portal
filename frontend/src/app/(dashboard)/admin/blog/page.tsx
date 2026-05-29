@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { FileText, Plus, Edit, Trash2, Eye, EyeOff, Check } from "lucide-react";
+import { FileText, Plus, Edit, Trash2, Eye, Sparkles, Loader2 } from "lucide-react";
 import { blogAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -20,6 +20,7 @@ interface BlogPost {
 export default function AdminBlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     loadPosts();
@@ -57,6 +58,20 @@ export default function AdminBlogPage() {
     }
   };
 
+  const handleAiGenerate = async () => {
+    if (!confirm("Claude schreibt jetzt automatisch einen neuen Blog-Artikel und veröffentlicht ihn sofort. Fortfahren?")) return;
+    setGenerating(true);
+    try {
+      const response = await blogAPI.adminAiGenerate();
+      toast.success(`✨ Artikel "${response.data.title}" wurde veröffentlicht!`);
+      loadPosts();
+    } catch {
+      toast.error("Fehler beim Generieren. ANTHROPIC_API_KEY in Render gesetzt?");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("de-DE");
   };
@@ -71,10 +86,24 @@ export default function AdminBlogPage() {
             <p className="text-gray-600">{posts.length} Artikel</p>
           </div>
         </div>
-        <Link href="/admin/blog/new" className="btn-primary flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Neuer Artikel
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleAiGenerate}
+            disabled={generating}
+            className="btn-secondary flex items-center gap-2"
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {generating ? "Claude schreibt..." : "KI-Artikel generieren"}
+          </button>
+          <Link href="/admin/blog/new" className="btn-primary flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Neuer Artikel
+          </Link>
+        </div>
       </div>
 
       {loading ? (

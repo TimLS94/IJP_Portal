@@ -414,6 +414,24 @@ async def toggle_publish_post(
     }
 
 
+@router.post("/admin/ai-generate")
+async def ai_generate_blog_post(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Admin: Generiert und veröffentlicht automatisch einen Blog-Post mit Claude."""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nur Admins")
+
+    from app.services.blog_writer_service import generate_and_publish_blog_post
+    result = await generate_and_publish_blog_post(db, author_id=current_user.id)
+
+    if not result:
+        raise HTTPException(status_code=500, detail="Blog-Generierung fehlgeschlagen. ANTHROPIC_API_KEY konfiguriert?")
+
+    return result
+
+
 @router.post("/admin/upload-image")
 async def upload_blog_image(
     file: UploadFile = File(...),

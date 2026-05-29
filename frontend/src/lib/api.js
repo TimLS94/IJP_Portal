@@ -222,6 +222,7 @@ export const blogAPI = {
   adminUpdatePost: (id, data) => api.put(`/blog/admin/posts/${id}`, data),
   adminDeletePost: (id) => api.delete(`/blog/admin/posts/${id}`),
   adminTogglePublish: (id) => api.post(`/blog/admin/posts/${id}/toggle-publish`),
+  adminAiGenerate: () => api.post('/blog/admin/ai-generate'),
   
   // Bild-Upload
   uploadImage: (file) => {

@@ -524,31 +524,69 @@ async def company_applicant_digest():
         await asyncio.sleep(3600)
 
 
+async def weekly_blog_writer():
+    """Background-Task: Schreibt jeden Montag um 8:00 UTC automatisch einen Blog-Post mit Claude."""
+    from datetime import datetime, timedelta
+    from app.core.database import SessionLocal
+
+    while True:
+        now = datetime.utcnow()
+        # Nächsten Montag 08:00 UTC berechnen
+        days_until_monday = (7 - now.weekday()) % 7  # 0=Montag
+        if days_until_monday == 0 and now.hour >= 8:
+            days_until_monday = 7  # Diese Woche schon durch → nächste Woche
+        next_run = now.replace(hour=8, minute=0, second=0, microsecond=0) + timedelta(days=days_until_monday)
+        wait_seconds = max(60, (next_run - now).total_seconds())
+
+        logger.info(f"Blog-Writer: nächster Lauf {next_run} (in {wait_seconds/3600:.1f}h)")
+        await asyncio.sleep(wait_seconds)
+
+        logger.info("Starte automatischen Blog-Writer...")
+        try:
+            from app.services.blog_writer_service import generate_and_publish_blog_post
+            db = SessionLocal()
+            try:
+                result = await generate_and_publish_blog_post(db)
+                if result:
+                    logger.info(f"✅ Blog-Writer: '{result['title']}' veröffentlicht")
+                else:
+                    logger.warning("Blog-Writer: kein Post generiert (API-Key fehlt?)")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Fehler im Blog-Writer: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle-Handler für App-Start und -Stopp"""
     logger.info("=== Running startup cleanup ===")
     cleanup_jobs()
-    
+
     # Starte periodischen Cleanup-Task
     cleanup_task = asyncio.create_task(periodic_cleanup(6))  # Alle 6 Stunden
-    
+
     # Starte wöchentlichen Job-Digest Task
     digest_task = asyncio.create_task(weekly_job_digest())
-    
+
     # Starte Firmen-Bewerber-Digest Task
     company_digest_task = asyncio.create_task(company_applicant_digest())
-    
+
+    # Starte wöchentlichen Blog-Writer (jeden Montag 08:00 UTC)
+    blog_writer_task = asyncio.create_task(weekly_blog_writer())
+
     yield
-    
+
     # Cleanup bei Shutdown
     cleanup_task.cancel()
     digest_task.cancel()
     company_digest_task.cancel()
+    blog_writer_task.cancel()
     try:
         await cleanup_task
         await digest_task
         await company_digest_task
+        await blog_writer_task
     except asyncio.CancelledError:
         pass
 
