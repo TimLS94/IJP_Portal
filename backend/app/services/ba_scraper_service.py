@@ -443,6 +443,7 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
 
     imported = skipped = errors = ai_enhanced = 0
     new_job_refs: list[tuple[str, int]] = []  # (slug, id) für Google Indexing
+    new_job_ids: list[int] = []  # IDs für Bewerber-Benachrichtigungen
 
     for term in keywords:
         if imported >= max_jobs:
@@ -560,6 +561,7 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                     db.add(job)
                     db.flush()  # ID sofort vergeben (für Google Indexing)
                     new_job_refs.append((job.slug or slug, job.id))
+                    new_job_ids.append(job.id)
                     imported += 1
 
                 except Exception as exc:
@@ -567,6 +569,18 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                     errors += 1
 
             db.commit()
+
+            # Bewerber über neue BA-Jobs benachrichtigen (nach Commit, mit Matching-Score-Filter)
+            if new_job_ids:
+                try:
+                    from app.services.job_notification_service import notify_applicants_about_new_job
+                    for job_id in new_job_ids:
+                        job_obj = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+                        if job_obj:
+                            notify_applicants_about_new_job(job_obj, db)
+                    new_job_ids.clear()
+                except Exception as exc:
+                    logger.warning(f"Bewerber-Benachrichtigung für BA-Jobs fehlgeschlagen: {exc}")
 
             total = data.get("maxErgebnisse", 0)
             if page * batch_size >= total:
