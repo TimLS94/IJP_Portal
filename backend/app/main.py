@@ -312,6 +312,28 @@ def ensure_notification_key_columns():
 ensure_notification_key_columns()
 
 
+def fix_active_draft_jobs():
+    """Setzt is_draft=False für Jobs die aktiviert wurden aber noch als Draft markiert sind."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        result = db.execute(text(
+            "UPDATE job_postings SET is_draft = FALSE, "
+            "published_at = COALESCE(published_at, updated_at, created_at) "
+            "WHERE is_active = TRUE AND is_draft = TRUE AND is_archived = FALSE"
+        ))
+        if result.rowcount > 0:
+            db.commit()
+            import logging
+            logging.getLogger(__name__).info(f"fix_active_draft_jobs: {result.rowcount} Jobs korrigiert")
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+fix_active_draft_jobs()
+
+
 def backfill_is_filtered():
     """
     Setzt is_filtered korrekt für bestehende Bewerbungen:
