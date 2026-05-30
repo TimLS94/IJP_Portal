@@ -1076,7 +1076,7 @@ export default function CompanyApplicationsPage() {
                                 <Clock className="h-4 w-4 text-orange-400 flex-shrink-0" />
                               )}
                               <span className={doc.fulfilled ? "text-green-700" : "text-orange-700"}>
-                                {t(`documentTypes.${doc.type}`, doc.type)}
+                                {String(t(`documentTypes.${doc.type}`, doc.type))}
                               </span>
                               {doc.fulfilled ? (
                                 <span className="text-xs text-green-500 ml-auto">Eingereicht ✓</span>
