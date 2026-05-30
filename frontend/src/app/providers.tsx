@@ -3,6 +3,7 @@
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/context/AuthContext";
 import { I18nProvider } from "@/components/I18nProvider";
+import { CookieBanner } from "@/components/CookieBanner";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         {children}
         <Toaster position="top-right" />
+        <CookieBanner />
       </AuthProvider>
     </I18nProvider>
   );

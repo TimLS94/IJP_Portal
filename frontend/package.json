@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@next/third-parties": "^16.2.6",
     "axios": "^1.15.0",
     "i18next": "^26.0.4",
     "i18next-browser-languagedetector": "^8.2.1",
