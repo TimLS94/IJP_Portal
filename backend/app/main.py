@@ -222,6 +222,37 @@ def ensure_applicant_invite_columns():
 ensure_applicant_invite_columns()
 
 
+def ensure_published_at_column():
+    """Fügt published_at Spalte zu job_postings hinzu und befüllt sie für aktive Stellen"""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'job_postings' AND column_name = 'published_at'
+        """))
+        if not result.fetchone():
+            logger.info("Adding 'published_at' column to job_postings table...")
+            db.execute(text("ALTER TABLE job_postings ADD COLUMN published_at TIMESTAMP WITH TIME ZONE"))
+            db.execute(text("""
+                UPDATE job_postings
+                SET published_at = created_at
+                WHERE is_active = TRUE AND published_at IS NULL
+            """))
+            db.commit()
+            logger.info("'published_at' column added and backfilled successfully")
+        else:
+            logger.info("'published_at' column already exists")
+    except Exception as e:
+        logger.error(f"Error adding published_at column: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+ensure_published_at_column()
+
+
 def backfill_is_filtered():
     """
     Setzt is_filtered korrekt für bestehende Bewerbungen:
