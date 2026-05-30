@@ -782,28 +782,29 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
 
           </div>
 
-          {/* Stelle melden */}
-          <div className="mt-6 flex justify-center">
-            {reported ? (
-              <p className="text-sm text-gray-400 flex items-center gap-1.5">
-                <Flag className="h-4 w-4" /> Stelle wurde gemeldet – Danke!
-              </p>
-            ) : (
-              <button
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    router.push("/login");
-                    return;
-                  }
-                  setShowReportModal(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition-colors text-sm font-medium"
-              >
-                <Flag className="h-4 w-4" />
-                Stelle melden
-              </button>
-            )}
-          </div>
+        </div>
+
+        {/* Stelle melden – außerhalb des Grids, echte Zentrierung */}
+        <div className="mt-6 flex justify-center">
+          {reported ? (
+            <p className="text-sm text-gray-400 flex items-center gap-1.5">
+              <Flag className="h-4 w-4" /> Stelle wurde gemeldet – Danke!
+            </p>
+          ) : (
+            <button
+              onClick={() => {
+                if (!isAuthenticated) {
+                  router.push("/login");
+                  return;
+                }
+                setShowReportModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition-colors text-sm font-medium"
+            >
+              <Flag className="h-4 w-4" />
+              Stelle melden
+            </button>
+          )}
         </div>
       </div>
 

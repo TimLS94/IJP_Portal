@@ -153,15 +153,43 @@ export default function ProfileClient() {
       formData.append("file", file);
       const res = await applicantAPI.parseCV(formData);
       const d = res.data;
-      if (d.first_name && !watch("first_name")) setValue("first_name", d.first_name);
-      if (d.last_name && !watch("last_name")) setValue("last_name", d.last_name);
-      if (d.other_languages?.length && !otherLanguages.length) setOtherLanguages(d.other_languages);
-      if (d.work_experiences?.length && !workExperiences.length) setWorkExperiences(d.work_experiences);
-      toast.success(t("applicant.cvParsed"));
+
+      // Einfache Textfelder — nur überschreiben wenn Feld noch leer
+      const textFields = [
+        "first_name", "last_name", "phone", "street", "house_number",
+        "postal_code", "city", "country", "nationality", "place_of_birth",
+        "field_of_study", "university_name", "university_city",
+        "school_degree", "professional_title",
+      ] as const;
+      let filled = 0;
+      for (const field of textFields) {
+        if (d[field] && !watch(field)) { setValue(field, d[field]); filled++; }
+      }
+
+      // Geburtsdatum
+      if (d.date_of_birth && !watch("date_of_birth")) { setValue("date_of_birth", d.date_of_birth); filled++; }
+
+      // Semester
+      if (d.current_semester && !watch("current_semester")) { setValue("current_semester", d.current_semester); filled++; }
+
+      // Sprachniveaus
+      if (d.german_level && !watch("german_level")) { setValue("german_level", d.german_level); filled++; }
+      if (d.english_level && !watch("english_level")) { setValue("english_level", d.english_level); filled++; }
+
+      // Weitere Sprachen & Berufserfahrung (nur wenn noch keine eingetragen)
+      if (d.other_languages?.length && !otherLanguages.length) { setOtherLanguages(d.other_languages); filled++; }
+      if (d.work_experiences?.length && !workExperiences.length) { setWorkExperiences(d.work_experiences); filled++; }
+      if (d.work_experience_years && !watch("work_experience_years")) { setValue("work_experience_years", d.work_experience_years); filled++; }
+
+      if (filled > 0) {
+        toast.success(`${filled} Felder wurden automatisch ausgefüllt – bitte überprüfen!`);
+      } else {
+        toast.success(t("applicant.cvParsed"));
+      }
       const docsRes = await documentsAPI.list();
       setDocuments(docsRes.data || []);
     } catch { toast.error(t("applicant.cvParseFailed")); }
-    finally { setCvParsing(false); }
+    finally { setCvParsing(false); if (cvFileInputRef.current) cvFileInputRef.current.value = ""; }
   };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-12 w-12 animate-spin text-primary-600" /></div>;

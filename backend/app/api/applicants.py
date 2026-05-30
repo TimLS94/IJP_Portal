@@ -239,9 +239,25 @@ async def parse_cv(
         )
     
     # ========== CV PARSING ==========
-    # Verwende verbessertes Regex-basiertes Parsing
-    # (Gemini API temporär deaktiviert wegen 404-Fehlern)
-    
+    # Gemini Flash (kostenlos) mit Regex-Fallback
+    from app.core.config import settings
+    from app.services.cv_parser_service import parse_cv_with_gemini, sanitize_parsed_data
+
+    gemini_result = None
+    if settings.GOOGLE_AI_API_KEY:
+        try:
+            raw = parse_cv_with_gemini(text, settings.GOOGLE_AI_API_KEY)
+            if raw:
+                gemini_result = sanitize_parsed_data(raw)
+        except Exception as e:
+            logger.warning(f"Gemini parsing failed, falling back to regex: {e}")
+
+    if gemini_result:
+        gemini_result["cv_saved"] = cv_saved
+        gemini_result["message"] = "Lebenslauf wurde analysiert und Profil automatisch ausgefüllt."
+        return gemini_result
+
+    # Fallback: Regex-Parsing
     result = parse_cv_fallback(text)
     result["cv_saved"] = cv_saved
     return result
