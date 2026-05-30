@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { useTranslation } from "react-i18next";
 import Link from "next/link";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
@@ -15,6 +16,7 @@ export function getStoredConsent(): ConsentValue {
 }
 
 export function CookieBanner() {
+  const { t } = useTranslation();
   const [consent, setConsent] = useState<ConsentValue>(null);
   const [visible, setVisible] = useState(false);
 
@@ -53,13 +55,12 @@ export function CookieBanner() {
             <div className="flex flex-col md:flex-row md:items-center gap-4">
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-900 mb-1">
-                  🍪 Wir verwenden Cookies
+                  {t("cookieBanner.title")}
                 </p>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  Wir nutzen Google Analytics, um zu verstehen wie Besucher unsere Website nutzen –
-                  damit wir sie verbessern können. Ihre Daten werden anonymisiert verarbeitet.{" "}
+                  {t("cookieBanner.text")}{" "}
                   <Link href="/datenschutz" className="text-primary-600 hover:underline">
-                    Datenschutzerklärung
+                    {t("cookieBanner.privacyLink")}
                   </Link>
                 </p>
               </div>
@@ -68,13 +69,13 @@ export function CookieBanner() {
                   onClick={decline}
                   className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
-                  Ablehnen
+                  {t("cookieBanner.decline")}
                 </button>
                 <button
                   onClick={accept}
                   className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
                 >
-                  Akzeptieren
+                  {t("cookieBanner.accept")}
                 </button>
               </div>
             </div>

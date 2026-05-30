@@ -2198,6 +2198,13 @@
     "perMonth": "pro Monat",
     "perYear": "pro Jahr"
   },
+  "cookieBanner": {
+    "title": "🍪 Wir verwenden Cookies",
+    "text": "Wir nutzen Google Analytics, um zu verstehen wie Besucher unsere Website nutzen – damit wir sie verbessern können. Ihre Daten werden anonymisiert verarbeitet.",
+    "privacyLink": "Datenschutzerklärung",
+    "decline": "Ablehnen",
+    "accept": "Akzeptieren"
+  },
   "notifications": {
     "documentRequest": {
       "title": "Unterlagen angefordert",
