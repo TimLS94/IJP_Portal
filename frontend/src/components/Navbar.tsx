@@ -585,6 +585,69 @@ export default function Navbar() {
           </div>
         </div>
 
+        {/* Mobile Notification Panel */}
+        {notifMenuOpen && (
+          <div className="md:hidden border-t border-gray-100 bg-white shadow-lg">
+            <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">{t("nav.notifications")}</h3>
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button onClick={handleMarkAllAsRead} className="text-xs text-primary-600 hover:underline">
+                    {t("nav.markAllAsRead")}
+                  </button>
+                )}
+                <button onClick={() => setNotifMenuOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="max-h-72 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="px-4 py-8 text-center text-gray-500">
+                  <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">{t("nav.noNotifications")}</p>
+                </div>
+              ) : (
+                notifications.map((notif) => (
+                  <div
+                    key={notif.id}
+                    onClick={() => {
+                      if (!notif.is_read) handleMarkAsRead(notif.id);
+                      if (notif.reference_type === "job" && notif.reference_id) {
+                        router.push(`/jobs/${notif.reference_id}`);
+                      }
+                      setNotifMenuOpen(false);
+                    }}
+                    className={`px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      !notif.is_read ? "bg-primary-50/50" : ""
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`p-1.5 rounded-full flex-shrink-0 ${!notif.is_read ? "bg-primary-100" : "bg-gray-100"}`}>
+                        <Briefcase className={`h-4 w-4 ${!notif.is_read ? "text-primary-600" : "text-gray-400"}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm ${!notif.is_read ? "font-medium text-gray-900" : "text-gray-700"}`}>
+                          {notif.title}
+                        </p>
+                        {notif.message && (
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(notif.created_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                      {!notif.is_read && (
+                        <span className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-2"></span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-100 max-h-[calc(100vh-4rem)] overflow-y-auto">

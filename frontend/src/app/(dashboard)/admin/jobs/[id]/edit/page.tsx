@@ -68,6 +68,10 @@ export default function AdminEditJobPage() {
   const [requirements, setRequirements] = useState("");
   const [benefits, setBenefits] = useState("");
 
+  // Location + status
+  const [location, setLocation] = useState<string>("");
+  const [isActive, setIsActive] = useState<boolean>(true);
+
   // Salary
   const [salaryMin, setSalaryMin] = useState<string>("");
   const [salaryMax, setSalaryMax] = useState<string>("");
@@ -98,6 +102,10 @@ export default function AdminEditJobPage() {
       setTasks(data.tasks || "");
       setRequirements(data.requirements || "");
       setBenefits(data.benefits || "");
+
+      // Location + status
+      setLocation(data.location || "");
+      setIsActive(data.is_active ?? true);
 
       // Salary
       setSalaryMin(data.salary_min != null ? String(data.salary_min) : "");
@@ -157,6 +165,8 @@ export default function AdminEditJobPage() {
         salary_min: salaryMin ? parseFloat(salaryMin) : null,
         salary_max: salaryMax ? parseFloat(salaryMax) : null,
         salary_type: (salaryMin || salaryMax) ? salaryType : null,
+        location: location || null,
+        is_active: isActive,
       };
       
       await adminAPI.updateJob(parseInt(jobId), updateData);
@@ -241,28 +251,46 @@ export default function AdminEditJobPage() {
       </div>
 
       {/* Job Info Card */}
-      <div className="card mb-6 bg-gray-50">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-gray-500" />
+      <div className="card mb-6">
+        <div className="flex flex-wrap items-center gap-4 mb-4 pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-2 text-gray-600">
+            <Building2 className="h-5 w-5 text-gray-400" />
             <span className="font-medium">{job.company_name}</span>
           </div>
-          {job.location && (
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-gray-500" />
-              <span>{job.location}</span>
-            </div>
-          )}
           {job.position_type && (
             <span className="px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
               {positionTypeLabels[job.position_type] || job.position_type}
             </span>
           )}
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-            job.is_active ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-600"
-          }`}>
-            {job.is_active ? "Aktiv" : "Inaktiv"}
-          </span>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+              <MapPin className="h-4 w-4" /> Standort
+            </label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="z.B. Berlin, Hamburg"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <button
+              type="button"
+              onClick={() => setIsActive(!isActive)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-green-100 text-green-800 hover:bg-green-200"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${isActive ? "bg-green-600" : "bg-gray-400"}`} />
+              {isActive ? "Aktiv (Klicken zum Deaktivieren)" : "Inaktiv (Klicken zum Aktivieren)"}
+            </button>
+          </div>
         </div>
       </div>
 

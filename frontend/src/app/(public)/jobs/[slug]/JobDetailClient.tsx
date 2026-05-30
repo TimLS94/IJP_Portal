@@ -789,9 +789,9 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
               ) : (
                 <button
                   onClick={() => setShowReportModal(true)}
-                  className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 mx-auto transition-colors"
+                  className="text-sm text-gray-400 hover:text-red-500 flex items-center gap-2 mx-auto px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
                 >
-                  <Flag className="h-3 w-3" />
+                  <Flag className="h-4 w-4" />
                   Stelle melden
                 </button>
               )}

@@ -637,6 +637,8 @@ class AdminUpdateJobRequest(BaseModel):
     salary_min: Optional[float] = None
     salary_max: Optional[float] = None
     salary_type: Optional[str] = None
+    location: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 @router.put("/jobs/{job_id}")
@@ -675,6 +677,10 @@ async def admin_update_job(
         job.salary_max = request.salary_max
     if "salary_type" in request.model_fields_set:
         job.salary_type = request.salary_type
+    if request.location is not None:
+        job.location = request.location
+    if request.is_active is not None:
+        job.is_active = request.is_active
 
     job.updated_at = datetime.utcnow()
     db.commit()

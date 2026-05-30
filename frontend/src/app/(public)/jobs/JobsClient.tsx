@@ -390,92 +390,34 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
               rel="noopener noreferrer"
               className="card block hover:shadow-xl hover:border-primary-200 border-2 border-transparent transition-all group"
             >
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <div className="flex flex-col gap-3">
+                {/* Title row + like button */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-wrap flex-1">
                     <h2 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
                       {job.title}
                     </h2>
                     {job.position_type && (
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-semibold border ${
-                          positionTypeColors[job.position_type] || positionTypeColors.general
-                        }`}
-                      >
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${positionTypeColors[job.position_type] || positionTypeColors.general}`}>
                         {t(`positionTypes.${job.position_type}`, job.position_type || "")}
                       </span>
                     )}
                     {job.is_external && (
-                      <span className="px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-700 border border-orange-200">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200">
                         {t("jobs.external")}
                       </span>
                     )}
                     {job.accommodation_provided && (
-                      <span className="px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
                         🏠 {t("jobs.accommodation")}
                       </span>
                     )}
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-3">
-                    <span className="flex items-center gap-1.5">
-                      <Building2 className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium">
-                        {job.is_external && job.external_employer_name
-                          ? job.external_employer_name
-                          : (job.company?.company_name || t("common.unknown"))}
-                      </span>
-                    </span>
-                    {job.location && (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        {job.location}
-                      </span>
-                    )}
-                    {job.start_date && (
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        {t("jobs.from")} {formatDate(job.start_date)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Sprachanforderungen */}
-                  {((job.german_required && job.german_required !== "not_required") || (job.english_required && job.english_required !== "not_required") || (job.other_languages_required && job.other_languages_required.length > 0)) && (
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                      <Languages className="h-4 w-4 text-gray-400" />
-                      {job.german_required && job.german_required !== "not_required" && (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${languageLevelColors[job.german_required] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
-                          🇩🇪 {getLangLevel(job.german_required)}
-                        </span>
-                      )}
-                      {job.english_required && job.english_required !== "not_required" && (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${languageLevelColors[job.english_required] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
-                          🇬🇧 {getLangLevel(job.english_required)}
-                        </span>
-                      )}
-                      {job.other_languages_required && job.other_languages_required.length > 0 && (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-50 text-gray-600 border-gray-200">
-                          +{job.other_languages_required.length} {t("common.more")}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Beschreibungsvorschau */}
-                  {job.description && (
-                    <p className="text-gray-600 text-sm line-clamp-2">
-                      {stripHtml(job.description).substring(0, 200)}...
-                    </p>
-                  )}
-                </div>
-
-                <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
                   {isApplicant && (
                     <button
                       onClick={(e) => handleLike(e, job.id)}
                       disabled={likingJob === job.id}
-                      className={`p-2 rounded-full transition-all ${
+                      className={`flex-shrink-0 p-2 rounded-full transition-all ${
                         likedJobs.has(job.id)
                           ? "bg-red-100 text-red-600 hover:bg-red-200"
                           : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-500"
@@ -489,29 +431,75 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
                       )}
                     </button>
                   )}
+                </div>
 
+                {/* Company, location, start date */}
+                <div className="flex flex-wrap items-center gap-3 text-gray-600">
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium">
+                      {job.is_external && job.external_employer_name
+                        ? job.external_employer_name
+                        : (job.company?.company_name || t("common.unknown"))}
+                    </span>
+                  </span>
+                  {job.location && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4 text-gray-400" />
+                      {job.location}
+                    </span>
+                  )}
+                  {job.start_date && (
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-gray-400" />
+                      {t("jobs.from")} {formatDate(job.start_date)}
+                    </span>
+                  )}
                   {(job.salary_min || job.salary_max) && (
-                    <p className="text-lg font-bold text-primary-600">
-                      {job.salary_min && job.salary_max ? (
-                        <>
-                          {job.salary_min.toLocaleString("de-DE")}€ - {job.salary_max.toLocaleString("de-DE")}€
-                        </>
-                      ) : (
-                        <>{(job.salary_min || job.salary_max)?.toLocaleString("de-DE")}€</>
-                      )}
-                      <span className="text-sm font-normal text-gray-500 block">
+                    <span className="font-bold text-primary-600">
+                      {job.salary_min && job.salary_max
+                        ? `${job.salary_min.toLocaleString("de-DE")}€ – ${job.salary_max.toLocaleString("de-DE")}€`
+                        : `${(job.salary_min || job.salary_max)?.toLocaleString("de-DE")}€`}
+                      <span className="text-xs font-normal text-gray-500 ml-1">
                         /{job.salary_type === "hourly" ? t("common.hour") : job.salary_type === "monthly" ? t("common.month") : t("common.year")}
                       </span>
-                    </p>
+                    </span>
                   )}
-                  <p className="text-sm text-gray-400">
-                    {new Date(job.created_at).toLocaleDateString("de-DE", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    })}
-                  </p>
                 </div>
+
+                {/* Language requirements */}
+                {((job.german_required && job.german_required !== "not_required") || (job.english_required && job.english_required !== "not_required") || (job.other_languages_required && job.other_languages_required.length > 0)) && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Languages className="h-4 w-4 text-gray-400" />
+                    {job.german_required && job.german_required !== "not_required" && (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${languageLevelColors[job.german_required] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                        🇩🇪 {getLangLevel(job.german_required)}
+                      </span>
+                    )}
+                    {job.english_required && job.english_required !== "not_required" && (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${languageLevelColors[job.english_required] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                        🇬🇧 {getLangLevel(job.english_required)}
+                      </span>
+                    )}
+                    {job.other_languages_required && job.other_languages_required.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-50 text-gray-600 border-gray-200">
+                        +{job.other_languages_required.length} {t("common.more")}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Description preview */}
+                {job.description && (
+                  <p className="text-gray-600 text-sm line-clamp-2">
+                    {stripHtml(job.description).substring(0, 200)}...
+                  </p>
+                )}
+
+                {/* Date */}
+                <p className="text-xs text-gray-400">
+                  {new Date(job.created_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                </p>
               </div>
             </Link>
           ))}

@@ -110,58 +110,97 @@ export default function AdminBlogPage() {
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
+      ) : posts.length === 0 ? (
+        <div className="card text-center py-12 text-gray-500">Keine Artikel vorhanden</div>
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Titel</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategorie</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aufrufe</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aktionen</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {posts.map((post) => (
-                <tr key={post.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium text-gray-900">{post.title}</td>
-                  <td className="px-6 py-4 text-gray-600">{post.category}</td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => handleTogglePublish(post.id, post.is_published)}
-                      className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${
-                        post.is_published ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                      }`}
-                      title={post.is_published ? "Klicken zum Verstecken" : "Klicken zum Veröffentlichen"}
-                    >
-                      {post.is_published ? "Veröffentlicht" : "Entwurf"}
+        <>
+          {/* Mobile: Card layout */}
+          <div className="md:hidden space-y-3">
+            {posts.map((post) => (
+              <div key={post.id} className="card p-4">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <p className="font-medium text-gray-900 text-sm leading-snug flex-1">{post.title}</p>
+                  <button
+                    onClick={() => handleTogglePublish(post.id, post.is_published)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${
+                      post.is_published ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {post.is_published ? "Veröffentlicht" : "Entwurf"}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-gray-500 space-x-3">
+                    <span>{post.category}</span>
+                    <span>{post.view_count} Aufrufe</span>
+                    <span>{formatDate(post.created_at)}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Link href={`/blog/${post.slug}`} className="p-2 text-gray-400 hover:text-primary-600">
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                    <Link href={`/admin/blog/${post.id}/edit`} className="p-2 text-gray-400 hover:text-primary-600">
+                      <Edit className="h-4 w-4" />
+                    </Link>
+                    <button onClick={() => handleDelete(post.id)} className="p-2 text-gray-400 hover:text-red-600">
+                      <Trash2 className="h-4 w-4" />
                     </button>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">{post.view_count}</td>
-                  <td className="px-6 py-4 text-gray-600">{formatDate(post.created_at)}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <Link href={`/blog/${post.slug}`} className="p-2 text-gray-400 hover:text-primary-600">
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                      <Link href={`/admin/blog/${post.id}/edit`} className="p-2 text-gray-400 hover:text-primary-600">
-                        <Edit className="h-4 w-4" />
-                      </Link>
-                      <button onClick={() => handleDelete(post.id)} className="p-2 text-gray-400 hover:text-red-600">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: Table layout */}
+          <div className="hidden md:block card overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Titel</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategorie</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aufrufe</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aktionen</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {posts.length === 0 && (
-            <div className="text-center py-12 text-gray-500">Keine Artikel vorhanden</div>
-          )}
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {posts.map((post) => (
+                  <tr key={post.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-900">{post.title}</td>
+                    <td className="px-6 py-4 text-gray-600">{post.category}</td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleTogglePublish(post.id, post.is_published)}
+                        className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${
+                          post.is_published ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                        }`}
+                        title={post.is_published ? "Klicken zum Verstecken" : "Klicken zum Veröffentlichen"}
+                      >
+                        {post.is_published ? "Veröffentlicht" : "Entwurf"}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">{post.view_count}</td>
+                    <td className="px-6 py-4 text-gray-600">{formatDate(post.created_at)}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <Link href={`/blog/${post.slug}`} className="p-2 text-gray-400 hover:text-primary-600">
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                        <Link href={`/admin/blog/${post.id}/edit`} className="p-2 text-gray-400 hover:text-primary-600">
+                          <Edit className="h-4 w-4" />
+                        </Link>
+                        <button onClick={() => handleDelete(post.id)} className="p-2 text-gray-400 hover:text-red-600">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

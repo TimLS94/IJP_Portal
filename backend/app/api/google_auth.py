@@ -85,14 +85,7 @@ async def google_login(
         user = db.query(User).filter(User.email == email).first()
         
         if user:
-            # Existierender User - Google-ID verknüpfen (nur wenn Bewerber)
-            if user.role != UserRole.APPLICANT:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Google Login ist nur für Bewerber verfügbar. Bitte nutzen Sie den normalen Login."
-                )
-            
-            # Google-ID mit bestehendem Account verknüpfen
+            # Google-ID mit bestehendem Account verknüpfen (alle Rollen)
             user.google_id = google_id
             db.commit()
         else:
