@@ -2114,5 +2114,19 @@
     "perHour": "в час",
     "perMonth": "в месяц",
     "perYear": "в год"
+  },
+  "notifications": {
+    "documentRequest": {
+      "title": "Запрошены документы",
+      "message": "{{company}} запросила документы для вашей заявки на \"{{jobTitle}}\": {{documents}}."
+    },
+    "interviewProposed": {
+      "title": "Получено предложение о собеседовании",
+      "message": "{{company}} отправила предложения дат для собеседования по вакансии \"{{jobTitle}}\". Пожалуйста, подтвердите одну из дат."
+    },
+    "newJob": {
+      "title": "Новая подходящая вакансия: {{jobTitle}}",
+      "message": "{{company}} в {{location}} – {{score}}% совпадение"
+    }
   }
 }

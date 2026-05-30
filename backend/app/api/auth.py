@@ -71,8 +71,8 @@ async def login(
     db: Session = Depends(get_db)
 ):
     """Login mit E-Mail und Passwort"""
-    # Rate Limiting: 5 Versuche pro Minute
-    await rate_limit_login(request)
+    # Rate Limiting: 5 Versuche pro Minute – sowohl per IP als auch per E-Mail (IP-Spoofing-sicher)
+    await rate_limit_login(request, email=form_data.username)
     
     user = db.query(User).filter(User.email == form_data.username).first()
     

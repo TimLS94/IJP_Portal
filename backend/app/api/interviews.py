@@ -206,6 +206,7 @@ async def propose_interview(
                 notes=data.notes,
             )
 
+        import json as _json
         from app.models.notification import Notification
         notification = Notification(
             user_id=applicant.user.id,
@@ -213,7 +214,9 @@ async def propose_interview(
             reference_id=interview.id,
             reference_type="interview",
             title="Terminvorschlag erhalten",
-            message=f"{company_name} hat Terminvorschläge für ein Vorstellungsgespräch zu \"{job_title}\" gesendet. Bitte bestätigen Sie einen Termin."
+            message=f"{company_name} hat Terminvorschläge für ein Vorstellungsgespräch zu \"{job_title}\" gesendet. Bitte bestätigen Sie einen Termin.",
+            notification_key="notifications.interviewProposed",
+            notification_params=_json.dumps({"company": company_name, "jobTitle": job_title})
         )
         db.add(notification)
         db.commit()

@@ -24,6 +24,10 @@ class Notification(Base):
     # Inhalt
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=True)
+
+    # i18n: key-based translation (e.g. "notifications.documentRequest")
+    notification_key = Column(String(100), nullable=True)
+    notification_params = Column(Text, nullable=True)  # JSON string with interpolation params
     
     # Status
     is_read = Column(Boolean, default=False, index=True)

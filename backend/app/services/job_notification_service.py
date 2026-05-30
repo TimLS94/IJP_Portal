@@ -104,6 +104,7 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
         
         # Create in-app notification
         try:
+            import json as _json
             company_name = job.company.company_name if job.company else "Unbekannt"
             notification = Notification(
                 user_id=user.id,
@@ -111,7 +112,9 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
                 reference_id=job.id,
                 reference_type="job",
                 title=f"Neue passende Stelle: {job.title}",
-                message=f"{company_name} in {job.location or 'Deutschland'} - {score}% Match"
+                message=f"{company_name} in {job.location or 'Deutschland'} - {score}% Match",
+                notification_key="notifications.newJob",
+                notification_params=_json.dumps({"jobTitle": job.title, "company": company_name, "location": job.location or "Deutschland", "score": str(score)})
             )
             db.add(notification)
             notifications_created += 1

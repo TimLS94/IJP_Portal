@@ -566,6 +566,7 @@
     "declineAndRequest": "Decline & request new dates",
     "cancelAppointmentTitle": "Cancel appointment",
     "cancelAppointmentText": "Do you really want to cancel this confirmed appointment? The company will be notified by email.",
+    "cancelAppointmentDesc": "Do you really want to cancel this confirmed appointment? The company will be notified by email.",
     "cancelReasonPlaceholder": "e.g. Illness, family emergency...",
     "selectDocument": "Please select at least one document",
     "documentsShared": "Documents shared successfully",
@@ -2196,5 +2197,19 @@
     "perHour": "per hour",
     "perMonth": "per month",
     "perYear": "per year"
+  },
+  "notifications": {
+    "documentRequest": {
+      "title": "Documents Requested",
+      "message": "{{company}} has requested documents for your application for \"{{jobTitle}}\": {{documents}}."
+    },
+    "interviewProposed": {
+      "title": "Interview Proposal Received",
+      "message": "{{company}} has sent interview date proposals for \"{{jobTitle}}\". Please confirm a date."
+    },
+    "newJob": {
+      "title": "New matching job: {{jobTitle}}",
+      "message": "{{company}} in {{location}} – {{score}}% match"
+    }
   }
 }

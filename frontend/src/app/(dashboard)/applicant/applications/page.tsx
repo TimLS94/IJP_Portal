@@ -52,7 +52,7 @@ interface SharedDocument {
 
 
 export default function ApplicantApplicationsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   
   const statusLabels: Record<string, { label: string; color: string }> = {
     pending: { label: t("applicationStatus.pending"), color: "bg-yellow-100 text-yellow-800" },
@@ -169,8 +169,13 @@ export default function ApplicantApplicationsPage() {
     }
   };
   
+  const getLocale = () => {
+    const map: Record<string, string> = { de: "de-DE", en: "en-GB", es: "es-ES", ru: "ru-RU" };
+    return map[i18n.language?.split("-")[0]] || "de-DE";
+  };
+
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString("de-DE", {
+    return new Date(dateString).toLocaleString(getLocale(), {
       weekday: "long",
       day: "2-digit",
       month: "long",
@@ -261,7 +266,7 @@ export default function ApplicantApplicationsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("de-DE", {
+    return new Date(dateString).toLocaleDateString(getLocale(), {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",

@@ -23,6 +23,8 @@ class NotificationResponse(BaseModel):
     reference_type: Optional[str]
     title: str
     message: Optional[str]
+    notification_key: Optional[str] = None
+    notification_params: Optional[str] = None
     is_read: bool
     created_at: datetime
 

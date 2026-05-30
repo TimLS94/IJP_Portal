@@ -2114,5 +2114,19 @@
     "perHour": "por hora",
     "perMonth": "por mes",
     "perYear": "por año"
+  },
+  "notifications": {
+    "documentRequest": {
+      "title": "Documentos solicitados",
+      "message": "{{company}} ha solicitado documentos para su solicitud de \"{{jobTitle}}\": {{documents}}."
+    },
+    "interviewProposed": {
+      "title": "Propuesta de entrevista recibida",
+      "message": "{{company}} ha enviado propuestas de fechas para una entrevista sobre \"{{jobTitle}}\". Por favor confirme una fecha."
+    },
+    "newJob": {
+      "title": "Nueva oferta compatible: {{jobTitle}}",
+      "message": "{{company}} en {{location}} – {{score}}% de compatibilidad"
+    }
   }
 }

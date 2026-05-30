@@ -19,6 +19,17 @@ from app.models.password_reset import PasswordResetToken
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
+def _csv_safe(value: str) -> str:
+    """
+    Verhindert CSV-Formula-Injection (Excel/LibreOffice).
+    Felder die mit =, +, -, @, Tab oder CR beginnen, werden mit Apostroph geprefixed,
+    damit sie als Text und nicht als Formel interpretiert werden.
+    """
+    if value and str(value)[0] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + str(value)
+    return str(value) if value is not None else ''
+
+
 def require_admin(current_user: User = Depends(get_current_user)):
     """Prüft ob der Benutzer Admin ist"""
     if current_user.role != UserRole.ADMIN:
@@ -941,20 +952,20 @@ async def export_applications_csv(
             app.id,
             app.applied_at.strftime('%d.%m.%Y %H:%M') if app.applied_at else '',
             APPLICATION_STATUS_LABELS.get(app.status, app.status.value),
-            applicant.first_name if applicant else '',
-            applicant.last_name if applicant else '',
-            applicant_user.email if applicant_user else '',
-            applicant.phone if applicant else '',
+            _csv_safe(applicant.first_name if applicant else ''),
+            _csv_safe(applicant.last_name if applicant else ''),
+            _csv_safe(applicant_user.email if applicant_user else ''),
+            _csv_safe(applicant.phone if applicant else ''),
             applicant.date_of_birth.strftime('%d.%m.%Y') if applicant and applicant.date_of_birth else '',
-            applicant.nationality if applicant else '',
+            _csv_safe(applicant.nationality if applicant else ''),
             applicant.position_type.value if applicant and applicant.position_type else '',
-            applicant.city if applicant else '',
-            applicant.country if applicant else '',
+            _csv_safe(applicant.city if applicant else ''),
+            _csv_safe(applicant.country if applicant else ''),
             applicant.german_level.value if applicant and applicant.german_level else '',
             applicant.english_level.value if applicant and applicant.english_level else '',
-            job.title if job else '',
-            company.company_name if company else '',
-            app.admin_notes or ''
+            _csv_safe(job.title if job else ''),
+            _csv_safe(company.company_name if company else ''),
+            _csv_safe(app.admin_notes or '')
         ])
     
     output.seek(0)
@@ -1138,18 +1149,18 @@ async def export_applicants_csv(
     for a in applicants:
         writer.writerow([
             a.id,
-            a.first_name,
-            a.last_name,
-            a.user.email if a.user else '',
-            a.phone or '',
-            a.nationality or '',
-            a.city or '',
-            a.country or '',
+            _csv_safe(a.first_name or ''),
+            _csv_safe(a.last_name or ''),
+            _csv_safe(a.user.email if a.user else ''),
+            _csv_safe(a.phone or ''),
+            _csv_safe(a.nationality or ''),
+            _csv_safe(a.city or ''),
+            _csv_safe(a.country or ''),
             a.position_type.value if a.position_type else '',
             a.german_level.value if a.german_level else '',
             a.english_level.value if a.english_level else '',
-            a.invite_source or '',
-            a.invite_source_country or '',
+            _csv_safe(a.invite_source or ''),
+            _csv_safe(a.invite_source_country or ''),
             a.user.created_at.strftime('%Y-%m-%d %H:%M') if a.user and a.user.created_at else ''
         ])
     

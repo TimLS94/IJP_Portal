@@ -8,6 +8,9 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant
+from app.models.application import Application
+from app.models.job_posting import JobPosting
+from app.models.company import Company
 from app.schemas.applicant import ApplicantCreate, ApplicantUpdate, ApplicantResponse
 
 logger = logging.getLogger(__name__)
@@ -101,19 +104,42 @@ async def get_applicant(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Gibt ein Bewerber-Profil zurück (nur für Firmen)"""
+    """Gibt ein Bewerber-Profil zurück (nur für Firmen, die eine Bewerbung von diesem Bewerber haben)"""
+    if current_user.role == UserRole.ADMIN:
+        # Admins dürfen alle Profile sehen
+        applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+        if not applicant:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bewerber nicht gefunden")
+        return applicant
+
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Nur Firmen können Bewerber-Profile einsehen"
         )
-    
+
+    # Firma ermitteln
+    company = db.query(Company).filter(Company.user_id == current_user.id).first()
+    if not company:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Kein Firmenprofil gefunden")
+
+    # Prüfen ob der Bewerber sich bei einer Stelle dieser Firma beworben hat
+    has_application = db.query(Application).join(
+        JobPosting, Application.job_posting_id == JobPosting.id
+    ).filter(
+        Application.applicant_id == applicant_id,
+        JobPosting.company_id == company.id
+    ).first()
+
+    if not has_application:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Kein Zugriff auf dieses Bewerber-Profil"
+        )
+
     applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
     if not applicant:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Bewerber nicht gefunden"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bewerber nicht gefunden")
     return applicant
 
 

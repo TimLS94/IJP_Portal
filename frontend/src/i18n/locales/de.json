@@ -566,6 +566,7 @@
     "declineAndRequest": "Ablehnen & neue Termine anfordern",
     "cancelAppointmentTitle": "Termin absagen",
     "cancelAppointmentText": "Möchten Sie diesen bestätigten Termin wirklich absagen? Die Firma wird per E-Mail benachrichtigt.",
+    "cancelAppointmentDesc": "Möchten Sie diesen bestätigten Termin wirklich absagen? Die Firma wird per E-Mail benachrichtigt.",
     "cancelReasonPlaceholder": "z.B. Krankheit, familiärer Notfall...",
     "selectDocument": "Bitte wählen Sie mindestens ein Dokument aus",
     "documentsShared": "Dokumente erfolgreich freigegeben",
@@ -2196,5 +2197,19 @@
     "perHour": "pro Stunde",
     "perMonth": "pro Monat",
     "perYear": "pro Jahr"
+  },
+  "notifications": {
+    "documentRequest": {
+      "title": "Unterlagen angefordert",
+      "message": "{{company}} hat Unterlagen für Ihre Bewerbung auf \"{{jobTitle}}\" angefordert: {{documents}}."
+    },
+    "interviewProposed": {
+      "title": "Terminvorschlag erhalten",
+      "message": "{{company}} hat Terminvorschläge für ein Vorstellungsgespräch zu \"{{jobTitle}}\" gesendet. Bitte bestätigen Sie einen Termin."
+    },
+    "newJob": {
+      "title": "Neue passende Stelle: {{jobTitle}}",
+      "message": "{{company}} in {{location}} – {{score}}% Match"
+    }
   }
 }

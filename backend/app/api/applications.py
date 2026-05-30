@@ -788,13 +788,16 @@ async def request_documents_from_applicant(
             message=request_data.message
         )
 
+        import json as _json
         notification = Notification(
             user_id=applicant_user.id,
             type="document_request",
             reference_id=application_id,
             reference_type="application",
             title="Unterlagen angefordert",
-            message=f"{company.company_name} hat Unterlagen für Ihre Bewerbung auf \"{job_title}\" angefordert: {', '.join(doc_labels)}."
+            message=f"{company.company_name} hat Unterlagen für Ihre Bewerbung auf \"{job_title}\" angefordert: {', '.join(doc_labels)}.",
+            notification_key="notifications.documentRequest",
+            notification_params=_json.dumps({"company": company.company_name, "jobTitle": job_title, "documents": ', '.join(doc_labels)})
         )
         db.add(notification)
         db.commit()

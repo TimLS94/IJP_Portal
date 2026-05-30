@@ -132,8 +132,11 @@ def ensure_external_job_columns():
             ("job_postings", "external_employer_name", "VARCHAR(255)"),
             ("companies", "is_scraped", "BOOLEAN DEFAULT FALSE"),
         ]
+        allowed_tables = {t for t, _, _ in new_columns}
+        allowed_cols = {c for _, c, _ in new_columns}
 
         for table, col, col_def in new_columns:
+            assert table in allowed_tables and col in allowed_cols
             try:
                 if is_sqlite:
                     result = db.execute(text(f"PRAGMA table_info({table})"))
@@ -143,11 +146,11 @@ def ensure_external_job_columns():
                         db.commit()
                         logger.info(f"Spalte '{col}' zu '{table}' hinzugefügt")
                 else:
-                    # PostgreSQL: Prüfen ob Spalte existiert
-                    result = db.execute(text(f"""
-                        SELECT column_name FROM information_schema.columns 
-                        WHERE table_name = '{table}' AND column_name = '{col}'
-                    """))
+                    # PostgreSQL: parametrisierte SELECT-Query
+                    result = db.execute(text("""
+                        SELECT column_name FROM information_schema.columns
+                        WHERE table_name = :table AND column_name = :col
+                    """), {"table": table, "col": col})
                     if not result.fetchone():
                         db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"))
                         db.commit()
@@ -188,8 +191,11 @@ def ensure_applicant_invite_columns():
             ("applicants", "invite_source_country", "VARCHAR(100)"),
             ("applicants", "invite_token_id", "INTEGER"),
         ]
+        allowed_tables = {t for t, _, _ in new_columns}
+        allowed_cols = {c for _, c, _ in new_columns}
 
         for table, col, col_def in new_columns:
+            assert table in allowed_tables and col in allowed_cols
             try:
                 if is_sqlite:
                     result = db.execute(text(f"PRAGMA table_info({table})"))
@@ -199,11 +205,11 @@ def ensure_applicant_invite_columns():
                         db.commit()
                         logger.info(f"Spalte '{col}' zu '{table}' hinzugefügt")
                 else:
-                    # PostgreSQL: Prüfen ob Spalte existiert
-                    result = db.execute(text(f"""
-                        SELECT column_name FROM information_schema.columns 
-                        WHERE table_name = '{table}' AND column_name = '{col}'
-                    """))
+                    # PostgreSQL: parametrisierte SELECT-Query
+                    result = db.execute(text("""
+                        SELECT column_name FROM information_schema.columns
+                        WHERE table_name = :table AND column_name = :col
+                    """), {"table": table, "col": col})
                     if not result.fetchone():
                         db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"))
                         db.commit()
@@ -277,6 +283,33 @@ def ensure_external_click_count_column():
         db.close()
 
 ensure_external_click_count_column()
+
+
+def ensure_notification_key_columns():
+    """Fügt notification_key und notification_params Spalten zur notifications Tabelle hinzu"""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'notifications' AND column_name = 'notification_key'
+        """))
+        if not result.fetchone():
+            logger.info("Adding 'notification_key' and 'notification_params' columns to notifications table...")
+            db.execute(text("ALTER TABLE notifications ADD COLUMN notification_key VARCHAR(100)"))
+            db.execute(text("ALTER TABLE notifications ADD COLUMN notification_params TEXT"))
+            db.commit()
+            logger.info("notification_key columns added successfully")
+        else:
+            logger.info("'notification_key' column already exists")
+    except Exception as e:
+        logger.error(f"Error adding notification_key columns: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+ensure_notification_key_columns()
 
 
 def backfill_is_filtered():
@@ -681,10 +714,29 @@ app = FastAPI(
     title=settings.APP_NAME,
     description="API für das IJP Portal - Jobvermittlung für internationale Arbeitskräfte",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    # API-Dokumentation nur im Debug-Modus sichtbar
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
     lifespan=lifespan
 )
+
+# Security-Header-Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        if not settings.DEBUG:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS Middleware - Eingeschränkte Methods für bessere Sicherheit
 app.add_middleware(

@@ -108,6 +108,26 @@ export default function Navbar() {
     }
   };
 
+  const getNotifLocale = () => {
+    const map: Record<string, string> = { de: "de-DE", en: "en-GB", es: "es-ES", ru: "ru-RU" };
+    return map[currentLangCode] || "de-DE";
+  };
+
+  const translateNotif = (notif: any) => {
+    if (notif.notification_key) {
+      try {
+        const params = notif.notification_params ? JSON.parse(notif.notification_params) : {};
+        return {
+          title: t(`${notif.notification_key}.title`, params),
+          message: notif.message ? t(`${notif.notification_key}.message`, params) : null,
+        };
+      } catch {
+        return { title: notif.title, message: notif.message };
+      }
+    }
+    return { title: notif.title, message: notif.message };
+  };
+
   const loadNotifications = async () => {
     try {
       const response = await notificationsAPI.getAll(false, 10);
@@ -415,13 +435,13 @@ export default function Navbar() {
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className={`text-sm ${!notif.is_read ? "font-medium text-gray-900" : "text-gray-700"}`}>
-                                      {notif.title}
+                                      {translateNotif(notif).title}
                                     </p>
                                     {notif.message && (
-                                      <p className="text-xs text-gray-500 mt-0.5 truncate">{notif.message}</p>
+                                      <p className="text-xs text-gray-500 mt-0.5 truncate">{translateNotif(notif).message}</p>
                                     )}
                                     <p className="text-xs text-gray-400 mt-1">
-                                      {new Date(notif.created_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                      {new Date(notif.created_at).toLocaleDateString(getNotifLocale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                                     </p>
                                   </div>
                                   {!notif.is_read && (
@@ -630,13 +650,13 @@ export default function Navbar() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm ${!notif.is_read ? "font-medium text-gray-900" : "text-gray-700"}`}>
-                          {notif.title}
+                          {translateNotif(notif).title}
                         </p>
                         {notif.message && (
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{translateNotif(notif).message}</p>
                         )}
                         <p className="text-xs text-gray-400 mt-1">
-                          {new Date(notif.created_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          {new Date(notif.created_at).toLocaleDateString(getNotifLocale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
                       {!notif.is_read && (
