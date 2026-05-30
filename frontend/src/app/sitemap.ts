@@ -13,10 +13,9 @@ interface SitemapJob {
   id: number;
 }
 
-interface BlogPost {
+interface SitemapBlogPost {
   slug: string;
-  updated_at?: string;
-  created_at: string;
+  lastmod: string;
 }
 
 async function getJobs(): Promise<SitemapJob[]> {
@@ -33,14 +32,14 @@ async function getJobs(): Promise<SitemapJob[]> {
   }
 }
 
-async function getBlogPosts(): Promise<BlogPost[]> {
+async function getBlogPosts(): Promise<SitemapBlogPost[]> {
   try {
-    const res = await fetch(`${API_URL}/blog/posts`, {
+    const res = await fetch(`${API_URL}/blog/sitemap/urls`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return data.posts || data || [];
+    return data.urls || [];
   } catch {
     return [];
   }
@@ -73,7 +72,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
     url: `${BASE_URL}/blog/${post.slug}`,
-    lastModified: new Date(post.updated_at || post.created_at),
+    lastModified: new Date(post.lastmod),
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }));

@@ -77,6 +77,26 @@ async def get_blog_categories():
     return BlogCategoriesResponse(categories=categories)
 
 
+@router.get("/sitemap/urls")
+async def blog_sitemap_urls(db: Session = Depends(get_db)):
+    """Gibt alle veröffentlichten Blog-Posts für die Sitemap zurück (kein Limit)."""
+    posts = (
+        db.query(BlogPost.slug, BlogPost.updated_at, BlogPost.published_at, BlogPost.created_at)
+        .filter(BlogPost.is_published == True)
+        .order_by(BlogPost.published_at.desc())
+        .all()
+    )
+    return {
+        "urls": [
+            {
+                "slug": p.slug,
+                "lastmod": (p.updated_at or p.published_at or p.created_at).strftime("%Y-%m-%d"),
+            }
+            for p in posts
+        ]
+    }
+
+
 @router.get("/posts", response_model=List[BlogPostListResponse])
 async def list_blog_posts(
     category: Optional[BlogCategory] = None,
