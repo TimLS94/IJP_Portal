@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { applicationsAPI, jobsAPI, documentsAPI } from "@/lib/api";
+import { trackJobView, trackJobApply, trackJobLike, trackExternalJobClick } from "@/lib/analytics";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import {
@@ -202,6 +203,10 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
     }
   }, [isAuthenticated, isApplicant]);
 
+  useEffect(() => {
+    try { trackJobView(job.id, job.title, !!job.is_external); } catch {}
+  }, [job.id]);
+
   const getTranslatedText = (field: "title" | "description" | "tasks" | "requirements" | "benefits"): string => {
     if (displayLanguage === "de") return job[field] || "";
     const translation = parsedTranslations?.[displayLanguage]?.[field];
@@ -243,6 +248,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
       toast.success("Bewerbung erfolgreich eingereicht!");
       setApplied(true);
       setShowApplyForm(false);
+      try { trackJobApply(job.id, job.title); } catch {}
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || "Bewerbung fehlgeschlagen";
       // Prüfen ob Pflichtfelder fehlen
@@ -521,7 +527,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                       href={job.external_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={() => { try { jobsAPI.trackExternalClick(job.id); } catch {} }}
+                      onClick={() => { try { jobsAPI.trackExternalClick(job.id); } catch {} try { trackExternalJobClick(job.id, job.title); } catch {} }}
                       className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors"
                     >
                       <ExternalLink className="h-4 w-4" />
@@ -626,7 +632,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                         {t("jobDetail.applyNow")}
                       </button>
                       <button
-                        onClick={() => setLiked(!liked)}
+                        onClick={() => { setLiked(!liked); try { trackJobLike(job.id, job.title, !liked); } catch {} }}
                         className={`w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-medium transition-all ${
                           liked ? "bg-red-100 text-red-700 border-2 border-red-300" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}

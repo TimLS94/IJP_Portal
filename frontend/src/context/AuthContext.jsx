@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../lib/api';
+import { trackLogin, trackOAuthLogin, trackRegister, trackLogout } from '../lib/analytics';
 
 const AuthContext = createContext(null);
 
@@ -23,11 +24,12 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const response = await authAPI.login(email, password);
     const { access_token, user } = response.data;
-    
+
     localStorage.setItem('token', access_token);
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
-    
+    try { trackLogin(user.role); } catch {}
+
     return user;
   };
 
@@ -38,11 +40,12 @@ export function AuthProvider({ children }) {
       lastName
     );
     const { access_token, user } = response.data;
-    
+
     localStorage.setItem('token', access_token);
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
-    
+    try { trackRegister('applicant'); } catch {}
+
     return user;
   };
 
@@ -52,15 +55,17 @@ export function AuthProvider({ children }) {
       companyName
     );
     const { access_token, user } = response.data;
-    
+
     localStorage.setItem('token', access_token);
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
-    
+    try { trackRegister('company'); } catch {}
+
     return user;
   };
 
   const logout = () => {
+    try { trackLogout(); } catch {}
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
@@ -71,6 +76,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
+    try { trackOAuthLogin(userData.role); } catch {}
   };
 
   const value = {

@@ -14,6 +14,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { getNationalityOptions } from "@/data/nationalities";
+import { trackCVParse } from "@/lib/analytics";
 
 
 
@@ -181,6 +182,7 @@ export default function ProfileClient() {
       if (d.work_experiences?.length && !workExperiences.length) { setWorkExperiences(d.work_experiences); filled++; }
       if (d.work_experience_years && !watch("work_experience_years")) { setValue("work_experience_years", d.work_experience_years); filled++; }
 
+      try { trackCVParse(filled); } catch {}
       if (filled > 0) {
         toast.success(`${filled} Felder wurden automatisch ausgefüllt – bitte überprüfen!`);
       } else {

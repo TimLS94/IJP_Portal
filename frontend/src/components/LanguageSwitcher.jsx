@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, ChevronDown } from 'lucide-react';
+import { trackLanguageSwitch } from '@/lib/analytics';
 
 const languages = [
   { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
@@ -30,6 +31,7 @@ function LanguageSwitcher() {
   const changeLanguage = (langCode) => {
     i18n.changeLanguage(langCode);
     setIsOpen(false);
+    try { trackLanguageSwitch(langCode); } catch {}
   };
 
   return (
