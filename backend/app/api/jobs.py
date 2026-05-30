@@ -693,9 +693,16 @@ async def update_job(
     
     for field, value in update_data.items():
         setattr(job, field, value)
-    
+
+    # Wird eine Draft-Stelle aktiviert, Draft-Flag automatisch entfernen
+    if update_data.get("is_active") is True and job.is_draft:
+        job.is_draft = False
+        if job.published_at is None:
+            from datetime import datetime
+            job.published_at = datetime.utcnow()
+
     db.commit()
-    
+
     # SEO: Slug aktualisieren wenn relevante Felder geändert wurden
     if slug_fields_changed:
         update_job_slug(job, db)
@@ -845,6 +852,7 @@ async def reactivate_job(
         job.deadline = date.today() + timedelta(days=max_deadline_days)
     
     job.is_active = True
+    job.is_draft = False
     job.is_archived = False
     job.archived_at = None
     job.updated_at = datetime.utcnow()
