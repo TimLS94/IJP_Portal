@@ -101,16 +101,25 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
       cancel_on_tap_outside: true,
     });
 
-    const width = buttonRef.current.offsetWidth || 400;
-    window.google.accounts.id.renderButton(buttonRef.current, {
-      theme: "outline",
-      size: "large",
-      width,
-      text: "continue_with",
-      locale: "de",
-    });
+    // Breite nach Layout-Tick messen (offsetWidth ist 0 wenn DOM noch nicht final ist)
+    const measure = () => {
+      if (!buttonRef.current) return;
+      const containerWidth = buttonRef.current.getBoundingClientRect().width;
+      // Google erlaubt 200–400px; wir nehmen den Container, gedeckelt auf 400
+      const width = Math.max(200, Math.min(400, Math.round(containerWidth) || 400));
+      window.google!.accounts.id.renderButton(buttonRef.current, {
+        theme: "outline",
+        size: "large",
+        width,
+        text: "continue_with",
+        locale: "de",
+        shape: "rectangular",
+      });
+      renderedRef.current = true;
+    };
 
-    renderedRef.current = true;
+    // Zwei Frames warten damit das Layout stabil ist
+    requestAnimationFrame(() => requestAnimationFrame(measure));
   };
 
   const initGoogle = () => {
@@ -148,18 +157,14 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   if (!googleConfig?.enabled) return null;
 
   return (
-    <div className="w-full">
+    <div className="w-full flex justify-center">
       {processing ? (
-        <div className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg bg-gray-50">
+        <div className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg bg-gray-50 w-full max-w-[400px]">
           <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
           <span className="text-gray-600">Wird angemeldet...</span>
         </div>
       ) : (
-        <div
-          ref={buttonRef}
-          className="w-full flex justify-center [&>div]:!w-full [&_iframe]:!w-full"
-          style={{ minHeight: "44px" }}
-        />
+        <div ref={buttonRef} style={{ minHeight: "44px" }} />
       )}
     </div>
   );
