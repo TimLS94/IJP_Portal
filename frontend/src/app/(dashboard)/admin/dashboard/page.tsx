@@ -1091,9 +1091,9 @@ export default function AdminDashboardPage() {
               </div>
             ))}
             {jobReports.length > 5 && (
-              <p className="text-sm text-red-600 text-center">
-                + {jobReports.length - 5} weitere Meldungen
-              </p>
+              <Link href="/admin/reports" className="block text-sm text-red-600 text-center hover:underline">
+                + {jobReports.length - 5} weitere Meldungen ansehen →
+              </Link>
             )}
           </div>
         </div>

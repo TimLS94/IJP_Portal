@@ -29,6 +29,7 @@ import {
   Heart,
   Globe,
   Bell,
+  Flag,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -207,6 +208,7 @@ export default function Navbar() {
         { to: "/admin/applications", icon: FileText, label: t("nav.adminApplications") },
         { to: "/admin/users", icon: Users, label: t("nav.adminUsers") },
         { to: "/admin/jobs", icon: Briefcase, label: t("nav.adminJobs") },
+        { to: "/admin/reports", icon: Flag, label: "Meldungen" },
         { to: "/admin/blog", icon: BookOpen, label: t("nav.adminBlog") },
         { to: "/admin/invite-tokens", icon: Link2, label: t("nav.inviteTokens") },
         { to: "/admin/applicant-invites", icon: Users, label: t("nav.applicantInvites") },
