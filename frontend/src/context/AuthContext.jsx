@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../lib/api';
-import { trackLogin, trackOAuthLogin, trackRegister, trackLogout } from '../lib/analytics';
+import { trackLogin, trackOAuthLogin, trackRegister, trackLogout, identifyUser, clearUser } from '../lib/analytics';
 
 const AuthContext = createContext(null);
 
@@ -16,7 +16,9 @@ export function AuthProvider({ children }) {
     const savedUser = localStorage.getItem('user');
     
     if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
+      const parsed = JSON.parse(savedUser);
+      setUser(parsed);
+      try { identifyUser(parsed.id, parsed.role); } catch {}
     }
     setLoading(false);
   }, []);
@@ -28,7 +30,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', access_token);
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
-    try { trackLogin(user.role); } catch {}
+    try { identifyUser(user.id, user.role); trackLogin(user.role); } catch {}
 
     return user;
   };
@@ -44,7 +46,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', access_token);
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
-    try { trackRegister('applicant'); } catch {}
+    try { identifyUser(user.id, user.role); trackRegister('applicant'); } catch {}
 
     return user;
   };
@@ -59,13 +61,13 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', access_token);
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
-    try { trackRegister('company'); } catch {}
+    try { identifyUser(user.id, user.role); trackRegister('company'); } catch {}
 
     return user;
   };
 
   const logout = () => {
-    try { trackLogout(); } catch {}
+    try { trackLogout(); clearUser(); } catch {}
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
@@ -76,7 +78,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
-    try { trackOAuthLogin(userData.role); } catch {}
+    try { identifyUser(userData.id, userData.role); trackOAuthLogin(userData.role); } catch {}
   };
 
   const value = {

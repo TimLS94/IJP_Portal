@@ -1,5 +1,29 @@
 import { sendGAEvent } from "@next/third-parties/google";
 
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
+function gtag(...args: unknown[]) {
+  if (typeof window !== "undefined" && typeof window.gtag === "function") {
+    window.gtag(...args);
+  }
+}
+
+/** Call after login/register to attach an anonymous user ID to all subsequent events. */
+export function identifyUser(userId: number, role: string) {
+  gtag("set", { user_id: String(userId) });
+  gtag("set", "user_properties", { user_role: role });
+}
+
+/** Call on logout to detach the user ID. */
+export function clearUser() {
+  gtag("set", { user_id: undefined });
+  gtag("set", "user_properties", { user_role: undefined });
+}
+
 export function trackLogin(role: string) {
   sendGAEvent("event", "login", { method: "email", user_role: role });
 }
