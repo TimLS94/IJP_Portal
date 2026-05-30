@@ -135,11 +135,21 @@ export default function AdminJobsPage() {
   };
 
   const toggleLanguage = (code: string) => {
-    setSelectedLanguages(prev => 
-      prev.includes(code) 
+    setSelectedLanguages(prev =>
+      prev.includes(code)
         ? prev.filter(l => l !== code)
         : [...prev, code]
     );
+  };
+
+  const handleToggleActive = async (job: Job) => {
+    try {
+      await adminAPI.updateJob(job.id, { is_active: !job.is_active });
+      toast.success(job.is_active ? "Stelle deaktiviert" : "Stelle aktiviert");
+      loadJobs();
+    } catch {
+      toast.error("Fehler beim Ändern des Status");
+    }
   };
 
   return (
@@ -243,7 +253,20 @@ export default function AdminJobsPage() {
                         <span>Erstellt: {formatDate(job.created_at)}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Aktivieren/Deaktivieren Toggle */}
+                      <button
+                        onClick={() => handleToggleActive(job)}
+                        className={`text-sm px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1 ${
+                          job.is_active
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                        }`}
+                        title={job.is_active ? "Deaktivieren" : "Aktivieren"}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${job.is_active ? "bg-green-600" : "bg-gray-400"}`} />
+                        {job.is_active ? "Aktiv" : "Inaktiv"}
+                      </button>
                       {/* Übersetzungs-Button */}
                       <button
                         onClick={() => openTranslateModal(job)}

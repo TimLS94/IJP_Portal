@@ -165,7 +165,7 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="mt-4">
-            <GoogleLoginButton buttonText={t("auth.continueWithGoogle")} />
+            <GoogleLoginButton />
           </div>
           <p className="text-xs text-gray-500 text-center mt-2">
             {t("auth.googleLoginHint")}

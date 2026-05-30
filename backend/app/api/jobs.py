@@ -232,9 +232,10 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
     if not job.slug:
         update_job_slug(job, db)
     
-    # View Count erhöhen (persistent in DB)
-    job.view_count = (job.view_count or 0) + 1
-    db.commit()
+    # View Count nur für aktive Jobs erhöhen
+    if job.is_active:
+        job.view_count = (job.view_count or 0) + 1
+        db.commit()
     
     # Canonical URL berechnen
     canonical_slug = get_job_url_slug(job)
