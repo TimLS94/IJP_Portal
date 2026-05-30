@@ -1389,6 +1389,16 @@ async def get_job_interaction(
 
 
 
+@router.post("/{job_id}/external-click")
+async def track_external_click(job_id: int, db: Session = Depends(get_db)):
+    """Trackt einen Klick auf den externen Bewerbungslink (BA-Stellen)"""
+    job = db.query(JobPosting).filter(JobPosting.id == job_id, JobPosting.is_active == True).first()
+    if job and job.is_external:
+        job.external_click_count = (job.external_click_count or 0) + 1
+        db.commit()
+    return {"tracked": True}
+
+
 @router.post("/admin/reindex-all")
 async def reindex_all_jobs(
     current_user: User = Depends(get_current_user),

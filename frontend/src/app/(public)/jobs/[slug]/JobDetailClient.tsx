@@ -521,6 +521,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                       href={job.external_url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() => { try { jobsAPI.trackExternalClick(job.id); } catch {} }}
                       className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors"
                     >
                       <ExternalLink className="h-4 w-4" />

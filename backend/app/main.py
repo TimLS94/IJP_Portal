@@ -253,6 +253,32 @@ def ensure_published_at_column():
 ensure_published_at_column()
 
 
+def ensure_external_click_count_column():
+    """Fügt external_click_count Spalte zu job_postings hinzu"""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'job_postings' AND column_name = 'external_click_count'
+        """))
+        if not result.fetchone():
+            logger.info("Adding 'external_click_count' column to job_postings table...")
+            db.execute(text("ALTER TABLE job_postings ADD COLUMN external_click_count INTEGER DEFAULT 0"))
+            db.commit()
+            logger.info("'external_click_count' column added successfully")
+        else:
+            logger.info("'external_click_count' column already exists")
+    except Exception as e:
+        logger.error(f"Error adding external_click_count column: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+ensure_external_click_count_column()
+
+
 def backfill_is_filtered():
     """
     Setzt is_filtered korrekt für bestehende Bewerbungen:

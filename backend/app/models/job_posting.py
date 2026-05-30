@@ -135,7 +135,8 @@ class JobPosting(Base):
     deleted_at = Column(DateTime, nullable=True)  # Wann gelöscht/deaktiviert
     
     # Statistiken
-    view_count = Column(Integer, default=0)  # Anzahl der Aufrufe
+    view_count = Column(Integer, default=0)           # Anzahl der Aufrufe
+    external_click_count = Column(Integer, default=0) # Klicks auf externen Link (BA-Stellen)
 
     # ========== EXTERNE JOBS (z.B. Bundesagentur für Arbeit) ==========
     is_external = Column(Boolean, default=False)           # Extern gescraptes Inserat

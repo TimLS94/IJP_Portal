@@ -581,11 +581,17 @@ async def list_all_jobs(
     total = query.count()
     jobs = query.order_by(JobPosting.created_at.desc()).offset(skip).limit(limit).all()
     
+    from app.models.job_interaction import JobInteraction, InteractionType
+
     result = []
     for job in jobs:
         company = db.query(Company).filter(Company.id == job.company_id).first()
         app_count = db.query(Application).filter(Application.job_posting_id == job.id).count()
-        
+        like_count = db.query(JobInteraction).filter(
+            JobInteraction.job_posting_id == job.id,
+            JobInteraction.interaction_type == InteractionType.LIKE
+        ).count()
+
         result.append({
             "id": job.id,
             "title": job.title,
@@ -593,10 +599,13 @@ async def list_all_jobs(
             "position_type": job.position_type,
             "location": job.location,
             "is_active": job.is_active,
+            "is_external": job.is_external or False,
             "created_at": job.created_at,
             "company_name": company.company_name if company else "Unbekannt",
             "application_count": app_count,
             "view_count": job.view_count or 0,
+            "like_count": like_count,
+            "external_click_count": job.external_click_count or 0,
             "available_languages": job.available_languages or ["de"]
         })
     

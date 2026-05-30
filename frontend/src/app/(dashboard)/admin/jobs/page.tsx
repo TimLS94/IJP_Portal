@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
+import {
   Briefcase, Trash2, Eye, Edit,
-  MapPin, Building2, Users, Languages, Loader2, Check, X
+  MapPin, Building2, Users, Languages, Loader2, Check, X,
+  Heart, ExternalLink
 } from "lucide-react";
 import { adminAPI } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -39,7 +40,10 @@ interface Job {
   location?: string;
   position_type: string;
   is_active: boolean;
+  is_external?: boolean;
   view_count?: number;
+  like_count?: number;
+  external_click_count?: number;
   application_count: number;
   available_languages?: string[];
   admin_translated_languages?: string[];
@@ -247,9 +251,19 @@ export default function AdminJobsPage() {
                           {job.view_count || 0} Aufrufe
                         </span>
                         <span className="flex items-center gap-1">
+                          <Heart className="h-4 w-4" />
+                          {job.like_count || 0} Gemerkt
+                        </span>
+                        <span className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
                           {job.application_count} Bewerbungen
                         </span>
+                        {job.is_external && (
+                          <span className="flex items-center gap-1 text-orange-600">
+                            <ExternalLink className="h-4 w-4" />
+                            {job.external_click_count || 0} Ext. Klicks
+                          </span>
+                        )}
                         <span>Erstellt: {formatDate(job.created_at)}</span>
                       </div>
                     </div>
