@@ -123,7 +123,8 @@ class JobPosting(Base):
     keep_archived = Column(Boolean, default=False)  # NEU: Nicht automatisch löschen (permanent archiviert)
     created_at = Column(DateTime(timezone=True), default=utc_now)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
-    
+    published_at = Column(DateTime(timezone=True), nullable=True)  # Erstes Aktivierungsdatum
+
     # Deadline (dynamisch aus Admin-Settings)
     deadline = Column(Date)  # Bewerbungsschluss
     archived_at = Column(DateTime)  # Wann archiviert

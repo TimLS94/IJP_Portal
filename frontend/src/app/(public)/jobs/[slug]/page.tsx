@@ -37,6 +37,7 @@ interface JobFromAPI {
   contact_phone?: string;
   contact_email?: string;
   created_at: string;
+  published_at?: string;
   updated_at?: string;
   deadline?: string;
   company_id?: number;
@@ -90,6 +91,7 @@ interface Job {
   contact_phone?: string;
   contact_email?: string;
   created_at: string;
+  published_at?: string;
   updated_at?: string;
   valid_until?: string;
   company: Company;

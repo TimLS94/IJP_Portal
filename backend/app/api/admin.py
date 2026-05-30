@@ -681,6 +681,9 @@ async def admin_update_job(
         job.location = request.location
     if request.is_active is not None:
         job.is_active = request.is_active
+        # published_at beim ersten Aktivieren setzen, danach nicht überschreiben
+        if request.is_active and job.published_at is None:
+            job.published_at = datetime.utcnow()
 
     job.updated_at = datetime.utcnow()
     db.commit()

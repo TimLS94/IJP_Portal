@@ -83,6 +83,7 @@ interface Job {
   contact_phone?: string;
   contact_email?: string;
   created_at: string;
+  published_at?: string;
   valid_until?: string;
   translations?: Record<string, Record<string, string>>;
   available_languages?: string[];
@@ -737,7 +738,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                   <div className="p-2 bg-gray-100 rounded-lg"><Calendar className="h-5 w-5 text-gray-600" /></div>
                   <div>
                     <p className="text-sm text-gray-500">{t("jobDetail.publishedAt")}</p>
-                    <p className="font-semibold text-gray-900">{formatDate(job.created_at)}</p>
+                    <p className="font-semibold text-gray-900">{formatDate(job.published_at || job.created_at)}</p>
                   </div>
                 </div>
               </div>

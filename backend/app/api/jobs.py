@@ -227,15 +227,21 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Stellenangebot nicht gefunden"
         )
-    
+
+    # Inaktive Jobs sind öffentlich nicht zugänglich
+    if not job.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stellenangebot nicht gefunden"
+        )
+
     # Slug generieren falls nicht vorhanden
     if not job.slug:
         update_job_slug(job, db)
-    
-    # View Count nur für aktive Jobs erhöhen
-    if job.is_active:
-        job.view_count = (job.view_count or 0) + 1
-        db.commit()
+
+    # View Count erhöhen
+    job.view_count = (job.view_count or 0) + 1
+    db.commit()
     
     # Canonical URL berechnen
     canonical_slug = get_job_url_slug(job)
@@ -276,6 +282,7 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
         "is_active": job.is_active,
         "is_archived": job.is_archived,
         "created_at": job.created_at,
+        "published_at": job.published_at,
         "updated_at": job.updated_at,
         "deadline": job.deadline,
         "translations": job.translations,
@@ -841,10 +848,12 @@ async def reactivate_job(
     job.is_archived = False
     job.archived_at = None
     job.updated_at = datetime.utcnow()
-    
+    if job.published_at is None:
+        job.published_at = datetime.utcnow()
+
     db.commit()
     db.refresh(job)
-    
+
     # Google Indexing: Reaktivierte Stelle zur Indexierung anmelden
     try:
         import asyncio
