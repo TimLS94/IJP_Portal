@@ -47,10 +47,23 @@ async function getRelatedPosts(category: string, currentSlug: string): Promise<B
   }
 }
 
-// Blog-Seiten werden dynamisch gerendert (keine statische Generierung)
-// weil die Blog-Posts zu groß für Vercel ISR Cache sind (>2MB Bilder)
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600; // 1 Stunde ISR
+
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  try {
+    const res = await fetch(`${API_URL}/blog/sitemap/urls`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const urls: { slug: string }[] = data.urls || [];
+    return urls.map((entry) => ({ slug: entry.slug }));
+  } catch {
+    return [];
+  }
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
