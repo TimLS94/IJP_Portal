@@ -45,6 +45,7 @@ interface MenuItem {
   icon?: React.ElementType;
   label?: string;
   divider?: boolean;
+  header?: string;
   highlight?: boolean;
 }
 
@@ -222,17 +223,19 @@ export default function Navbar() {
     if (isAdmin) {
       return [
         { to: "/admin/dashboard", icon: LayoutDashboard, label: t("nav.adminDashboard") },
+        { header: "IJP" },
         { to: "/admin/job-requests", icon: ClipboardList, label: t("nav.adminJobRequests") },
         { to: "/admin/company-requests", icon: Building2, label: t("nav.companyRequests") },
         { to: "/admin/anabin", icon: GraduationCap, label: t("nav.anabin") },
+        { to: "/admin/ijp", icon: FolderOpen, label: "IJP Dokumente" },
+        { to: "/admin/applicant-invites", icon: Users, label: t("nav.applicantInvites") },
+        { header: "Verwaltung" },
         { to: "/admin/applications", icon: FileText, label: t("nav.adminApplications") },
         { to: "/admin/users", icon: Users, label: t("nav.adminUsers") },
         { to: "/admin/jobs", icon: Briefcase, label: t("nav.adminJobs") },
         { to: "/admin/reports", icon: Flag, label: "Meldungen" },
         { to: "/admin/blog", icon: BookOpen, label: t("nav.adminBlog") },
-        { to: "/admin/ijp", icon: FolderOpen, label: "IJP Dokumente" },
         { to: "/admin/invite-tokens", icon: Link2, label: t("nav.inviteTokens") },
-        { to: "/admin/applicant-invites", icon: Users, label: t("nav.applicantInvites") },
         { to: "/admin/sales", icon: Rocket, label: t("nav.sales") },
         { divider: true },
         { to: "/admin/settings", icon: Settings, label: t("nav.systemSettings") },
@@ -509,7 +512,11 @@ export default function Navbar() {
                       {/* Menu Items */}
                       <div className="py-1">
                         {menuItems.map((item, index) =>
-                          item.divider ? (
+                          item.header ? (
+                            <div key={index} className="px-4 pt-3 pb-1">
+                              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">{item.header}</p>
+                            </div>
+                          ) : item.divider ? (
                             <div
                               key={index}
                               className="my-1 border-t border-gray-100"
@@ -766,7 +773,11 @@ export default function Navbar() {
 
                 <div className="space-y-1 border-t border-gray-100 pt-2">
                   {menuItems.map((item, index) =>
-                    item.divider ? (
+                    item.header ? (
+                      <div key={index} className="px-4 pt-3 pb-1">
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">{item.header}</p>
+                      </div>
+                    ) : item.divider ? (
                       <div
                         key={index}
                         className="my-2 border-t border-gray-100"
