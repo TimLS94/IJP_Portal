@@ -454,6 +454,20 @@ export const baScraperAPI = {
   deletePending: (id) => api.delete(`/admin/ba-scraper/pending/${id}`),
 };
 
+// IJP Dokumentenservice (Admin)
+export const ijpAPI = {
+  // Betriebe
+  getBetriebe: () => api.get('/ijp/betriebe'),
+  createBetrieb: (data) => api.post('/ijp/betriebe', data),
+  updateBetrieb: (id, data) => api.put(`/ijp/betriebe/${id}`, data),
+  deleteBetrieb: (id) => api.delete(`/ijp/betriebe/${id}`),
+  // Bewerber
+  getApplicants: (search = '') => api.get('/ijp/applicants', { params: search ? { search } : {} }),
+  // Dokumente
+  generateWohnungsbestaetigung: (data) =>
+    api.post('/ijp/documents/wohnungsbestaetigung', data, { responseType: 'blob' }),
+};
+
 // Auth API Erweiterung für Einladungs-Token-Prüfung
 export const verifyInviteToken = (token) => api.get(`/auth/verify-invite/${token}`);
 

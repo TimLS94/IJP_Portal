@@ -230,6 +230,7 @@ export default function Navbar() {
         { to: "/admin/jobs", icon: Briefcase, label: t("nav.adminJobs") },
         { to: "/admin/reports", icon: Flag, label: "Meldungen" },
         { to: "/admin/blog", icon: BookOpen, label: t("nav.adminBlog") },
+        { to: "/admin/ijp", icon: FolderOpen, label: "IJP Dokumente" },
         { to: "/admin/invite-tokens", icon: Link2, label: t("nav.inviteTokens") },
         { to: "/admin/applicant-invites", icon: Users, label: t("nav.applicantInvites") },
         { to: "/admin/sales", icon: Rocket, label: t("nav.sales") },
