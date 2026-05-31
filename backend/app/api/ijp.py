@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
-from app.models.ijp import IJPBetrieb, IJPTemplate
+from app.models.ijp import IJPBetrieb, IJPTemplate, CRMContact
 from app.models.applicant import Applicant
 
 logger = logging.getLogger(__name__)
@@ -103,28 +103,73 @@ def _substitute(template: str, variables: Dict[str, str]) -> str:
 
 class BetriebCreate(BaseModel):
     name: str
-    contact_person: str
-    street: str
-    postal_code: str
-    city: str
+    contact_person: Optional[str] = None
+    street: Optional[str] = None
+    postal_code: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
     betriebsnummer: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    website: Optional[str] = None
+    industry: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class BetriebResponse(BaseModel):
     id: int
     name: str
-    contact_person: str
-    street: str
-    postal_code: str
-    city: str
+    contact_person: Optional[str] = None
+    street: Optional[str] = None
+    postal_code: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
     betriebsnummer: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    website: Optional[str] = None
+    industry: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+# ── CRM Schemas ───────────────────────────────────────────────────────────────
+
+class ContactCreate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    salutation: Optional[str] = None
+    title: Optional[str] = None
+    department: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    mobile: Optional[str] = None
+    is_primary: bool = False
+
+
+class ContactResponse(BaseModel):
+    id: int
+    company_id: int
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    salutation: Optional[str] = None
+    title: Optional[str] = None
+    department: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    mobile: Optional[str] = None
+    is_primary: bool = False
+
+    class Config:
+        from_attributes = True
+
+
+class CompanyWithContacts(BetriebResponse):
+    contacts: List[ContactResponse] = []
 
 
 class ApplicantOption(BaseModel):
@@ -362,3 +407,155 @@ def generate_document(req: DocumentRequest, db: Session = Depends(get_db), curre
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ── CRM: Companies ────────────────────────────────────────────────────────────
+
+@router.get("/crm/companies", response_model=List[CompanyWithContacts])
+def crm_list_companies(
+    search: Optional[str] = None,
+    industry: Optional[str] = None,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    q = db.query(IJPBetrieb)
+    if search:
+        term = f"%{search}%"
+        q = q.filter(
+            IJPBetrieb.name.ilike(term)
+            | IJPBetrieb.city.ilike(term)
+            | IJPBetrieb.industry.ilike(term)
+        )
+    if industry:
+        q = q.filter(IJPBetrieb.industry == industry)
+    if status:
+        q = q.filter(IJPBetrieb.status == status)
+    return q.order_by(IJPBetrieb.name).all()
+
+
+@router.post("/crm/companies", response_model=CompanyWithContacts, status_code=201)
+def crm_create_company(
+    data: BetriebCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    company = IJPBetrieb(**data.model_dump())
+    db.add(company)
+    db.commit()
+    db.refresh(company)
+    return company
+
+
+@router.get("/crm/companies/{company_id}", response_model=CompanyWithContacts)
+def crm_get_company(
+    company_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    company = db.query(IJPBetrieb).filter(IJPBetrieb.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firma nicht gefunden")
+    return company
+
+
+@router.put("/crm/companies/{company_id}", response_model=CompanyWithContacts)
+def crm_update_company(
+    company_id: int,
+    data: BetriebCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    company = db.query(IJPBetrieb).filter(IJPBetrieb.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firma nicht gefunden")
+    for key, value in data.model_dump().items():
+        setattr(company, key, value)
+    company.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(company)
+    return company
+
+
+@router.delete("/crm/companies/{company_id}", status_code=204)
+def crm_delete_company(
+    company_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    company = db.query(IJPBetrieb).filter(IJPBetrieb.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firma nicht gefunden")
+    db.delete(company)
+    db.commit()
+
+
+# ── CRM: Contacts ─────────────────────────────────────────────────────────────
+
+@router.post("/crm/companies/{company_id}/contacts", response_model=ContactResponse, status_code=201)
+def crm_create_contact(
+    company_id: int,
+    data: ContactCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    company = db.query(IJPBetrieb).filter(IJPBetrieb.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firma nicht gefunden")
+    contact = CRMContact(company_id=company_id, **data.model_dump())
+    db.add(contact)
+    # If this is marked primary, unset others
+    if data.is_primary:
+        db.query(CRMContact).filter(
+            CRMContact.company_id == company_id, CRMContact.id != contact.id
+        ).update({"is_primary": False})
+    db.commit()
+    db.refresh(contact)
+    return contact
+
+
+@router.put("/crm/contacts/{contact_id}", response_model=ContactResponse)
+def crm_update_contact(
+    contact_id: int,
+    data: ContactCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    contact = db.query(CRMContact).filter(CRMContact.id == contact_id).first()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Kontakt nicht gefunden")
+    for key, value in data.model_dump().items():
+        setattr(contact, key, value)
+    if data.is_primary:
+        db.query(CRMContact).filter(
+            CRMContact.company_id == contact.company_id, CRMContact.id != contact_id
+        ).update({"is_primary": False})
+    contact.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(contact)
+    return contact
+
+
+@router.delete("/crm/contacts/{contact_id}", status_code=204)
+def crm_delete_contact(
+    contact_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    contact = db.query(CRMContact).filter(CRMContact.id == contact_id).first()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Kontakt nicht gefunden")
+    db.delete(contact)
+    db.commit()
+
+
+@router.get("/crm/meta")
+def crm_meta(db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    """Distinct industries and statuses for filter dropdowns."""
+    industries = [
+        r[0] for r in db.query(IJPBetrieb.industry).filter(IJPBetrieb.industry.isnot(None)).distinct().all()
+    ]
+    statuses = [
+        r[0] for r in db.query(IJPBetrieb.status).filter(IJPBetrieb.status.isnot(None)).distinct().all()
+    ]
+    return {"industries": sorted(industries), "statuses": sorted(statuses)}

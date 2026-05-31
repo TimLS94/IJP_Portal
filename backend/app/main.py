@@ -366,6 +366,76 @@ def seed_ijp_templates_on_startup():
 seed_ijp_templates_on_startup()
 
 
+def ensure_crm_columns():
+    """Fügt CRM-Spalten zu ijp_betriebe hinzu und erstellt crm_contacts Tabelle."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        new_cols = [
+            ("ijp_betriebe", "website", "VARCHAR(500)"),
+            ("ijp_betriebe", "industry", "VARCHAR(100)"),
+            ("ijp_betriebe", "status", "VARCHAR(50)"),
+            ("ijp_betriebe", "country", "VARCHAR(100)"),
+            ("ijp_betriebe", "notes", "TEXT"),
+        ]
+        allowed_tables = {t for t, _, _ in new_cols}
+        allowed_cols = {c for _, c, _ in new_cols}
+        for table, col, col_def in new_cols:
+            assert table in allowed_tables and col in allowed_cols
+            try:
+                result = db.execute(text("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = :table AND column_name = :col
+                """), {"table": table, "col": col})
+                if not result.fetchone():
+                    db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"))
+                    db.commit()
+                    logger.info(f"CRM: Spalte '{col}' zu '{table}' hinzugefügt")
+            except Exception as e:
+                db.rollback()
+                logger.debug(f"CRM: Spalte '{col}' — {e}")
+
+        # Nullable constraints für bestehende Pflichtfelder
+        for col in ("contact_person", "street", "postal_code", "city"):
+            try:
+                db.execute(text(f"ALTER TABLE ijp_betriebe ALTER COLUMN {col} DROP NOT NULL"))
+                db.commit()
+            except Exception:
+                db.rollback()
+
+        # crm_contacts Tabelle
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS crm_contacts (
+                id SERIAL PRIMARY KEY,
+                company_id INTEGER NOT NULL REFERENCES ijp_betriebe(id) ON DELETE CASCADE,
+                first_name VARCHAR(100),
+                last_name VARCHAR(100),
+                salutation VARCHAR(20),
+                title VARCHAR(100),
+                department VARCHAR(100),
+                email VARCHAR(255),
+                phone VARCHAR(50),
+                mobile VARCHAR(50),
+                is_primary BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        """))
+        db.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_crm_contacts_company_id ON crm_contacts (company_id)"
+        ))
+        db.commit()
+        logger.info("CRM: crm_contacts Tabelle bereit")
+    except Exception as e:
+        logger.error(f"Fehler in ensure_crm_columns: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+ensure_crm_columns()
+
+
 def backfill_is_filtered():
     """
     Setzt is_filtered korrekt für bestehende Bewerbungen:

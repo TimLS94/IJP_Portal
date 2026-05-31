@@ -228,6 +228,7 @@ export default function Navbar() {
         { to: "/admin/company-requests", icon: Building2, label: t("nav.companyRequests") },
         { to: "/admin/anabin", icon: GraduationCap, label: t("nav.anabin") },
         { to: "/admin/ijp", icon: FolderOpen, label: "IJP Dokumente" },
+        { to: "/admin/crm", icon: Building2, label: "CRM" },
         { to: "/admin/applicant-invites", icon: Users, label: t("nav.applicantInvites") },
         { header: "Verwaltung" },
         { to: "/admin/applications", icon: FileText, label: t("nav.adminApplications") },

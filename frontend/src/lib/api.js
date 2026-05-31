@@ -474,6 +474,19 @@ export const ijpAPI = {
     api.post('/ijp/documents/generate', data, { responseType: 'blob' }),
 };
 
+// CRM (Admin)
+export const crmAPI = {
+  getCompanies: (params = {}) => api.get('/ijp/crm/companies', { params }),
+  createCompany: (data) => api.post('/ijp/crm/companies', data),
+  getCompany: (id) => api.get(`/ijp/crm/companies/${id}`),
+  updateCompany: (id, data) => api.put(`/ijp/crm/companies/${id}`, data),
+  deleteCompany: (id) => api.delete(`/ijp/crm/companies/${id}`),
+  createContact: (companyId, data) => api.post(`/ijp/crm/companies/${companyId}/contacts`, data),
+  updateContact: (contactId, data) => api.put(`/ijp/crm/contacts/${contactId}`, data),
+  deleteContact: (contactId) => api.delete(`/ijp/crm/contacts/${contactId}`),
+  getMeta: () => api.get('/ijp/crm/meta'),
+};
+
 // Auth API Erweiterung für Einladungs-Token-Prüfung
 export const verifyInviteToken = (token) => api.get(`/auth/verify-invite/${token}`);
 
