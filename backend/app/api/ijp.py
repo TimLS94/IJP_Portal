@@ -422,10 +422,16 @@ def crm_list_companies(
     q = db.query(IJPBetrieb)
     if search:
         term = f"%{search}%"
+        contact_match = db.query(CRMContact.company_id).filter(
+            CRMContact.first_name.ilike(term)
+            | CRMContact.last_name.ilike(term)
+        ).subquery()
         q = q.filter(
             IJPBetrieb.name.ilike(term)
             | IJPBetrieb.city.ilike(term)
             | IJPBetrieb.industry.ilike(term)
+            | IJPBetrieb.contact_person.ilike(term)
+            | IJPBetrieb.id.in_(contact_match)
         )
     if industry:
         q = q.filter(IJPBetrieb.industry == industry)
