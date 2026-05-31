@@ -463,9 +463,12 @@ export const ijpAPI = {
   deleteBetrieb: (id) => api.delete(`/ijp/betriebe/${id}`),
   // Bewerber
   getApplicants: (search = '') => api.get('/ijp/applicants', { params: search ? { search } : {} }),
+  // Templates
+  getDocumentTypes: () => api.get('/ijp/templates'),
+  getTemplate: (docType) => api.get(`/ijp/templates/${docType}`),
   // Dokumente
-  generateWohnungsbestaetigung: (data) =>
-    api.post('/ijp/documents/wohnungsbestaetigung', data, { responseType: 'blob' }),
+  generateDocument: (data) =>
+    api.post('/ijp/documents/generate', data, { responseType: 'blob' }),
 };
 
 // Auth API Erweiterung für Einladungs-Token-Prüfung

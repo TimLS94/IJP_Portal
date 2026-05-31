@@ -1,12 +1,13 @@
 """
 IJP Dokumentenservice — Admin-Bereich
 - CRUD für IJP-Betriebe
-- PDF-Generierung (Wohnungsbestätigung etc.)
+- Template-basierte PDF-Generierung (erweiterbar für weitere Dokumente)
 """
 import io
+import re
 import logging
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -30,6 +31,63 @@ def _require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nur Admins")
     return current_user
+
+
+# ── Template-System ────────────────────────────────────────────────────────────
+
+DOCUMENT_TYPES: Dict[str, str] = {
+    "wohnungsbestaetigung": "Wohnungsbestätigung",
+}
+
+DEFAULT_TEMPLATES: Dict[str, str] = {
+    "wohnungsbestaetigung": """\
+{{betrieb_name}}
+{{contact_person}}
+{{street}}
+{{postal_code}} {{city}}
+
+
+An die
+Deutsche Botschaft
+
+
+Betreff: Bestätigung zur Unterkunft und Übernahme der Anreisekosten
+
+
+Sehr geehrte Damen und Herren,
+
+hiermit bestätigen wir, dass {{gender_article}} {{applicant_name}} für den gesamten Zeitraum {{gender_possessive}} Beschäftigung in unserem Betrieb eine Unterkunft erhält. Die Unterkunft wird von uns organisiert und während der Dauer des Arbeitsverhältnisses zur Verfügung gestellt.
+
+Des Weiteren erklären wir, dass wir bereit sind, die Anreisekosten des Arbeitnehmers zu übernehmen.
+
+Diese Bestätigung erfolgt zur Vorlage bei der deutschen Botschaft im Rahmen des Visumverfahrens.
+
+Für Rückfragen stehen wir Ihnen gerne zur Verfügung.
+
+Mit freundlichen Grüßen
+
+
+{{contact_person}}""",
+}
+
+TEMPLATE_VARIABLES: Dict[str, List[Dict[str, str]]] = {
+    "wohnungsbestaetigung": [
+        {"key": "betrieb_name",       "label": "Betriebsname"},
+        {"key": "contact_person",     "label": "Ansprechpartner"},
+        {"key": "street",             "label": "Straße"},
+        {"key": "postal_code",        "label": "PLZ"},
+        {"key": "city",               "label": "Ort"},
+        {"key": "applicant_name",     "label": "Name des Bewerbers"},
+        {"key": "gender_article",     "label": "Geschlechtsartikel"},
+        {"key": "gender_possessive",  "label": "Possessivpronomen (ihrer/seiner)"},
+    ],
+}
+
+
+def _substitute(template: str, variables: Dict[str, str]) -> str:
+    for key, value in variables.items():
+        template = template.replace(f"{{{{{key}}}}}", value)
+    return template
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
@@ -68,10 +126,12 @@ class ApplicantOption(BaseModel):
     gender: Optional[str] = None
 
 
-class WohnungsbestaetigungRequest(BaseModel):
+class DocumentRequest(BaseModel):
+    doc_type: str = "wohnungsbestaetigung"
     betrieb_id: int
     applicant_id: int
-    gender: str  # "female" | "male" | "diverse"
+    gender: str                        # "female" | "male"
+    custom_template: Optional[str] = None  # wenn None → Default-Template
 
 
 # ── Betriebe CRUD ──────────────────────────────────────────────────────────────
@@ -128,7 +188,7 @@ def delete_betrieb(
     db.commit()
 
 
-# ── Applicants für Auswahl ─────────────────────────────────────────────────────
+# ── Bewerber-Auswahl ───────────────────────────────────────────────────────────
 
 @router.get("/applicants", response_model=List[ApplicantOption])
 def list_applicants_for_ijp(
@@ -136,7 +196,6 @@ def list_applicants_for_ijp(
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_admin),
 ):
-    """Alle Bewerber für die Dokument-Auswahl."""
     query = (
         db.query(Applicant, User)
         .join(User, User.id == Applicant.user_id)
@@ -162,30 +221,42 @@ def list_applicants_for_ijp(
     ]
 
 
+# ── Templates ──────────────────────────────────────────────────────────────────
+
+@router.get("/templates")
+def list_document_types(current_user: User = Depends(_require_admin)):
+    """Gibt alle verfügbaren Dokument-Typen zurück."""
+    return [
+        {"value": k, "label": v}
+        for k, v in DOCUMENT_TYPES.items()
+    ]
+
+
+@router.get("/templates/{doc_type}")
+def get_template(
+    doc_type: str,
+    current_user: User = Depends(_require_admin),
+):
+    """Gibt das Standard-Template und die verfügbaren Variablen zurück."""
+    if doc_type not in DEFAULT_TEMPLATES:
+        raise HTTPException(status_code=404, detail="Dokument-Typ nicht gefunden")
+    return {
+        "doc_type": doc_type,
+        "label": DOCUMENT_TYPES[doc_type],
+        "template": DEFAULT_TEMPLATES[doc_type],
+        "variables": TEMPLATE_VARIABLES.get(doc_type, []),
+    }
+
+
 # ── PDF-Generierung ────────────────────────────────────────────────────────────
 
-def _build_wohnungsbestaetigung_pdf(
-    betrieb: IJPBetrieb,
-    applicant_name: str,
-    gender: str,
-) -> bytes:
-    """Erstellt die Wohnungsbestätigung als PDF-Bytes."""
+def _build_pdf_from_filled_text(filled_text: str, filename_hint: str = "Dokument") -> bytes:
+    """Rendert einen bereits befüllten Freitext als PDF (ReportLab)."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
     from reportlab.lib.enums import TA_LEFT
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    import os
-
-    # Geschlechtsabhängige Formulierungen
-    if gender == "female":
-        gender_article = "die Arbeitnehmerin"
-        gender_possessive = "ihrer"
-    else:
-        gender_article = "der Arbeitnehmer"
-        gender_possessive = "seiner"
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -199,97 +270,50 @@ def _build_wohnungsbestaetigung_pdf(
 
     styles = getSampleStyleSheet()
     normal = ParagraphStyle(
-        "normal_de",
+        "ijp_normal",
         parent=styles["Normal"],
         fontName="Helvetica",
         fontSize=11,
         leading=16,
-        spaceAfter=0,
+        spaceAfter=2,
+        alignment=TA_LEFT,
     )
-    bold = ParagraphStyle(
-        "bold_de",
-        parent=normal,
-        fontName="Helvetica-Bold",
-    )
-
-    def sp(height_cm: float):
-        return Spacer(1, height_cm * cm)
 
     story = []
+    lines = filled_text.split("\n")
+    consecutive_blanks = 0
 
-    # Absender-Block (Betrieb)
-    story.append(Paragraph(betrieb.name, bold))
-    story.append(Paragraph(betrieb.contact_person, normal))
-    story.append(Paragraph(betrieb.street, normal))
-    story.append(Paragraph(f"{betrieb.postal_code} {betrieb.city}", normal))
-
-    story.append(sp(1.2))
-
-    # Empfänger
-    story.append(Paragraph("An die", normal))
-    story.append(Paragraph("Deutsche Botschaft", normal))
-
-    story.append(sp(1.2))
-
-    # Betreff
-    story.append(Paragraph(
-        "<b>Betreff: Bestätigung zur Unterkunft und Übernahme der Anreisekosten</b>",
-        normal,
-    ))
-
-    story.append(sp(0.8))
-
-    # Anrede
-    story.append(Paragraph("Sehr geehrte Damen und Herren,", normal))
-    story.append(sp(0.4))
-
-    # Haupttext
-    main_text = (
-        f"hiermit bestätigen wir, dass {gender_article} <b>{applicant_name}</b> "
-        f"für den gesamten Zeitraum {gender_possessive} Beschäftigung in unserem Betrieb "
-        f"eine Unterkunft erhält. Die Unterkunft wird von uns organisiert und während der "
-        f"Dauer des Arbeitsverhältnisses zur Verfügung gestellt."
-    )
-    story.append(Paragraph(main_text, normal))
-    story.append(sp(0.4))
-
-    story.append(Paragraph(
-        "Des Weiteren erklären wir, dass wir bereit sind, die Anreisekosten "
-        "des Arbeitnehmers zu übernehmen.",
-        normal,
-    ))
-    story.append(sp(0.4))
-
-    story.append(Paragraph(
-        "Diese Bestätigung erfolgt zur Vorlage bei der deutschen Botschaft "
-        "im Rahmen des Visumverfahrens.",
-        normal,
-    ))
-    story.append(sp(0.4))
-
-    story.append(Paragraph(
-        "Für Rückfragen stehen wir Ihnen gerne zur Verfügung.",
-        normal,
-    ))
-
-    story.append(sp(1.0))
-
-    story.append(Paragraph("Mit freundlichen Grüßen", normal))
-
-    story.append(sp(1.5))
-
-    story.append(Paragraph(betrieb.contact_person, normal))
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            consecutive_blanks += 1
+            # Max 2 blank lines worth of spacing
+            if consecutive_blanks <= 2:
+                story.append(Spacer(1, 0.45 * cm))
+        else:
+            consecutive_blanks = 0
+            # Auto-bold: "Betreff:" lines
+            if stripped.startswith("Betreff:"):
+                story.append(Paragraph(f"<b>{stripped}</b>", normal))
+            else:
+                # Escape HTML special chars for ReportLab
+                safe = stripped.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                story.append(Paragraph(safe, normal))
 
     doc.build(story)
     return buf.getvalue()
 
 
-@router.post("/documents/wohnungsbestaetigung")
-def generate_wohnungsbestaetigung(
-    req: WohnungsbestaetigungRequest,
+@router.post("/documents/generate")
+def generate_document(
+    req: DocumentRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_admin),
 ):
+    """Generiert ein Dokument als PDF-Download."""
+    if req.doc_type not in DEFAULT_TEMPLATES:
+        raise HTTPException(status_code=400, detail="Unbekannter Dokument-Typ")
+
     betrieb = db.query(IJPBetrieb).filter(IJPBetrieb.id == req.betrieb_id).first()
     if not betrieb:
         raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
@@ -298,16 +322,41 @@ def generate_wohnungsbestaetigung(
     if not applicant:
         raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
 
-    applicant_name = f"{applicant.first_name} {applicant.last_name}".strip()
+    applicant_name = f"{applicant.first_name or ''} {applicant.last_name or ''}".strip()
     gender = req.gender or (applicant.gender.value if applicant.gender else "male")
 
-    pdf_bytes = _build_wohnungsbestaetigung_pdf(betrieb, applicant_name, gender)
+    variables = {
+        "betrieb_name":      betrieb.name,
+        "contact_person":    betrieb.contact_person,
+        "street":            betrieb.street,
+        "postal_code":       betrieb.postal_code,
+        "city":              betrieb.city,
+        "applicant_name":    applicant_name,
+        "gender_article":    "die Arbeitnehmerin" if gender == "female" else "der Arbeitnehmer",
+        "gender_possessive": "ihrer" if gender == "female" else "seiner",
+    }
+
+    template = req.custom_template or DEFAULT_TEMPLATES[req.doc_type]
+    filled = _substitute(template, variables)
+    pdf_bytes = _build_pdf_from_filled_text(filled)
 
     safe_name = applicant_name.replace(" ", "_")
-    filename = f"Wohnungsbestaetigung_{safe_name}.pdf"
+    filename = f"{DOCUMENT_TYPES.get(req.doc_type, req.doc_type)}_{safe_name}.pdf"
 
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ── Legacy-Endpoint (Rückwärtskompatibilität) ──────────────────────────────────
+
+@router.post("/documents/wohnungsbestaetigung")
+def generate_wohnungsbestaetigung_legacy(
+    req: DocumentRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    req.doc_type = "wohnungsbestaetigung"
+    return generate_document(req, db, current_user)
