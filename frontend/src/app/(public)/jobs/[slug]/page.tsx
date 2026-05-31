@@ -144,20 +144,20 @@ async function getJob(slug: string): Promise<Job | null> {
 }
 
 // Alle Job-Slugs für statische Generierung abrufen
-// Dies ermöglicht Google, alle Job-Seiten zu indexieren
 export async function generateStaticParams() {
   try {
-    const res = await fetch(`${API_URL}/jobs/public`, {
-      next: { revalidate: 3600 }, // Cache für 1 Stunde
+    const res = await fetch(`${API_URL}/jobs/sitemap/urls`, {
+      next: { revalidate: 3600 },
     });
-    
+
     if (!res.ok) return [];
-    
+
     const data = await res.json();
-    const jobs = data.jobs || [];
-    
-    return jobs.map((job: { slug: string }) => ({
-      slug: job.slug,
+    const urls: { url: string }[] = data.urls || [];
+
+    // url format: "/jobs/slug-id" → extract "slug-id" as the [slug] param
+    return urls.map((entry) => ({
+      slug: entry.url.replace("/jobs/", ""),
     }));
   } catch (error) {
     console.error("Error generating static params:", error);
@@ -190,11 +190,13 @@ export async function generateMetadata({
     ? job.description.replace(/<[^>]*>/g, "").substring(0, 160)
     : `${job.title} bei ${job.company.name} in ${job.location}`;
 
+  const pageUrl = `https://www.jobon.work/jobs/${slug}`;
+
   return {
     title: `${job.title} - ${job.company.name}`,
     description,
     alternates: {
-      canonical: `https://www.jobon.work/jobs/${job.slug}`,
+      canonical: pageUrl,
     },
     robots: {
       index: true,
@@ -207,7 +209,7 @@ export async function generateMetadata({
       title: `${job.title} - ${job.company.name}`,
       description,
       type: "website",
-      url: `https://www.jobon.work/jobs/${job.slug}`,
+      url: pageUrl,
       siteName: "JobOn",
       locale: "de_DE",
       images: job.company.logo_url ? [{ url: job.company.logo_url, alt: job.company.name }] : [],
