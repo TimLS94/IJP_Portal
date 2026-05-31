@@ -23,7 +23,7 @@ from app.api import auth, applicants, companies, jobs, applications, documents, 
 logger.info("API routers loaded")
 
 # Import Models für create_all
-from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request, facebook_post, ijp as ijp_model
+from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request, facebook_post, ijp as ijp_model  # noqa: F401 (needed for create_all)
 logger.info("Models loaded")
 
 from app.core.seed_data import seed_database
@@ -349,6 +349,21 @@ def ensure_blog_language_column():
         db.close()
 
 ensure_blog_language_column()
+
+
+def seed_ijp_templates_on_startup():
+    """Schreibt fehlende IJP-Vorlagen in die DB (nur beim allerersten Start)."""
+    db = SessionLocal()
+    try:
+        from app.api.ijp import seed_ijp_templates
+        seed_ijp_templates(db)
+    except Exception as e:
+        logger.error(f"Fehler beim Seeden der IJP-Vorlagen: {e}")
+    finally:
+        db.close()
+
+
+seed_ijp_templates_on_startup()
 
 
 def backfill_is_filtered():

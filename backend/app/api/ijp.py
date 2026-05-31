@@ -1,13 +1,14 @@
 """
 IJP Dokumentenservice — Admin-Bereich
 - CRUD für IJP-Betriebe
-- Template-basierte PDF-Generierung (erweiterbar für weitere Dokumente)
+- Persistente, DB-gespeicherte Dokument-Vorlagen (editierbar)
+- Template-basierte PDF-Generierung
 """
 import io
 import re
 import logging
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -17,7 +18,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
-from app.models.ijp import IJPBetrieb
+from app.models.ijp import IJPBetrieb, IJPTemplate
 from app.models.applicant import Applicant
 
 logger = logging.getLogger(__name__)
@@ -33,14 +34,13 @@ def _require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
-# ── Template-System ────────────────────────────────────────────────────────────
+# ── Seed-Daten (werden beim ersten Start in die DB geschrieben) ────────────────
 
-DOCUMENT_TYPES: Dict[str, str] = {
-    "wohnungsbestaetigung": "Wohnungsbestätigung",
-}
-
-DEFAULT_TEMPLATES: Dict[str, str] = {
-    "wohnungsbestaetigung": """\
+SEED_TEMPLATES = [
+    {
+        "doc_type": "wohnungsbestaetigung",
+        "label": "Wohnungsbestätigung",
+        "template_text": """\
 {{betrieb_name}}
 {{contact_person}}
 {{street}}
@@ -68,21 +68,30 @@ Mit freundlichen Grüßen
 
 
 {{contact_person}}""",
-}
+        "variables": [
+            {"key": "betrieb_name",       "label": "Betriebsname"},
+            {"key": "contact_person",     "label": "Ansprechpartner"},
+            {"key": "street",             "label": "Straße"},
+            {"key": "postal_code",        "label": "PLZ"},
+            {"key": "city",               "label": "Ort"},
+            {"key": "applicant_name",     "label": "Name des Bewerbers"},
+            {"key": "gender_article",     "label": "Geschlechtsartikel"},
+            {"key": "gender_possessive",  "label": "Possessivpronomen (ihrer/seiner)"},
+        ],
+    },
+]
 
-TEMPLATE_VARIABLES: Dict[str, List[Dict[str, str]]] = {
-    "wohnungsbestaetigung": [
-        {"key": "betrieb_name",       "label": "Betriebsname"},
-        {"key": "contact_person",     "label": "Ansprechpartner"},
-        {"key": "street",             "label": "Straße"},
-        {"key": "postal_code",        "label": "PLZ"},
-        {"key": "city",               "label": "Ort"},
-        {"key": "applicant_name",     "label": "Name des Bewerbers"},
-        {"key": "gender_article",     "label": "Geschlechtsartikel"},
-        {"key": "gender_possessive",  "label": "Possessivpronomen (ihrer/seiner)"},
-    ],
-}
 
+def seed_ijp_templates(db: Session) -> None:
+    """Schreibt fehlende Seed-Vorlagen in die DB (einmalig)."""
+    for seed in SEED_TEMPLATES:
+        exists = db.query(IJPTemplate).filter(IJPTemplate.doc_type == seed["doc_type"]).first()
+        if not exists:
+            db.add(IJPTemplate(**seed))
+    db.commit()
+
+
+# ── Helper ────────────────────────────────────────────────────────────────────
 
 def _substitute(template: str, variables: Dict[str, str]) -> str:
     for key, value in variables.items():
@@ -90,7 +99,7 @@ def _substitute(template: str, variables: Dict[str, str]) -> str:
     return template
 
 
-# ── Schemas ────────────────────────────────────────────────────────────────────
+# ── Schemas ───────────────────────────────────────────────────────────────────
 
 class BetriebCreate(BaseModel):
     name: str
@@ -126,30 +135,54 @@ class ApplicantOption(BaseModel):
     gender: Optional[str] = None
 
 
+class TemplateVar(BaseModel):
+    key: str
+    label: str
+
+
+class TemplateCreate(BaseModel):
+    doc_type: str
+    label: str
+    template_text: str
+    variables: List[TemplateVar] = []
+
+
+class TemplateUpdate(BaseModel):
+    label: str
+    template_text: str
+    variables: List[TemplateVar] = []
+
+
+class TemplateResponse(BaseModel):
+    id: int
+    doc_type: str
+    label: str
+    template_text: str
+    variables: List[Dict[str, str]] = []
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class DocumentRequest(BaseModel):
-    doc_type: str = "wohnungsbestaetigung"
+    doc_type: str
     betrieb_id: int
     applicant_id: int
-    gender: str                        # "female" | "male"
-    custom_template: Optional[str] = None  # wenn None → Default-Template
+    gender: str                           # "female" | "male"
+    custom_template: Optional[str] = None  # wenn None → DB-Template
 
 
-# ── Betriebe CRUD ──────────────────────────────────────────────────────────────
+# ── Betriebe CRUD ─────────────────────────────────────────────────────────────
 
 @router.get("/betriebe", response_model=List[BetriebResponse])
-def list_betriebe(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin),
-):
+def list_betriebe(db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
     return db.query(IJPBetrieb).order_by(IJPBetrieb.name).all()
 
 
 @router.post("/betriebe", response_model=BetriebResponse, status_code=201)
-def create_betrieb(
-    data: BetriebCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin),
-):
+def create_betrieb(data: BetriebCreate, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
     betrieb = IJPBetrieb(**data.model_dump())
     db.add(betrieb)
     db.commit()
@@ -158,12 +191,7 @@ def create_betrieb(
 
 
 @router.put("/betriebe/{betrieb_id}", response_model=BetriebResponse)
-def update_betrieb(
-    betrieb_id: int,
-    data: BetriebCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin),
-):
+def update_betrieb(betrieb_id: int, data: BetriebCreate, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
     betrieb = db.query(IJPBetrieb).filter(IJPBetrieb.id == betrieb_id).first()
     if not betrieb:
         raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
@@ -176,11 +204,7 @@ def update_betrieb(
 
 
 @router.delete("/betriebe/{betrieb_id}", status_code=204)
-def delete_betrieb(
-    betrieb_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin),
-):
+def delete_betrieb(betrieb_id: int, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
     betrieb = db.query(IJPBetrieb).filter(IJPBetrieb.id == betrieb_id).first()
     if not betrieb:
         raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
@@ -188,70 +212,85 @@ def delete_betrieb(
     db.commit()
 
 
-# ── Bewerber-Auswahl ───────────────────────────────────────────────────────────
+# ── Bewerber ──────────────────────────────────────────────────────────────────
 
 @router.get("/applicants", response_model=List[ApplicantOption])
-def list_applicants_for_ijp(
-    search: Optional[str] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin),
-):
-    query = (
-        db.query(Applicant, User)
-        .join(User, User.id == Applicant.user_id)
-        .filter(User.is_active == True)
-    )
+def list_applicants_for_ijp(search: Optional[str] = None, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    query = db.query(Applicant, User).join(User, User.id == Applicant.user_id).filter(User.is_active == True)
     if search:
         term = f"%{search}%"
         query = query.filter(
-            (Applicant.first_name.ilike(term)) |
-            (Applicant.last_name.ilike(term)) |
-            (User.email.ilike(term))
+            (Applicant.first_name.ilike(term)) | (Applicant.last_name.ilike(term)) | (User.email.ilike(term))
         )
     rows = query.order_by(Applicant.last_name, Applicant.first_name).limit(100).all()
     return [
-        ApplicantOption(
-            id=a.id,
-            first_name=a.first_name or "",
-            last_name=a.last_name or "",
-            email=u.email,
-            gender=a.gender.value if a.gender else None,
-        )
+        ApplicantOption(id=a.id, first_name=a.first_name or "", last_name=a.last_name or "",
+                        email=u.email, gender=a.gender.value if a.gender else None)
         for a, u in rows
     ]
 
 
-# ── Templates ──────────────────────────────────────────────────────────────────
+# ── Templates CRUD ────────────────────────────────────────────────────────────
 
-@router.get("/templates")
-def list_document_types(current_user: User = Depends(_require_admin)):
-    """Gibt alle verfügbaren Dokument-Typen zurück."""
-    return [
-        {"value": k, "label": v}
-        for k, v in DOCUMENT_TYPES.items()
-    ]
+@router.get("/templates", response_model=List[TemplateResponse])
+def list_templates(db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    return db.query(IJPTemplate).order_by(IJPTemplate.label).all()
 
 
-@router.get("/templates/{doc_type}")
-def get_template(
-    doc_type: str,
-    current_user: User = Depends(_require_admin),
-):
-    """Gibt das Standard-Template und die verfügbaren Variablen zurück."""
-    if doc_type not in DEFAULT_TEMPLATES:
-        raise HTTPException(status_code=404, detail="Dokument-Typ nicht gefunden")
-    return {
-        "doc_type": doc_type,
-        "label": DOCUMENT_TYPES[doc_type],
-        "template": DEFAULT_TEMPLATES[doc_type],
-        "variables": TEMPLATE_VARIABLES.get(doc_type, []),
-    }
+@router.get("/templates/{doc_type}", response_model=TemplateResponse)
+def get_template(doc_type: str, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    tmpl = db.query(IJPTemplate).filter(IJPTemplate.doc_type == doc_type).first()
+    if not tmpl:
+        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
+    return tmpl
 
 
-# ── PDF-Generierung ────────────────────────────────────────────────────────────
+@router.post("/templates", response_model=TemplateResponse, status_code=201)
+def create_template(data: TemplateCreate, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    # Slug validieren
+    if not re.match(r'^[a-z0-9_-]+$', data.doc_type):
+        raise HTTPException(status_code=400, detail="doc_type darf nur Kleinbuchstaben, Ziffern, _ und - enthalten")
+    existing = db.query(IJPTemplate).filter(IJPTemplate.doc_type == data.doc_type).first()
+    if existing:
+        raise HTTPException(status_code=409, detail=f"Vorlage '{data.doc_type}' existiert bereits")
+    tmpl = IJPTemplate(
+        doc_type=data.doc_type,
+        label=data.label,
+        template_text=data.template_text,
+        variables=[v.model_dump() for v in data.variables],
+    )
+    db.add(tmpl)
+    db.commit()
+    db.refresh(tmpl)
+    return tmpl
 
-def _build_pdf_from_filled_text(filled_text: str, filename_hint: str = "Dokument") -> bytes:
-    """Rendert einen bereits befüllten Freitext als PDF (ReportLab)."""
+
+@router.put("/templates/{doc_type}", response_model=TemplateResponse)
+def update_template(doc_type: str, data: TemplateUpdate, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    tmpl = db.query(IJPTemplate).filter(IJPTemplate.doc_type == doc_type).first()
+    if not tmpl:
+        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
+    tmpl.label = data.label
+    tmpl.template_text = data.template_text
+    tmpl.variables = [v.model_dump() for v in data.variables]
+    tmpl.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(tmpl)
+    return tmpl
+
+
+@router.delete("/templates/{doc_type}", status_code=204)
+def delete_template(doc_type: str, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    tmpl = db.query(IJPTemplate).filter(IJPTemplate.doc_type == doc_type).first()
+    if not tmpl:
+        raise HTTPException(status_code=404, detail="Vorlage nicht gefunden")
+    db.delete(tmpl)
+    db.commit()
+
+
+# ── PDF-Generierung ───────────────────────────────────────────────────────────
+
+def _build_pdf_from_filled_text(filled_text: str) -> bytes:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
@@ -259,45 +298,24 @@ def _build_pdf_from_filled_text(filled_text: str, filename_hint: str = "Dokument
     from reportlab.lib.enums import TA_LEFT
 
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buf,
-        pagesize=A4,
-        leftMargin=2.5 * cm,
-        rightMargin=2.5 * cm,
-        topMargin=2.5 * cm,
-        bottomMargin=2.5 * cm,
-    )
-
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=2.5*cm, rightMargin=2.5*cm, topMargin=2.5*cm, bottomMargin=2.5*cm)
     styles = getSampleStyleSheet()
-    normal = ParagraphStyle(
-        "ijp_normal",
-        parent=styles["Normal"],
-        fontName="Helvetica",
-        fontSize=11,
-        leading=16,
-        spaceAfter=2,
-        alignment=TA_LEFT,
-    )
+    normal = ParagraphStyle("ijp_normal", parent=styles["Normal"], fontName="Helvetica", fontSize=11, leading=16, spaceAfter=2, alignment=TA_LEFT)
 
     story = []
-    lines = filled_text.split("\n")
     consecutive_blanks = 0
-
-    for line in lines:
+    for line in filled_text.split("\n"):
         stripped = line.strip()
         if not stripped:
             consecutive_blanks += 1
-            # Max 2 blank lines worth of spacing
             if consecutive_blanks <= 2:
                 story.append(Spacer(1, 0.45 * cm))
         else:
             consecutive_blanks = 0
-            # Auto-bold: "Betreff:" lines
+            safe = stripped.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             if stripped.startswith("Betreff:"):
-                story.append(Paragraph(f"<b>{stripped}</b>", normal))
+                story.append(Paragraph(f"<b>{safe}</b>", normal))
             else:
-                # Escape HTML special chars for ReportLab
-                safe = stripped.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 story.append(Paragraph(safe, normal))
 
     doc.build(story)
@@ -305,14 +323,10 @@ def _build_pdf_from_filled_text(filled_text: str, filename_hint: str = "Dokument
 
 
 @router.post("/documents/generate")
-def generate_document(
-    req: DocumentRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin),
-):
-    """Generiert ein Dokument als PDF-Download."""
-    if req.doc_type not in DEFAULT_TEMPLATES:
-        raise HTTPException(status_code=400, detail="Unbekannter Dokument-Typ")
+def generate_document(req: DocumentRequest, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    tmpl = db.query(IJPTemplate).filter(IJPTemplate.doc_type == req.doc_type).first()
+    if not tmpl:
+        raise HTTPException(status_code=404, detail=f"Vorlage '{req.doc_type}' nicht gefunden")
 
     betrieb = db.query(IJPBetrieb).filter(IJPBetrieb.id == req.betrieb_id).first()
     if not betrieb:
@@ -336,27 +350,15 @@ def generate_document(
         "gender_possessive": "ihrer" if gender == "female" else "seiner",
     }
 
-    template = req.custom_template or DEFAULT_TEMPLATES[req.doc_type]
-    filled = _substitute(template, variables)
+    template_text = req.custom_template or tmpl.template_text
+    filled = _substitute(template_text, variables)
     pdf_bytes = _build_pdf_from_filled_text(filled)
 
     safe_name = applicant_name.replace(" ", "_")
-    filename = f"{DOCUMENT_TYPES.get(req.doc_type, req.doc_type)}_{safe_name}.pdf"
+    filename = f"{tmpl.label}_{safe_name}.pdf"
 
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
-
-
-# ── Legacy-Endpoint (Rückwärtskompatibilität) ──────────────────────────────────
-
-@router.post("/documents/wohnungsbestaetigung")
-def generate_wohnungsbestaetigung_legacy(
-    req: DocumentRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin),
-):
-    req.doc_type = "wohnungsbestaetigung"
-    return generate_document(req, db, current_user)

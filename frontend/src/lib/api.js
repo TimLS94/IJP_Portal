@@ -463,9 +463,12 @@ export const ijpAPI = {
   deleteBetrieb: (id) => api.delete(`/ijp/betriebe/${id}`),
   // Bewerber
   getApplicants: (search = '') => api.get('/ijp/applicants', { params: search ? { search } : {} }),
-  // Templates
-  getDocumentTypes: () => api.get('/ijp/templates'),
+  // Templates (CRUD)
+  getTemplates: () => api.get('/ijp/templates'),
   getTemplate: (docType) => api.get(`/ijp/templates/${docType}`),
+  createTemplate: (data) => api.post('/ijp/templates', data),
+  updateTemplate: (docType, data) => api.put(`/ijp/templates/${docType}`, data),
+  deleteTemplate: (docType) => api.delete(`/ijp/templates/${docType}`),
   // Dokumente
   generateDocument: (data) =>
     api.post('/ijp/documents/generate', data, { responseType: 'blob' }),
