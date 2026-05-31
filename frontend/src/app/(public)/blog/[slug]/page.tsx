@@ -102,6 +102,44 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+function generateArticleSchema(post: BlogPost) {
+  const pageUrl = `https://www.jobon.work/blog/${post.slug}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.meta_title || post.title,
+    description: post.meta_description || post.excerpt || post.title,
+    url: pageUrl,
+    datePublished: post.published_at,
+    dateModified: post.published_at,
+    author: {
+      "@type": "Organization",
+      name: post.author_name || "JobOn",
+      url: "https://www.jobon.work",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "JobOn",
+      url: "https://www.jobon.work",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://www.jobon.work/logo-512x512.png",
+      },
+    },
+    image: post.featured_image
+      ? { "@type": "ImageObject", url: post.featured_image }
+      : { "@type": "ImageObject", url: "https://www.jobon.work/logo-512x512.png" },
+    mainEntityOfPage: { "@type": "WebPage", "@id": pageUrl },
+    keywords: post.tags || undefined,
+    inLanguage: "de-DE",
+    isPartOf: {
+      "@type": "WebSite",
+      name: "JobOn",
+      url: "https://www.jobon.work",
+    },
+  };
+}
+
 export default async function BlogDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const post = await getBlogPost(slug);
@@ -111,6 +149,15 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
   }
 
   const relatedPosts = await getRelatedPosts(post.category, slug);
+  const jsonLd = generateArticleSchema(post);
 
-  return <BlogDetailClient post={post} relatedPosts={relatedPosts} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <BlogDetailClient post={post} relatedPosts={relatedPosts} />
+    </>
+  );
 }
