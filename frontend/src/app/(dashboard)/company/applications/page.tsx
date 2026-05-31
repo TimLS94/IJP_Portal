@@ -782,11 +782,13 @@ export default function CompanyApplicationsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <>
+          {/* Desktop Tabelle */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full min-w-[950px] table-fixed">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="text-left px-4 py-3">
+                  <th className="text-left px-4 py-3 w-[200px]">
                     <button 
                       onClick={() => handleSort("applicant_name")}
                       className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
@@ -794,7 +796,7 @@ export default function CompanyApplicationsPage() {
                       {t('common.applicant')} <SortIcon column="applicant_name" />
                     </button>
                   </th>
-                  <th className="text-left px-3 py-2.5">
+                  <th className="text-left px-3 py-2.5 w-[180px]">
                     <button
                       onClick={() => handleSort("job_title")}
                       className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
@@ -802,7 +804,7 @@ export default function CompanyApplicationsPage() {
                       {t('common.job')} <SortIcon column="job_title" />
                     </button>
                   </th>
-                  <th className="text-left px-3 py-2.5">
+                  <th className="text-left px-3 py-2.5 w-[70px]">
                     <button
                       onClick={() => handleSort("match_score")}
                       className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
@@ -810,7 +812,7 @@ export default function CompanyApplicationsPage() {
                       Score <SortIcon column="match_score" />
                     </button>
                   </th>
-                  <th className="text-left px-3 py-2.5">
+                  <th className="text-left px-3 py-2.5 w-[90px]">
                     <button
                       onClick={() => handleSort("applied_at")}
                       className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
@@ -818,7 +820,7 @@ export default function CompanyApplicationsPage() {
                       {t('common.date')} <SortIcon column="applied_at" />
                     </button>
                   </th>
-                  <th className="text-left px-3 py-2.5">
+                  <th className="text-left px-3 py-2.5 w-[120px]">
                     <button
                       onClick={() => handleSort("status")}
                       className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
@@ -826,9 +828,9 @@ export default function CompanyApplicationsPage() {
                       Status <SortIcon column="status" />
                     </button>
                   </th>
-                  <th className="text-center px-3 py-2.5 font-semibold text-gray-700">Gespräch</th>
-                  <th className="text-left px-3 py-2.5 font-semibold text-gray-700">{t('companyApplications.changeStatus')}</th>
-                  <th className="text-right px-3 py-2.5 font-semibold text-gray-700">{t('common.actions')}</th>
+                  <th className="text-center px-3 py-2.5 font-semibold text-gray-700 w-[80px]">Gespräch</th>
+                  <th className="text-left px-3 py-2.5 font-semibold text-gray-700 w-[150px]">{t('companyApplications.changeStatus')}</th>
+                  <th className="text-right px-3 py-2.5 font-semibold text-gray-700 w-[80px]">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -851,7 +853,9 @@ export default function CompanyApplicationsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-gray-900 text-sm">{app.job_title}</td>
+                      <td className="px-3 py-2.5 text-gray-900 text-sm">
+                        <span className="block truncate" title={app.job_title || ''}>{app.job_title}</span>
+                      </td>
                       <td className="px-3 py-2.5">
                         {app.match_score !== undefined && app.match_score !== null ? (
                           <span className={`font-semibold text-sm ${scoreColor}`}>
@@ -889,16 +893,26 @@ export default function CompanyApplicationsPage() {
                         )}
                       </td>
                       <td className="px-3 py-2.5">
-                        <select
-                          value={app.status}
-                          onChange={(e) => updateStatus(app.id, e.target.value)}
-                          disabled={updatingStatus === app.id}
-                          className="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-primary-500 bg-white"
-                        >
-                          {statusOptions.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
+                        <div className="relative inline-block">
+                          <select
+                            value={app.status}
+                            onChange={(e) => updateStatus(app.id, e.target.value)}
+                            disabled={updatingStatus === app.id}
+                            className={`appearance-none text-sm border-2 rounded-lg pl-3 pr-8 py-1.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white cursor-pointer font-medium transition-colors ${
+                              app.status === 'pending' ? 'border-yellow-300 text-yellow-700 bg-yellow-50' :
+                              app.status === 'company_review' ? 'border-blue-300 text-blue-700 bg-blue-50' :
+                              app.status === 'interview_scheduled' ? 'border-purple-300 text-purple-700 bg-purple-50' :
+                              app.status === 'accepted' ? 'border-green-300 text-green-700 bg-green-50' :
+                              app.status === 'rejected' ? 'border-red-300 text-red-700 bg-red-50' :
+                              'border-gray-300 text-gray-700'
+                            }`}
+                          >
+                            {statusOptions.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                        </div>
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         <button
@@ -915,6 +929,95 @@ export default function CompanyApplicationsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Karten-Ansicht */}
+          <div className="lg:hidden divide-y divide-gray-100">
+            {filteredApplications.map((app) => {
+              const statusInfo = getStatusInfo(app.status);
+              const score = app.match_score || 0;
+              const scoreColor = score >= 70 ? "text-green-600 bg-green-50" : score >= 40 ? "text-yellow-600 bg-yellow-50" : "text-red-600 bg-red-50";
+              return (
+                <div key={app.id} className="p-4 hover:bg-gray-50">
+                  {/* Kopfzeile: Name + Score */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="h-5 w-5 text-primary-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{app.applicant_name || t('common.unknown')}</p>
+                        <p className="text-sm text-gray-500">{app.applicant_email}</p>
+                      </div>
+                    </div>
+                    {app.match_score !== undefined && app.match_score !== null && (
+                      <span className={`px-2.5 py-1 rounded-full text-sm font-bold ${scoreColor}`}>
+                        {app.match_score}%
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Stelle + Datum */}
+                  <div className="mb-3 pl-13">
+                    <p className="text-sm text-gray-700 font-medium">{app.job_title}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(app.applied_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                    </p>
+                  </div>
+
+                  {/* Status + Interview Icons */}
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
+                      {statusInfo.label}
+                    </span>
+                    {app.requested_documents && app.requested_documents.some((d: any) => !d.fulfilled) && (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">Dok.⏳</span>
+                    )}
+                    {app.requested_documents && app.requested_documents.length > 0 && app.requested_documents.every((d: any) => d.fulfilled) && (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Dok.✓</span>
+                    )}
+                    {app.interview_status === "confirmed" && (
+                      <span className="flex items-center gap-1 text-xs text-green-600"><CheckCircle className="h-4 w-4" /> Termin</span>
+                    )}
+                    {app.interview_status === "proposed" && (
+                      <span className="flex items-center gap-1 text-xs text-yellow-600"><HelpCircle className="h-4 w-4" /> Warte</span>
+                    )}
+                  </div>
+
+                  {/* Aktionen */}
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <select
+                        value={app.status}
+                        onChange={(e) => updateStatus(app.id, e.target.value)}
+                        disabled={updatingStatus === app.id}
+                        className={`w-full appearance-none text-sm border-2 rounded-lg pl-3 pr-8 py-2 focus:ring-2 focus:ring-primary-500 bg-white cursor-pointer font-medium ${
+                          app.status === 'pending' ? 'border-yellow-300 text-yellow-700 bg-yellow-50' :
+                          app.status === 'company_review' ? 'border-blue-300 text-blue-700 bg-blue-50' :
+                          app.status === 'interview_scheduled' ? 'border-purple-300 text-purple-700 bg-purple-50' :
+                          app.status === 'accepted' ? 'border-green-300 text-green-700 bg-green-50' :
+                          app.status === 'rejected' ? 'border-red-300 text-red-700 bg-red-50' :
+                          'border-gray-300 text-gray-700'
+                        }`}
+                      >
+                        {statusOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                    </div>
+                    <button
+                      onClick={() => openDetails(app.id)}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Details
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          </>
         )}
       </div>
 
