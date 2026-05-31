@@ -656,73 +656,73 @@ export default function CompanyApplicationsPage() {
         )}
 
         {/* Filter-Bereich */}
-        <div className="px-3 py-3 border-b border-gray-100">
-          <div className="flex flex-col lg:flex-row gap-4">
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex flex-wrap items-center gap-3">
             {/* Suche */}
-            <div className="flex-1 relative">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 placeholder={t('companyApplications.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               />
             </div>
 
             {/* Status Filter */}
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 min-w-[160px]"
-            >
-              <option value="all">{t('companyApplications.allStatus')}</option>
-              {statusOptions.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
-              ))}
-            </select>
-            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm bg-white cursor-pointer"
+              >
+                <option value="all">{t('companyApplications.allStatus')}</option>
+                {statusOptions.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+              <Filter className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            </div>
+
+            {/* Job Filter */}
+            <div className="relative">
+              <select
+                value={jobFilter}
+                onChange={(e) => setJobFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm bg-white cursor-pointer max-w-[180px]"
+              >
+                <option value="all">{t('companyApplications.allJobs')}</option>
+                {uniqueJobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title}
+                  </option>
+                ))}
+              </select>
+              <Briefcase className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            </div>
+
+            {/* Score Filter */}
+            <div className="relative">
+              <select
+                value={scoreFilter}
+                onChange={(e) => setScoreFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm bg-white cursor-pointer"
+              >
+                <option value="all">{t('companyApplications.allScores')}</option>
+                <option value="high">🟢 {t('companyApplications.scoreHigh')}</option>
+                <option value="medium">🟡 {t('companyApplications.scoreMedium')}</option>
+                <option value="low">🔴 {t('companyApplications.scoreLow')}</option>
+              </select>
+              <Sparkles className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            </div>
           </div>
 
-          {/* Job Filter */}
-          <div className="relative">
-            <select
-              value={jobFilter}
-              onChange={(e) => setJobFilter(e.target.value)}
-              className="appearance-none pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 min-w-[180px]"
-            >
-              <option value="all">{t('companyApplications.allJobs')}</option>
-              {uniqueJobs.map((job) => (
-                <option key={job.id} value={job.id}>
-                  {job.title}
-                </option>
-              ))}
-            </select>
-            <Briefcase className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-          </div>
-
-          {/* Score Filter */}
-          <div className="relative">
-            <select
-              value={scoreFilter}
-              onChange={(e) => setScoreFilter(e.target.value)}
-              className="appearance-none pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 min-w-[140px]"
-            >
-              <option value="all">{t('companyApplications.allScores')}</option>
-              <option value="high">🟢 {t('companyApplications.scoreHigh')}</option>
-              <option value="medium">🟡 {t('companyApplications.scoreMedium')}</option>
-              <option value="low">🔴 {t('companyApplications.scoreLow')}</option>
-            </select>
-            <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-          </div>
-        </div>
-
-        {/* Aktive Filter anzeigen */}
-        {hasActiveFilters && (
-          <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t">
+          {/* Aktive Filter anzeigen */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-200">
             <span className="text-sm text-gray-500">{t('common.filter')}:</span>
             {searchTerm && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-lg text-sm">
@@ -756,14 +756,14 @@ export default function CompanyApplicationsPage() {
                 </button>
               </span>
             )}
-            <button
-              onClick={clearAllFilters}
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-            >
-              {t('common.resetAll')}
-            </button>
-          </div>
-        )}
+              <button
+                onClick={clearAllFilters}
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
+                {t('common.resetAll')}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Ergebnisse – gleiche Card wie Filter */}
@@ -784,53 +784,53 @@ export default function CompanyApplicationsPage() {
         ) : (
           <>
           {/* Desktop Tabelle */}
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full min-w-[950px] table-fixed">
-              <thead className="bg-gray-50 border-b">
+          <div className="hidden lg:block overflow-x-auto px-4 py-2">
+            <table className="w-full table-auto">
+              <thead className="bg-gray-50 border-b border-gray-200 rounded-t-lg">
                 <tr>
-                  <th className="text-left px-4 py-3 w-[200px]">
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     <button 
                       onClick={() => handleSort("applicant_name")}
-                      className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
+                      className="flex items-center gap-1 hover:text-primary-600"
                     >
                       {t('common.applicant')} <SortIcon column="applicant_name" />
                     </button>
                   </th>
-                  <th className="text-left px-3 py-2.5 w-[180px]">
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     <button
                       onClick={() => handleSort("job_title")}
-                      className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
+                      className="flex items-center gap-1 hover:text-primary-600"
                     >
                       {t('common.job')} <SortIcon column="job_title" />
                     </button>
                   </th>
-                  <th className="text-left px-3 py-2.5 w-[70px]">
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                     <button
                       onClick={() => handleSort("match_score")}
-                      className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
+                      className="flex items-center gap-1 hover:text-primary-600"
                     >
                       Score <SortIcon column="match_score" />
                     </button>
                   </th>
-                  <th className="text-left px-3 py-2.5 w-[90px]">
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                     <button
                       onClick={() => handleSort("applied_at")}
-                      className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
+                      className="flex items-center gap-1 hover:text-primary-600"
                     >
                       {t('common.date')} <SortIcon column="applied_at" />
                     </button>
                   </th>
-                  <th className="text-left px-3 py-2.5 w-[120px]">
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     <button
                       onClick={() => handleSort("status")}
-                      className="flex items-center gap-1 font-semibold text-gray-700 hover:text-primary-600"
+                      className="flex items-center gap-1 hover:text-primary-600"
                     >
                       Status <SortIcon column="status" />
                     </button>
                   </th>
-                  <th className="text-center px-3 py-2.5 font-semibold text-gray-700 w-[80px]">Gespräch</th>
-                  <th className="text-left px-3 py-2.5 font-semibold text-gray-700 w-[150px]">{t('companyApplications.changeStatus')}</th>
-                  <th className="text-right px-3 py-2.5 font-semibold text-gray-700 w-[80px]">{t('common.actions')}</th>
+                  <th className="text-center px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Gespräch</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">{t('companyApplications.changeStatus')}</th>
+                  <th className="text-right px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -839,13 +839,13 @@ export default function CompanyApplicationsPage() {
                   const score = app.match_score || 0;
                   const scoreColor = score >= 70 ? "text-green-600" : score >= 40 ? "text-yellow-600" : "text-red-600";
                   return (
-                    <tr key={app.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2">
+                    <tr key={app.id} className="hover:bg-gray-50 border-b border-gray-100">
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2 max-w-[220px]">
                           <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <User className="h-4 w-4 text-primary-600" />
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="font-medium text-gray-900 truncate text-sm">
                               {app.applicant_name || t('common.unknown')}
                             </p>
@@ -853,7 +853,7 @@ export default function CompanyApplicationsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-gray-900 text-sm">
+                      <td className="px-3 py-2.5 text-gray-900 text-sm max-w-[200px]">
                         <span className="block truncate" title={app.job_title || ''}>{app.job_title}</span>
                       </td>
                       <td className="px-3 py-2.5">
