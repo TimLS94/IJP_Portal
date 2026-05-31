@@ -240,7 +240,7 @@ async def admin_list_all_posts(
         query = query.filter(BlogPost.category == category)
     
     posts = query.order_by(BlogPost.created_at.desc()).offset(offset).limit(limit).all()
-    
+
     return [
         BlogPostListResponse(
             id=post.id,
@@ -249,6 +249,7 @@ async def admin_list_all_posts(
             excerpt=post.excerpt,
             category=post.category,
             category_label=BLOG_CATEGORY_LABELS.get(post.category, post.category.value),
+            language=post.language or "de",
             featured_image=post.featured_image,
             is_published=post.is_published,
             is_featured=post.is_featured,

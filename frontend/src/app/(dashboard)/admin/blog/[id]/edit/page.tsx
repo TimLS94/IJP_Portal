@@ -14,11 +14,18 @@ interface BlogForm {
   content: string;
   excerpt: string;
   category: string;
+  language: string;
   featured_image: string;
   meta_title: string;
   meta_description: string;
   status: string;
 }
+
+const languages = [
+  { value: "de", label: "🇩🇪 Deutsch" },
+  { value: "en", label: "🇬🇧 Englisch" },
+  { value: "es", label: "🇪🇸 Spanisch" },
+];
 
 const categories = [
   { value: "news", label: "Neuigkeiten", icon: Newspaper },
@@ -121,7 +128,17 @@ export default function BlogEditorPage() {
         {!isNew && (
           <div className="flex gap-3">
             {watch("status") === "published" && (
-              <Link href={`/blog/${watch("slug")}`} target="_blank" className="btn-secondary flex items-center gap-2">
+              <Link
+                href={
+                  watch("language") === "es"
+                    ? `/blog/es/${watch("slug")}`
+                    : watch("language") === "en"
+                    ? `/blog/en/${watch("slug")}`
+                    : `/blog/${watch("slug")}`
+                }
+                target="_blank"
+                className="btn-secondary flex items-center gap-2"
+              >
                 <Eye className="h-4 w-4" />
                 Vorschau
               </Link>
@@ -185,6 +202,15 @@ export default function BlogEditorPage() {
             <div className="card">
               <h3 className="font-semibold mb-4">Einstellungen</h3>
               <div className="space-y-4">
+                <div>
+                  <label className="label">Sprache</label>
+                  <select className="input" {...register("language")}>
+                    {languages.map((lang) => (
+                      <option key={lang.value} value={lang.value}>{lang.label}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className="label">Kategorie</label>
                   <select className="input" {...register("category")}>
