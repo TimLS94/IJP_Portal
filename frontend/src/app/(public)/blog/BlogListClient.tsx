@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
-import { 
+import { useSearchParams } from "next/navigation";
+import { useTranslation } from "react-i18next";
+import {
   BookOpen, Calendar, Eye, Search, ChevronDown, ArrowRight,
   Newspaper, Lightbulb, Briefcase, FileCheck, Home, Trophy, Building2
 } from "lucide-react";
@@ -41,9 +42,20 @@ interface BlogPost {
   excerpt: string;
   category: string;
   category_label: string;
+  language?: string;
   featured_image?: string;
   published_at: string;
   view_count: number;
+}
+
+function getPostUrl(post: BlogPost): string {
+  if (post.language === "es") return `/blog/es/${post.slug}`;
+  if (post.language === "en") return `/blog/en/${post.slug}`;
+  return `/blog/${post.slug}`;
+}
+
+function toBlogLanguage(uiLang: string): string {
+  return ["de", "en", "es"].includes(uiLang) ? uiLang : "de";
 }
 
 interface Props {
@@ -52,38 +64,45 @@ interface Props {
 }
 
 export default function BlogListClient({ initialPosts, categories }: Props) {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  
+  const { i18n } = useTranslation();
+
   const [posts, setPosts] = useState<BlogPost[]>(initialPosts);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "");
 
-  const loadPosts = async (category?: string, searchTerm?: string) => {
+  const blogLang = toBlogLanguage(i18n.language);
+
+  const loadPosts = useCallback(async (category?: string, searchTerm?: string, lang?: string) => {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
       if (category) params.category = category;
       if (searchTerm) params.search = searchTerm;
-      
+      params.language = lang || blogLang;
+
       const response = await blogAPI.getPosts(params);
       setPosts(response.data || []);
-    } catch (error) {
+    } catch {
       console.error("Fehler beim Laden der Blog-Posts");
     } finally {
       setLoading(false);
     }
-  };
+  }, [blogLang]);
+
+  useEffect(() => {
+    loadPosts(selectedCategory, search, blogLang);
+  }, [blogLang]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    loadPosts(selectedCategory, search);
+    loadPosts(selectedCategory, search, blogLang);
   };
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    loadPosts(category, search);
+    loadPosts(category, search, blogLang);
   };
 
   const formatDate = (dateString: string) => {
@@ -196,7 +215,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
             return (
               <Link
                 key={post.id}
-                href={`/blog/${post.slug}`}
+                href={getPostUrl(post)}
                 className="card group hover:shadow-xl transition-all overflow-hidden"
               >
                 {/* Bild */}

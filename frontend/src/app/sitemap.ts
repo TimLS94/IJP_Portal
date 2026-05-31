@@ -15,6 +15,8 @@ interface SitemapJob {
 
 interface SitemapBlogPost {
   slug: string;
+  language: string;
+  path: string;   // "/blog/slug" | "/blog/es/slug" | "/blog/en/slug"
   lastmod: string;
 }
 
@@ -71,7 +73,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
-    url: `${BASE_URL}/blog/${post.slug}`,
+    url: `${BASE_URL}${post.path}`,
     lastModified: new Date(post.lastmod),
     changeFrequency: "weekly" as const,
     priority: 0.6,

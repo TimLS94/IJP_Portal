@@ -35,7 +35,7 @@ interface BlogPost {
 
 async function getBlogPosts(): Promise<BlogPost[]> {
   try {
-    const res = await fetch(`${API_URL}/blog/posts`, {
+    const res = await fetch(`${API_URL}/blog/posts?language=de`, {
       next: { revalidate: 30 },
     });
     if (!res.ok) return [];

@@ -1,7 +1,6 @@
 import { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import BlogDetailClient from "./BlogDetailClient";
+import BlogDetailClient from "../../[slug]/BlogDetailClient";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
 
@@ -36,7 +35,7 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
 
 async function getRelatedPosts(category: string, currentSlug: string): Promise<BlogPost[]> {
   try {
-    const res = await fetch(`${API_URL}/blog/posts?category=${category}&language=de&limit=4`, {
+    const res = await fetch(`${API_URL}/blog/posts?category=${category}&language=es&limit=4`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return [];
@@ -47,8 +46,7 @@ async function getRelatedPosts(category: string, currentSlug: string): Promise<B
   }
 }
 
-export const revalidate = 3600; // 1 Stunde ISR
-
+export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
@@ -60,7 +58,7 @@ export async function generateStaticParams() {
     const data = await res.json();
     const urls: { slug: string; language: string }[] = data.urls || [];
     return urls
-      .filter((entry) => !entry.language || entry.language === "de")
+      .filter((entry) => entry.language === "es")
       .map((entry) => ({ slug: entry.slug }));
   } catch {
     return [];
@@ -71,14 +69,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = await getBlogPost(slug);
   if (!post) {
-    return { title: "Artikel nicht gefunden" };
+    return { title: "Artículo no encontrado" };
   }
+  const pageUrl = `https://www.jobon.work/blog/es/${post.slug}`;
   return {
     title: post.meta_title || post.title,
     description: post.meta_description || post.excerpt || post.title,
     keywords: post.tags,
     alternates: {
-      canonical: `https://www.jobon.work/blog/${post.slug}`,
+      canonical: pageUrl,
+      languages: {
+        "es": pageUrl,
+        "de": `https://www.jobon.work/blog`,
+      },
     },
     robots: {
       index: true,
@@ -93,8 +96,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       type: "article",
       publishedTime: post.published_at,
       siteName: "JobOn",
-      locale: "de_DE",
-      url: `https://www.jobon.work/blog/${post.slug}`,
+      locale: "es_ES",
+      url: pageUrl,
     },
     twitter: {
       card: "summary_large_image",
@@ -105,7 +108,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 function generateArticleSchema(post: BlogPost) {
-  const pageUrl = `https://www.jobon.work/blog/${post.slug}`;
+  const pageUrl = `https://www.jobon.work/blog/es/${post.slug}`;
   return {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -133,7 +136,7 @@ function generateArticleSchema(post: BlogPost) {
       : { "@type": "ImageObject", url: "https://www.jobon.work/logo-512x512.png" },
     mainEntityOfPage: { "@type": "WebPage", "@id": pageUrl },
     keywords: post.tags || undefined,
-    inLanguage: "de-DE",
+    inLanguage: "es-ES",
     isPartOf: {
       "@type": "WebSite",
       name: "JobOn",
@@ -142,7 +145,7 @@ function generateArticleSchema(post: BlogPost) {
   };
 }
 
-export default async function BlogDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function BlogDetailEsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const post = await getBlogPost(slug);
 
@@ -159,7 +162,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <BlogDetailClient post={post} relatedPosts={relatedPosts} />
+      <BlogDetailClient post={post} relatedPosts={relatedPosts} language="es" />
     </>
   );
 }

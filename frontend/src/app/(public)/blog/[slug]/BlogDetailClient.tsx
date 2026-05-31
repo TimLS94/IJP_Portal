@@ -44,17 +44,61 @@ interface BlogPost {
   view_count: number;
 }
 
+const UI_TEXT = {
+  de: {
+    back: "Zurück zum Blog",
+    backHref: "/blog",
+    readTime: "Min. Lesezeit",
+    views: "Aufrufe",
+    share: "Teilen:",
+    related: "Ähnliche Artikel",
+    ctaTitle: "Bereit für Ihren Job in Deutschland?",
+    ctaText: "Registrieren Sie sich jetzt und entdecken Sie passende Stellenangebote.",
+    ctaJobs: "Stellenangebote ansehen",
+    ctaRegister: "Jetzt registrieren",
+  },
+  en: {
+    back: "Back to blog",
+    backHref: "/blog/en",
+    readTime: "min read",
+    views: "views",
+    share: "Share:",
+    related: "Related articles",
+    ctaTitle: "Ready for your job in Germany?",
+    ctaText: "Register now and discover suitable job offers.",
+    ctaJobs: "View job listings",
+    ctaRegister: "Register now",
+  },
+  es: {
+    back: "Volver al blog",
+    backHref: "/blog/es",
+    readTime: "min de lectura",
+    views: "vistas",
+    share: "Compartir:",
+    related: "Artículos relacionados",
+    ctaTitle: "¿Listo para tu trabajo en Alemania?",
+    ctaText: "Regístrate ahora y descubre ofertas de empleo adecuadas.",
+    ctaJobs: "Ver ofertas de empleo",
+    ctaRegister: "Registrarse ahora",
+  },
+} as const;
+
+const DATE_LOCALES: Record<string, string> = { de: "de-DE", en: "en-GB", es: "es-ES" };
+
 interface Props {
   post: BlogPost;
   relatedPosts: BlogPost[];
+  language?: "de" | "en" | "es";
 }
 
-export default function BlogDetailClient({ post, relatedPosts }: Props) {
+export default function BlogDetailClient({ post, relatedPosts, language = "de" }: Props) {
   const [copied, setCopied] = useState(false);
+  const t = UI_TEXT[language] ?? UI_TEXT.de;
+  const dateLocale = DATE_LOCALES[language] ?? "de-DE";
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
-    return new Date(dateString).toLocaleDateString("de-DE", {
+    return new Date(dateString).toLocaleDateString(dateLocale, {
       day: "2-digit",
       month: "long",
       year: "numeric",
@@ -110,12 +154,12 @@ export default function BlogDetailClient({ post, relatedPosts }: Props) {
   return (
     <article className="max-w-4xl mx-auto px-4 py-8">
       {/* Zurück-Link */}
-      <Link 
-        href="/blog" 
+      <Link
+        href={t.backHref}
         className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-8 group"
       >
         <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-        Zurück zum Blog
+        {t.back}
       </Link>
 
       {/* Header */}
@@ -144,11 +188,11 @@ export default function BlogDetailClient({ post, relatedPosts }: Props) {
           </span>
           <span className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            {estimateReadTime(post.content)} Min. Lesezeit
+            {estimateReadTime(post.content)} {t.readTime}
           </span>
           <span className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
-            {post.view_count} Aufrufe
+            {post.view_count} {t.views}
           </span>
         </div>
 
@@ -169,7 +213,7 @@ export default function BlogDetailClient({ post, relatedPosts }: Props) {
 
         {/* Share Buttons */}
         <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-xl">
-          <span className="text-gray-600 font-medium mr-2">Teilen:</span>
+          <span className="text-gray-600 font-medium mr-2">{t.share}</span>
           <button
             onClick={() => shareOnSocial("facebook")}
             className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -231,16 +275,14 @@ export default function BlogDetailClient({ post, relatedPosts }: Props) {
 
       {/* CTA Box */}
       <div className="mt-12 p-8 bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl text-white text-center">
-        <h3 className="text-2xl font-bold mb-4">Bereit für Ihren Job in Deutschland?</h3>
-        <p className="text-primary-100 mb-6">
-          Registrieren Sie sich jetzt und entdecken Sie passende Stellenangebote.
-        </p>
+        <h3 className="text-2xl font-bold mb-4">{t.ctaTitle}</h3>
+        <p className="text-primary-100 mb-6">{t.ctaText}</p>
         <div className="flex justify-center gap-4 flex-wrap">
           <Link href="/jobs" className="bg-white text-primary-600 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors">
-            Stellenangebote ansehen
+            {t.ctaJobs}
           </Link>
           <Link href="/register" className="bg-primary-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-400 transition-colors border-2 border-primary-400">
-            Jetzt registrieren
+            {t.ctaRegister}
           </Link>
         </div>
       </div>
@@ -248,14 +290,14 @@ export default function BlogDetailClient({ post, relatedPosts }: Props) {
       {/* Verwandte Artikel */}
       {relatedPosts.length > 0 && (
         <div className="mt-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Ähnliche Artikel</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">{t.related}</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {relatedPosts.map((relatedPost) => {
               const RelatedIcon = categoryIcons[relatedPost.category] || BookOpen;
               return (
                 <Link
                   key={relatedPost.id}
-                  href={`/blog/${relatedPost.slug}`}
+                  href={`${t.backHref}/${relatedPost.slug}`}
                   className="card group hover:shadow-lg transition-all"
                 >
                   <div className="mb-3">

@@ -6,20 +6,21 @@ from app.models.blog import BlogCategory
 
 class BlogPostBase(BaseModel):
     title: str
-    slug: Optional[str] = None  # Wird automatisch generiert wenn nicht angegeben
+    slug: Optional[str] = None
     excerpt: Optional[str] = None
     content: str
     category: BlogCategory = BlogCategory.NEWS
     tags: Optional[str] = None
-    
+    language: str = "de"  # de / en / es
+
     # SEO
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
     meta_keywords: Optional[str] = None
-    
+
     # Medien
     featured_image: Optional[str] = None
-    
+
     # Status
     is_published: bool = False
     is_featured: bool = False
@@ -36,13 +37,14 @@ class BlogPostUpdate(BaseModel):
     content: Optional[str] = None
     category: Optional[BlogCategory] = None
     tags: Optional[str] = None
-    
+    language: Optional[str] = None
+
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
     meta_keywords: Optional[str] = None
-    
+
     featured_image: Optional[str] = None
-    
+
     is_published: Optional[bool] = None
     is_featured: Optional[bool] = None
 
@@ -50,7 +52,7 @@ class BlogPostUpdate(BaseModel):
 class AuthorInfo(BaseModel):
     id: int
     email: str
-    
+
     class Config:
         from_attributes = True
 
@@ -64,7 +66,7 @@ class BlogPostResponse(BlogPostBase):
     published_at: Optional[datetime] = None
     author: Optional[AuthorInfo] = None
     category_label: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -76,13 +78,14 @@ class BlogPostListResponse(BaseModel):
     excerpt: Optional[str] = None
     category: BlogCategory
     category_label: str
+    language: str = "de"
     featured_image: Optional[str] = None
-    is_published: bool = False  # Hinzugefügt für Admin-Übersicht
+    is_published: bool = False
     is_featured: bool
     view_count: int
     published_at: Optional[datetime] = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 

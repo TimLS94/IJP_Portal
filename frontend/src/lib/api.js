@@ -223,7 +223,11 @@ export const blogAPI = {
   adminUpdatePost: (id, data) => api.put(`/blog/admin/posts/${id}`, data),
   adminDeletePost: (id) => api.delete(`/blog/admin/posts/${id}`),
   adminTogglePublish: (id) => api.post(`/blog/admin/posts/${id}/toggle-publish`),
-  adminAiGenerate: () => api.post('/blog/admin/ai-generate'),
+  adminAiGenerate: (language = 'de', category = '') => {
+    const params = { language };
+    if (category) params.category = category;
+    return api.post('/blog/admin/ai-generate', null, { params });
+  },
   
   // Bild-Upload
   uploadImage: (file) => {

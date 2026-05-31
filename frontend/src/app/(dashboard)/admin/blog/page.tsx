@@ -6,6 +6,8 @@ import { FileText, Plus, Edit, Trash2, Eye, Sparkles, Loader2 } from "lucide-rea
 import { blogAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 
+const LANG_FLAGS: Record<string, string> = { de: "🇩🇪", en: "🇬🇧", es: "🇪🇸" };
+
 interface BlogPost {
   id: number;
   title: string;
@@ -13,14 +15,33 @@ interface BlogPost {
   status: string;
   is_published: boolean;
   category: string;
+  language?: string;
   created_at: string;
   view_count: number;
 }
+
+const AI_CATEGORIES = [
+  { value: "", label: "Zufällige Kategorie" },
+  { value: "news", label: "News" },
+  { value: "tips", label: "Tipps" },
+  { value: "career", label: "Karriere" },
+  { value: "visa", label: "Visa" },
+  { value: "living", label: "Leben in Deutschland" },
+  { value: "company", label: "Für Unternehmen" },
+];
+
+const AI_LANGUAGES = [
+  { value: "de", label: "🇩🇪 Deutsch" },
+  { value: "en", label: "🇬🇧 Englisch" },
+  { value: "es", label: "🇪🇸 Spanisch" },
+];
 
 export default function AdminBlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [aiLanguage, setAiLanguage] = useState("de");
+  const [aiCategory, setAiCategory] = useState("");
 
   useEffect(() => {
     loadPosts();
@@ -59,10 +80,12 @@ export default function AdminBlogPage() {
   };
 
   const handleAiGenerate = async () => {
-    if (!confirm("Claude schreibt jetzt automatisch einen neuen Blog-Artikel und veröffentlicht ihn sofort. Fortfahren?")) return;
+    const langLabel = AI_LANGUAGES.find((l) => l.value === aiLanguage)?.label || aiLanguage;
+    const catLabel = AI_CATEGORIES.find((c) => c.value === aiCategory)?.label || "Zufällig";
+    if (!confirm(`Claude schreibt einen ${langLabel}-Artikel (${catLabel}) und veröffentlicht ihn sofort. Fortfahren?`)) return;
     setGenerating(true);
     try {
-      const response = await blogAPI.adminAiGenerate();
+      const response = await blogAPI.adminAiGenerate(aiLanguage, aiCategory);
       toast.success(`✨ Artikel "${response.data.title}" wurde veröffentlicht!`);
       loadPosts();
     } catch {
@@ -86,7 +109,31 @@ export default function AdminBlogPage() {
             <p className="text-gray-600">{posts.length} Artikel</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Sprache für KI */}
+          <select
+            value={aiLanguage}
+            onChange={(e) => setAiLanguage(e.target.value)}
+            disabled={generating}
+            className="px-3 py-2 bg-white border-2 border-gray-200 rounded-lg text-sm font-medium focus:border-primary-500 focus:outline-none"
+            title="Sprache für KI-Artikel"
+          >
+            {AI_LANGUAGES.map((l) => (
+              <option key={l.value} value={l.value}>{l.label}</option>
+            ))}
+          </select>
+          {/* Kategorie für KI */}
+          <select
+            value={aiCategory}
+            onChange={(e) => setAiCategory(e.target.value)}
+            disabled={generating}
+            className="px-3 py-2 bg-white border-2 border-gray-200 rounded-lg text-sm font-medium focus:border-primary-500 focus:outline-none"
+            title="Kategorie für KI-Artikel"
+          >
+            {AI_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
           <button
             onClick={handleAiGenerate}
             disabled={generating}
@@ -131,12 +178,15 @@ export default function AdminBlogPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="text-xs text-gray-500 space-x-3">
-                    <span>{post.category}</span>
+                    <span>{LANG_FLAGS[post.language || "de"] || "🇩🇪"} {post.category}</span>
                     <span>{post.view_count} Aufrufe</span>
                     <span>{formatDate(post.created_at)}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Link href={`/blog/${post.slug}`} className="p-2 text-gray-400 hover:text-primary-600">
+                    <Link
+                      href={post.language === "es" ? `/blog/es/${post.slug}` : post.language === "en" ? `/blog/en/${post.slug}` : `/blog/${post.slug}`}
+                      className="p-2 text-gray-400 hover:text-primary-600"
+                    >
                       <Eye className="h-4 w-4" />
                     </Link>
                     <Link href={`/admin/blog/${post.id}/edit`} className="p-2 text-gray-400 hover:text-primary-600">
@@ -157,6 +207,7 @@ export default function AdminBlogPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Titel</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sprache</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategorie</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aufrufe</th>
@@ -168,6 +219,9 @@ export default function AdminBlogPage() {
                 {posts.map((post) => (
                   <tr key={post.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium text-gray-900">{post.title}</td>
+                    <td className="px-6 py-4 text-gray-600 text-lg" title={post.language || "de"}>
+                      {LANG_FLAGS[post.language || "de"] || "🇩🇪"}
+                    </td>
                     <td className="px-6 py-4 text-gray-600">{post.category}</td>
                     <td className="px-6 py-4">
                       <button
@@ -184,7 +238,10 @@ export default function AdminBlogPage() {
                     <td className="px-6 py-4 text-gray-600">{formatDate(post.created_at)}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <Link href={`/blog/${post.slug}`} className="p-2 text-gray-400 hover:text-primary-600">
+                        <Link
+                          href={post.language === "es" ? `/blog/es/${post.slug}` : post.language === "en" ? `/blog/en/${post.slug}` : `/blog/${post.slug}`}
+                          className="p-2 text-gray-400 hover:text-primary-600"
+                        >
                           <Eye className="h-4 w-4" />
                         </Link>
                         <Link href={`/admin/blog/${post.id}/edit`} className="p-2 text-gray-400 hover:text-primary-600">

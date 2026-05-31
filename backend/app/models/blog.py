@@ -52,6 +52,9 @@ class BlogPost(Base):
     # Medien
     featured_image = Column(Text)  # Hauptbild URL oder Base64 Data-URL
     
+    # Sprache
+    language = Column(String(5), default="de", nullable=False)  # de / en / es
+
     # Status
     is_published = Column(Boolean, default=False)
     is_featured = Column(Boolean, default=False)  # Auf Startseite zeigen

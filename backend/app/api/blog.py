@@ -79,17 +79,26 @@ async def get_blog_categories():
 
 @router.get("/sitemap/urls")
 async def blog_sitemap_urls(db: Session = Depends(get_db)):
-    """Gibt alle veröffentlichten Blog-Posts für die Sitemap zurück (kein Limit)."""
+    """Gibt alle veröffentlichten Blog-Posts für die Sitemap zurück (alle Sprachen, kein Limit)."""
     posts = (
-        db.query(BlogPost.slug, BlogPost.updated_at, BlogPost.published_at, BlogPost.created_at)
+        db.query(BlogPost.slug, BlogPost.language, BlogPost.updated_at, BlogPost.published_at, BlogPost.created_at)
         .filter(BlogPost.is_published == True)
         .order_by(BlogPost.published_at.desc())
         .all()
     )
+
+    def _url(p) -> str:
+        lang = p.language or "de"
+        if lang == "de":
+            return f"/blog/{p.slug}"
+        return f"/blog/{lang}/{p.slug}"
+
     return {
         "urls": [
             {
                 "slug": p.slug,
+                "language": p.language or "de",
+                "path": _url(p),
                 "lastmod": (p.updated_at or p.published_at or p.created_at).strftime("%Y-%m-%d"),
             }
             for p in posts
@@ -102,19 +111,23 @@ async def list_blog_posts(
     category: Optional[BlogCategory] = None,
     featured: Optional[bool] = None,
     search: Optional[str] = None,
+    language: Optional[str] = None,
     limit: int = Query(20, le=100),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
-    """Listet alle veröffentlichten Blog-Posts"""
+    """Listet alle veröffentlichten Blog-Posts, optional nach Sprache gefiltert."""
     query = db.query(BlogPost).filter(BlogPost.is_published == True)
-    
+
+    if language:
+        query = query.filter(BlogPost.language == language)
+
     if category:
         query = query.filter(BlogPost.category == category)
-    
+
     if featured is not None:
         query = query.filter(BlogPost.is_featured == featured)
-    
+
     if search:
         search_term = f"%{search}%"
         query = query.filter(
@@ -122,9 +135,9 @@ async def list_blog_posts(
             (BlogPost.excerpt.ilike(search_term)) |
             (BlogPost.tags.ilike(search_term))
         )
-    
+
     posts = query.order_by(BlogPost.published_at.desc()).offset(offset).limit(limit).all()
-    
+
     return [
         BlogPostListResponse(
             id=post.id,
@@ -133,6 +146,7 @@ async def list_blog_posts(
             excerpt=post.excerpt,
             category=post.category,
             category_label=BLOG_CATEGORY_LABELS.get(post.category, post.category.value),
+            language=post.language or "de",
             featured_image=post.featured_image,
             is_published=post.is_published,
             is_featured=post.is_featured,
@@ -459,17 +473,37 @@ async def toggle_publish_post(
 
 @router.post("/admin/ai-generate")
 async def ai_generate_blog_post(
+    category: Optional[str] = None,
+    language: str = "de",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Admin: Generiert und veröffentlicht automatisch einen Blog-Post mit Claude."""
+    """Admin: Generiert und veröffentlicht automatisch einen Blog-Post mit Claude.
+    Optional: category (news/tips/career/visa/living/success_stories/company), language (de/en/es)."""
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nur Admins")
 
     from app.services.blog_writer_service import generate_and_publish_blog_post
     from app.services.settings_service import get_setting
     auto_publish = get_setting(db, "blog_writer_auto_publish", False)
-    result = await generate_and_publish_blog_post(db, author_id=current_user.id, auto_publish=auto_publish)
+
+    parsed_category = None
+    if category:
+        try:
+            parsed_category = BlogCategory(category)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Ungültige Kategorie: {category}")
+
+    if language not in ("de", "en", "es"):
+        raise HTTPException(status_code=400, detail="Sprache muss de, en oder es sein")
+
+    result = await generate_and_publish_blog_post(
+        db,
+        author_id=current_user.id,
+        auto_publish=auto_publish,
+        category=parsed_category,
+        language=language,
+    )
 
     if not result:
         raise HTTPException(status_code=500, detail="Blog-Generierung fehlgeschlagen. ANTHROPIC_API_KEY konfiguriert?")

@@ -334,6 +334,23 @@ def fix_active_draft_jobs():
 fix_active_draft_jobs()
 
 
+def ensure_blog_language_column():
+    """Fügt language-Spalte zu blog_posts hinzu falls noch nicht vorhanden."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text(
+            "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS language VARCHAR(5) NOT NULL DEFAULT 'de'"
+        ))
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+ensure_blog_language_column()
+
+
 def backfill_is_filtered():
     """
     Setzt is_filtered korrekt für bestehende Bewerbungen:
