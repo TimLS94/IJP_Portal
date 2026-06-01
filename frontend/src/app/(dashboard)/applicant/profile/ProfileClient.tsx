@@ -86,12 +86,24 @@ export default function ProfileClient() {
   const [workExperiences, setWorkExperiences] = useState<any[]>([]);
   const [cvParsing, setCvParsing] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
   const cvFileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
   const selectedPositionTypes = watch("position_types") || [];
   const beenToGermany = watch("been_to_germany");
+
+  // Detect wenn User ganz unten ist
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolledToBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+      setIsAtBottom(scrolledToBottom);
+      if (scrolledToBottom) setFabOpen(false);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => { loadProfile(); }, []);
 
@@ -784,59 +796,84 @@ export default function ProfileClient() {
           </button>
         </div>
 
-        {/* Mobile: Floating Action Button mit Menü */}
+        {/* Mobile: FABs */}
         <div className="sm:hidden fixed bottom-6 right-6 z-50">
-          {/* Backdrop wenn offen */}
-          {fabOpen && (
+          {/* Backdrop wenn Menü offen */}
+          {fabOpen && !isAtBottom && (
             <div 
               className="fixed inset-0 bg-black/20 -z-10" 
               onClick={() => setFabOpen(false)} 
             />
           )}
           
-          {/* Menü-Items */}
-          <div className={`absolute bottom-16 right-0 flex flex-col gap-3 transition-all duration-200 ${fabOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); router.push("/applicant/ijp-auftrag"); }}
-              className="flex items-center gap-3 bg-white pl-4 pr-5 py-3 rounded-full shadow-lg border whitespace-nowrap"
-            >
-              <span className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-primary-600" />
-              </span>
-              <span className="font-medium text-gray-800">{t("profile.hireIJP")}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); router.push("/jobs"); }}
-              className="flex items-center gap-3 bg-white pl-4 pr-5 py-3 rounded-full shadow-lg border whitespace-nowrap"
-            >
-              <span className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <Briefcase className="h-5 w-5 text-blue-600" />
-              </span>
-              <span className="font-medium text-gray-800">{t("profile.browseJobs")}</span>
-            </button>
-            <button
+          {/* Menü-Items (nur wenn NICHT am Ende) */}
+          {!isAtBottom && (
+            <div className={`absolute bottom-16 right-0 flex flex-col gap-3 transition-all duration-200 ${fabOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+              <button
+                type="button"
+                onClick={() => { setFabOpen(false); router.push("/applicant/ijp-auftrag"); }}
+                className="flex items-center gap-3 bg-white pl-4 pr-5 py-3 rounded-full shadow-lg border whitespace-nowrap"
+              >
+                <span className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-primary-600" />
+                </span>
+                <span className="font-medium text-gray-800">{t("profile.hireIJP")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setFabOpen(false); router.push("/jobs"); }}
+                className="flex items-center gap-3 bg-white pl-4 pr-5 py-3 rounded-full shadow-lg border whitespace-nowrap"
+              >
+                <span className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Briefcase className="h-5 w-5 text-blue-600" />
+                </span>
+                <span className="font-medium text-gray-800">{t("profile.browseJobs")}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Buttons-Bereich */}
+          <div className="flex items-center gap-3">
+            {/* + Button für Menü (nur wenn NICHT am Ende) */}
+            {!isAtBottom && (
+              <button 
+                type="button"
+                onClick={() => setFabOpen(!fabOpen)}
+                className={`w-12 h-12 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 ${fabOpen ? 'rotate-45' : ''}`}
+              >
+                <Plus className="h-6 w-6" />
+              </button>
+            )}
+
+            {/* Am Ende: Alle Buttons nebeneinander */}
+            {isAtBottom && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => router.push("/applicant/ijp-auftrag")}
+                  className="w-12 h-12 bg-primary-100 hover:bg-primary-200 text-primary-600 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"
+                >
+                  <Sparkles className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/jobs")}
+                  className="w-12 h-12 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"
+                >
+                  <Briefcase className="h-5 w-5" />
+                </button>
+              </>
+            )}
+
+            {/* Speichern-Button - IMMER sichtbar */}
+            <button 
               type="submit"
               disabled={saving}
-              onClick={() => setFabOpen(false)}
-              className="flex items-center gap-3 bg-white pl-4 pr-5 py-3 rounded-full shadow-lg border whitespace-nowrap"
+              className="w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-xl flex items-center justify-center transition-all active:scale-95"
             >
-              <span className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                {saving ? <Loader2 className="h-5 w-5 text-green-600 animate-spin" /> : <Save className="h-5 w-5 text-green-600" />}
-              </span>
-              <span className="font-medium text-gray-800">{t("applicant.saveProfile")}</span>
+              {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Save className="h-6 w-6" />}
             </button>
           </div>
-
-          {/* Haupt-FAB */}
-          <button 
-            type="button"
-            onClick={() => setFabOpen(!fabOpen)}
-            className={`w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-xl flex items-center justify-center transition-all active:scale-95 ${fabOpen ? 'rotate-45' : ''}`}
-          >
-            <Plus className="h-7 w-7" />
-          </button>
         </div>
       </form>
     </div>
