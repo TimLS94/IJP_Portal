@@ -784,7 +784,7 @@ async def admin_update_job(
 
     # Slug aktualisieren falls Titel geändert
     if request.title is not None:
-        from app.services.job_service import update_job_slug
+        from app.api.jobs import update_job_slug
         update_job_slug(job, db)
 
     # Bewerber benachrichtigen wenn Job jetzt aktiv ist (und vorher nicht war)
