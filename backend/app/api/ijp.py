@@ -687,6 +687,7 @@ def _applicant_context(applicant: Applicant, db: Session) -> dict:
     dob = applicant.date_of_birth.strftime("%d.%m.%Y") if applicant.date_of_birth else ""
     sb_start = applicant.semester_break_start.strftime("%d.%m.%Y") if applicant.semester_break_start else ""
     sb_end = applicant.semester_break_end.strftime("%d.%m.%Y") if applicant.semester_break_end else ""
+    gender_val = applicant.gender.value if applicant.gender else ""
     return {
         "VORNAME":             applicant.first_name or "",
         "NACHNAME":            applicant.last_name or "",
@@ -709,7 +710,115 @@ def _applicant_context(applicant: Applicant, db: Session) -> dict:
         "SEMESTER":            str(applicant.current_semester) if applicant.current_semester else "",
         "SEMESTERFERIEN_VON":  sb_start,
         "SEMESTERFERIEN_BIS":  sb_end,
+        "GESCHLECHT":          "weiblich" if gender_val == "female" else ("männlich" if gender_val == "male" else ""),
     }
+
+
+# keyword → (context_key, underline, exclude_if_contains)
+# Längere / spezifischere Keywords zuerst
+_KEYWORD_MAP = [
+    ("Name, Anschrift der Einrichtung",  "UNI_FULL",           False, []),
+    ("Schulferien/Semesterferien",       "SEMESTER_RANGE",      False, []),
+    ("Ende des Studiums",               "SEMESTERFERIEN_BIS",  False, []),
+    ("Staatsangehörigkeit",             "NATIONALITAET",       False, []),
+    ("Geburtsort",                      "GEBURTSORT",          False, []),
+    ("Derzeitige Adresse",              "STRASSE",             False, []),
+    ("Geburtsdatum",                    "GEBURTSDATUM",        False, []),
+    ("Postleitzahl",                    "PLZ",                 False, []),
+    ("Wohnort",                         "ORT",                 False, []),
+    ("Name /",                          "NACHNAME",            False, ["geburt"]),  # skip Geburtsname
+    ("Vorname",                         "VORNAME",             True,  []),          # unterstrichen!
+]
+
+
+def _smart_fill_docx(file_path: str, context: dict) -> bytes:
+    """
+    Füllt ein .docx automatisch aus.
+    - Hat das Dokument {{Platzhalter}} → docxtpl
+    - Andernfalls → Keyword-Scan aller Tabellenzellen, Daten als neuen Absatz einfügen
+    """
+    from docx import Document as DocxDocument
+
+    # Prüfe ob Platzhalter im Dokument vorhanden sind
+    probe = DocxDocument(file_path)
+    all_text = " ".join(p.text for p in probe.paragraphs)
+    for tbl in probe.tables:
+        for row in tbl.rows:
+            for cell in row.cells:
+                all_text += cell.text
+    del probe
+
+    if "{{" in all_text:
+        from docxtpl import DocxTemplate
+        tpl = DocxTemplate(file_path)
+        tpl.render(context)
+        buf = io.BytesIO()
+        tpl.save(buf)
+        buf.seek(0)
+        return buf.read()
+
+    # ── Keyword-basierter Filler ──────────────────────────────────────────────
+    doc = DocxDocument(file_path)
+
+    # Erweiterte Kontextwerte
+    uni_lines = [x for x in [
+        context.get("UNI_NAME"), context.get("UNI_STRASSE"),
+        f"{context.get('UNI_PLZ','')} {context.get('UNI_ORT','')}".strip() or None,
+        context.get("UNI_LAND"),
+    ] if x]
+    context["UNI_FULL"] = "\n".join(uni_lines)
+
+    sf_von = context.get("SEMESTERFERIEN_VON", "")
+    sf_bis = context.get("SEMESTERFERIEN_BIS", "")
+    context["SEMESTER_RANGE"] = f"vom {sf_von} bis {sf_bis}" if sf_von and sf_bis else ""
+
+    gender = context.get("GESCHLECHT", "")
+
+    # Starke Referenzen halten damit id() nicht recycled wird
+    seen_refs: list = []
+    seen_ids: set = set()
+
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                elem = cell._element
+                eid = id(elem)
+                if eid in seen_ids:
+                    continue
+                seen_ids.add(eid)
+                seen_refs.append(elem)
+
+                cell_text = cell.text.strip()
+                first_line = cell_text.split("\n")[0].strip()
+
+                # Geschlecht-Checkboxen markieren
+                if "Geschlecht" in first_line or "Стать" in first_line:
+                    if gender:
+                        for para in cell.paragraphs:
+                            if gender.lower() in para.text.lower():
+                                para.add_run(" ✓").bold = True
+                    continue
+
+                # Keyword-Match → Wert als neuen Absatz einfügen
+                for keyword, data_key, underline, excludes in _KEYWORD_MAP:
+                    if keyword.lower() in first_line.lower() and not any(e in first_line.lower() for e in excludes):
+                        value = context.get(data_key, "")
+                        if not value:
+                            break
+                        for line in str(value).split("\n"):
+                            line = line.strip()
+                            if not line:
+                                continue
+                            new_para = cell.add_paragraph(line)
+                            if new_para.runs:
+                                new_para.runs[0].bold = True
+                                new_para.runs[0].underline = underline
+                        break
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.read()
 
 
 @router.get("/crm/companies/{company_id}/documents", response_model=List[CompanyDocumentResponse])
@@ -804,18 +913,13 @@ def fill_company_document(
         raise HTTPException(status_code=404, detail="Datei nicht gefunden")
 
     context = _applicant_context(applicant, db)
-    tpl = DocxTemplate(doc.file_path)
-    tpl.render(context)
-
-    buf = io.BytesIO()
-    tpl.save(buf)
-    buf.seek(0)
+    filled_bytes = _smart_fill_docx(doc.file_path, context)
 
     safe_name = f"{applicant.first_name}_{applicant.last_name}".replace(" ", "_")
     filename = f"{doc.name}_{safe_name}.docx"
 
     return StreamingResponse(
-        buf,
+        io.BytesIO(filled_bytes),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
