@@ -493,6 +493,10 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
   const [gender, setGender] = useState<"female" | "male">("female");
   const [generating, setGenerating] = useState(false);
 
+  const needsApplicant = useMemo(() =>
+    currentTemplate?.variables?.some(v => ["applicant_name", "gender_article", "gender_possessive"].includes(v.key)) ?? true,
+  [currentTemplate]);
+
   // Set default docType when templates load
   useEffect(() => { if (templates.length > 0 && !docType) setDocType(templates[0].doc_type); }, [templates]);
 
@@ -548,21 +552,22 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
   };
 
   const handleGenerate = async () => {
-    if (!selectedApplicant) { toast.error("Bitte einen Bewerber auswählen"); return; }
+    if (needsApplicant && !selectedApplicant) { toast.error("Bitte einen Bewerber auswählen"); return; }
     if (!selectedBetriebId) { toast.error("Bitte einen Betrieb auswählen"); return; }
     setGenerating(true);
     try {
       const res = await ijpAPI.generateDocument({
         doc_type: docType,
         betrieb_id: selectedBetriebId,
-        applicant_id: selectedApplicant.id,
-        gender,
+        ...(needsApplicant && selectedApplicant ? { applicant_id: selectedApplicant.id, gender } : {}),
         custom_template: templateText !== originalText ? templateText : undefined,
       });
+      const betriebName = betriebe.find(b => b.id === selectedBetriebId)?.name ?? docType;
+      const namePart = selectedApplicant ? `${selectedApplicant.first_name}_${selectedApplicant.last_name}` : betriebName.replace(/\s+/g, "_");
       const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${docType}_${selectedApplicant.first_name}_${selectedApplicant.last_name}.pdf`;
+      link.download = `${docType}_${namePart}.pdf`;
       link.click();
       window.URL.revokeObjectURL(url);
       toast.success("PDF heruntergeladen");
@@ -593,6 +598,7 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
           </div>
+          {needsApplicant && (
           <div>
             <label className="label">Bewerber *</label>
             <div className="relative">
@@ -615,6 +621,7 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
             </div>
             {selectedApplicant && <p className="text-xs text-green-600 mt-1">✓ {selectedApplicant.first_name} {selectedApplicant.last_name}</p>}
           </div>
+          )}
           <div>
             <label className="label">Betrieb *</label>
             <div className="relative">
@@ -626,6 +633,7 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
             </div>
           </div>
         </div>
+        {needsApplicant && (
         <div className="mt-4 flex items-center gap-6">
           <span className="label mb-0">Geschlecht:</span>
           {(["female", "male"] as const).map((g) => (
@@ -637,6 +645,7 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
             </label>
           ))}
         </div>
+        )}
       </div>
 
       {/* Split Editor / Preview */}

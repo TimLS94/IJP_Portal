@@ -72,23 +72,25 @@ IJP International Job Placement, c/o Schäfer, Husemannstr. 9, 10435 Berlin.
 Diese Vollmacht gilt bis auf Widerruf und kann jederzeit schriftlich von {{betrieb_name}}, vertreten durch {{contact_person}}, widerrufen werden.
 
 
+[[SPALTEN_START]]
 {{city}}, den {{date}}
 Unterschrift des Bevollmächtigenden
 
 
 
 
+{{contact_person}}
+({{betrieb_name}})
+[[SPALTEN_MITTE]]
 Berlin, den {{date}}
 Unterschrift des Bevollmächtigten
 
 
 
 
-{{contact_person}}
-({{betrieb_name}})
-
 Tim Schäfer
-(IJP International Job Placement UG)""",
+(IJP International Job Placement UG)
+[[SPALTEN_ENDE]]""",
         "variables": [
             {"key": "betrieb_name",        "label": "Firmenname"},
             {"key": "contact_person",      "label": "Ansprechpartner"},
@@ -276,8 +278,8 @@ class TemplateResponse(BaseModel):
 class DocumentRequest(BaseModel):
     doc_type: str
     betrieb_id: int
-    applicant_id: int
-    gender: str                           # "female" | "male"
+    applicant_id: Optional[int] = None
+    gender: Optional[str] = None          # "female" | "male"
     custom_template: Optional[str] = None  # wenn None → DB-Template
 
 
@@ -401,29 +403,58 @@ def _build_pdf_from_filled_text(filled_text: str) -> bytes:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.enums import TA_LEFT
+    from reportlab.lib import colors
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=2.5*cm, rightMargin=2.5*cm, topMargin=2.5*cm, bottomMargin=2.5*cm)
     styles = getSampleStyleSheet()
     normal = ParagraphStyle("ijp_normal", parent=styles["Normal"], fontName="Helvetica", fontSize=11, leading=16, spaceAfter=2, alignment=TA_LEFT)
 
-    story = []
-    consecutive_blanks = 0
-    for line in filled_text.split("\n"):
-        stripped = line.strip()
-        if not stripped:
-            consecutive_blanks += 1
-            if consecutive_blanks <= 2:
-                story.append(Spacer(1, 0.45 * cm))
-        else:
-            consecutive_blanks = 0
-            safe = stripped.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            if stripped.startswith("Betreff:"):
-                story.append(Paragraph(f"<b>{safe}</b>", normal))
+    def _safe(text: str) -> str:
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    def _lines_to_story(text: str) -> list:
+        items = []
+        consecutive_blanks = 0
+        for line in text.split("\n"):
+            stripped = line.strip()
+            if not stripped:
+                consecutive_blanks += 1
+                if consecutive_blanks <= 2:
+                    items.append(Spacer(1, 0.45 * cm))
             else:
-                story.append(Paragraph(safe, normal))
+                consecutive_blanks = 0
+                safe = _safe(stripped)
+                if stripped.startswith("Betreff:"):
+                    items.append(Paragraph(f"<b>{safe}</b>", normal))
+                else:
+                    items.append(Paragraph(safe, normal))
+        return items
+
+    # Split text into segments; [[SPALTEN_START]]...[[SPALTEN_MITTE]]...[[SPALTEN_ENDE]] creates two-column tables
+    story = []
+    segments = re.split(r'\[\[SPALTEN_START\]\]|\[\[SPALTEN_MITTE\]\]|\[\[SPALTEN_ENDE\]\]', filled_text)
+
+    if len(segments) == 4:
+        # before, left_col, right_col, after
+        story.extend(_lines_to_story(segments[0]))
+        left_items = _lines_to_story(segments[1])
+        right_items = _lines_to_story(segments[2])
+        col_width = (A4[0] - 5*cm) / 2
+        table = Table([[left_items, right_items]], colWidths=[col_width, col_width])
+        table.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        story.append(table)
+        story.extend(_lines_to_story(segments[3]))
+    else:
+        story.extend(_lines_to_story(filled_text))
 
     doc.build(story)
     return buf.getvalue()
@@ -439,19 +470,22 @@ def generate_document(req: DocumentRequest, db: Session = Depends(get_db), curre
     if not betrieb:
         raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
 
-    applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
-    if not applicant:
-        raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
-
-    applicant_name = f"{applicant.first_name or ''} {applicant.last_name or ''}".strip()
-    gender = req.gender or (applicant.gender.value if applicant.gender else "male")
+    applicant_name = ""
+    if req.applicant_id:
+        applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+        if not applicant:
+            raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
+        applicant_name = f"{applicant.first_name or ''} {applicant.last_name or ''}".strip()
+        gender = req.gender or (applicant.gender.value if applicant.gender else "male")
+    else:
+        gender = req.gender or "male"
 
     variables = {
         "betrieb_name":      betrieb.name,
-        "contact_person":    betrieb.contact_person,
-        "street":            betrieb.street,
-        "postal_code":       betrieb.postal_code,
-        "city":              betrieb.city,
+        "contact_person":    betrieb.contact_person or "",
+        "street":            betrieb.street or "",
+        "postal_code":       betrieb.postal_code or "",
+        "city":              betrieb.city or "",
         "applicant_name":    applicant_name,
         "gender_article":    "die Arbeitnehmerin" if gender == "female" else "der Arbeitnehmer",
         "gender_possessive": "ihrer" if gender == "female" else "seiner",
@@ -461,8 +495,8 @@ def generate_document(req: DocumentRequest, db: Session = Depends(get_db), curre
     filled = _substitute(template_text, variables)
     pdf_bytes = _build_pdf_from_filled_text(filled)
 
-    safe_name = applicant_name.replace(" ", "_")
-    filename = f"{tmpl.label}_{safe_name}.pdf"
+    safe_betrieb = betrieb.name.replace(" ", "_")
+    filename = f"{tmpl.label}_{safe_betrieb}.pdf" if not applicant_name else f"{tmpl.label}_{applicant_name.replace(' ', '_')}.pdf"
 
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
