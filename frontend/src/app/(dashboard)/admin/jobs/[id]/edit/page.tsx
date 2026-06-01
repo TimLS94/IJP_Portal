@@ -58,6 +58,11 @@ export default function AdminEditJobPage() {
   const [employmentType, setEmploymentType] = useState("");
   const [isActive, setIsActive] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
+  
+  // Premium: Hervorhebung
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [featuredUntil, setFeaturedUntil] = useState<string | null>(null);
+  const [togglingFeatured, setTogglingFeatured] = useState(false);
 
   // Kontakt
   const [contactPerson, setContactPerson] = useState("");
@@ -104,6 +109,8 @@ export default function AdminEditJobPage() {
       setEmploymentType(data.employment_type || "");
       setIsActive(data.is_active ?? false);
       setIsDraft(data.is_draft ?? false);
+      setIsFeatured(data.is_featured ?? false);
+      setFeaturedUntil(data.featured_until || null);
 
       setContactPerson(data.contact_person || "");
       setContactPhone(data.contact_phone || "");
@@ -188,6 +195,24 @@ export default function AdminEditJobPage() {
     }
   };
 
+  const toggleFeatured = async () => {
+    setTogglingFeatured(true);
+    try {
+      const response = await adminAPI.toggleFeaturedJob(parseInt(jobId), {
+        is_featured: !isFeatured,
+        featured_days: !isFeatured ? 30 : null  // 30 Tage Standard
+      });
+      setIsFeatured(response.data.is_featured);
+      setFeaturedUntil(response.data.featured_until);
+      toast.success(response.data.message);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || "Fehler beim Ändern der Hervorhebung");
+    } finally {
+      setTogglingFeatured(false);
+    }
+  };
+
   const content = getContent();
   const availableLanguages = (job?.available_languages as string[]) || ["de"];
   const isExternal = job?.external_source === "bundesagentur";
@@ -255,6 +280,41 @@ export default function AdminEditJobPage() {
                 <input type="checkbox" checked={isDraft} onChange={e => setIsDraft(e.target.checked)} className="h-4 w-4 rounded accent-amber-500" />
                 <span className="text-sm font-medium text-gray-700">Entwurf</span>
               </label>
+            </div>
+            {/* Premium: Hervorhebung */}
+            <div className="sm:col-span-2 mt-2 p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-amber-900 flex items-center gap-2">
+                    ⭐ Premium: Anzeige hervorheben
+                  </h3>
+                  <p className="text-sm text-amber-700 mt-1">
+                    Hervorgehobene Anzeigen erscheinen immer oben in der Stellenliste.
+                    {featuredUntil && (
+                      <span className="ml-2 font-medium">
+                        Aktiv bis: {new Date(featuredUntil).toLocaleDateString('de-DE')}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <button
+                  onClick={toggleFeatured}
+                  disabled={togglingFeatured}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                    isFeatured
+                      ? 'bg-amber-500 text-white hover:bg-amber-600'
+                      : 'bg-white border-2 border-amber-400 text-amber-700 hover:bg-amber-50'
+                  }`}
+                >
+                  {togglingFeatured ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : isFeatured ? (
+                    <>⭐ Hervorgehoben</>
+                  ) : (
+                    <>Hervorheben (30 Tage)</>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

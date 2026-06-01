@@ -390,6 +390,10 @@ export const adminAPI = {
   getJob: (jobId) => api.get(`/admin/jobs/${jobId}`),
   updateJob: (jobId, data) => api.put(`/admin/jobs/${jobId}`, data),
   
+  // Premium: Hervorgehobene Anzeigen
+  toggleFeaturedJob: (jobId, data) => api.put(`/admin/jobs/${jobId}/featured`, data),
+  listFeaturedJobs: () => api.get('/admin/jobs/featured'),
+  
   // Einladungs-Tokens für Firmen
   listInviteTokens: () => api.get('/admin/invite-tokens'),
   createInviteToken: (data) => api.post('/admin/invite-tokens', data),

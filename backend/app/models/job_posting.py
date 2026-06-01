@@ -141,6 +141,13 @@ class JobPosting(Base):
     view_count = Column(Integer, default=0)           # Anzahl der Aufrufe
     external_click_count = Column(Integer, default=0) # Klicks auf externen Link (BA-Stellen)
 
+    # ========== PREMIUM: HERVORGEHOBENE ANZEIGEN ==========
+    is_featured = Column(Boolean, default=False)      # Anzeige hervorgehoben (erscheint oben)
+    featured_until = Column(DateTime(timezone=True), nullable=True)  # Ablaufdatum der Hervorhebung
+    featured_by_admin = Column(Boolean, default=False)  # True = Admin hat aktiviert, False = Firma hat gebucht
+    featured_requested_at = Column(DateTime(timezone=True), nullable=True)  # Wann Firma angefragt hat (für später)
+    featured_approved_at = Column(DateTime(timezone=True), nullable=True)   # Wann Admin freigegeben hat
+
     # ========== EXTERNE JOBS (z.B. Bundesagentur für Arbeit) ==========
     is_external = Column(Boolean, default=False)           # Extern gescraptes Inserat
     external_source = Column(String(50))                   # z.B. "bundesagentur"

@@ -81,7 +81,23 @@ async def list_public_jobs(
     if location:
         query = query.filter(JobPosting.location.ilike(f"%{location}%"))
 
-    jobs = query.order_by(JobPosting.created_at.desc()).offset(skip).limit(limit).all()
+    # Hervorgehobene Jobs zuerst, dann nach Erstellungsdatum
+    from sqlalchemy import case, and_, or_
+    is_currently_featured = case(
+        (and_(
+            JobPosting.is_featured == True,
+            or_(
+                JobPosting.featured_until == None,
+                JobPosting.featured_until > datetime.utcnow()
+            )
+        ), 1),
+        else_=0
+    )
+    
+    jobs = query.order_by(
+        is_currently_featured.desc(),
+        JobPosting.created_at.desc()
+    ).offset(skip).limit(limit).all()
     return jobs
 
 
@@ -205,7 +221,23 @@ async def list_jobs(
                 ))
             )
 
-    jobs = query.order_by(JobPosting.created_at.desc()).offset(skip).limit(limit).all()
+    # Hervorgehobene Jobs zuerst, dann nach Erstellungsdatum
+    from sqlalchemy import case, and_, or_
+    is_currently_featured = case(
+        (and_(
+            JobPosting.is_featured == True,
+            or_(
+                JobPosting.featured_until == None,
+                JobPosting.featured_until > datetime.utcnow()
+            )
+        ), 1),
+        else_=0
+    )
+    
+    jobs = query.order_by(
+        is_currently_featured.desc(),
+        JobPosting.created_at.desc()
+    ).offset(skip).limit(limit).all()
     return jobs
 
 

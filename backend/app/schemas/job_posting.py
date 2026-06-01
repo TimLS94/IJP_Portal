@@ -187,6 +187,10 @@ class JobPostingResponse(JobPostingBase):
     external_source: Optional[str] = None
     external_url: Optional[str] = None
     external_employer_name: Optional[str] = None
+    # Premium: Hervorgehobene Anzeigen
+    is_featured: Optional[bool] = False
+    featured_until: Optional[datetime] = None
+    featured_by_admin: Optional[bool] = False
 
     class Config:
         from_attributes = True

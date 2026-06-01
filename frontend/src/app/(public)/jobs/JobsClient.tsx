@@ -32,6 +32,8 @@ interface Job {
   created_at: string;
   is_external?: boolean;
   external_employer_name?: string;
+  is_featured?: boolean;
+  featured_until?: string;
   company?: {
     company_name?: string;
   };
@@ -388,12 +390,21 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
               href={`/jobs/${job.slug ? `${job.slug}-${job.id}` : job.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="card block hover:shadow-xl hover:border-primary-200 border-2 border-transparent transition-all group"
+              className={`card block hover:shadow-xl transition-all group ${
+                job.is_featured 
+                  ? "border-2 border-amber-300 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 ring-1 ring-amber-200" 
+                  : "border-2 border-transparent hover:border-primary-200"
+              }`}
             >
               <div className="flex flex-col gap-3">
                 {/* Title row + like button */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap flex-1">
+                    {job.is_featured && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-400 to-yellow-400 text-white shadow-sm">
+                        ⭐ TOP
+                      </span>
+                    )}
                     <h2 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
                       {job.title}
                     </h2>

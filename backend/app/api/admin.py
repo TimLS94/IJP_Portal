@@ -799,6 +799,69 @@ async def admin_update_job(
     return {"message": "Stellenangebot aktualisiert", "id": job.id}
 
 
+# ========== PREMIUM: HERVORGEHOBENE ANZEIGEN ==========
+
+class FeaturedJobRequest(BaseModel):
+    is_featured: bool
+    featured_days: Optional[int] = None  # Anzahl Tage (None = unbegrenzt)
+
+
+@router.put("/jobs/{job_id}/featured")
+async def toggle_featured_job(
+    job_id: int,
+    request: FeaturedJobRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Aktiviert/Deaktiviert die Hervorhebung einer Stelle (Admin only)"""
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Stellenangebot nicht gefunden")
+    
+    job.is_featured = request.is_featured
+    job.featured_by_admin = True
+    
+    if request.is_featured:
+        job.featured_approved_at = datetime.utcnow()
+        if request.featured_days:
+            job.featured_until = datetime.utcnow() + timedelta(days=request.featured_days)
+        else:
+            job.featured_until = None  # Unbegrenzt
+    else:
+        job.featured_until = None
+        job.featured_approved_at = None
+    
+    db.commit()
+    
+    return {
+        "message": f"Stelle {'hervorgehoben' if request.is_featured else 'Hervorhebung entfernt'}",
+        "is_featured": job.is_featured,
+        "featured_until": job.featured_until.isoformat() if job.featured_until else None
+    }
+
+
+@router.get("/jobs/featured")
+async def list_featured_jobs(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Listet alle hervorgehobenen Stellen"""
+    jobs = db.query(JobPosting).filter(
+        JobPosting.is_featured == True
+    ).order_by(JobPosting.featured_approved_at.desc()).all()
+    
+    return [{
+        "id": j.id,
+        "title": j.title,
+        "company_name": j.company.company_name if j.company else j.external_employer_name,
+        "is_featured": j.is_featured,
+        "featured_until": j.featured_until.isoformat() if j.featured_until else None,
+        "featured_by_admin": j.featured_by_admin,
+        "is_active": j.is_active
+    } for j in jobs]
+
+
 @router.get("/applications")
 async def list_all_applications(
     status_filter: Optional[ApplicationStatus] = None,
