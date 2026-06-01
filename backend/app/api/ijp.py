@@ -38,6 +38,68 @@ def _require_admin(current_user: User = Depends(get_current_user)) -> User:
 
 SEED_TEMPLATES = [
     {
+        "doc_type": "vollmacht",
+        "label": "Vollmacht",
+        "template_text": """\
+Vollmacht
+
+Bevollmächtigender (Arbeitgeber):
+{{betrieb_name}}
+{{contact_person}}
+{{street}}
+{{postal_code}} {{city}}
+
+Bevollmächtigter:
+IJP International Job Placement UG
+Tim Schäfer
+Lichtenberger Straße 34
+10179 Berlin
+
+
+Gegenstand der Vollmacht:
+
+Hiermit bevollmächtigt {{betrieb_bezeichnung}} {{betrieb_name}}, vertreten durch {{contact_person}}, die Firma IJP International Job Placement UG mit Sitz in Berlin, die folgenden Aufgaben im Zusammenhang mit der Beantragung von Arbeitsgenehmigungen und Vorabzustimmungen zu übernehmen:
+
+1. Erstellung der erforderlichen Unterlagen für die Beantragung von Arbeitsgenehmigungen bei der Bundesagentur für Arbeit.
+
+2. Einreichung der Unterlagen bei den zuständigen Behörden.
+
+3. Kommunikation mit der Bundesagentur für Arbeit sowie anderen relevanten Behörden in Bezug auf die Arbeitsgenehmigungen und Vorabzustimmungen.
+
+4. Empfang der erteilten Arbeitsgenehmigungen, die an die Anschrift von IJP International Job Placement gesendet werden sollen:
+IJP International Job Placement, c/o Schäfer, Husemannstr. 9, 10435 Berlin.
+
+Diese Vollmacht gilt bis auf Widerruf und kann jederzeit schriftlich von {{betrieb_name}}, vertreten durch {{contact_person}}, widerrufen werden.
+
+
+{{city}}, den {{date}}
+Unterschrift des Bevollmächtigenden
+
+
+
+
+Berlin, den {{date}}
+Unterschrift des Bevollmächtigten
+
+
+
+
+{{contact_person}}
+({{betrieb_name}})
+
+Tim Schäfer
+(IJP International Job Placement UG)""",
+        "variables": [
+            {"key": "betrieb_name",        "label": "Firmenname"},
+            {"key": "contact_person",      "label": "Ansprechpartner"},
+            {"key": "street",              "label": "Straße"},
+            {"key": "postal_code",         "label": "PLZ"},
+            {"key": "city",                "label": "Ort"},
+            {"key": "betrieb_bezeichnung", "label": "Bezeichnung (z.B. das Restaurant, der Betrieb, das Hotel)"},
+            {"key": "date",                "label": "Datum (z.B. 01.06.2025)"},
+        ],
+    },
+    {
         "doc_type": "wohnungsbestaetigung",
         "label": "Wohnungsbestätigung",
         "template_text": """\
