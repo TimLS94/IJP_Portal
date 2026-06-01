@@ -740,15 +740,19 @@ def _is_drv_form(doc) -> bool:
 
 
 def _mark_nein_ja(cell, mark: str) -> None:
-    """Prepend 'X   ' to ALL 'nein' or 'ja' paragraphs in a checkbox cell.
-    Merged cells can contain multiple nein/ja pairs — mark all of them."""
-    target = "nein" if mark == "nein" else "ja"
+    """Mark the chosen option with 'X   ' and clear the unchosen option."""
+    target  = "nein" if mark == "nein" else "ja"
+    discard = "ja"   if mark == "nein" else "nein"
     for para in cell.paragraphs:
         pt = para.text.strip().lower()
         if pt.startswith(target) and para.runs:
             if not para.runs[0].text.startswith("X   "):
                 para.runs[0].text = "X   " + para.runs[0].text
                 para.runs[0].bold = True
+        elif pt.startswith(discard):
+            # Unchosen option: clear all runs so nothing shows
+            for run in para.runs:
+                run.text = ""
 
 
 def _apply_drv_nein_ja(doc) -> None:
@@ -795,16 +799,29 @@ def _apply_drv_nein_ja(doc) -> None:
                     # Inline format: "nein / ні\t☐ ja / так…" as a later paragraph
                     if is_schulbesuch:
                         continue
+                    nein_marked = False
                     for para in cell.paragraphs:
+                        pt = para.text.strip().lower()
                         if (para.runs
                                 and para.runs[0].text.lower() == "nein"
                                 and not para.runs[0].text.startswith("X")):
                             para.runs[0].text = "X   " + para.runs[0].text
                             para.runs[0].bold = True
-                            # ☐-Kästchen (U+F06F) entfernen — es steht vor "ja"
+                            nein_marked = True
+                            # Tab-getrenntes "ja / так" im selben Absatz entfernen
+                            tab_passed = False
                             for run in para.runs:
-                                if "" in run.text:
-                                    run.text = run.text.replace("", "")
+                                if tab_passed:
+                                    run.text = ""
+                                elif "\t" in run.text:
+                                    run.text = run.text.split("\t")[0]
+                                    tab_passed = True
+                                elif "\uf06f" in run.text:
+                                    run.text = ""
+                        elif nein_marked and (pt.startswith("ja") or pt.startswith("vom")):
+                            # "ja" und zugehörige Folgeabsätze löschen
+                            for run in para.runs:
+                                run.text = ""
 
 
 def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
@@ -876,13 +893,21 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
                 cell_text = cell.text.strip()
                 first_line = cell_text.split("\n")[0].strip()
 
-                # Geschlecht: "X" VOR die passende Option setzen
+                # Geschlecht: gewählte Option markieren, andere löschen
                 if "Geschlecht" in first_line or "Стать" in first_line:
                     if gender:
+                        options = ["männlich", "weiblich", "divers"]
                         for para in cell.paragraphs:
-                            if gender.lower() in para.text.lower() and para.runs:
+                            pt = para.text.strip()
+                            matched = any(o in pt.lower() for o in options)
+                            if not matched:
+                                continue
+                            if gender.lower() in pt.lower() and para.runs:
                                 para.runs[0].text = "X   " + para.runs[0].text
                                 para.runs[0].bold = True
+                            else:
+                                for run in para.runs:
+                                    run.text = ""
                     continue
 
                 # Keyword-Match → Wert als neuen Absatz mit leichtem Abstand
