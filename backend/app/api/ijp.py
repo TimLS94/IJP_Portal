@@ -791,20 +791,23 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
                 cell_text = cell.text.strip()
                 first_line = cell_text.split("\n")[0].strip()
 
-                # Geschlecht-Checkboxen markieren
+                # Geschlecht: "X" VOR die passende Option setzen
                 if "Geschlecht" in first_line or "Стать" in first_line:
                     if gender:
                         for para in cell.paragraphs:
-                            if gender.lower() in para.text.lower():
-                                para.add_run(" ✓").bold = True
+                            if gender.lower() in para.text.lower() and para.runs:
+                                para.runs[0].text = "X   " + para.runs[0].text
+                                para.runs[0].bold = True
                     continue
 
-                # Keyword-Match → Wert als neuen Absatz einfügen
+                # Keyword-Match → Leerzeile + Wert als neuen Absatz einfügen
                 for keyword, data_key, underline, excludes in _KEYWORD_MAP:
                     if keyword.lower() in first_line.lower() and not any(e in first_line.lower() for e in excludes):
                         value = context.get(data_key, "")
                         if not value:
                             break
+                        # Leerzeile für Abstand zum Label
+                        cell.add_paragraph("")
                         for line in str(value).split("\n"):
                             line = line.strip()
                             if not line:
