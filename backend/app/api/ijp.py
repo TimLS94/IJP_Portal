@@ -6,19 +6,23 @@ IJP Dokumentenservice — Admin-Bereich
 """
 import io
 import re
+import os
+import uuid
 import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.config import settings
 from app.models.user import User, UserRole
-from app.models.ijp import IJPBetrieb, IJPTemplate, CRMContact
+from app.models.ijp import IJPBetrieb, IJPTemplate, CRMContact, CompanyDocument
 from app.models.applicant import Applicant
 
 logger = logging.getLogger(__name__)
@@ -661,3 +665,157 @@ def crm_meta(db: Session = Depends(get_db), current_user: User = Depends(_requir
         r[0] for r in db.query(IJPBetrieb.status).filter(IJPBetrieb.status.isnot(None)).distinct().all()
     ]
     return {"industries": sorted(industries), "statuses": sorted(statuses)}
+
+
+# ── CRM: Company Documents ────────────────────────────────────────────────────
+
+COMPANY_DOCS_DIR = Path(settings.UPLOAD_DIR) / "company_docs"
+
+class CompanyDocumentResponse(BaseModel):
+    id: int
+    company_id: int
+    name: str
+    original_filename: str
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+
+def _applicant_context(applicant: Applicant, db: Session) -> dict:
+    from app.models.user import User as UserModel
+    user = db.query(UserModel).filter(UserModel.id == applicant.user_id).first()
+    dob = applicant.date_of_birth.strftime("%d.%m.%Y") if applicant.date_of_birth else ""
+    sb_start = applicant.semester_break_start.strftime("%d.%m.%Y") if applicant.semester_break_start else ""
+    sb_end = applicant.semester_break_end.strftime("%d.%m.%Y") if applicant.semester_break_end else ""
+    return {
+        "VORNAME":             applicant.first_name or "",
+        "NACHNAME":            applicant.last_name or "",
+        "NAME":                f"{applicant.first_name or ''} {applicant.last_name or ''}".strip(),
+        "GEBURTSDATUM":        dob,
+        "GEBURTSORT":          applicant.place_of_birth or "",
+        "NATIONALITAET":       applicant.nationality or "",
+        "STRASSE":             f"{applicant.street or ''} {applicant.house_number or ''}".strip(),
+        "PLZ":                 applicant.postal_code or "",
+        "ORT":                 applicant.city or "",
+        "LAND":                applicant.country or "",
+        "TELEFON":             applicant.phone or "",
+        "EMAIL":               user.email if user else "",
+        "UNI_NAME":            applicant.university_name or "",
+        "UNI_STRASSE":         f"{applicant.university_street or ''} {applicant.university_house_number or ''}".strip(),
+        "UNI_PLZ":             applicant.university_postal_code or "",
+        "UNI_ORT":             applicant.university_city or "",
+        "UNI_LAND":            applicant.university_country or "",
+        "STUDIENGANG":         applicant.field_of_study or "",
+        "SEMESTER":            str(applicant.current_semester) if applicant.current_semester else "",
+        "SEMESTERFERIEN_VON":  sb_start,
+        "SEMESTERFERIEN_BIS":  sb_end,
+    }
+
+
+@router.get("/crm/companies/{company_id}/documents", response_model=List[CompanyDocumentResponse])
+def list_company_documents(
+    company_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    company = db.query(IJPBetrieb).filter(IJPBetrieb.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firma nicht gefunden")
+    return company.company_documents
+
+
+@router.post("/crm/companies/{company_id}/documents", response_model=CompanyDocumentResponse, status_code=201)
+async def upload_company_document(
+    company_id: int,
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    company = db.query(IJPBetrieb).filter(IJPBetrieb.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firma nicht gefunden")
+    if not file.filename.lower().endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Nur .docx-Dateien werden unterstützt")
+
+    dest_dir = COMPANY_DOCS_DIR / str(company_id)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    unique_name = f"{uuid.uuid4().hex}_{file.filename}"
+    dest_path = dest_dir / unique_name
+
+    contents = await file.read()
+    dest_path.write_bytes(contents)
+
+    doc = CompanyDocument(
+        company_id=company_id,
+        name=name,
+        original_filename=file.filename,
+        file_path=str(dest_path),
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return doc
+
+
+@router.delete("/crm/companies/{company_id}/documents/{doc_id}", status_code=204)
+def delete_company_document(
+    company_id: int,
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    doc = db.query(CompanyDocument).filter(
+        CompanyDocument.id == doc_id,
+        CompanyDocument.company_id == company_id,
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
+    try:
+        Path(doc.file_path).unlink(missing_ok=True)
+    except Exception:
+        pass
+    db.delete(doc)
+    db.commit()
+
+
+@router.post("/crm/companies/{company_id}/documents/{doc_id}/fill")
+def fill_company_document(
+    company_id: int,
+    doc_id: int,
+    applicant_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    from docxtpl import DocxTemplate
+
+    doc = db.query(CompanyDocument).filter(
+        CompanyDocument.id == doc_id,
+        CompanyDocument.company_id == company_id,
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
+
+    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
+
+    if not Path(doc.file_path).exists():
+        raise HTTPException(status_code=404, detail="Datei nicht gefunden")
+
+    context = _applicant_context(applicant, db)
+    tpl = DocxTemplate(doc.file_path)
+    tpl.render(context)
+
+    buf = io.BytesIO()
+    tpl.save(buf)
+    buf.seek(0)
+
+    safe_name = f"{applicant.first_name}_{applicant.last_name}".replace(" ", "_")
+    filename = f"{doc.name}_{safe_name}.docx"
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

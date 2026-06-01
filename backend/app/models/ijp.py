@@ -24,6 +24,7 @@ class IJPBetrieb(Base):
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     contacts = relationship("CRMContact", back_populates="company", cascade="all, delete-orphan", order_by="CRMContact.is_primary.desc()")
+    company_documents = relationship("CompanyDocument", back_populates="company", cascade="all, delete-orphan", order_by="CompanyDocument.created_at.desc()")
 
 
 class CRMContact(Base):
@@ -44,6 +45,19 @@ class CRMContact(Base):
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     company = relationship("IJPBetrieb", back_populates="contacts")
+
+
+class CompanyDocument(Base):
+    __tablename__ = "company_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("ijp_betriebe.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+
+    company = relationship("IJPBetrieb", back_populates="company_documents")
 
 
 class IJPTemplate(Base):

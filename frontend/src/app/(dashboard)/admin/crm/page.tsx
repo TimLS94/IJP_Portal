@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { crmAPI } from "@/lib/api";
+import { crmAPI, ijpAPI } from "@/lib/api";
 import {
   Building2, User, Phone, Mail, Globe, MapPin, Briefcase,
   Plus, Pencil, Trash2, X, Search, ChevronRight, Star,
   Smartphone, Tag, StickyNote, Hash, ArrowLeft,
+  Upload, FileText, Download, Loader2,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -52,6 +53,21 @@ const EMPTY_CONTACT: Omit<Contact, "id" | "company_id"> = {
   first_name: null, last_name: null, salutation: null, title: null,
   department: null, email: null, phone: null, mobile: null, is_primary: false,
 };
+
+interface CompanyDoc {
+  id: number;
+  company_id: number;
+  name: string;
+  original_filename: string;
+  created_at: string;
+}
+
+interface ApplicantOption {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
 
 const STATUS_COLORS: Record<string, string> = {
   "Aktiv": "bg-green-100 text-green-700",
@@ -138,6 +154,168 @@ function ContactCard({
   );
 }
 
+// ── Fill Document Modal ───────────────────────────────────────────────────────
+
+function FillModal({ doc, companyId, onClose }: { doc: CompanyDoc; companyId: number; onClose: () => void }) {
+  const [search, setSearch] = useState("");
+  const [applicants, setApplicants] = useState<ApplicantOption[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selected, setSelected] = useState<ApplicantOption | null>(null);
+  const [filling, setFilling] = useState(false);
+
+  const searchApplicants = useCallback(async (term: string) => {
+    if (term.length < 2) { setApplicants([]); return; }
+    setSearching(true);
+    try { const r = await ijpAPI.getApplicants(term); setApplicants(r.data || []); }
+    catch { /* ignore */ } finally { setSearching(false); }
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => searchApplicants(search), 300);
+    return () => clearTimeout(t);
+  }, [search, searchApplicants]);
+
+  const handleFill = async () => {
+    if (!selected) return;
+    setFilling(true);
+    try {
+      const res = await crmAPI.fillDocument(companyId, doc.id, selected.id);
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${doc.name}_${selected.first_name}_${selected.last_name}.docx`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      onClose();
+    } catch { alert("Fehler beim Ausfüllen"); } finally { setFilling(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h2 className="font-semibold text-gray-900 text-sm">Dokument ausfüllen: <span className="text-primary-600">{doc.name}</span></h2>
+          <button onClick={onClose}><X className="h-5 w-5 text-gray-400" /></button>
+        </div>
+        <div className="p-4 space-y-3">
+          <label className="block text-xs font-medium text-gray-700">Bewerber suchen</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              className="input-field pl-9"
+              placeholder="Name oder E-Mail…"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setSelected(null); }}
+            />
+            {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />}
+          </div>
+          {applicants.length > 0 && !selected && (
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              {applicants.map((a) => (
+                <button key={a.id} onClick={() => { setSelected(a); setSearch(`${a.first_name} ${a.last_name}`); setApplicants([]); }}
+                  className="w-full text-left px-3 py-2 hover:bg-primary-50 text-sm border-b border-gray-100 last:border-0">
+                  <span className="font-medium">{a.first_name} {a.last_name}</span>
+                  <span className="text-gray-400 ml-2 text-xs">{a.email}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {selected && <p className="text-xs text-green-600">✓ {selected.first_name} {selected.last_name} ausgewählt</p>}
+        </div>
+        <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
+          <button onClick={onClose} className="btn-secondary text-sm">Abbrechen</button>
+          <button onClick={handleFill} disabled={!selected || filling}
+            className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50">
+            {filling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {filling ? "Wird erstellt…" : "Herunterladen"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Company Documents Section ─────────────────────────────────────────────────
+
+function CompanyDocuments({ company }: { company: Company }) {
+  const [docs, setDocs] = useState<CompanyDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [fillTarget, setFillTarget] = useState<CompanyDoc | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(async () => {
+    try { const r = await crmAPI.getDocuments(company.id); setDocs(r.data); }
+    catch { /* ignore */ } finally { setLoading(false); }
+  }, [company.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const name = window.prompt("Anzeigename für dieses Dokument:", file.name.replace(".docx", ""));
+    if (!name) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("name", name);
+      await crmAPI.uploadDocument(company.id, fd);
+      await load();
+    } catch { alert("Upload fehlgeschlagen"); } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleDelete = async (doc: CompanyDoc) => {
+    if (!confirm(`„${doc.name}" wirklich löschen?`)) return;
+    await crmAPI.deleteDocument(company.id, doc.id);
+    await load();
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          Dokument-Vorlagen ({docs.length})
+        </h3>
+        <label className={`flex items-center gap-1 text-xs font-medium cursor-pointer ${uploading ? "text-gray-400" : "text-primary-600 hover:text-primary-700"}`}>
+          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+          {uploading ? "Lädt…" : "Hochladen"}
+          <input ref={fileRef} type="file" accept=".docx" className="hidden" onChange={handleUpload} disabled={uploading} />
+        </label>
+      </div>
+      {loading ? (
+        <p className="text-xs text-gray-400">Lädt…</p>
+      ) : docs.length === 0 ? (
+        <p className="text-sm text-gray-400 italic">Noch keine Vorlagen hochgeladen.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {docs.map((doc) => (
+            <div key={doc.id} className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2">
+              <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
+                <p className="text-xs text-gray-400 truncate">{doc.original_filename}</p>
+              </div>
+              <button onClick={() => setFillTarget(doc)}
+                className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium px-2 py-1 rounded hover:bg-primary-50 flex-shrink-0">
+                <Download className="h-3 w-3" /> Ausfüllen
+              </button>
+              <button onClick={() => handleDelete(doc)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {fillTarget && <FillModal doc={fillTarget} companyId={company.id} onClose={() => setFillTarget(null)} />}
+    </div>
+  );
+}
+
 // ── Company Detail Panel ──────────────────────────────────────────────────────
 
 function CompanyDetail({
@@ -209,6 +387,9 @@ function CompanyDetail({
             <p className="text-sm text-gray-700 bg-amber-50 border border-amber-100 rounded-lg p-3 whitespace-pre-wrap">{company.notes}</p>
           </div>
         )}
+
+        {/* Company Documents */}
+        <CompanyDocuments company={company} />
 
         {/* Contacts */}
         <div className="space-y-2">
