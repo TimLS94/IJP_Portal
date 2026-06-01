@@ -762,26 +762,35 @@ export default function ProfileClient() {
           )}
         </div>
 
-        {/* Speichern und Aktionen */}
-        <div className="sticky bottom-4 bg-white/90 backdrop-blur p-3 sm:p-4 rounded-xl shadow-lg border flex flex-col sm:flex-row sm:flex-wrap justify-end gap-2 sm:gap-3">
-          <button type="submit" disabled={saving} className="btn-primary flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base w-full sm:w-auto">
-            {saving ? <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" /> : <Save className="h-4 w-4 sm:h-5 sm:w-5" />}{t("applicant.saveProfile")}
+        {/* Desktop: Sticky Bar */}
+        <div className="hidden sm:flex sticky bottom-4 bg-white/90 backdrop-blur p-4 rounded-xl shadow-lg border flex-wrap justify-end gap-3">
+          <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2 px-6 py-3">
+            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}{t("applicant.saveProfile")}
           </button>
           <button 
             type="button" 
             onClick={() => router.push("/jobs")} 
-            className="btn-secondary flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base w-full sm:w-auto"
+            className="btn-secondary flex items-center gap-2 px-6 py-3"
           >
-            <Briefcase className="h-4 w-4 sm:h-5 sm:w-5" />{t("profile.browseJobs")}
+            <Briefcase className="h-5 w-5" />{t("profile.browseJobs")}
           </button>
           <button 
             type="button" 
             onClick={() => router.push("/applicant/ijp-auftrag")}
-            className="btn-secondary flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base w-full sm:w-auto border-primary-300 text-primary-700 hover:bg-primary-50"
+            className="btn-secondary flex items-center gap-2 px-6 py-3 border-primary-300 text-primary-700 hover:bg-primary-50"
           >
-            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />{t("profile.hireIJP")}
+            <Sparkles className="h-5 w-5" />{t("profile.hireIJP")}
           </button>
         </div>
+
+        {/* Mobile: Floating Action Button */}
+        <button 
+          type="submit" 
+          disabled={saving}
+          className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-xl flex items-center justify-center z-50 transition-all active:scale-95"
+        >
+          {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Save className="h-6 w-6" />}
+        </button>
       </form>
     </div>
   );
