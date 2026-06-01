@@ -58,6 +58,33 @@ async def get_public_job_settings(db: Session = Depends(get_db)):
     }
 
 
+@router.get("/public", response_model=List[JobPostingResponse])
+async def list_public_jobs(
+    position_type: Optional[PositionType] = None,
+    location: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db)
+):
+    """Listet alle öffentlichen aktiven Stellenangebote (für SSR/SEO)"""
+    query = db.query(JobPosting).options(
+        joinedload(JobPosting.company)
+    ).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_draft == False,
+        JobPosting.is_archived == False
+    )
+
+    if position_type:
+        query = query.filter(JobPosting.position_type == position_type)
+
+    if location:
+        query = query.filter(JobPosting.location.ilike(f"%{location}%"))
+
+    jobs = query.order_by(JobPosting.created_at.desc()).offset(skip).limit(limit).all()
+    return jobs
+
+
 @router.get("/sitemap/urls")
 async def get_sitemap_urls(db: Session = Depends(get_db)):
     """

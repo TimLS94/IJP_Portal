@@ -22,10 +22,10 @@ const POSITION_TYPES = [
 ];
 
 const EMPLOYMENT_TYPES = [
-  { value: "full_time", label: "Vollzeit" },
-  { value: "part_time", label: "Teilzeit" },
-  { value: "mini_job", label: "Minijob" },
-  { value: "seasonal", label: "Saisonstelle" },
+  { value: "fulltime",   label: "Vollzeit" },
+  { value: "parttime",   label: "Teilzeit" },
+  { value: "mini_job",   label: "Minijob" },
+  { value: "seasonal",   label: "Saisonstelle" },
   { value: "internship", label: "Praktikum" },
 ];
 

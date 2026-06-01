@@ -42,6 +42,9 @@ class EmploymentType(str, enum.Enum):
     FULLTIME = "fulltime"
     PARTTIME = "parttime"
     BOTH = "both"  # Vollzeit und Teilzeit möglich
+    MINI_JOB = "mini_job"
+    SEASONAL = "seasonal"
+    INTERNSHIP = "internship"
 
 
 class JobDeletionReason(str, enum.Enum):
