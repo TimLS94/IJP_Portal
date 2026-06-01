@@ -85,6 +85,7 @@ export default function ProfileClient() {
   const [otherLanguages, setOtherLanguages] = useState<{language: string; level: string}[]>([]);
   const [workExperiences, setWorkExperiences] = useState<any[]>([]);
   const [cvParsing, setCvParsing] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
   const cvFileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -783,14 +784,60 @@ export default function ProfileClient() {
           </button>
         </div>
 
-        {/* Mobile: Floating Action Button */}
-        <button 
-          type="submit" 
-          disabled={saving}
-          className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-xl flex items-center justify-center z-50 transition-all active:scale-95"
-        >
-          {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Save className="h-6 w-6" />}
-        </button>
+        {/* Mobile: Floating Action Button mit Menü */}
+        <div className="sm:hidden fixed bottom-6 right-6 z-50">
+          {/* Backdrop wenn offen */}
+          {fabOpen && (
+            <div 
+              className="fixed inset-0 bg-black/20 -z-10" 
+              onClick={() => setFabOpen(false)} 
+            />
+          )}
+          
+          {/* Menü-Items */}
+          <div className={`absolute bottom-16 right-0 flex flex-col gap-3 transition-all duration-200 ${fabOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); router.push("/applicant/ijp-auftrag"); }}
+              className="flex items-center gap-3 bg-white pl-4 pr-5 py-3 rounded-full shadow-lg border whitespace-nowrap"
+            >
+              <span className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-primary-600" />
+              </span>
+              <span className="font-medium text-gray-800">{t("profile.hireIJP")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); router.push("/jobs"); }}
+              className="flex items-center gap-3 bg-white pl-4 pr-5 py-3 rounded-full shadow-lg border whitespace-nowrap"
+            >
+              <span className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <Briefcase className="h-5 w-5 text-blue-600" />
+              </span>
+              <span className="font-medium text-gray-800">{t("profile.browseJobs")}</span>
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              onClick={() => setFabOpen(false)}
+              className="flex items-center gap-3 bg-white pl-4 pr-5 py-3 rounded-full shadow-lg border whitespace-nowrap"
+            >
+              <span className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                {saving ? <Loader2 className="h-5 w-5 text-green-600 animate-spin" /> : <Save className="h-5 w-5 text-green-600" />}
+              </span>
+              <span className="font-medium text-gray-800">{t("applicant.saveProfile")}</span>
+            </button>
+          </div>
+
+          {/* Haupt-FAB */}
+          <button 
+            type="button"
+            onClick={() => setFabOpen(!fabOpen)}
+            className={`w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-xl flex items-center justify-center transition-all active:scale-95 ${fabOpen ? 'rotate-45' : ''}`}
+          >
+            <Plus className="h-7 w-7" />
+          </button>
+        </div>
       </form>
     </div>
   );
