@@ -265,27 +265,37 @@ async def parse_cv(
         )
     
     # ========== CV PARSING ==========
-    # Gemini Flash (kostenlos) mit Regex-Fallback
     from app.core.config import settings
-    from app.services.cv_parser_service import parse_cv_with_gemini, sanitize_parsed_data
+    from app.services.cv_parser_service import parse_cv_with_openai, parse_cv_with_gemini, sanitize_parsed_data, parse_cv_regex
 
-    gemini_result = None
-    if settings.GOOGLE_AI_API_KEY:
+    ai_result = None
+    # 1. OpenAI bevorzugt
+    if settings.OPENAI_API_KEY:
+        try:
+            raw = parse_cv_with_openai(text, settings.OPENAI_API_KEY)
+            if raw:
+                ai_result = sanitize_parsed_data(raw)
+        except Exception as e:
+            logger.warning(f"OpenAI CV parsing failed: {e}")
+
+    # 2. Gemini als Fallback
+    if not ai_result and settings.GOOGLE_AI_API_KEY:
         try:
             raw = parse_cv_with_gemini(text, settings.GOOGLE_AI_API_KEY)
             if raw:
-                gemini_result = sanitize_parsed_data(raw)
+                ai_result = sanitize_parsed_data(raw)
         except Exception as e:
-            logger.warning(f"Gemini parsing failed, falling back to regex: {e}")
+            logger.warning(f"Gemini CV parsing failed: {e}")
 
-    if gemini_result:
-        gemini_result["cv_saved"] = cv_saved
-        gemini_result["message"] = "Lebenslauf wurde analysiert und Profil automatisch ausgefüllt."
-        return gemini_result
+    if ai_result:
+        ai_result["cv_saved"] = cv_saved
+        ai_result["message"] = "Lebenslauf wurde analysiert und Profil automatisch ausgefüllt."
+        return ai_result
 
-    # Fallback: Regex-Parsing
-    result = parse_cv_fallback(text)
+    # 3. Starker Regex-Fallback (kein API-Key nötig)
+    result = parse_cv_regex(text)
     result["cv_saved"] = cv_saved
+    result["message"] = "Basis-Extraktion durchgeführt – bitte Daten prüfen und ergänzen."
     return result
 
 
