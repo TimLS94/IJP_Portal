@@ -254,11 +254,11 @@ export default function ApplicantSettingsPage() {
       <div className="card mb-6">
         <div className="flex items-center gap-2 mb-4">
           <Bell className="h-6 w-6 text-primary-600" />
-          <h2 className="text-xl font-bold text-gray-900">{t('settings.emailNotifications')}</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t('settings.emailNotifications.title')}</h2>
           {savingEmailPrefs && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
         </div>
         <p className="text-gray-600 text-sm mb-4">
-          {t('settings.emailNotificationsHint')}
+          {t('settings.emailNotifications.description')}
         </p>
         <div className="space-y-3">
           {/* Newsletter */}
