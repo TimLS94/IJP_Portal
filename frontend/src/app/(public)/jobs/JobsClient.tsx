@@ -401,8 +401,8 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap flex-1">
                     {job.is_featured && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-400 to-yellow-400 text-white shadow-sm">
-                        ⭐ TOP
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-400 to-yellow-400 text-white shadow-sm" title="Bezahlte Anzeige">
+                        Anzeige
                       </span>
                     )}
                     <h2 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
