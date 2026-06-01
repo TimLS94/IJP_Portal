@@ -488,7 +488,8 @@ export const crmAPI = {
   getDocuments: (companyId) => api.get(`/ijp/crm/companies/${companyId}/documents`),
   uploadDocument: (companyId, formData) => api.post(`/ijp/crm/companies/${companyId}/documents`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteDocument: (companyId, docId) => api.delete(`/ijp/crm/companies/${companyId}/documents/${docId}`),
-  fillDocument: (companyId, docId, applicantId) => api.post(`/ijp/crm/companies/${companyId}/documents/${docId}/fill`, null, { params: { applicant_id: applicantId }, responseType: 'blob' }),
+  getAllEmployerDocs: () => api.get('/ijp/employer-docs'),
+  fillEmployerDoc: (docId, applicantId) => api.post(`/ijp/employer-docs/${docId}/fill`, null, { params: { applicant_id: applicantId }, responseType: 'blob' }),
 };
 
 // Auth API Erweiterung für Einladungs-Token-Prüfung

@@ -6,7 +6,7 @@ import {
   Loader2, Search, ChevronDown, X, Save, RotateCcw,
   Eye, Code2, FileText, ArrowLeft, AlertCircle,
 } from "lucide-react";
-import { ijpAPI } from "@/lib/api";
+import { ijpAPI, crmAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ const EMPTY_BETRIEB: Omit<Betrieb, "id"> = {
 // ── Root Page ─────────────────────────────────────────────────────────────────
 
 export default function AdminIJPPage() {
-  const [tab, setTab] = useState<"betriebe" | "dokument" | "vorlagen">("betriebe");
+  const [tab, setTab] = useState<"betriebe" | "dokument" | "vorlagen" | "arbeitgeber">("betriebe");
   const [betriebe, setBetriebe] = useState<Betrieb[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loadingBetriebe, setLoadingBetriebe] = useState(true);
@@ -74,9 +74,10 @@ export default function AdminIJPPage() {
   };
 
   const tabs = [
-    { key: "betriebe",  icon: Building2, label: `Betriebe (${betriebe.length})` },
-    { key: "vorlagen",  icon: FileText,  label: `Vorlagen (${templates.length})` },
-    { key: "dokument",  icon: FileDown,  label: "Dokument erstellen" },
+    { key: "betriebe",    icon: Building2, label: `Betriebe (${betriebe.length})` },
+    { key: "vorlagen",    icon: FileText,  label: `Vorlagen (${templates.length})` },
+    { key: "dokument",    icon: FileDown,  label: "Dokument erstellen" },
+    { key: "arbeitgeber", icon: Building2, label: "Arbeitgeber-Formular" },
   ] as const;
 
   return (
@@ -100,9 +101,10 @@ export default function AdminIJPPage() {
         ))}
       </div>
 
-      {tab === "betriebe" && <BetriebeTab betriebe={betriebe} loading={loadingBetriebe} onRefresh={loadBetriebe} />}
-      {tab === "vorlagen" && <VorlagenTab templates={templates} loading={loadingTemplates} onRefresh={loadTemplates} />}
-      {tab === "dokument" && <DokumentTab betriebe={betriebe} templates={templates} />}
+      {tab === "betriebe"    && <BetriebeTab betriebe={betriebe} loading={loadingBetriebe} onRefresh={loadBetriebe} />}
+      {tab === "vorlagen"    && <VorlagenTab templates={templates} loading={loadingTemplates} onRefresh={loadTemplates} />}
+      {tab === "dokument"    && <DokumentTab betriebe={betriebe} templates={templates} />}
+      {tab === "arbeitgeber" && <ArbeitgeberFormularTab />}
     </div>
   );
 }
@@ -701,6 +703,113 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
         {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
         {generating ? "PDF wird erstellt..." : "PDF herunterladen"}
       </button>
+    </div>
+  );
+}
+
+
+// ── Arbeitgeber-Formular Tab ──────────────────────────────────────────────────
+
+interface EmployerDoc { id: number; company_id: number; name: string; original_filename: string; created_at: string; }
+interface ApplicantOpt { id: number; first_name: string; last_name: string; email: string; }
+
+function ArbeitgeberFormularTab() {
+  const [docs, setDocs] = useState<EmployerDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDoc, setSelectedDoc] = useState<EmployerDoc | null>(null);
+  const [search, setSearch] = useState("");
+  const [applicants, setApplicants] = useState<ApplicantOpt[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedApplicant, setSelectedApplicant] = useState<ApplicantOpt | null>(null);
+  const [filling, setFilling] = useState(false);
+
+  useEffect(() => {
+    crmAPI.getAllEmployerDocs().then((r: any) => setDocs(r.data || [])).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (search.length < 2) { setApplicants([]); return; }
+    const t = setTimeout(async () => {
+      setSearching(true);
+      try { const r = await ijpAPI.getApplicants(search); setApplicants(r.data || []); }
+      finally { setSearching(false); }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const handleFill = async () => {
+    if (!selectedDoc || !selectedApplicant) return;
+    setFilling(true);
+    try {
+      const res = await crmAPI.fillEmployerDoc(selectedDoc.id, selectedApplicant.id);
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${selectedDoc.name}_${selectedApplicant.first_name}_${selectedApplicant.last_name}.docx`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      toast.success("Dokument heruntergeladen");
+    } catch { toast.error("Fehler beim Ausfüllen"); } finally { setFilling(false); }
+  };
+
+  if (loading) return <div className="card py-16 text-center text-gray-400">Lädt…</div>;
+  if (docs.length === 0) return (
+    <div className="card py-16 text-center text-gray-500">
+      <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+      <p className="font-medium">Keine Arbeitgeber-Formulare hochgeladen.</p>
+      <p className="text-sm mt-1">Lade im CRM bei einem Arbeitgeber eine .docx-Vorlage hoch.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <div className="card space-y-4">
+        <h2 className="font-semibold text-gray-900">Arbeitgeber-Formular automatisch ausfüllen</h2>
+
+        {/* Dokument auswählen */}
+        <div>
+          <label className="label">Formular *</label>
+          <div className="relative">
+            <select className="input appearance-none pr-10" value={selectedDoc?.id ?? ""} onChange={(e) => {
+              const d = docs.find(d => d.id === Number(e.target.value)) ?? null;
+              setSelectedDoc(d);
+            }}>
+              <option value="">— Formular wählen —</option>
+              {docs.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.original_filename})</option>)}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Bewerber suchen */}
+        <div>
+          <label className="label">Bewerber *</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input className="input pl-10" placeholder="Name oder E-Mail…" value={search}
+              onChange={(e) => { setSearch(e.target.value); setSelectedApplicant(null); }} />
+            {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />}
+          </div>
+          {applicants.length > 0 && !selectedApplicant && (
+            <div className="mt-1 border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-auto bg-white">
+              {applicants.map((a) => (
+                <button key={a.id} type="button" onClick={() => { setSelectedApplicant(a); setSearch(`${a.first_name} ${a.last_name}`); setApplicants([]); }}
+                  className="w-full px-4 py-2.5 text-left hover:bg-primary-50 text-sm border-b border-gray-100 last:border-0">
+                  <span className="font-medium">{a.first_name} {a.last_name}</span>
+                  <span className="text-gray-400 ml-2 text-xs">{a.email}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {selectedApplicant && <p className="text-xs text-green-600 mt-1">✓ {selectedApplicant.first_name} {selectedApplicant.last_name}</p>}
+        </div>
+
+        <button onClick={handleFill} disabled={!selectedDoc || !selectedApplicant || filling}
+          className="btn-primary flex items-center gap-2 disabled:opacity-50">
+          {filling ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+          {filling ? "Wird ausgefüllt…" : "Formular herunterladen"}
+        </button>
+      </div>
     </div>
   );
 }

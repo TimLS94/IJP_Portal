@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Boolean, ForeignKey, LargeBinary
 from sqlalchemy.orm import relationship
 from app.core.database import Base, utc_now
 
@@ -54,7 +54,7 @@ class CompanyDocument(Base):
     company_id = Column(Integer, ForeignKey("ijp_betriebe.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     original_filename = Column(String(255), nullable=False)
-    file_path = Column(String(500), nullable=False)
+    file_content = Column(LargeBinary, nullable=False)
     created_at = Column(DateTime(timezone=True), default=utc_now)
 
     company = relationship("IJPBetrieb", back_populates="company_documents")

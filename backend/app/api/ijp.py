@@ -669,8 +669,6 @@ def crm_meta(db: Session = Depends(get_db), current_user: User = Depends(_requir
 
 # ── CRM: Company Documents ────────────────────────────────────────────────────
 
-COMPANY_DOCS_DIR = Path(settings.UPLOAD_DIR) / "company_docs"
-
 class CompanyDocumentResponse(BaseModel):
     id: int
     company_id: int
@@ -731,16 +729,18 @@ _KEYWORD_MAP = [
 ]
 
 
-def _smart_fill_docx(file_path: str, context: dict) -> bytes:
+def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
     """
-    Füllt ein .docx automatisch aus.
+    Füllt ein .docx automatisch aus (aus bytes).
     - Hat das Dokument {{Platzhalter}} → docxtpl
     - Andernfalls → Keyword-Scan aller Tabellenzellen, Daten als neuen Absatz einfügen
     """
     from docx import Document as DocxDocument
 
+    source = io.BytesIO(file_bytes)
+
     # Prüfe ob Platzhalter im Dokument vorhanden sind
-    probe = DocxDocument(file_path)
+    probe = DocxDocument(io.BytesIO(file_bytes))
     all_text = " ".join(p.text for p in probe.paragraphs)
     for tbl in probe.tables:
         for row in tbl.rows:
@@ -750,7 +750,7 @@ def _smart_fill_docx(file_path: str, context: dict) -> bytes:
 
     if "{{" in all_text:
         from docxtpl import DocxTemplate
-        tpl = DocxTemplate(file_path)
+        tpl = DocxTemplate(io.BytesIO(file_bytes))
         tpl.render(context)
         buf = io.BytesIO()
         tpl.save(buf)
@@ -758,7 +758,7 @@ def _smart_fill_docx(file_path: str, context: dict) -> bytes:
         return buf.read()
 
     # ── Keyword-basierter Filler ──────────────────────────────────────────────
-    doc = DocxDocument(file_path)
+    doc = DocxDocument(io.BytesIO(file_bytes))
 
     # Erweiterte Kontextwerte
     uni_lines = [x for x in [
@@ -847,19 +847,13 @@ async def upload_company_document(
     if not file.filename.lower().endswith(".docx"):
         raise HTTPException(status_code=400, detail="Nur .docx-Dateien werden unterstützt")
 
-    dest_dir = COMPANY_DOCS_DIR / str(company_id)
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    unique_name = f"{uuid.uuid4().hex}_{file.filename}"
-    dest_path = dest_dir / unique_name
-
     contents = await file.read()
-    dest_path.write_bytes(contents)
 
     doc = CompanyDocument(
         company_id=company_id,
         name=name,
         original_filename=file.filename,
-        file_path=str(dest_path),
+        file_content=contents,
     )
     db.add(doc)
     db.commit()
@@ -909,11 +903,47 @@ def fill_company_document(
     if not applicant:
         raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
 
-    if not Path(doc.file_path).exists():
-        raise HTTPException(status_code=404, detail="Datei nicht gefunden")
+    context = _applicant_context(applicant, db)
+    filled_bytes = _smart_fill_docx_bytes(doc.file_content, context)
+
+    safe_name = f"{applicant.first_name}_{applicant.last_name}".replace(" ", "_")
+    filename = f"{doc.name}_{safe_name}.docx"
+
+    return StreamingResponse(
+        io.BytesIO(filled_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ── IJP-Tab: Alle Firmendokumente auflisten + ausfüllen ───────────────────────
+
+@router.get("/employer-docs", response_model=List[CompanyDocumentResponse])
+def list_all_employer_docs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    """Alle hochgeladenen Firmendokumente für den IJP-Dokumente-Tab."""
+    return db.query(CompanyDocument).order_by(CompanyDocument.company_id, CompanyDocument.name).all()
+
+
+@router.post("/employer-docs/{doc_id}/fill")
+def fill_employer_doc(
+    doc_id: int,
+    applicant_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    doc = db.query(CompanyDocument).filter(CompanyDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
+
+    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
 
     context = _applicant_context(applicant, db)
-    filled_bytes = _smart_fill_docx(doc.file_path, context)
+    filled_bytes = _smart_fill_docx_bytes(doc.file_content, context)
 
     safe_name = f"{applicant.first_name}_{applicant.last_name}".replace(" ", "_")
     filename = f"{doc.name}_{safe_name}.docx"
