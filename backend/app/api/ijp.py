@@ -793,15 +793,18 @@ def _apply_drv_nein_ja(doc) -> None:
                     _mark_nein_ja(cell, "ja" if is_schulbesuch else "nein")
                 else:
                     # Inline format: "nein / ні\t☐ ja / так…" as a later paragraph
-                    # run[0] == "nein" exactly (not part of a German word)
                     if is_schulbesuch:
-                        continue  # inline sub-questions inside Schulbesuch → skip
+                        continue
                     for para in cell.paragraphs:
                         if (para.runs
                                 and para.runs[0].text.lower() == "nein"
                                 and not para.runs[0].text.startswith("X")):
                             para.runs[0].text = "X   " + para.runs[0].text
                             para.runs[0].bold = True
+                            # ☐-Kästchen (U+F06F) entfernen — es steht vor "ja"
+                            for run in para.runs:
+                                if "" in run.text:
+                                    run.text = run.text.replace("", "")
 
 
 def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
@@ -857,6 +860,10 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
     seen_ids: set = set()
 
     for table in doc.tables:
+        # Tabellenkontext: ist das die Schulbesuch/Studium-Tabelle?
+        table_header = " ".join(c.text.lower() for c in table.rows[0].cells) if table.rows else ""
+        is_schulbesuch_table = any(kw in table_header for kw in _DRV_SCHULE_KW)
+
         for row in table.rows:
             for cell in row.cells:
                 elem = cell._element
@@ -880,23 +887,29 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
 
                 # Keyword-Match → Wert als neuen Absatz mit leichtem Abstand
                 for keyword, data_key, underline, excludes in _KEYWORD_MAP:
-                    if keyword.lower() in first_line.lower() and not any(e in first_line.lower() for e in excludes):
-                        value = context.get(data_key, "")
-                        if not value:
-                            break
-                        first_added = True
-                        for line in str(value).split("\n"):
-                            line = line.strip()
-                            if not line:
-                                continue
-                            new_para = cell.add_paragraph(line)
-                            if first_added:
-                                new_para.paragraph_format.space_before = Pt(4)
-                                first_added = False
-                            if new_para.runs:
-                                new_para.runs[0].bold = True
-                                new_para.runs[0].underline = underline
+                    if keyword.lower() not in first_line.lower():
+                        continue
+                    if any(e in first_line.lower() for e in excludes):
+                        continue
+                    # "Seit" nur in der Schulbesuch-Tabelle füllen
+                    if data_key == "SEIT_STUDIUM" and not is_schulbesuch_table:
+                        continue
+                    value = context.get(data_key, "")
+                    if not value:
                         break
+                    first_added = True
+                    for line in str(value).split("\n"):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        new_para = cell.add_paragraph(line)
+                        if first_added:
+                            new_para.paragraph_format.space_before = Pt(4)
+                            first_added = False
+                        if new_para.runs:
+                            new_para.runs[0].bold = True
+                            new_para.runs[0].underline = underline
+                    break
 
     # ── DRV Nein/Ja-Checkboxen ───────────────────────────────────────────────
     _apply_drv_nein_ja(doc)
