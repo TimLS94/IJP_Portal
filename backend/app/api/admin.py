@@ -623,6 +623,52 @@ async def list_all_jobs(
     return {"total": total, "jobs": result}
 
 
+@router.get("/jobs/{job_id}")
+async def admin_get_job(
+    job_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Gibt vollständige Job-Daten zurück — auch inaktive/Entwurf-Stellen."""
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stelle nicht gefunden")
+
+    company = job.company
+    return {
+        "id": job.id,
+        "title": job.title,
+        "description": job.description,
+        "tasks": job.tasks,
+        "requirements": job.requirements,
+        "benefits": job.benefits,
+        "location": job.location,
+        "address": job.address,
+        "postal_code": job.postal_code,
+        "contact_person": job.contact_person,
+        "contact_phone": job.contact_phone,
+        "contact_email": job.contact_email,
+        "employment_type": job.employment_type.value if job.employment_type else None,
+        "position_type": job.position_type.value if job.position_type else None,
+        "salary_min": job.salary_min,
+        "salary_max": job.salary_max,
+        "salary_type": job.salary_type,
+        "start_date": job.start_date.isoformat() if job.start_date else None,
+        "end_date": job.end_date.isoformat() if job.end_date else None,
+        "deadline": job.deadline.isoformat() if job.deadline else None,
+        "remote_possible": job.remote_possible,
+        "accommodation_provided": job.accommodation_provided,
+        "external_employer_name": job.external_employer_name,
+        "external_url": job.external_url,
+        "external_source": job.external_source,
+        "is_active": job.is_active,
+        "is_draft": job.is_draft,
+        "company_name": company.company_name if company else None,
+        "translations": job.translations or {},
+        "available_languages": job.available_languages or ["de"],
+    }
+
+
 @router.delete("/jobs/{job_id}")
 async def admin_delete_job(
     job_id: int,
@@ -658,7 +704,22 @@ class AdminUpdateJobRequest(BaseModel):
     salary_max: Optional[float] = None
     salary_type: Optional[str] = None
     location: Optional[str] = None
+    address: Optional[str] = None
+    postal_code: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    employment_type: Optional[str] = None
+    position_type: Optional[str] = None
+    start_date: Optional[str] = None   # ISO date string
+    end_date: Optional[str] = None
+    deadline: Optional[str] = None
+    remote_possible: Optional[bool] = None
+    accommodation_provided: Optional[bool] = None
+    external_employer_name: Optional[str] = None
+    external_url: Optional[str] = None
     is_active: Optional[bool] = None
+    is_draft: Optional[bool] = None
 
 
 @router.put("/jobs/{job_id}")
@@ -677,40 +738,54 @@ async def admin_update_job(
             detail="Stellenangebot nicht gefunden"
         )
 
-    # Update fields if provided
-    if request.title is not None:
-        job.title = request.title
-    if request.description is not None:
-        job.description = request.description
-    if request.tasks is not None:
-        job.tasks = request.tasks
-    if request.requirements is not None:
-        job.requirements = request.requirements
-    if request.benefits is not None:
-        job.benefits = request.benefits
-    if request.translations is not None:
-        job.translations = request.translations
-    # salary_min/max können explizit auf None gesetzt werden (Löschen)
-    if "salary_min" in request.model_fields_set:
-        job.salary_min = request.salary_min
-    if "salary_max" in request.model_fields_set:
-        job.salary_max = request.salary_max
-    if "salary_type" in request.model_fields_set:
-        job.salary_type = request.salary_type
-    if request.location is not None:
-        job.location = request.location
     was_active = job.is_active
+
+    # Einfache Textfelder
+    for field in ("title", "description", "tasks", "requirements", "benefits",
+                  "location", "address", "postal_code", "contact_person",
+                  "contact_phone", "contact_email", "external_employer_name",
+                  "external_url", "translations"):
+        val = getattr(request, field, None)
+        if val is not None:
+            setattr(job, field, val)
+
+    # Felder die explizit None sein dürfen (Löschen)
+    for field in ("salary_min", "salary_max", "salary_type", "employment_type",
+                  "position_type", "remote_possible", "accommodation_provided"):
+        if field in request.model_fields_set:
+            setattr(job, field, getattr(request, field))
+
+    # Datums-Felder (ISO string → date)
+    from datetime import date as _date
+    for field in ("start_date", "end_date", "deadline"):
+        if field in request.model_fields_set:
+            raw = getattr(request, field)
+            if raw:
+                try:
+                    setattr(job, field, _date.fromisoformat(raw))
+                except ValueError:
+                    pass
+            else:
+                setattr(job, field, None)
+
+    # Aktivierung / Draft
+    if request.is_draft is not None:
+        job.is_draft = request.is_draft
     if request.is_active is not None:
         job.is_active = request.is_active
         if request.is_active:
             job.is_draft = False
-        # published_at beim ersten Aktivieren setzen, danach nicht überschreiben
         if request.is_active and job.published_at is None:
             job.published_at = datetime.utcnow()
 
     job.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(job)
+
+    # Slug aktualisieren falls Titel geändert
+    if request.title is not None:
+        from app.services.job_service import update_job_slug
+        update_job_slug(job, db)
 
     # Bewerber benachrichtigen wenn Job jetzt aktiv ist (und vorher nicht war)
     if request.is_active and not was_active:

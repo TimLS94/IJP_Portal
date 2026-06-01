@@ -387,6 +387,7 @@ export const adminAPI = {
   // Job Translation & Editing
   translateJob: (jobId, languages) => api.post(`/admin/jobs/${jobId}/translate`, { languages }),
   getJobTranslationStatus: (jobId) => api.get(`/admin/jobs/${jobId}/translation-status`),
+  getJob: (jobId) => api.get(`/admin/jobs/${jobId}`),
   updateJob: (jobId, data) => api.put(`/admin/jobs/${jobId}`, data),
   
   // Einladungs-Tokens für Firmen
