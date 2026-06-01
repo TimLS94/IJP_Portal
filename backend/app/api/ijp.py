@@ -692,7 +692,7 @@ def _applicant_context(applicant: Applicant, db: Session) -> dict:
         "NAME":                f"{applicant.first_name or ''} {applicant.last_name or ''}".strip(),
         "GEBURTSDATUM":        dob,
         "GEBURTSORT":          applicant.place_of_birth or "",
-        "NATIONALITAET":       applicant.nationality or "",
+        "NATIONALITAET":       _resolve_nationality(applicant.nationality or ""),
         "STRASSE":             f"{applicant.street or ''} {applicant.house_number or ''}".strip(),
         "PLZ":                 applicant.postal_code or "",
         "ORT":                 applicant.city or "",
@@ -713,19 +713,58 @@ def _applicant_context(applicant: Applicant, db: Session) -> dict:
 
 
 # keyword → (context_key, underline, exclude_if_contains)
+# Deutsche Nationalitäten — Index entspricht dem Wert der CustomSelect-Dropdown im Frontend
+_NATIONALITIES_DE = [
+    'Afghanisch','Ägyptisch','Albanisch','Algerisch','Amerikanisch','Andorranisch','Angolanisch','Antiguanisch','Äquatorialguineisch','Argentinisch','Armenisch','Aserbaidschanisch','Äthiopisch','Australisch',
+    'Bahamaisch','Bahrainisch','Bangladeschisch','Barbadisch','Belarussisch','Belgisch','Belizisch','Beninisch','Bhutanisch','Bolivianisch','Bosnisch-Herzegowinisch','Botsuanisch','Brasilianisch','Britisch','Bruneiisch','Bulgarisch','Burkinisch','Burundisch',
+    'Chilenisch','Chinesisch','Costa-ricanisch','Dänisch','Deutsch','Dominikanisch','Dschibutisch',
+    'Ecuadorianisch','Salvadorianisch','Eritreisch','Estnisch','Eswatinisch',
+    'Fidschi','Finnisch','Französisch',
+    'Gabunisch','Gambisch','Georgisch','Ghanaisch','Grenadisch','Griechisch','Guatemaltekisch','Guineisch','Guinea-bissauisch','Guyanisch',
+    'Haitianisch','Honduranisch',
+    'Indisch','Indonesisch','Irakisch','Iranisch','Irisch','Isländisch','Israelisch','Italienisch','Ivorisch',
+    'Jamaikanisch','Japanisch','Jemenitisch','Jordanisch',
+    'Kambodschanisch','Kamerunisch','Kanadisch','Kapverdisch','Kasachisch','Katarisch','Kenianisch','Kirgisisch','Kiribatisch','Kolumbianisch','Komorisch','Kongolesisch','Kosovarisch','Kroatisch','Kubanisch','Kuwaitisch',
+    'Laotisch','Lesothisch','Lettisch','Libanesisch','Liberianisch','Libysch','Liechtensteinisch','Litauisch','Luxemburgisch',
+    'Madagassisch','Malawisch','Malaysisch','Maledivisch','Malisch','Maltesisch','Marokkanisch','Marshallisch','Mauretanisch','Mauritisch','Mazedonisch','Mexikanisch','Mikronesisch','Moldauisch','Monegassisch','Mongolisch','Montenegrinisch','Mosambikanisch','Myanmarisch',
+    'Namibisch','Nauruisch','Nepalesisch','Neuseeländisch','Nicaraguanisch','Niederländisch','Nigerianisch','Nigrisch','Nordkoreanisch','Norwegisch',
+    'Omanisch','Österreichisch',
+    'Pakistanisch','Palauisch','Palästinensisch','Panamaisch','Papua-neuguineisch','Paraguayisch','Peruanisch','Philippinisch','Polnisch','Portugiesisch',
+    'Ruandisch','Rumänisch','Russisch',
+    'Salomonisch','Sambisch','Samoanisch','San-marinesisch','São-toméisch','Saudi-arabisch','Schwedisch','Schweizerisch','Senegalesisch','Serbisch','Seychellisch','Sierra-leonisch','Simbabwisch','Singapurisch','Slowakisch','Slowenisch','Somalisch','Spanisch','Sri-lankisch','Südafrikanisch','Sudanesisch','Südkoreanisch','Südsudanesisch','Surinamisch','Syrisch',
+    'Tadschikisch','Tansanisch','Thailändisch','Timoresisch','Togoisch','Tongaisch','Trinidadisch','Tschadisch','Tschechisch','Tunesisch','Türkisch','Turkmenisch','Tuvaluisch',
+    'Ugandisch','Ukrainisch','Ungarisch','Uruguayisch','Usbekisch',
+    'Vanuatuisch','Vatikanisch','Venezolanisch','Vietnamesisch','Zentralafrikanisch','Zyprisch',
+]
+
+
+def _resolve_nationality(raw: str) -> str:
+    """Wandelt numerischen Nationalitäts-Index in deutschen Text um."""
+    if not raw:
+        return ""
+    stripped = raw.strip()
+    if stripped.lstrip("-").isdigit():
+        idx = int(stripped)
+        if 0 <= idx < len(_NATIONALITIES_DE):
+            return _NATIONALITIES_DE[idx]
+        return stripped
+    return stripped
+
+
 _KEYWORD_MAP = [
-    ("Name, Anschrift der Einrichtung",  "UNI_FULL",           False, []),
-    ("Schulferien/Semesterferien",       "SEMESTER_RANGE",      False, []),
-    ("Ende des Studiums",               "SCHULENTLASSUNG",     False, []),
-    ("Seit / З якого",                  "SEIT_STUDIUM",        False, []),
-    ("Staatsangehörigkeit",             "NATIONALITAET",       False, []),
-    ("Geburtsort",                      "GEBURTSORT",          False, []),
-    ("Derzeitige Adresse",              "STRASSE",             False, []),
-    ("Geburtsdatum",                    "GEBURTSDATUM",        False, []),
-    ("Postleitzahl",                    "PLZ",                 False, []),
-    ("Wohnort",                         "ORT",                 False, []),
-    ("Name /",                          "NACHNAME",            False, ["geburt"]),
-    ("Vorname",                         "VORNAME",             True,  []),
+    ("Name, Anschrift der Einrichtung",  "UNI_FULL",       False, []),
+    ("Schulferien/Semesterferien",       "SEMESTER_RANGE",  False, []),
+    ("Ende des Studiums",               "SCHULENTLASSUNG", False, []),
+    ("Seit / З якого",                  "SEIT_STUDIUM",    False, []),
+    ("Staatsangehörigkeit",             "NATIONALITAET",   False, []),
+    ("Geburtsname",                     "NACHNAME",        False, []),  # Geburtsname = Nachname
+    ("Geburtsort",                      "GEBURTSORT",      False, []),
+    ("Derzeitige Adresse",              "STRASSE",         False, []),
+    ("Geburtsdatum",                    "GEBURTSDATUM",    False, []),
+    ("Postleitzahl",                    "PLZ",             False, []),
+    ("Wohnort",                         "ORT",             False, []),
+    ("Name /",                          "NACHNAME",        False, ["geburt"]),
+    ("Vorname",                         "VORNAME",         True,  []),
 ]
 
 _DRV_SKIP_KW   = ["bestätigung", "підтвердження", "подтвердження", "erklärung", "заява", "unterschrift"]
@@ -739,10 +778,24 @@ def _is_drv_form(doc) -> bool:
     return False
 
 
+def _remove_para(para) -> None:
+    """Entfernt einen Absatz aus dem XML (Zelle muss min. 1 Absatz behalten)."""
+    parent = para._element.getparent()
+    # Nur entfernen wenn noch mindestens 1 anderer Absatz übrig bleibt
+    siblings = parent.findall(para._element.tag)
+    if len(siblings) > 1:
+        parent.remove(para._element)
+    else:
+        # Letzten Absatz nur leeren, nicht entfernen
+        for run in para.runs:
+            run.text = ""
+
+
 def _mark_nein_ja(cell, mark: str) -> None:
-    """Mark the chosen option with 'X   ' and clear the unchosen option."""
+    """Gewählte Option mit 'X   ' markieren, nicht gewählte Absätze entfernen."""
     target  = "nein" if mark == "nein" else "ja"
     discard = "ja"   if mark == "nein" else "nein"
+    to_remove = []
     for para in cell.paragraphs:
         pt = para.text.strip().lower()
         if pt.startswith(target) and para.runs:
@@ -750,9 +803,9 @@ def _mark_nein_ja(cell, mark: str) -> None:
                 para.runs[0].text = "X   " + para.runs[0].text
                 para.runs[0].bold = True
         elif pt.startswith(discard):
-            # Unchosen option: clear all runs so nothing shows
-            for run in para.runs:
-                run.text = ""
+            to_remove.append(para)
+    for para in to_remove:
+        _remove_para(para)
 
 
 def _apply_drv_nein_ja(doc) -> None:
@@ -819,9 +872,8 @@ def _apply_drv_nein_ja(doc) -> None:
                                 elif "\uf06f" in run.text:
                                     run.text = ""
                         elif nein_marked and (pt.startswith("ja") or pt.startswith("vom")):
-                            # "ja" und zugehörige Folgeabsätze löschen
-                            for run in para.runs:
-                                run.text = ""
+                            # "ja" und zugehörige Folgeabsätze komplett entfernen
+                            _remove_para(para)
 
 
 def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
@@ -897,6 +949,7 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
                 if "Geschlecht" in first_line or "Стать" in first_line:
                     if gender:
                         options = ["männlich", "weiblich", "divers"]
+                        to_remove = []
                         for para in cell.paragraphs:
                             pt = para.text.strip()
                             matched = any(o in pt.lower() for o in options)
@@ -906,8 +959,9 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
                                 para.runs[0].text = "X   " + para.runs[0].text
                                 para.runs[0].bold = True
                             else:
-                                for run in para.runs:
-                                    run.text = ""
+                                to_remove.append(para)
+                        for para in to_remove:
+                            _remove_para(para)
                     continue
 
                 # Keyword-Match → Wert als neuen Absatz mit leichtem Abstand
