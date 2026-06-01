@@ -713,20 +713,95 @@ def _applicant_context(applicant: Applicant, db: Session) -> dict:
 
 
 # keyword → (context_key, underline, exclude_if_contains)
-# Längere / spezifischere Keywords zuerst
 _KEYWORD_MAP = [
     ("Name, Anschrift der Einrichtung",  "UNI_FULL",           False, []),
     ("Schulferien/Semesterferien",       "SEMESTER_RANGE",      False, []),
-    ("Ende des Studiums",               "SEMESTERFERIEN_BIS",  False, []),
+    ("Ende des Studiums",               "SCHULENTLASSUNG",     False, []),
+    ("Seit / З якого",                  "SEIT_STUDIUM",        False, []),
     ("Staatsangehörigkeit",             "NATIONALITAET",       False, []),
     ("Geburtsort",                      "GEBURTSORT",          False, []),
     ("Derzeitige Adresse",              "STRASSE",             False, []),
     ("Geburtsdatum",                    "GEBURTSDATUM",        False, []),
     ("Postleitzahl",                    "PLZ",                 False, []),
     ("Wohnort",                         "ORT",                 False, []),
-    ("Name /",                          "NACHNAME",            False, ["geburt"]),  # skip Geburtsname
-    ("Vorname",                         "VORNAME",             True,  []),          # unterstrichen!
+    ("Name /",                          "NACHNAME",            False, ["geburt"]),
+    ("Vorname",                         "VORNAME",             True,  []),
 ]
+
+_DRV_SKIP_KW   = ["bestätigung", "підтвердження", "подтвердження", "erklärung", "заява", "unterschrift"]
+_DRV_SCHULE_KW = ["schule", "hochschule", "universität", "studium", "bildungseinrichtung", "besuchen sie"]
+
+
+def _is_drv_form(doc) -> bool:
+    for p in doc.paragraphs:
+        if "versicherungspflicht" in p.text.lower() or "versicherungsfreiheit" in p.text.lower():
+            return True
+    return False
+
+
+def _mark_nein_ja(cell, mark: str) -> None:
+    """Prepend 'X   ' to ALL 'nein' or 'ja' paragraphs in a checkbox cell.
+    Merged cells can contain multiple nein/ja pairs — mark all of them."""
+    target = "nein" if mark == "nein" else "ja"
+    for para in cell.paragraphs:
+        pt = para.text.strip().lower()
+        if pt.startswith(target) and para.runs:
+            if not para.runs[0].text.startswith("X   "):
+                para.runs[0].text = "X   " + para.runs[0].text
+                para.runs[0].bold = True
+
+
+def _apply_drv_nein_ja(doc) -> None:
+    """Mark nein/ja checkboxes in DRV-style government forms."""
+    if not _is_drv_form(doc):
+        return
+
+    seen_refs: list = []
+    seen_ids: set = set()
+
+    for table in doc.tables:
+        header_text = " ".join(c.text.lower() for c in (table.rows[0].cells if table.rows else []))
+
+        # Skip personal data / signature / confirmation tables
+        if any(kw in header_text for kw in _DRV_SKIP_KW):
+            continue
+        if "name /" in header_text or "vorname" in header_text or "geburtsdatum" in header_text:
+            continue
+
+        is_schulbesuch = any(kw in header_text for kw in _DRV_SCHULE_KW)
+
+        for row in table.rows:
+            row_text = " ".join(c.text.lower() for c in row.cells)
+
+            for cell in row.cells:
+                elem = cell._element
+                eid = id(elem)
+                if eid in seen_ids:
+                    continue
+                seen_ids.add(eid)
+                seen_refs.append(elem)
+
+                if not cell.paragraphs:
+                    continue
+
+                first_text = cell.paragraphs[0].text.strip().lower()
+
+                if first_text.startswith("nein"):
+                    # Standard nein/ja cell (separate paragraphs)
+                    if is_schulbesuch and ("ende des studiums" in row_text or "schulentlassung" in row_text):
+                        continue  # date field, no checkbox here
+                    _mark_nein_ja(cell, "ja" if is_schulbesuch else "nein")
+                else:
+                    # Inline format: "nein / ні\t☐ ja / так…" as a later paragraph
+                    # run[0] == "nein" exactly (not part of a German word)
+                    if is_schulbesuch:
+                        continue  # inline sub-questions inside Schulbesuch → skip
+                    for para in cell.paragraphs:
+                        if (para.runs
+                                and para.runs[0].text.lower() == "nein"
+                                and not para.runs[0].text.startswith("X")):
+                            para.runs[0].text = "X   " + para.runs[0].text
+                            para.runs[0].bold = True
 
 
 def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
@@ -758,9 +833,11 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
         return buf.read()
 
     # ── Keyword-basierter Filler ──────────────────────────────────────────────
+    from docx.shared import Pt
     doc = DocxDocument(io.BytesIO(file_bytes))
 
     # Erweiterte Kontextwerte
+    XX = "XX.XX.XXXX"
     uni_lines = [x for x in [
         context.get("UNI_NAME"), context.get("UNI_STRASSE"),
         f"{context.get('UNI_PLZ','')} {context.get('UNI_ORT','')}".strip() or None,
@@ -768,13 +845,14 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
     ] if x]
     context["UNI_FULL"] = "\n".join(uni_lines)
 
-    sf_von = context.get("SEMESTERFERIEN_VON", "")
-    sf_bis = context.get("SEMESTERFERIEN_BIS", "")
-    context["SEMESTER_RANGE"] = f"vom {sf_von} bis {sf_bis}" if sf_von and sf_bis else ""
+    sf_von = context.get("SEMESTERFERIEN_VON") or XX
+    sf_bis = context.get("SEMESTERFERIEN_BIS") or XX
+    context["SEMESTER_RANGE"] = f"vom {sf_von} bis {sf_bis}"
+    context["SCHULENTLASSUNG"] = context.get("SEMESTERFERIEN_BIS") or XX
+    context["SEIT_STUDIUM"] = XX  # Immatrikulationsdatum nicht im System → Platzhalter
 
     gender = context.get("GESCHLECHT", "")
 
-    # Starke Referenzen halten damit id() nicht recycled wird
     seen_refs: list = []
     seen_ids: set = set()
 
@@ -800,23 +878,28 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
                                 para.runs[0].bold = True
                     continue
 
-                # Keyword-Match → Leerzeile + Wert als neuen Absatz einfügen
+                # Keyword-Match → Wert als neuen Absatz mit leichtem Abstand
                 for keyword, data_key, underline, excludes in _KEYWORD_MAP:
                     if keyword.lower() in first_line.lower() and not any(e in first_line.lower() for e in excludes):
                         value = context.get(data_key, "")
                         if not value:
                             break
-                        # Leerzeile für Abstand zum Label
-                        cell.add_paragraph("")
+                        first_added = True
                         for line in str(value).split("\n"):
                             line = line.strip()
                             if not line:
                                 continue
                             new_para = cell.add_paragraph(line)
+                            if first_added:
+                                new_para.paragraph_format.space_before = Pt(4)
+                                first_added = False
                             if new_para.runs:
                                 new_para.runs[0].bold = True
                                 new_para.runs[0].underline = underline
                         break
+
+    # ── DRV Nein/Ja-Checkboxen ───────────────────────────────────────────────
+    _apply_drv_nein_ja(doc)
 
     buf = io.BytesIO()
     doc.save(buf)
