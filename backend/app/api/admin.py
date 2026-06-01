@@ -699,14 +699,27 @@ async def admin_update_job(
         job.salary_type = request.salary_type
     if request.location is not None:
         job.location = request.location
+    was_active = job.is_active
     if request.is_active is not None:
         job.is_active = request.is_active
+        if request.is_active:
+            job.is_draft = False
         # published_at beim ersten Aktivieren setzen, danach nicht überschreiben
         if request.is_active and job.published_at is None:
             job.published_at = datetime.utcnow()
 
     job.updated_at = datetime.utcnow()
     db.commit()
+    db.refresh(job)
+
+    # Bewerber benachrichtigen wenn Job jetzt aktiv ist (und vorher nicht war)
+    if request.is_active and not was_active:
+        try:
+            from app.services.job_notification_service import notify_applicants_about_new_job
+            notify_applicants_about_new_job(job, db)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(f"Bewerber-Benachrichtigung fehlgeschlagen: {exc}")
 
     return {"message": "Stellenangebot aktualisiert", "id": job.id}
 

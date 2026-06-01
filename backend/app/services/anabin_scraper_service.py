@@ -99,6 +99,14 @@ class AnabinScraperService:
         """Gibt den aktuellen Fortschritt zurück"""
         return self.progress.to_dict()
     
+    def _sleep(self, seconds: float) -> None:
+        """Unterbrechbares Sleep — prüft alle 0.1s ob Cancel angefordert wurde."""
+        steps = int(seconds / 0.1)
+        for _ in range(max(1, steps)):
+            if self._cancel_requested:
+                return
+            time.sleep(0.1)
+
     def cancel_scrape(self) -> bool:
         """Bricht den laufenden Scrape ab"""
         if self._is_running:
@@ -200,7 +208,7 @@ class AnabinScraperService:
             page.wait_for_selector("#tableBody tr", timeout=timeout)
         except Exception:
             pass
-        time.sleep(0.8)
+        self._sleep(0.8)
     
     def _set_page_size(self, page, size: int = 100):
         """Setzt Seitengröße"""
@@ -213,7 +221,7 @@ class AnabinScraperService:
                     sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
                 }}
             """)
-            time.sleep(1.5)
+            self._sleep(1.5)
         except Exception:
             pass
     
@@ -234,11 +242,11 @@ class AnabinScraperService:
             first_row_text = ""
         
         next_btn.scroll_into_view_if_needed()
-        time.sleep(0.3)
+        self._sleep(0.3)
         page.evaluate("btn => btn.click()", next_btn)
         
         for _ in range(20):
-            time.sleep(0.5)
+            self._sleep(0.5)
             try:
                 new_text = page.query_selector("#tableBody tr td").inner_text()
                 if new_text != first_row_text:
@@ -246,7 +254,7 @@ class AnabinScraperService:
             except Exception:
                 break
         
-        time.sleep(0.5)
+        self._sleep(0.5)
         return True
     
     def _select_country(self, page, country_name: str) -> bool:
@@ -254,7 +262,7 @@ class AnabinScraperService:
         search = page.query_selector("#searchCountriesInput")
         search.click()
         search.fill(country_name)
-        time.sleep(0.6)
+        self._sleep(0.6)
         
         all_links = page.query_selector_all("#filteredCountriesList li a.p-contextual-menu__link")
         for link in all_links:
@@ -273,12 +281,12 @@ class AnabinScraperService:
         chip_dismiss = page.query_selector("#countriesSelectedList .p-chip__dismiss")
         if chip_dismiss:
             chip_dismiss.click()
-            time.sleep(0.5)
+            self._sleep(0.5)
         else:
             reset = page.query_selector("#resetAllButton")
             if reset:
                 reset.click()
-                time.sleep(0.8)
+                self._sleep(0.8)
     
     async def scrape_countries(
         self, 
@@ -359,7 +367,7 @@ class AnabinScraperService:
                 
                 logger.info("Lade anabin.kmk.org...")
                 page.goto(self.BASE_URL, wait_until="networkidle", timeout=30000)
-                time.sleep(2)
+                self._sleep(2)
                 
                 # Verfügbare Länder prüfen
                 country_els = page.query_selector_all("#filteredCountriesList li a.p-contextual-menu__link")
@@ -426,10 +434,10 @@ class AnabinScraperService:
                             reset = page.query_selector("#resetAllButton")
                             if reset:
                                 reset.click()
-                                time.sleep(1)
+                                self._sleep(1)
                             else:
                                 page.goto(self.BASE_URL, wait_until="networkidle", timeout=20000)
-                                time.sleep(2)
+                                self._sleep(2)
                                 page_size_set = False
                         except Exception:
                             pass

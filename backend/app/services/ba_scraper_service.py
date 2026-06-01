@@ -649,17 +649,9 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
 
             db.commit()
 
-            # Bewerber über neue BA-Jobs benachrichtigen (nach Commit, mit Matching-Score-Filter)
-            if new_job_ids:
-                try:
-                    from app.services.job_notification_service import notify_applicants_about_new_job
-                    for job_id in new_job_ids:
-                        job_obj = db.query(JobPosting).filter(JobPosting.id == job_id).first()
-                        if job_obj:
-                            notify_applicants_about_new_job(job_obj, db)
-                    new_job_ids.clear()
-                except Exception as exc:
-                    logger.warning(f"Bewerber-Benachrichtigung für BA-Jobs fehlgeschlagen: {exc}")
+            # KEINE Benachrichtigung hier — Jobs sind noch is_draft=True / is_active=False.
+            # Benachrichtigung erfolgt erst beim manuellen Freigeben über approve_job().
+            new_job_ids.clear()
 
             total = data.get("maxErgebnisse", 0)
             if page * batch_size >= total:

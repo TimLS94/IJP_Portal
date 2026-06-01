@@ -69,9 +69,14 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
     Returns:
         Number of notifications sent
     """
+    # Sicherheitscheck: Niemals für inaktive oder Entwurf-Jobs benachrichtigen
+    if not job.is_active or getattr(job, "is_draft", False):
+        logger.info(f"Job {job.id} ist inaktiv/Entwurf — keine Benachrichtigung")
+        return 0
+
     from app.services.email_service import email_service
     from app.models.notification import Notification
-    
+
     # Check if notifications are enabled
     notifications_enabled = get_setting(db, "job_notifications_enabled", True)
     if not notifications_enabled:
