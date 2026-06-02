@@ -30,6 +30,7 @@ import {
   Globe,
   Bell,
   Flag,
+  BarChart3,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -238,6 +239,7 @@ export default function Navbar() {
         { to: "/admin/blog", icon: BookOpen, label: t("nav.adminBlog") },
         { to: "/admin/invite-tokens", icon: Link2, label: t("nav.inviteTokens") },
         { to: "/admin/sales", icon: Rocket, label: t("nav.sales") },
+        { to: "/admin/analytics", icon: BarChart3, label: "Analytics Hilfe" },
         { divider: true },
         { to: "/admin/settings", icon: Settings, label: t("nav.systemSettings") },
       ];
