@@ -1942,6 +1942,34 @@
     "privacyText2": "and agree to the processing of my data.",
     "privacyRequired": "You must agree to the privacy policy"
   },
+  "feedbackWidget": {
+    "buttonTooltip": "Give feedback",
+    "buttonLabel": "Feedback",
+    "title": "Give feedback",
+    "intro": "What would you like to tell us?",
+    "types": {
+      "bug": "Report a bug",
+      "idea": "Suggest an improvement",
+      "question": "Ask a question"
+    },
+    "back": "← Back",
+    "labels": {
+      "bug": "Describe the bug",
+      "idea": "Your idea",
+      "question": "Your question"
+    },
+    "placeholders": {
+      "bug": "What happened? What did you expect?",
+      "idea": "What would you improve?",
+      "question": "How can we help you?"
+    },
+    "submit": "Send",
+    "submitting": "Sending...",
+    "successTitle": "Thanks for your feedback!",
+    "successDesc": "We'll get back to you if needed.",
+    "errorEmpty": "Please enter a message",
+    "emailFallback": "Opening your email app..."
+  },
   "requiredDocuments": {
     "title": "Required Documents",
     "subtitle": "The following documents are required for your job type",

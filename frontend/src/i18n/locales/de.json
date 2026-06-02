@@ -1942,6 +1942,34 @@
     "privacyText2": "gelesen und bin mit der Verarbeitung meiner Daten einverstanden.",
     "privacyRequired": "Sie müssen der Datenschutzerklärung zustimmen"
   },
+  "feedbackWidget": {
+    "buttonTooltip": "Feedback geben",
+    "buttonLabel": "Feedback",
+    "title": "Feedback geben",
+    "intro": "Was möchtest du uns mitteilen?",
+    "types": {
+      "bug": "Fehler melden",
+      "idea": "Verbesserungsvorschlag",
+      "question": "Frage"
+    },
+    "back": "← Zurück",
+    "labels": {
+      "bug": "Beschreibe den Fehler",
+      "idea": "Deine Idee",
+      "question": "Deine Frage"
+    },
+    "placeholders": {
+      "bug": "Was ist passiert? Was hast du erwartet?",
+      "idea": "Was würdest du verbessern?",
+      "question": "Wie können wir dir helfen?"
+    },
+    "submit": "Absenden",
+    "submitting": "Wird gesendet...",
+    "successTitle": "Danke für dein Feedback!",
+    "successDesc": "Wir melden uns bei Bedarf.",
+    "errorEmpty": "Bitte gib eine Nachricht ein",
+    "emailFallback": "E-Mail-Programm wird geöffnet..."
+  },
   "requiredDocuments": {
     "title": "Benötigte Dokumente",
     "subtitle": "Folgende Dokumente werden für Ihre Stellenart benötigt",

@@ -1884,6 +1884,34 @@
     "privacyAccept": "y la acepto.",
     "privacyRequired": "Debe aceptar la política de privacidad"
   },
+  "feedbackWidget": {
+    "buttonTooltip": "Dar feedback",
+    "buttonLabel": "Feedback",
+    "title": "Dar feedback",
+    "intro": "¿Qué nos quieres contar?",
+    "types": {
+      "bug": "Reportar un error",
+      "idea": "Sugerir una mejora",
+      "question": "Hacer una pregunta"
+    },
+    "back": "← Volver",
+    "labels": {
+      "bug": "Describe el error",
+      "idea": "Tu idea",
+      "question": "Tu pregunta"
+    },
+    "placeholders": {
+      "bug": "¿Qué pasó? ¿Qué esperabas?",
+      "idea": "¿Qué mejorarías?",
+      "question": "¿Cómo podemos ayudarte?"
+    },
+    "submit": "Enviar",
+    "submitting": "Enviando...",
+    "successTitle": "¡Gracias por tu feedback!",
+    "successDesc": "Nos pondremos en contacto si es necesario.",
+    "errorEmpty": "Por favor escribe un mensaje",
+    "emailFallback": "Abriendo tu cliente de correo..."
+  },
   "requiredDocuments": {
     "title": "Documentos requeridos",
     "subtitle": "Los siguientes documentos son necesarios para su tipo de empleo",
