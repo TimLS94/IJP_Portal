@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import os
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, decode_token
 from app.core.config import settings
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant, PositionType
@@ -230,13 +230,43 @@ async def get_document_status(
     }
 
 
+async def get_user_from_token_or_query(
+    token: Optional[str] = Query(None, description="Auth token for direct download links"),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Versucht User aus Query-Token zu holen"""
+    if not token:
+        return None
+    payload = decode_token(token)
+    if not payload:
+        return None
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+    return db.query(User).filter(User.id == int(user_id)).first()
+
+
 @router.get("/{document_id}/download")
 async def download_document(
     document_id: int,
-    current_user: User = Depends(get_current_user),
+    token: Optional[str] = Query(None, description="Auth token for direct download links"),
     db: Session = Depends(get_db)
 ):
-    """Lädt ein Dokument herunter"""
+    """Lädt ein Dokument herunter. Unterstützt Token als Query-Parameter für direkte Links."""
+    # User aus Token holen (Query-Parameter oder Header)
+    current_user = None
+    
+    # Erst Query-Token versuchen
+    if token:
+        payload = decode_token(token)
+        if payload:
+            user_id = payload.get("sub")
+            if user_id:
+                current_user = db.query(User).filter(User.id == int(user_id)).first()
+    
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Nicht authentifiziert")
+    
     from app.models.company import Company
     from app.models.application import Application
     from app.models.job_posting import JobPosting

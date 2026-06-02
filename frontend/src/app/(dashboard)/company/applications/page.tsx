@@ -9,8 +9,9 @@ import {
   MapPin, FilePlus, CheckCircle, Search, Filter, Briefcase,
   Users, ArrowUpDown, ChevronUp, ChevronDown, Sparkles,
   StickyNote, Save, CalendarPlus, Check, Clock, Video, MapPinned,
-  XCircle, Download, AlertTriangle, HelpCircle
+  XCircle, Download, AlertTriangle, HelpCircle, ExternalLink
 } from "lucide-react";
+import { getNationalityLabel } from "@/data/nationalities";
 
 interface Application {
   id: number;
@@ -1105,7 +1106,7 @@ export default function CompanyApplicationsPage() {
                       {applicantDetails.applicant.nationality && (
                         <div className="flex justify-between p-2 bg-white rounded">
                           <span className="text-gray-500">{t('applicant.nationality')}</span>
-                          <span className="font-medium">{applicantDetails.applicant.nationality}</span>
+                          <span className="font-medium">{getNationalityLabel(applicantDetails.applicant.nationality, 'de')}</span>
                         </div>
                       )}
                       {applicantDetails.applicant.position_type && (
@@ -1208,6 +1209,15 @@ export default function CompanyApplicationsPage() {
                                 <p className="text-xs text-gray-500">{t(`documentTypes.${doc.document_type}`, doc.document_type)}</p>
                               </div>
                             </div>
+                            <a
+                              href={`${process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1'}/documents/${doc.id}/download?token=${localStorage.getItem('token')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-100 rounded-lg transition-colors"
+                              title={t('common.download')}
+                            >
+                              <Download className="h-5 w-5" />
+                            </a>
                           </div>
                         ))}
                       </div>

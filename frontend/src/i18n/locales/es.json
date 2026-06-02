@@ -1002,7 +1002,9 @@
     "requestTo": "Solicitud a",
     "saveNotes": "Guardar notas",
     "selectDocuments": "Seleccionar documentos",
-    "sendRequest": "Enviar solicitud"
+    "sendRequest": "Enviar solicitud",
+    "date1Required": "Fecha 1 (Obligatorio)",
+    "date2Optional": "Fecha 2 (Opcional)"
   },
   "scoreFilter": {
     "title": "Filtro de puntuación",

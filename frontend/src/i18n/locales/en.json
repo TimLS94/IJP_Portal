@@ -1007,7 +1007,9 @@
     "requestTo": "Request to",
     "saveNotes": "Save notes",
     "selectDocuments": "Select documents",
-    "sendRequest": "Send request"
+    "sendRequest": "Send request",
+    "date1Required": "Date 1 (Required)",
+    "date2Optional": "Date 2 (Optional)"
   },
   "scoreFilter": {
     "title": "Score Filter",

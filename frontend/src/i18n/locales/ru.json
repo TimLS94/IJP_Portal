@@ -1002,7 +1002,9 @@
     "requestTo": "Запрос к",
     "saveNotes": "Сохранить заметки",
     "selectDocuments": "Выбрать документы",
-    "sendRequest": "Отправить запрос"
+    "sendRequest": "Отправить запрос",
+    "date1Required": "Дата 1 (Обязательно)",
+    "date2Optional": "Дата 2 (Необязательно)"
   },
   "scoreFilter": {
     "title": "Фильтр оценки",
