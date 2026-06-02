@@ -269,33 +269,44 @@ async def parse_cv(
     from app.services.cv_parser_service import parse_cv_with_openai, parse_cv_with_gemini, sanitize_parsed_data, parse_cv_regex
 
     ai_result = None
+    parser_used = "none"
+    
     # 1. OpenAI bevorzugt
     if settings.OPENAI_API_KEY:
+        logger.info(f"CV Parser: Trying OpenAI (key present: {bool(settings.OPENAI_API_KEY)})")
         try:
             raw = parse_cv_with_openai(text, settings.OPENAI_API_KEY)
             if raw:
                 ai_result = sanitize_parsed_data(raw)
+                parser_used = "openai"
+                logger.info(f"CV Parser: OpenAI success, extracted {len(ai_result)} fields")
         except Exception as e:
             logger.warning(f"OpenAI CV parsing failed: {e}")
 
     # 2. Gemini als Fallback
     if not ai_result and settings.GOOGLE_AI_API_KEY:
+        logger.info(f"CV Parser: Trying Gemini (key present: {bool(settings.GOOGLE_AI_API_KEY)})")
         try:
             raw = parse_cv_with_gemini(text, settings.GOOGLE_AI_API_KEY)
             if raw:
                 ai_result = sanitize_parsed_data(raw)
+                parser_used = "gemini"
+                logger.info(f"CV Parser: Gemini success, extracted {len(ai_result)} fields")
         except Exception as e:
             logger.warning(f"Gemini CV parsing failed: {e}")
 
     if ai_result:
         ai_result["cv_saved"] = cv_saved
         ai_result["message"] = "Lebenslauf wurde analysiert und Profil automatisch ausgefüllt."
+        ai_result["_parser"] = parser_used  # Debug info
         return ai_result
 
     # 3. Starker Regex-Fallback (kein API-Key nötig)
+    logger.info("CV Parser: Using regex fallback")
     result = parse_cv_regex(text)
     result["cv_saved"] = cv_saved
     result["message"] = "Basis-Extraktion durchgeführt – bitte Daten prüfen und ergänzen."
+    result["_parser"] = "regex"
     return result
 
 
