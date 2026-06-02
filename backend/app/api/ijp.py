@@ -791,15 +791,41 @@ def _remove_para(para) -> None:
             run.text = ""
 
 
+_WNS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+_CHECKBOX_CHARS = {"", "☐", "□", "☐", "□"}
+
+
+def _check_para(para) -> None:
+    """
+    Markiert einen Absatz als angehakt (X) und entfernt das Kästchen-Symbol:
+    - w:sym-Elemente (z.B. Wingdings □) werden aus dem XML entfernt
+    - Kästchen-Zeichen in Runs werden geleert
+    - 'X   ' wird vor den ersten textführenden Run gesetzt
+    """
+    # 1. w:sym-Elemente (Checkbox-Symbole) aus dem Absatz-XML entfernen
+    for sym in para._element.findall(f".//{{{_WNS}}}sym"):
+        sym.getparent().remove(sym)
+
+    # 2. Kästchen-Zeichen aus allen Runs entfernen
+    for run in para.runs:
+        for ch in _CHECKBOX_CHARS:
+            if ch in run.text:
+                run.text = run.text.replace(ch, "").lstrip()
+
+    # 3. X vor den ersten Run setzen der tatsächlich Text enthält
+    for run in para.runs:
+        if run.text.strip() and not run.text.startswith("X   "):
+            run.text = "X   " + run.text
+            run.bold = True
+            break
+
+
 def _mark_nein_ja(cell, mark: str) -> None:
-    """Gewählte Option mit 'X   ' markieren, alle anderen stehen lassen."""
+    """Gewählte Option anhaken und Kästchen entfernen, alle anderen stehen lassen."""
     target = "nein" if mark == "nein" else "ja"
     for para in cell.paragraphs:
-        pt = para.text.strip().lower()
-        if pt.startswith(target) and para.runs:
-            if not para.runs[0].text.startswith("X   "):
-                para.runs[0].text = "X   " + para.runs[0].text
-                para.runs[0].bold = True
+        if para.text.strip().lower().startswith(target):
+            _check_para(para)
 
 
 def _apply_drv_nein_ja(doc) -> None:
@@ -843,15 +869,13 @@ def _apply_drv_nein_ja(doc) -> None:
                         continue  # date field, no checkbox here
                     _mark_nein_ja(cell, "ja" if is_schulbesuch else "nein")
                 else:
-                    # Inline format: "nein / ні\t☐ ja / так…" as a later paragraph
+                    # Inline format: einzelner Absatz mit "nein" als erstem Textelement
                     if is_schulbesuch:
                         continue
                     for para in cell.paragraphs:
-                        if (para.runs
-                                and para.runs[0].text.lower() == "nein"
-                                and not para.runs[0].text.startswith("X")):
-                            para.runs[0].text = "X   " + para.runs[0].text
-                            para.runs[0].bold = True
+                        pt = para.text.strip().lower()
+                        if pt.startswith("nein") and not pt.startswith("x   nein"):
+                            _check_para(para)
 
 
 def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
@@ -923,17 +947,14 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
                 cell_text = cell.text.strip()
                 first_line = cell_text.split("\n")[0].strip()
 
-                # Geschlecht: nur die gewählte Option mit X markieren, alle anderen stehen lassen
+                # Geschlecht: gewählte Option anhaken + Kästchen entfernen, andere stehen lassen
                 if "Geschlecht" in first_line or "Стать" in first_line:
                     if gender:
                         options = ["männlich", "weiblich", "divers"]
                         for para in cell.paragraphs:
                             pt = para.text.strip()
-                            if not any(o in pt.lower() for o in options):
-                                continue
-                            if gender.lower() in pt.lower() and para.runs:
-                                para.runs[0].text = "X   " + para.runs[0].text
-                                para.runs[0].bold = True
+                            if any(o in pt.lower() for o in options) and gender.lower() in pt.lower():
+                                _check_para(para)
                     continue
 
                 # Keyword-Match → Wert als neuen Absatz mit leichtem Abstand
