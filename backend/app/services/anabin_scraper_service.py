@@ -62,6 +62,8 @@ class ScrapeProgress:
     current_country_index: int = 0
     total_countries: int = 0
     universities_found: int = 0
+    universities_in_current_country: int = 0
+    current_page: int = 0
     countries_completed: List[str] = field(default_factory=list)
     countries_failed: List[Dict[str, str]] = field(default_factory=list)
     started_at: Optional[datetime] = None
@@ -75,6 +77,8 @@ class ScrapeProgress:
             "current_country_index": self.current_country_index,
             "total_countries": self.total_countries,
             "universities_found": self.universities_found,
+            "universities_in_current_country": self.universities_in_current_country,
+            "current_page": self.current_page,
             "countries_completed": self.countries_completed,
             "countries_failed": self.countries_failed,
             "started_at": self.started_at.isoformat() if self.started_at else None,
@@ -227,6 +231,10 @@ class AnabinScraperService:
     
     def _click_next_page(self, page) -> bool:
         """Klickt auf nächste Seite"""
+        # Prüfe Cancel vor dem Klick
+        if self._cancel_requested:
+            return False
+            
         next_btn = page.query_selector("button.p-pagination__link--next")
         if not next_btn:
             return False
@@ -243,9 +251,16 @@ class AnabinScraperService:
         
         next_btn.scroll_into_view_if_needed()
         self._sleep(0.3)
+        
+        # Prüfe Cancel nach dem Warten
+        if self._cancel_requested:
+            return False
+            
         page.evaluate("btn => btn.click()", next_btn)
         
         for _ in range(20):
+            if self._cancel_requested:
+                return False
             self._sleep(0.5)
             try:
                 new_text = page.query_selector("#tableBody tr td").inner_text()
@@ -403,13 +418,21 @@ class AnabinScraperService:
                         
                         page_num = 1
                         page_unis = []
+                        self.progress.universities_in_current_country = 0
+                        self.progress.current_page = 1
                         
                         while True:
                             if self._cancel_requested:
+                                logger.info(f"Abbruch angefordert bei {country_name} Seite {page_num}")
                                 break
                             
                             batch = self._scrape_table(page, country_name)
                             page_unis.extend(batch)
+                            
+                            # Live-Update des Fortschritts
+                            self.progress.universities_in_current_country = len(page_unis)
+                            self.progress.universities_found = len(all_unis) + len(page_unis)
+                            self.progress.current_page = page_num
                             
                             if not self._click_next_page(page):
                                 break
