@@ -60,6 +60,14 @@ const events = [
     category: "Formulare",
   },
   {
+    name: "sign_up",
+    label: "Registrierung",
+    description: "Ein neuer User hat sich registriert (Bewerber oder Firma)",
+    icon: UserPlus,
+    color: "bg-emerald-100 text-emerald-600",
+    category: "Auth",
+  },
+  {
     name: "login",
     label: "Login",
     description: "Ein User hat sich eingeloggt",
