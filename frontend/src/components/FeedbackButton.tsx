@@ -62,14 +62,14 @@ export default function FeedbackButton() {
       } else {
         const subject = encodeURIComponent(`[${feedbackType}] Feedback von ${user?.email || "Anonym"}`);
         const body = encodeURIComponent(`${message}\n\n---\nSeite: ${window.location.href}`);
-        window.location.href = `mailto:info@jobon.work?subject=${subject}&body=${body}`;
+        window.location.href = `mailto:business@jobon.work?subject=${subject}&body=${body}`;
         toast.success(t("feedbackWidget.emailFallback"));
         setIsOpen(false);
       }
     } catch {
       const subject = encodeURIComponent(`[${feedbackType}] Feedback von ${user?.email || "Anonym"}`);
       const body = encodeURIComponent(`${message}\n\n---\nSeite: ${window.location.href}`);
-      window.location.href = `mailto:info@jobon.work?subject=${subject}&body=${body}`;
+      window.location.href = `mailto:business@jobon.work?subject=${subject}&body=${body}`;
       toast.success(t("feedbackWidget.emailFallback"));
       setIsOpen(false);
     } finally {

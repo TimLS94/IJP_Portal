@@ -954,7 +954,7 @@ async def submit_feedback(feedback: FeedbackRequest):
     
     try:
         await email_service.send_email(
-            to_email="info@jobon.work",
+            to_email="business@jobon.work",
             subject=subject,
             html_content=html_content
         )
