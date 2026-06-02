@@ -709,6 +709,7 @@ def _applicant_context(applicant: Applicant, db: Session) -> dict:
         "SEMESTERFERIEN_VON":  sb_start,
         "SEMESTERFERIEN_BIS":  sb_end,
         "GESCHLECHT":          "weiblich" if gender_val == "female" else ("männlich" if gender_val == "male" else ""),
+        "LEBENSUNTERHALT":     "Unterstützung durch die Eltern",
     }
 
 
@@ -996,10 +997,85 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
     # ── DRV Nein/Ja-Checkboxen ───────────────────────────────────────────────
     _apply_drv_nein_ja(doc)
 
+    # ── Freitext-Absätze im Body (außerhalb von Tabellen) ────────────────────
+    _fill_body_paragraphs(doc, context)
+
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
     return buf.read()
+
+
+def _fill_body_paragraphs(doc, context: dict) -> None:
+    """
+    Füllt spezielle Paragraphen im Body (inkl. floating Shapes / Textboxen):
+    - Punkt 6 (Hausfrau/Hausmann): "nein" in der Textbox markieren
+    - Punkt 7 (Sonstiges / Wovon): Antwort-Text einfügen (context["LEBENSUNTERHALT"])
+    Durchsucht direkt die Body-XML-Kinder, da doc.paragraphs nur Außentext liefert.
+    """
+    from docx.oxml import OxmlElement
+
+    lebensunterhalt = context.get("LEBENSUNTERHALT", "")
+    body = doc.element.body
+
+    for child in body:
+        if child.tag.split("}")[-1] != "p":
+            continue
+
+        # Gesamten Text inkl. Textboxen sammeln
+        all_text = "".join(t.text or "" for t in child.findall(f".//{{{_WNS}}}t"))
+
+        # Punkt 6: Hausfrau/Hausmann → erstes "nein" markieren + numPr entfernen
+        if "Sind Sie Hausfrau" in all_text or "домашньою господаркою" in all_text:
+            for r_el in child.findall(f".//{{{_WNS}}}r"):
+                t_el = r_el.find(f"{{{_WNS}}}t")
+                if t_el is not None and t_el.text and t_el.text.strip().lower() == "nein":
+                    if not t_el.text.startswith("X   "):
+                        t_el.text = "X   " + t_el.text
+                        rpr = r_el.find(f"{{{_WNS}}}rPr")
+                        if rpr is None:
+                            rpr = OxmlElement("w:rPr")
+                            r_el.insert(0, rpr)
+                        b_el = OxmlElement("w:b")
+                        rpr.insert(0, b_el)
+                    # numPr aus dem Parent-Absatz entfernen → □ verschwindet
+                    parent_p = r_el.getparent()
+                    while parent_p is not None and parent_p.tag.split("}")[-1] != "p":
+                        parent_p = parent_p.getparent()
+                    if parent_p is not None:
+                        pPr = parent_p.find(f"{{{_WNS}}}pPr")
+                        if pPr is not None:
+                            numPr = pPr.find(f"{{{_WNS}}}numPr")
+                            if numPr is not None:
+                                pPr.remove(numPr)
+                    break
+
+        # Punkt 7: Wovon bestreiten Sie → Antwort als neuen Absatz nach der Frage
+        if lebensunterhalt and ("Wovon bestreiten" in all_text or "Звідки Ви отримуєте" in all_text):
+            if lebensunterhalt not in all_text:
+                # Ersten w:p (mc:Choice) finden und danach neuen Absatz einfügen
+                all_p = child.findall(f".//{{{_WNS}}}p")
+                target_p = all_p[0] if all_p else None
+                if target_p is not None:
+                    # Neuen Absatz mit Antworttext erstellen
+                    new_p = OxmlElement("w:p")
+                    new_r = OxmlElement("w:r")
+                    new_rpr = OxmlElement("w:rPr")
+                    new_b = OxmlElement("w:b")
+                    new_sz = OxmlElement("w:sz")
+                    new_sz.set(f"{{{_WNS}}}val", "20")
+                    new_rpr.append(new_b)
+                    new_rpr.append(new_sz)
+                    new_r.append(new_rpr)
+                    new_t = OxmlElement("w:t")
+                    new_t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+                    new_t.text = lebensunterhalt
+                    new_r.append(new_t)
+                    new_p.append(new_r)
+                    # Nach dem Frage-Absatz einfügen
+                    parent = target_p.getparent()
+                    idx = list(parent).index(target_p)
+                    parent.insert(idx + 1, new_p)
 
 
 @router.get("/crm/companies/{company_id}/documents", response_model=List[CompanyDocumentResponse])
