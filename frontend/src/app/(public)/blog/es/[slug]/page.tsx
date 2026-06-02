@@ -50,19 +50,7 @@ export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  try {
-    const res = await fetch(`${API_URL}/blog/sitemap/urls`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const urls: { slug: string; language: string }[] = data.urls || [];
-    return urls
-      .filter((entry) => entry.language === "es")
-      .map((entry) => ({ slug: entry.slug }));
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

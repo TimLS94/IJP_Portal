@@ -51,20 +51,11 @@ export const revalidate = 3600; // 1 Stunde ISR
 
 export const dynamicParams = true;
 
+// Keine Pre-builds: Blog-Posts werden on-demand gerendert und per ISR gecacht.
+// Pre-builds erzeugten >25 MB Fallback-Dateien (FALLBACK_BODY_TOO_LARGE) wegen
+// großem KI-generiertem Content in __NEXT_DATA__.
 export async function generateStaticParams() {
-  try {
-    const res = await fetch(`${API_URL}/blog/sitemap/urls`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const urls: { slug: string; language: string }[] = data.urls || [];
-    return urls
-      .filter((entry) => !entry.language || entry.language === "de")
-      .map((entry) => ({ slug: entry.slug }));
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
