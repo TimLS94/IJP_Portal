@@ -945,23 +945,17 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
                 cell_text = cell.text.strip()
                 first_line = cell_text.split("\n")[0].strip()
 
-                # Geschlecht: gewählte Option markieren, andere löschen
+                # Geschlecht: nur die gewählte Option mit X markieren, alle anderen stehen lassen
                 if "Geschlecht" in first_line or "Стать" in first_line:
                     if gender:
                         options = ["männlich", "weiblich", "divers"]
-                        to_remove = []
                         for para in cell.paragraphs:
                             pt = para.text.strip()
-                            matched = any(o in pt.lower() for o in options)
-                            if not matched:
+                            if not any(o in pt.lower() for o in options):
                                 continue
                             if gender.lower() in pt.lower() and para.runs:
                                 para.runs[0].text = "X   " + para.runs[0].text
                                 para.runs[0].bold = True
-                            else:
-                                to_remove.append(para)
-                        for para in to_remove:
-                            _remove_para(para)
                     continue
 
                 # Keyword-Match → Wert als neuen Absatz mit leichtem Abstand
