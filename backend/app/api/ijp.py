@@ -797,22 +797,32 @@ _CHECKBOX_CHARS = {"", "☐", "□", "☐", "□"}
 
 def _check_para(para) -> None:
     """
-    Markiert einen Absatz als angehakt (X) und entfernt das Kästchen-Symbol:
-    - w:sym-Elemente (z.B. Wingdings □) werden aus dem XML entfernt
-    - Kästchen-Zeichen in Runs werden geleert
-    - 'X   ' wird vor den ersten textführenden Run gesetzt
+    Markiert einen Absatz als angehakt (X) und entfernt das Kästchen-Symbol.
+
+    Das □ kann auf drei Arten vorliegen:
+    1. w:numPr (List-Bullet) — häufigste Form in DRV-/BA-Formularen: numPr entfernen
+    2. w:sym (Wingdings-Symbol) — XML-Element entfernen
+    3. Unicode-Zeichen in einem Run — aus run.text löschen
     """
-    # 1. w:sym-Elemente (Checkbox-Symbole) aus dem Absatz-XML entfernen
+    pPr = para._element.find(f"{{{_WNS}}}pPr")
+
+    # 1. List-Bullet (numPr) entfernen → □ aus Listenstil verschwindet
+    if pPr is not None:
+        numPr = pPr.find(f"{{{_WNS}}}numPr")
+        if numPr is not None:
+            pPr.remove(numPr)
+
+    # 2. w:sym-Elemente (Wingdings-Checkbox) entfernen
     for sym in para._element.findall(f".//{{{_WNS}}}sym"):
         sym.getparent().remove(sym)
 
-    # 2. Kästchen-Zeichen aus allen Runs entfernen
+    # 3. Unicode-Checkbox-Zeichen aus Runs entfernen
     for run in para.runs:
         for ch in _CHECKBOX_CHARS:
             if ch in run.text:
                 run.text = run.text.replace(ch, "").lstrip()
 
-    # 3. X vor den ersten Run setzen der tatsächlich Text enthält
+    # 4. X vor den ersten textführenden Run setzen
     for run in para.runs:
         if run.text.strip() and not run.text.startswith("X   "):
             run.text = "X   " + run.text
