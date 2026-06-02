@@ -792,20 +792,14 @@ def _remove_para(para) -> None:
 
 
 def _mark_nein_ja(cell, mark: str) -> None:
-    """Gewählte Option mit 'X   ' markieren, nicht gewählte Absätze entfernen."""
-    target  = "nein" if mark == "nein" else "ja"
-    discard = "ja"   if mark == "nein" else "nein"
-    to_remove = []
+    """Gewählte Option mit 'X   ' markieren, alle anderen stehen lassen."""
+    target = "nein" if mark == "nein" else "ja"
     for para in cell.paragraphs:
         pt = para.text.strip().lower()
         if pt.startswith(target) and para.runs:
             if not para.runs[0].text.startswith("X   "):
                 para.runs[0].text = "X   " + para.runs[0].text
                 para.runs[0].bold = True
-        elif pt.startswith(discard):
-            to_remove.append(para)
-    for para in to_remove:
-        _remove_para(para)
 
 
 def _apply_drv_nein_ja(doc) -> None:
@@ -852,28 +846,12 @@ def _apply_drv_nein_ja(doc) -> None:
                     # Inline format: "nein / ні\t☐ ja / так…" as a later paragraph
                     if is_schulbesuch:
                         continue
-                    nein_marked = False
                     for para in cell.paragraphs:
-                        pt = para.text.strip().lower()
                         if (para.runs
                                 and para.runs[0].text.lower() == "nein"
                                 and not para.runs[0].text.startswith("X")):
                             para.runs[0].text = "X   " + para.runs[0].text
                             para.runs[0].bold = True
-                            nein_marked = True
-                            # Tab-getrenntes "ja / так" im selben Absatz entfernen
-                            tab_passed = False
-                            for run in para.runs:
-                                if tab_passed:
-                                    run.text = ""
-                                elif "\t" in run.text:
-                                    run.text = run.text.split("\t")[0]
-                                    tab_passed = True
-                                elif "\uf06f" in run.text:
-                                    run.text = ""
-                        elif nein_marked and (pt.startswith("ja") or pt.startswith("vom")):
-                            # "ja" und zugehörige Folgeabsätze komplett entfernen
-                            _remove_para(para)
 
 
 def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
