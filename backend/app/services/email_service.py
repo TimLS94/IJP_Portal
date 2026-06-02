@@ -1004,33 +1004,41 @@ class EmailService:
             company_name = job.company.company_name if job.company else "Unknown"
             
             jobs_html += f"""
-            <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #10b981;">
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #1f2937;">
-                            {job.title}
+            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background: #f9fafb; border-radius: 8px; margin: 10px 0; border-left: 4px solid #10b981;">
+                <tr>
+                    <td style="padding: 15px;">
+                        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                            <tr>
+                                <td style="vertical-align: top;">
+                                    <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #1f2937;">
+                                        {job.title}
+                                    </p>
+                                    <p style="margin: 0; color: #6b7280; font-size: 14px;">
+                                        {company_name} &bull; {job.location or 'Germany'}
+                                    </p>
+                                </td>
+                                <td style="vertical-align: top; text-align: right; width: 60px;">
+                                    <span style="background: #d1fae5; color: #065f46; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 14px; display: inline-block;">
+                                        {score}%
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                        <p style="margin: 10px 0 0 0;">
+                            <a href="{job_url}" style="color: #10b981; text-decoration: none; font-weight: 500;">
+                                View Details &rarr;
+                            </a>
                         </p>
-                        <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                            🏢 {company_name} • 📍 {job.location or 'Germany'}
-                        </p>
-                    </div>
-                    <span style="background: #d1fae5; color: #065f46; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 14px;">
-                        {score}%
-                    </span>
-                </div>
-                <p style="margin: 10px 0 0 0;">
-                    <a href="{job_url}" style="color: #10b981; text-decoration: none; font-weight: 500;">
-                        View Details →
-                    </a>
-                </p>
-            </div>
+                    </td>
+                </tr>
+            </table>
             """
         
-        subject = f"📋 Your Weekly Job Digest - {len(matching_jobs)} Matching Jobs"
+        subject = f"Your Weekly Job Digest - {len(matching_jobs)} Matching Jobs | JobOn"
         html_content = f"""
         <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
             <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
-                <h1 style="margin: 0; font-size: 24px;">📋 Your Weekly Job Digest</h1>
+                <h1 style="margin: 0; font-size: 24px;">Your Weekly Job Digest</h1>
                 <p style="margin: 10px 0 0 0; font-size: 16px;">{len(matching_jobs)} jobs match your profile</p>
             </div>
             <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
