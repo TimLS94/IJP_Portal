@@ -917,4 +917,52 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
+
+# ============ FEEDBACK ENDPOINT ============
+from pydantic import BaseModel
+from typing import Optional
+
+class FeedbackRequest(BaseModel):
+    type: str  # bug, idea, question
+    message: str
+    page_url: Optional[str] = None
+    user_email: Optional[str] = None
+    user_agent: Optional[str] = None
+
+@app.post(f"{settings.API_V1_PREFIX}/feedback")
+async def submit_feedback(feedback: FeedbackRequest):
+    """Empfängt Feedback von Nutzern und sendet es per E-Mail"""
+    from app.services.email_service import email_service
+    
+    type_labels = {
+        "bug": "🐛 Fehler",
+        "idea": "💡 Verbesserungsvorschlag", 
+        "question": "❓ Frage"
+    }
+    
+    subject = f"{type_labels.get(feedback.type, feedback.type)} - JobOn Feedback"
+    
+    html_content = f"""
+    <h2>{type_labels.get(feedback.type, feedback.type)}</h2>
+    <p><strong>Nachricht:</strong></p>
+    <p style="background: #f5f5f5; padding: 15px; border-radius: 8px;">{feedback.message}</p>
+    <hr>
+    <p><strong>Seite:</strong> {feedback.page_url or 'Nicht angegeben'}</p>
+    <p><strong>User:</strong> {feedback.user_email or 'Anonym'}</p>
+    <p><strong>Browser:</strong> {feedback.user_agent[:100] if feedback.user_agent else 'Nicht angegeben'}...</p>
+    """
+    
+    try:
+        await email_service.send_email(
+            to_email="info@jobon.work",
+            subject=subject,
+            html_content=html_content
+        )
+        return {"success": True, "message": "Feedback erhalten"}
+    except Exception as e:
+        logger.error(f"Feedback email failed: {e}")
+        # Trotzdem OK zurückgeben - Frontend hat Fallback
+        return {"success": True, "message": "Feedback erhalten (Email-Versand fehlgeschlagen)"}
+
+
 logger.info("=== APP STARTUP COMPLETE ===")

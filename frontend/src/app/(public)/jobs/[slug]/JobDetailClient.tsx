@@ -166,7 +166,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
   const [reportNote, setReportNote] = useState("");
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
-  const [myDocuments, setMyDocuments] = useState<{ id: number; original_name: string; document_type: string }[]>([]);
+  const [myDocuments, setMyDocuments] = useState<{ id: number; file_name: string; original_name?: string; document_type: string; type_label?: string }[]>([]);
   const [selectedDocIds, setSelectedDocIds] = useState<number[]>([]);
   const job = initialJob;
 
@@ -592,7 +592,9 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                                   }}
                                   className="accent-primary-600"
                                 />
-                                <span className="text-sm text-gray-700 truncate">{doc.original_name}</span>
+                                <span className="text-sm text-gray-700 truncate">
+                                  {doc.type_label || doc.document_type}: {doc.file_name || doc.original_name}
+                                </span>
                               </label>
                             ))}
                           </div>
