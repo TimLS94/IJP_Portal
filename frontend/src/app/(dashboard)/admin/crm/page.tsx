@@ -6,7 +6,7 @@ import {
   Building2, User, Phone, Mail, Globe, MapPin, Briefcase,
   Plus, Pencil, Trash2, X, Search, ChevronRight, Star,
   Smartphone, Tag, StickyNote, Hash, ArrowLeft,
-  Upload, FileText, Loader2,
+  Upload, FileText, Loader2, Download,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -187,6 +187,18 @@ function CompanyDocuments({ company }: { company: Company }) {
     }
   };
 
+  const handleDownload = async (doc: CompanyDoc) => {
+    try {
+      const res = await crmAPI.downloadDocument(company.id, doc.id);
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = doc.original_filename;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch { alert("Download fehlgeschlagen"); }
+  };
+
   const handleDelete = async (doc: CompanyDoc) => {
     if (!confirm(`„${doc.name}" wirklich löschen?`)) return;
     await crmAPI.deleteDocument(company.id, doc.id);
@@ -218,6 +230,9 @@ function CompanyDocuments({ company }: { company: Company }) {
                 <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
                 <p className="text-xs text-gray-400 truncate">{doc.original_filename}</p>
               </div>
+              <button onClick={() => handleDownload(doc)} title="Original herunterladen" className="p-1 text-gray-400 hover:text-primary-600 flex-shrink-0">
+                <Download className="h-3.5 w-3.5" />
+              </button>
               <button onClick={() => handleDelete(doc)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>

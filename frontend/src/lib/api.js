@@ -492,6 +492,7 @@ export const crmAPI = {
   getMeta: () => api.get('/ijp/crm/meta'),
   getDocuments: (companyId) => api.get(`/ijp/crm/companies/${companyId}/documents`),
   uploadDocument: (companyId, formData) => api.post(`/ijp/crm/companies/${companyId}/documents`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  downloadDocument: (companyId, docId) => api.get(`/ijp/crm/companies/${companyId}/documents/${docId}/download`, { responseType: 'blob' }),
   deleteDocument: (companyId, docId) => api.delete(`/ijp/crm/companies/${companyId}/documents/${docId}`),
   getAllEmployerDocs: () => api.get('/ijp/employer-docs'),
   fillEmployerDoc: (docId, applicantId) => api.post(`/ijp/employer-docs/${docId}/fill`, null, { params: { applicant_id: applicantId }, responseType: 'blob' }),

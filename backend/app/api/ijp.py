@@ -1039,6 +1039,26 @@ async def upload_company_document(
     return doc
 
 
+@router.get("/crm/companies/{company_id}/documents/{doc_id}/download")
+def download_company_document(
+    company_id: int,
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    doc = db.query(CompanyDocument).filter(
+        CompanyDocument.id == doc_id,
+        CompanyDocument.company_id == company_id,
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
+    return StreamingResponse(
+        io.BytesIO(doc.file_content),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{doc.original_filename}"'},
+    )
+
+
 @router.delete("/crm/companies/{company_id}/documents/{doc_id}", status_code=204)
 def delete_company_document(
     company_id: int,
