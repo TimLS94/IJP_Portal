@@ -77,6 +77,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: post.meta_title || post.title,
     description: post.meta_description || post.excerpt || post.title,
     keywords: post.tags,
+    icons: {
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+        { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+    },
     alternates: {
       canonical: `https://www.jobon.work/blog/${post.slug}`,
     },
