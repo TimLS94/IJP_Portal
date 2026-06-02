@@ -265,21 +265,26 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
     SEO-freundlicher Endpoint für Jobdetails.
     URL-Format: /jobs/by-slug/housekeeping-hallenberg-unterkunft-12
     
-    - Extrahiert die ID aus dem Slug
+    - Extrahiert die ID aus dem Slug (falls vorhanden)
+    - Oder sucht direkt nach dem Slug in der Datenbank
     - Prüft ob der Slug korrekt ist (canonical redirect)
     - Gibt Job-Daten + canonical_url zurück
     """
     slug_part, job_id = extract_id_from_slug(slug_with_id)
     
-    if job_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Stellenangebot nicht gefunden"
-        )
+    job = None
     
-    job = db.query(JobPosting).options(
-        joinedload(JobPosting.company)
-    ).filter(JobPosting.id == job_id).first()
+    # Erst nach ID suchen (wenn vorhanden)
+    if job_id is not None:
+        job = db.query(JobPosting).options(
+            joinedload(JobPosting.company)
+        ).filter(JobPosting.id == job_id).first()
+    
+    # Fallback: Nach Slug in der Datenbank suchen
+    if job is None:
+        job = db.query(JobPosting).options(
+            joinedload(JobPosting.company)
+        ).filter(JobPosting.slug == slug_with_id).first()
     
     if not job:
         raise HTTPException(
