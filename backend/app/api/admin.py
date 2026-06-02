@@ -2682,3 +2682,47 @@ async def get_invite_applicants(
         ],
         "total": len(applicants)
     }
+
+
+@router.post("/test-email-digest")
+async def test_email_digest(
+    email: str = Query(..., description="E-Mail-Adresse für den Test"),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Sendet eine Test-E-Mail mit echten Jobs an die angegebene Adresse.
+    Nur für Admins.
+    """
+    from app.services.email_service import email_service
+    
+    # Echte aktive Jobs laden
+    jobs = db.query(JobPosting).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_draft == False
+    ).order_by(JobPosting.created_at.desc()).limit(5).all()
+    
+    if not jobs:
+        raise HTTPException(status_code=404, detail="Keine aktiven Jobs gefunden")
+    
+    # Matching jobs Format erstellen
+    matching_jobs = []
+    for i, job in enumerate(jobs):
+        matching_jobs.append({
+            "job": job,
+            "score": 85 - (i * 5)  # 85, 80, 75, 70, 65
+        })
+    
+    # E-Mail senden
+    success = email_service.send_weekly_job_digest(
+        to_email=email,
+        applicant_name="Test User",
+        matching_jobs=matching_jobs
+    )
+    
+    return {
+        "success": success,
+        "email": email,
+        "jobs_count": len(matching_jobs),
+        "jobs": [{"title": j["job"].title, "score": j["score"]} for j in matching_jobs]
+    }
