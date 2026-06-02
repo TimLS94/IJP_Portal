@@ -359,6 +359,70 @@ def parse_cv_regex(text: str) -> dict:
                 "description": " ".join(desc_lines[:3]),
                 "location":    location_raw,
             })
+        # Format 2: Datum steht in eigener Zeile, dann Position, dann Firma
+        # z.B.: "01/2026 - heute" \n "Product Owner" \n "Volkswagen AG"
+        elif DATE_RANGE.search(line) and not job_m:
+            date_m2 = DATE_RANGE.search(line)
+            start_str = date_m2.group(1)
+            end_str   = date_m2.group(2)
+            start_iso = parse_date(start_str)
+            end_iso   = None if re.search(r'heute|aktuell|present', end_str, re.I) else parse_date(end_str)
+            
+            # Nächste Zeilen: Position, evtl. Subtitle, Firma
+            position_raw = ""
+            company_raw = ""
+            desc_lines = []
+            j = i + 1
+            lines_after_date = []
+            while j < len(exp_lines) and len(lines_after_date) < 8:
+                dl = exp_lines[j].strip()
+                if DATE_RANGE.search(dl):
+                    break  # Nächster Job beginnt
+                if dl:
+                    lines_after_date.append(dl)
+                j += 1
+            
+            # Heuristik: Erste Zeile = Position, Firma = Zeile mit Firmenkennung
+            if lines_after_date:
+                position_raw = lines_after_date[0]
+                # Firma: Suche nach bekannten Firmennamen (GmbH, AG, Inc, etc.)
+                # Suche in ALLEN Zeilen nach Firmenkennung, nicht nur ab Index 1
+                company_idx = -1
+                # Firmenkennung: GmbH, AG, Inc etc. - aber SE nur am Wortende (nicht in "Kreditrisiko")
+                COMPANY_PATTERN = r'(GmbH| AG$| AG\s|,\s*AG|\bInc\.?|Ltd\.?|\sSE$|\sKG$|\sUG$|Corp\.?|Sparkasse|Deloitte|Volkswagen|VW\s|Solutions\s|Credit|Bank|Consulting|CredaRate)'
+                for k, l in enumerate(lines_after_date):
+                    if k == 0:
+                        continue  # Position überspringen
+                    if re.search(COMPANY_PATTERN, l, re.I):
+                        company_raw = l
+                        company_idx = k
+                        break
+                
+                # Beschreibungen: Zeilen die mit - oder – beginnen
+                if company_idx > 0:
+                    desc_lines = [x.lstrip("–—•▪-").strip() for x in lines_after_date[company_idx+1:] if x.startswith("-") or x.startswith("–")]
+                
+                # Fallback wenn keine Firmenkennung gefunden
+                if not company_raw and len(lines_after_date) >= 2:
+                    # Letzte nicht-Beschreibungs-Zeile vor den Aufzählungen ist die Firma
+                    for k in range(len(lines_after_date) - 1, 0, -1):
+                        candidate = lines_after_date[k]
+                        if not candidate.startswith("-") and not candidate.startswith("–"):
+                            company_raw = candidate
+                            company_idx = k
+                            break
+                    if company_idx > 0:
+                        desc_lines = [x.lstrip("–—•▪-").strip() for x in lines_after_date[company_idx+1:] if x.startswith("-") or x.startswith("–")]
+            
+            if position_raw and company_raw:
+                experiences.append({
+                    "company":     company_raw,
+                    "position":    position_raw,
+                    "start_date":  start_iso or "",
+                    "end_date":    end_iso,
+                    "description": " ".join(desc_lines[:3]),
+                    "location":    "",
+                })
         i += 1
 
     if experiences:
