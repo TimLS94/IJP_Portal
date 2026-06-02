@@ -11,11 +11,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.jobon.work"),
   title: {
-    default: "JobOn — Personalvermittlung Gastronomie, Hotel & Logistik | International",
+    default: "JobOn | Internationale Saisonkräfte für Hotels & Gastronomie finden",
     template: "%s | JobOn",
   },
-  description: "JobOn vermittelt internationale Fach- und Hilfskräfte an Hotels, Restaurants und Logistikunternehmen in Deutschland. Kostenlos für Bewerber ✓ Persönliche Betreuung ✓ Visa-Unterstützung",
-  keywords: ["Personalvermittlung Gastronomie", "Personalvermittlung Hotel", "Kellner gesucht", "Küchenhilfe gesucht", "Saisonjobs Deutschland", "Aushilfe Logistik", "Jobs Deutschland", "internationale Fachkräfte"],
+  description: "JobOn ist das Portal für internationale Saisonkräfte in Deutschland. Arbeitgeber finden qualifizierte Mitarbeiter für Hotel, Gastronomie & Logistik. Bewerber finden Jobs mit Unterkunft.",
+  keywords: ["Saisonkräfte finden", "Mitarbeiter Gastronomie", "Personal Hotel", "Kellner gesucht", "Küchenhilfe gesucht", "Saisonjobs Deutschland", "Studentenferienjobs", "internationale Fachkräfte"],
   authors: [{ name: "JobOn" }],
   creator: "JobOn",
   publisher: "JobOn",
@@ -38,22 +38,22 @@ export const metadata: Metadata = {
     locale: "de_DE",
     url: "https://www.jobon.work",
     siteName: "JobOn",
-    title: "JobOn — Personalvermittlung für Gastronomie, Hotel & Logistik",
-    description: "Internationale Fach- und Hilfskräfte für Hotels, Restaurants und Logistik. Kostenlos für Bewerber, persönliche Betreuung.",
+    title: "JobOn | Internationale Saisonkräfte für Hotels & Gastronomie finden",
+    description: "Das Portal für Arbeitgeber und Bewerber. Finden Sie qualifizierte Saisonkräfte für Hotel, Gastronomie & Logistik in Deutschland.",
     images: [
       {
         url: "https://www.jobon.work/logo-512x512.png",
         width: 512,
         height: 512,
-        alt: "JobOn - Internationale Jobvermittlung für Jobs in Deutschland",
+        alt: "JobOn - Portal für Saisonkräfte in Deutschland",
         type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "JobOn — Personalvermittlung für Gastronomie, Hotel & Logistik",
-    description: "Internationale Fach- und Hilfskräfte für Hotels, Restaurants und Logistik. Kostenlos für Bewerber.",
+    title: "JobOn | Internationale Saisonkräfte für Hotels & Gastronomie",
+    description: "Das Portal für Arbeitgeber und Bewerber. Saisonkräfte für Hotel, Gastronomie & Logistik.",
     images: ["https://www.jobon.work/logo-512x512.png"],
   },
   robots: {

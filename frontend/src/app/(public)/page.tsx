@@ -3,9 +3,9 @@ import HomeClient from "./HomeClient";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "JobOn — Personalvermittlung Gastronomie, Hotel & Logistik | International",
-  description: "JobOn vermittelt internationale Fach- und Hilfskräfte an Hotels, Restaurants und Logistikunternehmen in Deutschland. Kostenlos für Bewerber, persönliche Betreuung, volle Visa-Begleitung.",
-  keywords: ["Personalvermittlung Gastronomie", "Personalvermittlung Hotel", "Saisonjobs Deutschland", "Kellner gesucht", "Küchenhilfe gesucht", "Aushilfe Logistik", "Jobs Deutschland", "internationale Fachkräfte"],
+  title: "JobOn | Internationale Saisonkräfte für Hotels & Gastronomie finden",
+  description: "JobOn ist das Portal für internationale Saisonkräfte in Deutschland. Arbeitgeber finden qualifizierte Mitarbeiter für Hotel, Gastronomie & Logistik. Bewerber finden Jobs mit Unterkunft.",
+  keywords: ["Saisonkräfte finden", "Mitarbeiter Gastronomie", "Personal Hotel", "Saisonjobs Deutschland", "Kellner gesucht", "Küchenhilfe gesucht", "Jobs Deutschland", "internationale Fachkräfte"],
   alternates: {
     canonical: "https://www.jobon.work",
   },
@@ -16,8 +16,8 @@ export const metadata: Metadata = {
     "max-snippet": -1,
   },
   openGraph: {
-    title: "JobOn — Personalvermittlung für Gastronomie, Hotel & Logistik",
-    description: "Internationale Fach- und Hilfskräfte für Hotels, Restaurants und Logistik. Kostenlos für Bewerber.",
+    title: "JobOn | Internationale Saisonkräfte für Hotels & Gastronomie finden",
+    description: "Das Portal für Arbeitgeber und Bewerber. Finden Sie qualifizierte Saisonkräfte für Hotel, Gastronomie & Logistik in Deutschland.",
     type: "website",
     locale: "de_DE",
     url: "https://www.jobon.work",
@@ -32,7 +32,7 @@ const organizationSchema = {
   "name": "JobOn",
   "url": "https://www.jobon.work",
   "logo": "https://www.jobon.work/logo.png",
-  "description": "Personalvermittlung für internationale Fach- und Hilfskräfte in Deutschland",
+  "description": "Portal für internationale Saisonkräfte in Hotel, Gastronomie & Logistik in Deutschland",
   "sameAs": [],
   "contactPoint": {
     "@type": "ContactPoint",
@@ -70,11 +70,10 @@ export default function Home() {
       {/* SEO-freundlicher Content für Crawler (noscript fallback) */}
       <noscript>
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold mb-4">JobOn — Personalvermittlung für internationale Fachkräfte</h1>
+          <h1 className="text-4xl font-bold mb-4">JobOn | Internationale Saisonkräfte für Hotels & Gastronomie</h1>
           <p className="text-xl mb-8">
-            Wir vermitteln internationale Fach- und Hilfskräfte an Hotels, Restaurants und 
-            Logistikunternehmen in Deutschland. Kostenlos für Bewerber, mit persönlicher 
-            Betreuung und voller Visa-Begleitung.
+            Das Portal für internationale Saisonkräfte in Deutschland. Arbeitgeber finden 
+            qualifizierte Mitarbeiter, Bewerber finden Jobs mit Unterkunft und Unterstützung.
           </p>
           
           <h2 className="text-2xl font-bold mb-4">Unsere Stellenarten</h2>
@@ -106,11 +105,11 @@ export default function Home() {
       
       {/* Versteckter SEO-Content (immer im HTML) */}
       <div className="sr-only" aria-hidden="true">
-        <h1>JobOn - Personalvermittlung für internationale Fachkräfte in Deutschland</h1>
+        <h1>JobOn - Portal für internationale Saisonkräfte in Deutschland</h1>
         <p>
-          JobOn ist Ihr Partner für die Vermittlung von internationalen Fach- und Hilfskräften 
-          an Hotels, Restaurants und Logistikunternehmen in Deutschland. Wir bieten 
-          Studentenferienjobs, Saisonjobs, Fachkräfte-Stellen und Ausbildungsplätze.
+          JobOn ist das Portal für internationale Saisonkräfte in Hotel, Gastronomie und 
+          Logistik in Deutschland. Arbeitgeber finden qualifizierte Mitarbeiter, Bewerber 
+          finden Studentenferienjobs, Saisonjobs, Fachkräfte-Stellen und Ausbildungsplätze.
         </p>
         <nav>
           <Link href="/jobs">Stellenangebote</Link>
