@@ -741,11 +741,14 @@ function ArbeitgeberFormularTab() {
     if (!selectedDoc || !selectedApplicant) return;
     setFilling(true);
     try {
+      const isPdf = selectedDoc.original_filename.toLowerCase().endsWith(".pdf");
+      const ext = isPdf ? "pdf" : "docx";
+      const mimeType = isPdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
       const res = await crmAPI.fillEmployerDoc(selectedDoc.id, selectedApplicant.id);
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: mimeType }));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${selectedDoc.name}_${selectedApplicant.first_name}_${selectedApplicant.last_name}.docx`;
+      link.download = `${selectedDoc.name}_${selectedApplicant.first_name}_${selectedApplicant.last_name}.${ext}`;
       link.click();
       window.URL.revokeObjectURL(url);
       toast.success("Dokument heruntergeladen");
