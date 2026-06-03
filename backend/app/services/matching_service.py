@@ -36,27 +36,36 @@ LANGUAGE_LEVEL_ORDER = {
 
 def _get_cv_fallback(applicant_id: int, db: Session) -> Optional[dict]:
     """
-    Holt das aktuellste CV des Bewerbers und parst es per Regex (sync, kein API-Call).
-    Wird nur aufgerufen wenn relevante Profilfelder leer sind.
+    Holt das aktuellste CV des Bewerbers und parst es per Regex (vollständig sync).
+    Umgeht den async Storage-Wrapper und liest direkt via boto3 (R2) oder open() (lokal).
     """
     try:
         from app.models.document import Document, DocumentType
-        from app.services.document_service import DocumentService
         from app.services.cv_parser_service import extract_text_from_pdf, parse_cv_regex
-        import asyncio
+        from app.services.storage_service import storage_service
+        import os
 
         doc = db.query(Document).filter(
             Document.applicant_id == applicant_id,
             Document.document_type == DocumentType.CV,
         ).order_by(Document.uploaded_at.desc()).first()
 
-        if not doc:
+        if not doc or not doc.file_path:
             return None
 
-        # Datei holen (S3 oder lokal)
-        loop = asyncio.new_event_loop()
-        content = loop.run_until_complete(DocumentService.get_file_content(doc))
-        loop.close()
+        content: Optional[bytes] = None
+
+        if storage_service.use_r2 and storage_service.s3_client:
+            # R2/S3: boto3 ist synchron
+            response = storage_service.s3_client.get_object(
+                Bucket=storage_service.bucket_name,
+                Key=doc.file_path,
+            )
+            content = response["Body"].read()
+        elif os.path.exists(doc.file_path):
+            # Lokales Filesystem
+            with open(doc.file_path, "rb") as f:
+                content = f.read()
 
         if not content:
             return None
