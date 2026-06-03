@@ -15,6 +15,7 @@ WICHTIG: Keine Berücksichtigung von:
 - etc.
 """
 
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.applicant import Applicant, PositionType, LanguageLevel
 from app.models.job_posting import JobPosting, RequiredLanguageLevel
@@ -33,7 +34,43 @@ LANGUAGE_LEVEL_ORDER = {
 }
 
 
-def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
+def _get_cv_fallback(applicant_id: int, db: Session) -> Optional[dict]:
+    """
+    Holt das aktuellste CV des Bewerbers und parst es per Regex (sync, kein API-Call).
+    Wird nur aufgerufen wenn relevante Profilfelder leer sind.
+    """
+    try:
+        from app.models.document import Document, DocumentType
+        from app.services.document_service import DocumentService
+        from app.services.cv_parser_service import extract_text_from_pdf, parse_cv_regex
+        import asyncio
+
+        doc = db.query(Document).filter(
+            Document.applicant_id == applicant_id,
+            Document.document_type == DocumentType.CV,
+        ).order_by(Document.uploaded_at.desc()).first()
+
+        if not doc:
+            return None
+
+        # Datei holen (S3 oder lokal)
+        loop = asyncio.new_event_loop()
+        content = loop.run_until_complete(DocumentService.get_file_content(doc))
+        loop.close()
+
+        if not content:
+            return None
+
+        text = extract_text_from_pdf(content)
+        if not text:
+            return None
+
+        return parse_cv_regex(text)
+    except Exception:
+        return None
+
+
+def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Session] = None) -> dict:
     """
     Berechnet den Matching-Score zwischen Bewerber und Stelle.
     
@@ -63,7 +100,19 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
     }
     details = []
     data_quality = _calculate_data_quality(applicant, job)
-    
+
+    # CV-Fallback: wenn Erfahrungsfelder leer sind → CV aus DB parsen
+    cv_fallback = None
+    profile_has_experience = (
+        applicant.work_experience_years or
+        applicant.work_experiences or
+        applicant.work_experience
+    )
+    if not profile_has_experience and db:
+        cv_fallback = _get_cv_fallback(applicant.id, db)
+        if cv_fallback:
+            details.append("ℹ️ Erfahrung aus Lebenslauf ergänzt (Profil leer)")
+
     # 1. Positionstyp-Match (30 Punkte)
     position_match = _check_position_match(applicant, job)
     scores["position_type"] = position_match["score"]
@@ -97,11 +146,13 @@ def calculate_match_score(applicant: Applicant, job: JobPosting) -> dict:
     elif job.english_required and job.english_required.value != "not_required":
         details.append(f"✗ Englischkenntnisse unter Anforderungen")
     
-    # 4. Berufserfahrung (20 Punkte)
-    exp_match = _check_experience_match(applicant, job)
+    # 4. Berufserfahrung (20 Punkte) — mit CV-Fallback
+    exp_match = _check_experience_match(applicant, job, cv_fallback=cv_fallback)
     scores["experience"] = exp_match["score"]
     if exp_match["has_experience"]:
-        details.append(f"✓ {applicant.work_experience_years or 0} Jahre Berufserfahrung")
+        years = exp_match["years"] or 0
+        source = " (aus CV)" if cv_fallback and not profile_has_experience else ""
+        details.append(f"✓ {years} Jahre Berufserfahrung{source}")
     
     # 5. Verfügbarkeit (10 Punkte)
     availability_match = _check_availability_match(applicant, job)
@@ -172,30 +223,28 @@ def _check_language_match(applicant_level: str, required_level: str, max_score: 
         return {"meets": False, "exceeds": False, "gap": gap, "score": score}
 
 
-def _check_experience_match(applicant: Applicant, job: JobPosting) -> dict:
+def _check_experience_match(applicant: Applicant, job: JobPosting, cv_fallback: Optional[dict] = None) -> dict:
     """
     Prüft Berufserfahrung (20 Punkte).
-    
-    Bewertet:
-    - Relevante Berufserfahrung (passt zur Stelle): bis 15 Punkte
-    - Allgemeine Berufserfahrung: bis 5 Punkte
+    Nutzt cv_fallback wenn Profilfelder leer sind.
     """
-    years = applicant.work_experience_years or 0
+    # Profilfelder bevorzugen, CV als Fallback
+    years = applicant.work_experience_years or (cv_fallback.get("work_experience_years") if cv_fallback else None) or 0
+    experiences = applicant.work_experiences or (cv_fallback.get("work_experiences") if cv_fallback else None) or []
+
     job_title = (job.title or "").lower()
     job_desc = (job.description or "").lower()
     job_tasks = (job.tasks or "").lower()
-    
-    # Keywords aus Stellentitel, Beschreibung und Aufgaben extrahieren
+
     job_keywords = _extract_keywords(f"{job_title} {job_desc} {job_tasks}")
-    
-    # Strukturierte Berufserfahrungen analysieren
+
     relevant_experience = 0
     total_experience = 0
     relevant_entries = []
-    
-    if applicant.work_experiences:
+
+    if experiences:
         try:
-            for exp in applicant.work_experiences:
+            for exp in experiences:
                 if isinstance(exp, dict):
                     position = (exp.get("position", "") or "").lower()
                     company = (exp.get("company", "") or "").lower()

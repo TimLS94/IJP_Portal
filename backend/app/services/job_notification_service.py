@@ -41,7 +41,7 @@ def get_matching_applicants(job: JobPosting, db: Session, threshold: int = 85) -
     
     for applicant in applicants:
         try:
-            match_result = calculate_match_score(applicant, job)
+            match_result = calculate_match_score(applicant, job, db=db)
             if match_result.get("total_score", 0) >= threshold:
                 matching_applicants.append({
                     "applicant": applicant,
@@ -180,7 +180,7 @@ def get_matching_jobs_for_applicant(applicant: Applicant, db: Session, threshold
     
     for job in jobs:
         try:
-            match_result = calculate_match_score(applicant, job)
+            match_result = calculate_match_score(applicant, job, db=db)
             if match_result.get("total_score", 0) >= threshold:
                 matching_jobs.append({
                     "job": job,

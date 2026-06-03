@@ -131,6 +131,10 @@ async def upload_document(
             detail="Bitte erstellen Sie zuerst Ihr Bewerber-Profil"
         )
     
+    # Bytes lesen bevor wir an DocumentService weitergeben (für CV-Parsing)
+    file_bytes = await file.read()
+    await file.seek(0)
+
     document = await DocumentService.save_file(
         file=file,
         applicant_id=applicant.id,
@@ -138,7 +142,15 @@ async def upload_document(
         description=description or "",
         db=db
     )
-    
+
+    # CV hochgeladen → leere Profilfelder automatisch aus CV befüllen
+    if document_type == DocumentType.CV:
+        try:
+            await _enrich_profile_from_cv(applicant, file_bytes, db)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"CV auto-enrich failed for applicant {applicant.id}: {e}")
+
     return {
         "id": document.id,
         "document_type": document.document_type.value,
@@ -148,6 +160,67 @@ async def upload_document(
         "is_verified": document.is_verified,
         "uploaded_at": document.uploaded_at
     }
+
+
+async def _enrich_profile_from_cv(applicant: Applicant, file_bytes: bytes, db: Session) -> None:
+    """
+    Parst das hochgeladene CV und befüllt NUR leere Profilfelder.
+    Vorhandene Daten werden NIEMALS überschrieben.
+    """
+    from app.services.cv_parser_service import parse_cv
+    from app.core.config import settings
+
+    cv_data = await parse_cv(
+        pdf_bytes=file_bytes,
+        openai_key=getattr(settings, "OPENAI_API_KEY", ""),
+        gemini_key=getattr(settings, "GOOGLE_API_KEY", ""),
+    )
+    if not cv_data:
+        return
+
+    changed = False
+
+    # Erfahrungsjahre nur setzen wenn leer
+    if not applicant.work_experience_years and cv_data.get("work_experience_years"):
+        applicant.work_experience_years = int(cv_data["work_experience_years"])
+        changed = True
+
+    # Strukturierte Berufserfahrungen nur setzen wenn leer
+    if not applicant.work_experiences and cv_data.get("work_experiences"):
+        applicant.work_experiences = cv_data["work_experiences"]
+        changed = True
+
+    # Textbeschreibung der Erfahrung nur setzen wenn leer
+    if not applicant.work_experience and cv_data.get("work_experiences"):
+        exps = cv_data["work_experiences"]
+        if isinstance(exps, list):
+            lines = [
+                f"{e.get('position', '')} bei {e.get('company', '')} ({e.get('start_date', '')}–{e.get('end_date') or 'heute'})"
+                for e in exps if e.get("position") or e.get("company")
+            ]
+            if lines:
+                applicant.work_experience = "\n".join(lines)
+                changed = True
+
+    # Sprachkenntnisse nur setzen wenn leer
+    if not applicant.german_level and cv_data.get("german_level"):
+        try:
+            from app.models.applicant import LanguageLevel
+            applicant.german_level = LanguageLevel(cv_data["german_level"])
+            changed = True
+        except Exception:
+            pass
+
+    if not applicant.english_level and cv_data.get("english_level"):
+        try:
+            from app.models.applicant import LanguageLevel
+            applicant.english_level = LanguageLevel(cv_data["english_level"])
+            changed = True
+        except Exception:
+            pass
+
+    if changed:
+        db.commit()
 
 
 @router.get("")

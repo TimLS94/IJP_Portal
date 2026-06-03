@@ -213,7 +213,7 @@ async def create_application(
     
     if is_company_matching_enabled(db):
         try:
-            match_result = calculate_match_score(applicant, job)
+            match_result = calculate_match_score(applicant, job, db=db)
             match_score = match_result.get("total_score", 0)
             
             # Score-Filter prüfen: Ist der Score unter dem Schwellenwert?
@@ -403,7 +403,7 @@ async def get_company_applications(
         match_score = None
         if matching_enabled and app.applicant and app.job_posting:
             try:
-                match_result = calculate_match_score(app.applicant, app.job_posting)
+                match_result = calculate_match_score(app.applicant, app.job_posting, db=db)
                 score = match_result.get('total_score', 0)
                 match_score = int(round(score)) if score is not None else None
             except Exception as e:
@@ -675,7 +675,7 @@ async def get_application_match_score(
     if not applicant or not job:
         return {"enabled": True, "message": "Daten unvollständig", "total_score": 0}
     
-    match = calculate_match_score(applicant, job)
+    match = calculate_match_score(applicant, job, db=db)
     return {
         "enabled": True,
         "application_id": application_id,
