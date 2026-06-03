@@ -395,7 +395,7 @@ export default function AdminEditJobPage() {
           <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <Languages className="h-4 w-4 text-primary-500" />Sprachanforderungen
           </h2>
-          {(job?.german_required || job?.english_required) && (
+          {(!!job?.german_required || !!job?.english_required) && (
             <p className="text-xs text-green-600 mb-3 bg-green-50 px-3 py-1.5 rounded-lg">
               ✓ Automatisch erkannt vom Scraper — bitte prüfen und ggf. anpassen
             </p>
