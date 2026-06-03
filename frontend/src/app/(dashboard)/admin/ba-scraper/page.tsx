@@ -74,6 +74,7 @@ export default function BaScraperPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [check, setCheck] = useState<ConfigCheck | null>(null);
   const [keywordsInput, setKeywordsInput] = useState("");
+  const [keywordDraft, setKeywordDraft] = useState("");
   const [running, setRunning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastResult, setLastResult] = useState<RunResult | null>(null);
@@ -97,6 +98,7 @@ export default function BaScraperPage() {
       const cfg: Config = cfgRes.data;
       setConfig({ ...cfg, ai_provider: cfg.ai_provider ?? "none" });
       setKeywordsInput((cfg.keywords || []).join(", "));
+      setConfig(prev => ({ ...prev, keywords: cfg.keywords || [] }));
       setStats(statsRes.data);
       setCheck(checkRes.data);
       setPendingJobs(pendingRes.data || []);
@@ -105,13 +107,21 @@ export default function BaScraperPage() {
     }
   };
 
+  const addKeyword = () => {
+    const kw = keywordDraft.trim();
+    if (!kw || config.keywords.includes(kw)) { setKeywordDraft(""); return; }
+    setConfig(prev => ({ ...prev, keywords: [...prev.keywords, kw] }));
+    setKeywordDraft("");
+  };
+
+  const removeKeyword = (kw: string) => {
+    setConfig(prev => ({ ...prev, keywords: prev.keywords.filter(k => k !== kw) }));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      const keywords = keywordsInput.split(",").map((k) => k.trim()).filter(Boolean);
-      const updated = { ...config, keywords };
-      await baScraperAPI.updateConfig(updated);
-      setConfig(updated);
+      await baScraperAPI.updateConfig(config);
       toast.success("Konfiguration gespeichert");
     } catch {
       toast.error("Speichern fehlgeschlagen");
@@ -355,15 +365,45 @@ export default function BaScraperPage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Suchbegriffe <span className="text-gray-400 font-normal">(kommagetrennt, leer = alle)</span>
+            Suchbegriffe{" "}
+            <span className="text-gray-400 font-normal">
+              (jeder Begriff = eigene BA-Suche · auch Mehrwort-Begriffe möglich)
+            </span>
           </label>
-          <input
-            type="text"
-            value={keywordsInput}
-            onChange={(e) => setKeywordsInput(e.target.value)}
-            placeholder="z.B. Koch, Elektriker, Pfleger"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+
+          {/* Chips */}
+          <div className="flex flex-wrap gap-2 mb-2 min-h-[32px]">
+            {config.keywords.length === 0 && (
+              <span className="text-sm text-gray-400 italic">Keine Begriffe — es werden alle Jobs importiert</span>
+            )}
+            {config.keywords.map((kw) => (
+              <span key={kw} className="flex items-center gap-1 bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                {kw}
+                <button onClick={() => removeKeyword(kw)} className="hover:text-red-600 ml-1 font-bold leading-none">×</button>
+              </span>
+            ))}
+          </div>
+
+          {/* Eingabe */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={keywordDraft}
+              onChange={(e) => setKeywordDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addKeyword(); } }}
+              placeholder="z.B. Housekeeping Aushilfe → Enter"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <button
+              onClick={addKeyword}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+            >
+              + Hinzufügen
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            Beispiele: <em>Housekeeping</em> · <em>Housekeeping Aushilfe</em> · <em>Zimmerreinigung</em> · <em>Reinigungskraft Hotel</em>
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
