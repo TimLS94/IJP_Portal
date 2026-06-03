@@ -88,6 +88,10 @@ export default function AdminEditJobPage() {
   const [endDate, setEndDate] = useState("");
   const [deadline, setDeadline] = useState("");
 
+  // Sprachanforderungen
+  const [germanRequired, setGermanRequired] = useState("none");
+  const [englishRequired, setEnglishRequired] = useState("none");
+
   // Übersetzungen
   const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({});
 
@@ -133,6 +137,9 @@ export default function AdminEditJobPage() {
       setDeadline(data.deadline || "");
 
       if (data.translations) setTranslations(data.translations as Record<string, Record<string, string>>);
+
+      setGermanRequired(data.german_required || "none");
+      setEnglishRequired(data.english_required || "none");
     } catch {
       toast.error("Fehler beim Laden der Stelle");
       router.push("/admin/jobs");
@@ -184,6 +191,8 @@ export default function AdminEditJobPage() {
         deadline: deadline || null,
         is_active: isActive,
         is_draft: isDraft,
+        german_required: germanRequired !== "none" ? germanRequired : null,
+        english_required: englishRequired !== "none" ? englishRequired : null,
       });
       toast.success("Stelle gespeichert");
       router.push("/admin/jobs");
@@ -378,6 +387,44 @@ export default function AdminEditJobPage() {
               <Home className="h-4 w-4 text-gray-500" />
               <span className="text-sm text-gray-700">Unterkunft vorhanden</span>
             </label>
+          </div>
+        </div>
+
+        {/* ── Sprachanforderungen ── */}
+        <div className="card">
+          <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <Languages className="h-4 w-4 text-primary-500" />Sprachanforderungen
+          </h2>
+          {(job?.german_required || job?.english_required) && (
+            <p className="text-xs text-green-600 mb-3 bg-green-50 px-3 py-1.5 rounded-lg">
+              ✓ Automatisch erkannt vom Scraper — bitte prüfen und ggf. anpassen
+            </p>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">🇩🇪 Deutschkenntnisse</label>
+              <select className={inputCls} value={germanRequired} onChange={e => setGermanRequired(e.target.value)}>
+                <option value="none">Nicht erforderlich</option>
+                <option value="a1">A1 – Grundkenntnisse</option>
+                <option value="a2">A2 – Grundlegende Kenntnisse</option>
+                <option value="b1">B1 – Mittelstufe</option>
+                <option value="b2">B2 – Gute Kenntnisse</option>
+                <option value="c1">C1 – Fließend</option>
+                <option value="c2">C2 – Muttersprache</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">🇬🇧 Englischkenntnisse</label>
+              <select className={inputCls} value={englishRequired} onChange={e => setEnglishRequired(e.target.value)}>
+                <option value="none">Nicht erforderlich</option>
+                <option value="a1">A1 – Grundkenntnisse</option>
+                <option value="a2">A2 – Grundlegende Kenntnisse</option>
+                <option value="b1">B1 – Mittelstufe</option>
+                <option value="b2">B2 – Gute Kenntnisse</option>
+                <option value="c1">C1 – Fließend</option>
+                <option value="c2">C2 – Muttersprache</option>
+              </select>
+            </div>
           </div>
         </div>
 

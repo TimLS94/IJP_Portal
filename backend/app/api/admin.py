@@ -720,6 +720,8 @@ class AdminUpdateJobRequest(BaseModel):
     external_url: Optional[str] = None
     is_active: Optional[bool] = None
     is_draft: Optional[bool] = None
+    german_required: Optional[str] = None   # none|a1|a2|b1|b2|c1|c2|native
+    english_required: Optional[str] = None  # none|a1|a2|b1|b2|c1|c2|native
 
 
 @router.put("/jobs/{job_id}")
@@ -767,6 +769,19 @@ async def admin_update_job(
                     pass
             else:
                 setattr(job, field, None)
+
+    # Sprachanforderungen
+    from app.models.job_posting import RequiredLanguageLevel
+    if request.german_required is not None:
+        try:
+            job.german_required = RequiredLanguageLevel(request.german_required) if request.german_required != "none" else None
+        except ValueError:
+            pass
+    if request.english_required is not None:
+        try:
+            job.english_required = RequiredLanguageLevel(request.english_required) if request.english_required != "none" else None
+        except ValueError:
+            pass
 
     # Aktivierung / Draft
     if request.is_draft is not None:

@@ -10,6 +10,7 @@ Ablauf:
 import base64
 import httpx
 import logging
+import re
 import secrets
 import json
 from datetime import datetime, date
@@ -25,6 +26,78 @@ from app.services.slug_service import generate_job_slug
 from app.services.settings_service import set_setting
 
 logger = logging.getLogger(__name__)
+
+
+def _detect_language_requirements(text: str) -> dict:
+    """
+    Erkennt Sprachanforderungen (Deutsch/Englisch) in einem Stellentext.
+    Gibt {"german": "b1", "english": "a2"} oder ähnliches zurück.
+    Fehlende Sprachen werden nicht zurückgegeben.
+    """
+    t = text.lower()
+    result = {}
+
+    # Muster: explizites Niveau (höchste Priorität)
+    level_map = [
+        (r"deutsch\w*\s*(c2|muttersprachlich|muttersprache|native)", "c2"),
+        (r"deutsch\w*\s*c1",  "c1"),
+        (r"deutsch\w*\s*b2",  "b2"),
+        (r"deutsch\w*\s*b1",  "b1"),
+        (r"deutsch\w*\s*a2",  "a2"),
+        (r"deutsch\w*\s*a1",  "a1"),
+        (r"(c2|muttersprachlich|muttersprache)\s*\w*deutsch", "c2"),
+        (r"c1\s*\w*deutsch",  "c1"),
+        (r"b2\s*\w*deutsch",  "b2"),
+        (r"b1\s*\w*deutsch",  "b1"),
+        (r"a2\s*\w*deutsch",  "a2"),
+    ]
+    for pattern, level in level_map:
+        if re.search(pattern, t):
+            result["german"] = level
+            break
+
+    # Wortbasiert (nur wenn noch kein Treffer)
+    if "german" not in result:
+        if re.search(r"flie.end\w*\s*deutsch|deutsch\w*\s*flie.end", t):
+            result["german"] = "c1"
+        elif re.search(r"sehr gut\w*\s*deutsch|deutsch\w*\s*sehr gut", t):
+            result["german"] = "b2"
+        elif re.search(r"gut\w*\s*deutsch|deutsch\w*\s*gut\w*kenntnis", t):
+            result["german"] = "b1"
+        elif re.search(r"grund\w*\s*deutsch|deutsch\w*\s*grund", t):
+            result["german"] = "a2"
+        elif re.search(r"deutschkenntnis|deutsch\w*\s*kenntnis|kenntnisse\s+deutsch", t):
+            result["german"] = "b1"  # Default wenn nur "Deutschkenntnisse" erwähnt
+
+    # Englisch
+    eng_level_map = [
+        (r"english\w*\s*(c2|native|fluent|muttersprachl)",  "c2"),
+        (r"english\w*\s*c1|c1\s*english",  "c1"),
+        (r"english\w*\s*b2|b2\s*english",  "b2"),
+        (r"english\w*\s*b1|b1\s*english",  "b1"),
+        (r"english\w*\s*a2|a2\s*english",  "a2"),
+        (r"english\w*\s*a1|a1\s*english",  "a1"),
+        (r"englisch\w*\s*(c2|muttersprachlich|native)",  "c2"),
+        (r"englisch\w*\s*c1",  "c1"),
+        (r"englisch\w*\s*b2",  "b2"),
+        (r"englisch\w*\s*b1",  "b1"),
+        (r"englisch\w*\s*a2",  "a2"),
+    ]
+    for pattern, level in eng_level_map:
+        if re.search(pattern, t):
+            result["english"] = level
+            break
+
+    if "english" not in result:
+        if re.search(r"flie.end\w*\s*english|english\w*\s*flie.end|flie.end\w*\s*englisch", t):
+            result["english"] = "c1"
+        elif re.search(r"sehr gut\w*\s*english|sehr gut\w*\s*englisch", t):
+            result["english"] = "b2"
+        elif re.search(r"gut\w*\s*english|englischkenntnis|english\w*\s*kenntnis", t):
+            result["english"] = "b1"
+
+    return result
+
 
 BA_JOBS_URL = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v5/jobs"
 BA_DETAIL_URL = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobdetails"
@@ -610,6 +683,23 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                         salary_type = parsed.get("salary_type")
                         contact_person = contact_phone = None
 
+                    # Sprachanforderungen aus Beschreibung erkennen
+                    full_text = f"{title} {raw_desc}"
+                    lang_req = _detect_language_requirements(full_text)
+                    from app.models.job_posting import RequiredLanguageLevel
+                    german_req = None
+                    english_req = None
+                    if lang_req.get("german"):
+                        try:
+                            german_req = RequiredLanguageLevel(lang_req["german"])
+                        except ValueError:
+                            pass
+                    if lang_req.get("english"):
+                        try:
+                            english_req = RequiredLanguageLevel(lang_req["english"])
+                        except ValueError:
+                            pass
+
                     job = JobPosting(
                         company_id=ba_company.id,
                         title=title,
@@ -628,6 +718,8 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                         contact_person=contact_person,
                         contact_phone=contact_phone,
                         start_date=start_date,
+                        german_required=german_req,
+                        english_required=english_req,
                         is_active=False,
                         is_draft=True,
                         slug=slug,
