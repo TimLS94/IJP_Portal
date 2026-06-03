@@ -1101,8 +1101,8 @@ async def upload_company_document(
     company = db.query(IJPBetrieb).filter(IJPBetrieb.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Firma nicht gefunden")
-    if not file.filename.lower().endswith(".docx"):
-        raise HTTPException(status_code=400, detail="Nur .docx-Dateien werden unterstützt")
+    if not (file.filename.lower().endswith(".docx") or file.filename.lower().endswith(".pdf")):
+        raise HTTPException(status_code=400, detail="Nur .docx- und .pdf-Dateien werden unterstützt")
 
     contents = await file.read()
 
@@ -1131,9 +1131,11 @@ def download_company_document(
     ).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
+    is_pdf = doc.original_filename.lower().endswith(".pdf")
+    media_type = "application/pdf" if is_pdf else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     return StreamingResponse(
         io.BytesIO(doc.file_content),
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{doc.original_filename}"'},
     )
 
@@ -1181,16 +1183,116 @@ def fill_company_document(
         raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
 
     context = _applicant_context(applicant, db)
-    filled_bytes = _smart_fill_docx_bytes(doc.file_content, context)
-
     safe_name = f"{applicant.first_name}_{applicant.last_name}".replace(" ", "_")
-    filename = f"{doc.name}_{safe_name}.docx"
+
+    if _is_pdf(doc.original_filename):
+        filled_bytes = _fill_pdf_fragebogen_englisch(doc.file_content, context)
+        filename = f"{doc.name}_{safe_name}.pdf"
+        media_type = "application/pdf"
+    else:
+        filled_bytes = _smart_fill_docx_bytes(doc.file_content, context)
+        filename = f"{doc.name}_{safe_name}.docx"
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
     return StreamingResponse(
         io.BytesIO(filled_bytes),
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+def _fill_pdf_fragebogen_englisch(pdf_bytes: bytes, context: dict) -> bytes:
+    """
+    Füllt den 'Fragebogen englisch' (6-seitiges DRV-Formular für internationale Saisonarbeiter)
+    mit Bewerberdaten per Koordinaten-Overlay aus.
+    Alle Kästchen werden von grün auf schwarz umgefärbt.
+    """
+    import fitz
+
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    BLUE  = (0, 0, 0.8)
+    WHITE = (1.0, 1.0, 1.0)
+
+    def blacken_checkboxes(page):
+        for d in page.get_drawings():
+            r = d.get("rect")
+            if r and 5 < r.width < 25 and 5 < r.height < 25 and d.get("fill") == WHITE:
+                page.draw_rect(r, color=(0, 0, 0), fill=WHITE, width=0.8)
+
+    def X(page, cx, cy, size=9):
+        page.insert_text((cx - 3, cy + 3.5), "X", fontsize=size, color=BLUE, fontname="Helvetica-Bold")
+
+    def T(page, px, py, text, size=10, underline=False):
+        if not text:
+            return
+        page.insert_text((px, py), str(text), fontsize=size, color=BLUE, fontname="Helvetica")
+        if underline:
+            w = fitz.get_text_length(str(text), fontname="Helvetica", fontsize=size)
+            page.draw_line((px, py + 1.5), (px + w, py + 1.5), color=BLUE, width=0.7)
+
+    for pg in doc:
+        blacken_checkboxes(pg)
+
+    gender = context.get("GESCHLECHT", "").lower()
+
+    # ── S.1: Persönliche Daten ────────────────────────────────────────────────
+    p = doc[0]
+    T(p, 78,  400, context.get("NACHNAME", ""))
+    T(p, 338, 400, context.get("VORNAME", ""), underline=True)
+    T(p, 78,  487, context.get("NACHNAME", ""))           # Geburtsname
+    T(p, 84,  548, context.get("GEBURTSDATUM", ""))
+    if "weiblich" in gender or "female" in gender:
+        X(p, 216.4, 565.7)
+    else:
+        X(p, 215.2, 541.7)
+    T(p, 338, 570, context.get("NATIONALITAET", ""), 9)
+    T(p, 78,  624, context.get("GEBURTSORT", ""))
+    T(p, 78,  670, context.get("STRASSE", ""))
+    T(p, 83,  722, context.get("PLZ", ""))
+    T(p, 350, 722, context.get("ORT", ""))
+
+    # ── S.2: P1 Beschäftigung Nein + Unterfelder + P2 Selbständigkeit Nein ────
+    p = doc[1]
+    X(p,  79, 243)    # P1 Nein
+    X(p, 148, 232)    # bezahlter Urlaub Nein
+    X(p, 150, 302)    # unbezahlter Urlaub Nein
+    X(p, 145, 392)    # freigestellt Nein
+    X(p,  84, 715)    # P2 Selbständigkeit Nein
+
+    # ── S.3: P3 Arbeitslosigkeit Nein ─────────────────────────────────────────
+    p = doc[2]
+    X(p, 84, 397)
+
+    # ── S.4: P4 Schulbesuch Ja + Details ─────────────────────────────────────
+    p = doc[3]
+    X(p, 163, 190)                                              # P4 Ja
+    T(p, 225, 208, context.get("UNI_SEIT", ""), 8)             # seit dem (leer wenn nicht vorhanden)
+    T(p, 365, 208, context.get("UNI_NAME", ""), 7)             # Uni-Name
+    T(p, 290, 308, context.get("SEMESTERFERIEN_BIS", ""), 8)   # Schulentlassung
+    X(p, 332, 408)                                              # Semesterferien Ja
+    sf_von = context.get("SEMESTERFERIEN_VON", "")
+    sf_bis = context.get("SEMESTERFERIEN_BIS", "")
+    if sf_von and sf_bis:
+        T(p, 403, 415, f"{sf_von} - {sf_bis}", 7)
+
+    # ── S.5: P5 Rente Nein + P6 Hausfrau Nein + P7 Lebensunterhalt ───────────
+    p = doc[4]
+    X(p, 76,  170)    # P5 Rente Nein
+    X(p, 85,  558)    # P6 Hausfrau Nein
+    T(p, 72,  710, context.get("LEBENSUNTERHALT", ""), 10)
+
+    # ── S.6: P8 Bisherige Beschäftigungen Nein ────────────────────────────────
+    p = doc[5]
+    X(p, 84, 164)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.read()
+
+
+def _is_pdf(filename: str) -> bool:
+    return filename.lower().endswith(".pdf")
 
 
 # ── IJP-Tab: Alle Firmendokumente auflisten + ausfüllen ───────────────────────
@@ -1220,13 +1322,19 @@ def fill_employer_doc(
         raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
 
     context = _applicant_context(applicant, db)
-    filled_bytes = _smart_fill_docx_bytes(doc.file_content, context)
-
     safe_name = f"{applicant.first_name}_{applicant.last_name}".replace(" ", "_")
-    filename = f"{doc.name}_{safe_name}.docx"
+
+    if _is_pdf(doc.original_filename):
+        filled_bytes = _fill_pdf_fragebogen_englisch(doc.file_content, context)
+        filename = f"{doc.name}_{safe_name}.pdf"
+        media_type = "application/pdf"
+    else:
+        filled_bytes = _smart_fill_docx_bytes(doc.file_content, context)
+        filename = f"{doc.name}_{safe_name}.docx"
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
     return StreamingResponse(
         io.BytesIO(filled_bytes),
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

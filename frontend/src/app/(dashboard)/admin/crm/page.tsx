@@ -214,7 +214,7 @@ function CompanyDocuments({ company }: { company: Company }) {
         <label className={`flex items-center gap-1 text-xs font-medium cursor-pointer ${uploading ? "text-gray-400" : "text-primary-600 hover:text-primary-700"}`}>
           {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
           {uploading ? "Lädt…" : "Hochladen"}
-          <input ref={fileRef} type="file" accept=".docx" className="hidden" onChange={handleUpload} disabled={uploading} />
+          <input ref={fileRef} type="file" accept=".docx,.pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
         </label>
       </div>
       {loading ? (
@@ -225,7 +225,7 @@ function CompanyDocuments({ company }: { company: Company }) {
         <div className="space-y-1.5">
           {docs.map((doc) => (
             <div key={doc.id} className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2">
-              <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <FileText className={`h-4 w-4 flex-shrink-0 ${doc.original_filename.toLowerCase().endsWith('.pdf') ? 'text-red-400' : 'text-gray-400'}`} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
                 <p className="text-xs text-gray-400 truncate">{doc.original_filename}</p>
