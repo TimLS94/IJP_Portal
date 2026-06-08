@@ -762,10 +762,12 @@ async def company_applicant_digest():
 
 
 async def weekly_blog_writer():
-    """Background-Task: Generiert automatisch Blog-Posts mit Claude (Intervall und Modus konfigurierbar)."""
-    from datetime import datetime, timedelta
+    """Background-Task: Generiert automatisch Blog-Posts mit Claude (Intervall und Modus konfigurierbar).
+    Restart-sicher: speichert Datum des letzten Laufs in der DB, damit ein Neustart nach dem
+    geplanten Zeitpunkt keinen Run überspringt."""
+    from datetime import datetime, timedelta, date
     from app.core.database import SessionLocal
-    from app.services.settings_service import get_setting
+    from app.services.settings_service import get_setting, set_setting
 
     while True:
         db = SessionLocal()
@@ -775,6 +777,7 @@ async def weekly_blog_writer():
             auto_publish = get_setting(db, "blog_writer_auto_publish", False)
             run_hour = int(get_setting(db, "blog_writer_hour", 8))
             weekdays = get_setting(db, "blog_writer_weekdays", [0])  # 0=Montag
+            last_run_str = get_setting(db, "blog_writer_last_run_date", "")  # "YYYY-MM-DD"
         finally:
             db.close()
 
@@ -783,27 +786,56 @@ async def weekly_blog_writer():
             continue
 
         now = datetime.utcnow()
+        today_str = now.date().isoformat()
+        already_ran_today = last_run_str == today_str
 
         if interval_days in (7, 14) and weekdays:
-            # Nächsten passenden Wochentag finden
             current_wd = now.weekday()  # 0=Montag
             days_to_wait = None
             for i in range(interval_days + 1):
                 check_wd = (current_wd + i) % 7
                 if check_wd in weekdays:
-                    if i == 0 and now.hour >= run_hour:
-                        continue
+                    if i == 0:
+                        if already_ran_today:
+                            # Heute bereits gelaufen → nächsten passenden Tag suchen
+                            continue
+                        if now.hour < run_hour:
+                            # Heute noch nicht an der Reihe (vor Uhrzeit)
+                            days_to_wait = 0
+                            break
+                        # Heute ist der richtige Tag, Uhrzeit ist schon vorbei,
+                        # aber noch nicht gelaufen (z.B. nach Deployment) → sofort ausführen
+                        days_to_wait = 0
+                        break
                     days_to_wait = i
                     break
             if days_to_wait is None:
                 days_to_wait = interval_days
-            next_run = now.replace(hour=run_hour, minute=0, second=0, microsecond=0) + timedelta(days=days_to_wait)
         else:
-            next_run = now.replace(hour=run_hour, minute=0, second=0, microsecond=0) + timedelta(days=interval_days)
+            # Tagesintervall-Modus
+            if already_ran_today:
+                days_to_wait = interval_days
+            else:
+                last_run_date = date.fromisoformat(last_run_str) if last_run_str else date.min
+                days_since = (now.date() - last_run_date).days
+                days_to_wait = max(0, interval_days - days_since)
 
-        wait_seconds = max(60, (next_run - now).total_seconds())
-        logger.info(f"Blog-Writer: nächster Lauf {next_run} (in {wait_seconds/3600:.1f}h, Intervall: {interval_days}d, Auto-Publish: {auto_publish})")
-        await asyncio.sleep(wait_seconds)
+        if days_to_wait == 0 and now.hour >= run_hour and not already_ran_today:
+            # Sofort ausführen (catch-up nach Neustart)
+            wait_seconds = 0
+        elif days_to_wait == 0:
+            # Heute, aber noch vor run_hour warten
+            next_run = now.replace(hour=run_hour, minute=0, second=0, microsecond=0)
+            wait_seconds = max(60, (next_run - now).total_seconds())
+        else:
+            next_run = (now + timedelta(days=days_to_wait)).replace(hour=run_hour, minute=0, second=0, microsecond=0)
+            wait_seconds = max(60, (next_run - now).total_seconds())
+
+        if wait_seconds > 0:
+            logger.info(f"Blog-Writer: nächster Lauf in {wait_seconds/3600:.1f}h (Intervall: {interval_days}d, Auto-Publish: {auto_publish})")
+            await asyncio.sleep(wait_seconds)
+        else:
+            logger.info("Blog-Writer: catch-up nach Neustart, starte sofort")
 
         logger.info("Starte automatischen Blog-Writer...")
         try:
@@ -814,6 +846,8 @@ async def weekly_blog_writer():
                 if result:
                     mode = "veröffentlicht" if auto_publish else "als Entwurf gespeichert"
                     logger.info(f"✅ Blog-Writer: '{result['title']}' {mode}")
+                    set_setting(db, "blog_writer_last_run_date", datetime.utcnow().date().isoformat())
+                    db.commit()
                 else:
                     logger.warning("Blog-Writer: kein Post generiert (API-Key fehlt?)")
             finally:
