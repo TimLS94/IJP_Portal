@@ -127,22 +127,22 @@ export default function BlogEditorPage() {
         </div>
         {!isNew && (
           <div className="flex gap-3">
-            {watch("status") === "published" && (
-              <Link
-                href={
-                  watch("language") === "es"
+            <Link
+              href={
+                watch("status") === "published"
+                  ? watch("language") === "es"
                     ? `/blog/es/${watch("slug")}`
                     : watch("language") === "en"
                     ? `/blog/en/${watch("slug")}`
                     : `/blog/${watch("slug")}`
-                }
-                target="_blank"
-                className="btn-secondary flex items-center gap-2"
-              >
-                <Eye className="h-4 w-4" />
-                Vorschau
-              </Link>
-            )}
+                  : `/admin/blog/${postId}/preview`
+              }
+              target="_blank"
+              className="btn-secondary flex items-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              {watch("status") === "published" ? "Vorschau" : "Entwurf-Vorschau"}
+            </Link>
             <button onClick={handlePublishToggle} className="btn-secondary">
               {watch("status") === "published" ? "Zurückziehen" : "Veröffentlichen"}
             </button>
