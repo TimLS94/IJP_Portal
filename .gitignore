@@ -1,3 +1,6 @@
+# Docs: generierte Screenshots (werden per Script neu erstellt)
+docs/screenshots/
+
 # Dependencies
 node_modules/
 __pycache__/
