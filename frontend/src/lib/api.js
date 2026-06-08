@@ -501,4 +501,20 @@ export const crmAPI = {
 // Auth API Erweiterung für Einladungs-Token-Prüfung
 export const verifyInviteToken = (token) => api.get(`/auth/verify-invite/${token}`);
 
+// Admin: Partner-Links verwalten
+export const adminPartnerLinksAPI = {
+  list: () => api.get('/admin/partner-links'),
+  create: (data) => api.post('/admin/partner-links', data),
+  update: (id, data) => api.patch(`/admin/partner-links/${id}`, data),
+  delete: (id) => api.delete(`/admin/partner-links/${id}`),
+};
+
+// Public: Partner-Ansicht (kein Auth, nur Token)
+export const partnerAPI = {
+  getView: (token, params = {}) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1';
+    return axios.get(`${baseUrl}/partner/${token}`, { params });
+  },
+};
+
 export default api;

@@ -19,7 +19,7 @@ logger.info("Config loaded")
 from app.core.database import engine, Base, SessionLocal
 logger.info("Database module loaded")
 
-from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales, facebook, google_auth, files, notifications, ba_scraper, ijp
+from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales, facebook, google_auth, files, notifications, ba_scraper, ijp, partner
 logger.info("API routers loaded")
 
 # Import Models für create_all
@@ -457,6 +457,37 @@ def ensure_job_request_public_status_column():
 
 
 ensure_job_request_public_status_column()
+
+
+def ensure_partner_links_table():
+    """Erstellt die partner_links Tabelle falls sie noch nicht existiert."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS partner_links (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                partner_source VARCHAR(255) NOT NULL,
+                token VARCHAR(64) UNIQUE NOT NULL,
+                is_active BOOLEAN DEFAULT TRUE,
+                notes VARCHAR(500),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                last_accessed_at TIMESTAMP WITH TIME ZONE
+            )
+        """))
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_partner_links_token ON partner_links (token)"))
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_partner_links_partner_source ON partner_links (partner_source)"))
+        db.commit()
+        logger.info("partner_links: Tabelle sichergestellt")
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"partner_links: {e}")
+    finally:
+        db.close()
+
+
+ensure_partner_links_table()
 
 
 def backfill_is_filtered():
@@ -959,6 +990,7 @@ app.include_router(files.router, prefix=settings.API_V1_PREFIX)
 app.include_router(notifications.router, prefix=settings.API_V1_PREFIX)
 app.include_router(ba_scraper.router, prefix=settings.API_V1_PREFIX)
 app.include_router(ijp.router, prefix=settings.API_V1_PREFIX)
+app.include_router(partner.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

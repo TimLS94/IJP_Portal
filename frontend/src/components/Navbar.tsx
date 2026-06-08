@@ -238,6 +238,7 @@ export default function Navbar() {
         { to: "/admin/reports", icon: Flag, label: "Meldungen" },
         { to: "/admin/blog", icon: BookOpen, label: t("nav.adminBlog") },
         { to: "/admin/invite-tokens", icon: Link2, label: t("nav.inviteTokens") },
+        { to: "/admin/partner-links", icon: Link2, label: "Partner-Links" },
         { to: "/admin/sales", icon: Rocket, label: t("nav.sales") },
         { to: "/admin/analytics", icon: BarChart3, label: "Analytics Hilfe" },
         { divider: true },
