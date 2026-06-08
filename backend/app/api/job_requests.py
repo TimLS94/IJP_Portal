@@ -17,7 +17,7 @@ from app.core.security import get_current_user
 from app.core.config import settings
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant, PositionType
-from app.models.job_request import JobRequest, JobRequestStatus, JOB_REQUEST_STATUS_LABELS, JOB_REQUEST_STATUS_COLORS
+from app.models.job_request import JobRequest, JobRequestStatus, JOB_REQUEST_STATUS_LABELS, JOB_REQUEST_STATUS_COLORS, INTERNAL_JOB_REQUEST_STATUSES
 from app.models.document import Document
 from app.services.email_service import email_service
 
@@ -117,6 +117,12 @@ async def get_my_job_requests(
     if not job_requests:
         return {"has_requests": False, "requests": []}
     
+    def _public_status(req):
+        """Interne Stati werden dem Bewerber als 'In Bearbeitung' angezeigt."""
+        if req.status in INTERNAL_JOB_REQUEST_STATUSES:
+            return req.status.value, "In Bearbeitung", "blue"
+        return req.status.value, JOB_REQUEST_STATUS_LABELS.get(req.status), JOB_REQUEST_STATUS_COLORS.get(req.status)
+
     return {
         "has_requests": True,
         "requests": [
@@ -124,9 +130,10 @@ async def get_my_job_requests(
                 "id": req.id,
                 "position_type": req.position_type.value if req.position_type else None,
                 "position_type_label": POSITION_TYPE_LABELS.get(req.position_type, "Allgemein") if req.position_type else "Allgemein",
-                "status": req.status.value,
-                "status_label": JOB_REQUEST_STATUS_LABELS.get(req.status),
-                "status_color": JOB_REQUEST_STATUS_COLORS.get(req.status),
+                **dict(zip(
+                    ("status", "status_label", "status_color"),
+                    _public_status(req)
+                )),
                 "privacy_consent": req.privacy_consent,
                 "privacy_consent_date": req.privacy_consent_date,
                 "preferred_location": req.preferred_location,
@@ -324,7 +331,8 @@ async def get_status_options(current_user: User = Depends(require_admin)):
             {
                 "value": status.value,
                 "label": JOB_REQUEST_STATUS_LABELS.get(status),
-                "color": JOB_REQUEST_STATUS_COLORS.get(status)
+                "color": JOB_REQUEST_STATUS_COLORS.get(status),
+                "is_internal": status in INTERNAL_JOB_REQUEST_STATUSES,
             }
             for status in JobRequestStatus
         ]
@@ -512,8 +520,8 @@ async def update_job_request_status(
     db.commit()
     db.refresh(req)
     
-    # E-Mail bei Statusänderung
-    if data.status != old_status:
+    # E-Mail bei Statusänderung - bei internen Stati keine Benachrichtigung
+    if data.status != old_status and data.status not in INTERNAL_JOB_REQUEST_STATUSES:
         applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
         user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
         

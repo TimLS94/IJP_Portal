@@ -41,11 +41,20 @@ class JobRequestStatus(str, enum.Enum):
     # 7. Vertrag
     CONTRACT_SENT = "contract_sent"         # Vertrag versendet
     CONTRACT_SIGNED = "contract_signed"     # Vertrag unterschrieben
-    
+
     # 8. Abschluss
     PLACED = "placed"                       # Erfolgreich vermittelt
     COMPLETED = "completed"                 # Abgeschlossen
-    
+
+    # 9. Einreise-Logistik (intern - nur für Admins sichtbar, nicht an Bewerber kommuniziert)
+    DOCUMENTS_IN_GERMANY = "documents_in_germany"           # Studentenunterlagen in Deutschland
+    ZAV_REQUESTED = "zav_requested"                         # ZAV beantragt
+    ZAV_COMPLETED = "zav_completed"                         # ZAV abgeschlossen
+    EMBASSY_APPOINTMENT_SET = "embassy_appointment_set"     # Botschaftstermin festgelegt
+    VISA_RECEIVED = "visa_received"                         # Visum erhalten
+    TRAVEL_DATES_SET = "travel_dates_set"                   # Reisedaten festgelegt
+    ARRIVED = "arrived"                                     # Angereist
+
     # Sonstiges
     ON_HOLD = "on_hold"                     # Pausiert
     CANCELLED = "cancelled"                 # Abgebrochen
@@ -70,6 +79,13 @@ JOB_REQUEST_STATUS_LABELS = {
     JobRequestStatus.CONTRACT_SIGNED: "Vertrag unterschrieben",
     JobRequestStatus.PLACED: "Erfolgreich vermittelt",
     JobRequestStatus.COMPLETED: "Abgeschlossen",
+    JobRequestStatus.DOCUMENTS_IN_GERMANY: "Studentenunterlagen in Deutschland",
+    JobRequestStatus.ZAV_REQUESTED: "ZAV beantragt",
+    JobRequestStatus.ZAV_COMPLETED: "ZAV abgeschlossen",
+    JobRequestStatus.EMBASSY_APPOINTMENT_SET: "Botschaftstermin festgelegt",
+    JobRequestStatus.VISA_RECEIVED: "Visum erhalten",
+    JobRequestStatus.TRAVEL_DATES_SET: "Reisedaten festgelegt",
+    JobRequestStatus.ARRIVED: "Angereist",
     JobRequestStatus.ON_HOLD: "Pausiert",
     JobRequestStatus.CANCELLED: "Abgebrochen",
     JobRequestStatus.WITHDRAWN: "Zurückgezogen",
@@ -93,10 +109,28 @@ JOB_REQUEST_STATUS_COLORS = {
     JobRequestStatus.CONTRACT_SIGNED: "green",
     JobRequestStatus.PLACED: "green",
     JobRequestStatus.COMPLETED: "gray",
+    JobRequestStatus.DOCUMENTS_IN_GERMANY: "orange",
+    JobRequestStatus.ZAV_REQUESTED: "blue",
+    JobRequestStatus.ZAV_COMPLETED: "indigo",
+    JobRequestStatus.EMBASSY_APPOINTMENT_SET: "purple",
+    JobRequestStatus.VISA_RECEIVED: "green",
+    JobRequestStatus.TRAVEL_DATES_SET: "orange",
+    JobRequestStatus.ARRIVED: "green",
     JobRequestStatus.ON_HOLD: "orange",
     JobRequestStatus.CANCELLED: "red",
     JobRequestStatus.WITHDRAWN: "gray",
 }
+
+
+INTERNAL_JOB_REQUEST_STATUSES = frozenset({
+    JobRequestStatus.DOCUMENTS_IN_GERMANY,
+    JobRequestStatus.ZAV_REQUESTED,
+    JobRequestStatus.ZAV_COMPLETED,
+    JobRequestStatus.EMBASSY_APPOINTMENT_SET,
+    JobRequestStatus.VISA_RECEIVED,
+    JobRequestStatus.TRAVEL_DATES_SET,
+    JobRequestStatus.ARRIVED,
+})
 
 
 class JobRequest(Base):

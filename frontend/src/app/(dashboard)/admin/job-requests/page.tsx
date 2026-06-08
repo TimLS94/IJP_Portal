@@ -53,6 +53,7 @@ interface StatusOption {
   value: string;
   label: string;
   color: string;
+  is_internal?: boolean;
 }
 
 interface Document {
@@ -167,7 +168,8 @@ export default function AdminJobRequests() {
         interview_link: interviewLink || null,
         contract_date: contractDate || null
       });
-      toast.success('Status aktualisiert - E-Mail wurde gesendet');
+      const isInternal = statusOptions.find(s => s.value === newStatus)?.is_internal;
+      toast.success(isInternal ? 'Status aktualisiert (intern – keine E-Mail an Bewerber)' : 'Status aktualisiert – E-Mail wurde gesendet');
       loadRequests();
       if (selectedRequest) loadRequestDetails(selectedRequest);
     } catch (error) {
@@ -298,7 +300,9 @@ export default function AdminJobRequests() {
             >
               <option value="">Alle Status</option>
               {statusOptions.map((status) => (
-                <option key={status.value} value={status.value}>{status.label}</option>
+                <option key={status.value} value={status.value}>
+                  {status.is_internal ? `🔒 ${status.label}` : status.label}
+                </option>
               ))}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
@@ -772,11 +776,17 @@ export default function AdminJobRequests() {
                       {/* Aktueller Status */}
                       <div className="mb-4 p-3 bg-white rounded-lg">
                         <p className="text-xs text-gray-500 mb-1">Aktueller Status:</p>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
-                          statusColors[statusOptions.find(s => s.value === requestDetails.request.status)?.color ?? 'gray'] || statusColors.gray
-                        }`}>
-                          {statusOptions.find(s => s.value === requestDetails.request.status)?.label || requestDetails.request.status}
-                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
+                            statusColors[statusOptions.find(s => s.value === requestDetails.request.status)?.color ?? 'gray'] || statusColors.gray
+                          }`}>
+                            {statusOptions.find(s => s.value === requestDetails.request.status)?.is_internal && '🔒 '}
+                            {statusOptions.find(s => s.value === requestDetails.request.status)?.label || requestDetails.request.status}
+                          </span>
+                          {statusOptions.find(s => s.value === requestDetails.request.status)?.is_internal && (
+                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-medium">Intern</span>
+                          )}
+                        </div>
                       </div>
                       
                       {/* Status Workflow Info */}
@@ -797,6 +807,22 @@ export default function AdminJobRequests() {
                           <span className="text-gray-400">→</span>
                           <span className="text-green-600">Vermittelt</span>
                         </div>
+                        <div className="flex flex-wrap gap-1 text-xs mt-2 pt-2 border-t border-gray-100">
+                          <span className="text-gray-400">🔒 Intern:</span>
+                          <span className="text-orange-600">Unterlagen DE</span>
+                          <span className="text-gray-400">→</span>
+                          <span className="text-blue-600">ZAV beantragt</span>
+                          <span className="text-gray-400">→</span>
+                          <span className="text-indigo-600">ZAV abgeschl.</span>
+                          <span className="text-gray-400">→</span>
+                          <span className="text-purple-600">Botschaftstermin</span>
+                          <span className="text-gray-400">→</span>
+                          <span className="text-green-600">Visum</span>
+                          <span className="text-gray-400">→</span>
+                          <span className="text-orange-600">Reisedaten</span>
+                          <span className="text-gray-400">→</span>
+                          <span className="text-green-600">Angereist</span>
+                        </div>
                       </div>
                       
                       <div className="space-y-3">
@@ -809,7 +835,9 @@ export default function AdminJobRequests() {
                               onChange={(e) => setNewStatus(e.target.value)}
                             >
                               {statusOptions.map((status) => (
-                                <option key={status.value} value={status.value}>{status.label}</option>
+                                <option key={status.value} value={status.value}>
+                                  {status.is_internal ? `🔒 ${status.label}` : status.label}
+                                </option>
                               ))}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
