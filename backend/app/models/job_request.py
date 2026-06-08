@@ -148,6 +148,8 @@ class JobRequest(Base):
     
     # Status
     status = Column(Enum(JobRequestStatus, values_callable=lambda x: [e.value for e in x]), default=JobRequestStatus.PENDING)
+    # Öffentlicher Status - was der Student sieht (unabhängig vom internen Status, nullable)
+    public_status = Column(Enum(JobRequestStatus, values_callable=lambda x: [e.value for e in x]), nullable=True)
     
     # Datenschutz-Zustimmung
     privacy_consent = Column(Boolean, default=False)

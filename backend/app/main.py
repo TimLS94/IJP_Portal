@@ -436,6 +436,29 @@ def ensure_crm_columns():
 ensure_crm_columns()
 
 
+def ensure_job_request_public_status_column():
+    """Fügt public_status Spalte zu job_requests hinzu."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'job_requests' AND column_name = 'public_status'
+        """))
+        if not result.fetchone():
+            db.execute(text("ALTER TABLE job_requests ADD COLUMN public_status VARCHAR(100) DEFAULT NULL"))
+            db.commit()
+            logger.info("job_requests: Spalte 'public_status' hinzugefügt")
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"job_requests public_status: {e}")
+    finally:
+        db.close()
+
+
+ensure_job_request_public_status_column()
+
+
 def backfill_is_filtered():
     """
     Setzt is_filtered korrekt für bestehende Bewerbungen:

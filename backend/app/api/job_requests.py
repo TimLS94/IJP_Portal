@@ -36,6 +36,8 @@ class CreateJobRequestSchema(BaseModel):
 
 class UpdateJobRequestStatusSchema(BaseModel):
     status: JobRequestStatus
+    public_status: Optional[JobRequestStatus] = None  # Was der Student sieht (None = löschen)
+    clear_public_status: bool = False                 # Explizit auf None setzen
     admin_notes: Optional[str] = None
     matched_company_name: Optional[str] = None
     matched_job_title: Optional[str] = None
@@ -118,7 +120,14 @@ async def get_my_job_requests(
         return {"has_requests": False, "requests": []}
     
     def _public_status(req):
-        """Interne Stati werden dem Bewerber als 'In Bearbeitung' angezeigt."""
+        """Gibt den für den Bewerber sichtbaren Status zurück.
+        Priorität: public_status > gemaskter interner Status."""
+        if req.public_status:
+            return (
+                req.public_status.value,
+                JOB_REQUEST_STATUS_LABELS.get(req.public_status),
+                JOB_REQUEST_STATUS_COLORS.get(req.public_status),
+            )
         if req.status in INTERNAL_JOB_REQUEST_STATUSES:
             return req.status.value, "In Bearbeitung", "blue"
         return req.status.value, JOB_REQUEST_STATUS_LABELS.get(req.status), JOB_REQUEST_STATUS_COLORS.get(req.status)
@@ -386,6 +395,8 @@ async def list_job_requests(
             "status": req.status.value,
             "status_label": JOB_REQUEST_STATUS_LABELS.get(req.status),
             "status_color": JOB_REQUEST_STATUS_COLORS.get(req.status),
+            "public_status": req.public_status.value if req.public_status else None,
+            "public_status_label": JOB_REQUEST_STATUS_LABELS.get(req.public_status) if req.public_status else None,
             "privacy_consent": req.privacy_consent,
             "privacy_consent_date": req.privacy_consent_date,
             "preferred_location": req.preferred_location,
@@ -422,6 +433,8 @@ async def get_job_request_details(
             "status": req.status.value,
             "status_label": JOB_REQUEST_STATUS_LABELS.get(req.status),
             "status_color": JOB_REQUEST_STATUS_COLORS.get(req.status),
+            "public_status": req.public_status.value if req.public_status else None,
+            "public_status_label": JOB_REQUEST_STATUS_LABELS.get(req.public_status) if req.public_status else None,
             "privacy_consent": req.privacy_consent,
             "privacy_consent_date": req.privacy_consent_date,
             "preferred_location": req.preferred_location,
@@ -493,8 +506,15 @@ async def update_job_request_status(
         raise HTTPException(status_code=404, detail="Auftrag nicht gefunden")
     
     old_status = req.status
+    old_public_status = req.public_status
     req.status = data.status
-    
+
+    # Öffentlichen Status setzen oder löschen
+    if data.clear_public_status:
+        req.public_status = None
+    elif data.public_status is not None:
+        req.public_status = data.public_status
+
     # Optionale Felder aktualisieren
     if data.admin_notes is not None:
         req.admin_notes = data.admin_notes
@@ -520,8 +540,17 @@ async def update_job_request_status(
     db.commit()
     db.refresh(req)
     
-    # E-Mail bei Statusänderung - bei internen Stati keine Benachrichtigung
-    if data.status != old_status and data.status not in INTERNAL_JOB_REQUEST_STATUSES:
+    # E-Mail-Trigger:
+    # 1. public_status hat sich geändert → Student bekommt die public_status-Beschriftung
+    # 2. interner Status wechselt auf einen nicht-internen Wert (kein public_status gesetzt) → wie bisher
+    new_public_status = req.public_status
+    public_status_changed = new_public_status != old_public_status
+    internal_status_changed_to_public = (data.status != old_status and data.status not in INTERNAL_JOB_REQUEST_STATUSES)
+    email_status = new_public_status if public_status_changed and new_public_status else (
+        data.status if internal_status_changed_to_public else None
+    )
+
+    if email_status:
         applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
         user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
         
@@ -561,7 +590,7 @@ async def update_job_request_status(
             
             email_service.send_email(
                 to_email=user.email,
-                subject=f"IJP Update: {JOB_REQUEST_STATUS_LABELS.get(data.status)} - {position_label}",
+                subject=f"IJP Update: {JOB_REQUEST_STATUS_LABELS.get(email_status)} - {position_label}",
                 html_content=f"""
                 <html>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -570,14 +599,14 @@ async def update_job_request_status(
                             <h1 style="color: #2563eb; margin: 0;">IJP - International Job Placement</h1>
                             <p style="color: #6b7280; margin: 5px 0;">Status-Update zu Ihrem Vermittlungsauftrag</p>
                         </div>
-                        
+
                         <p>Hallo {applicant.first_name},</p>
-                        
+
                         <p>wir freuen uns, Ihnen mitzuteilen, dass sich der Status Ihres IJP-Auftrags für <strong>{position_label}</strong> geändert hat:</p>
-                        
+
                         <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 20px; border-radius: 12px; margin: 25px 0; text-align: center; border: 1px solid #93c5fd;">
                             <p style="margin: 0 0 5px 0; color: #6b7280; font-size: 14px;">Neuer Status:</p>
-                            <strong style="font-size: 22px; color: #1d4ed8;">{JOB_REQUEST_STATUS_LABELS.get(data.status)}</strong>
+                            <strong style="font-size: 22px; color: #1d4ed8;">{JOB_REQUEST_STATUS_LABELS.get(email_status)}</strong>
                         </div>
                         
                         {company_section}

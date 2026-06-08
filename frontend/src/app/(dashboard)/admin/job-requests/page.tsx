@@ -37,6 +37,8 @@ interface JobRequest {
   status: string;
   status_label: string;
   status_color: string;
+  public_status?: string | null;
+  public_status_label?: string | null;
   preferred_location?: string;
   notes?: string;
   admin_notes?: string;
@@ -83,6 +85,7 @@ export default function AdminJobRequests() {
   // Status ändern
   const [changingStatus, setChangingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState('');
+  const [newPublicStatus, setNewPublicStatus] = useState<string>('');
   const [adminNotes, setAdminNotes] = useState('');
   const [matchedCompanyName, setMatchedCompanyName] = useState('');
   const [matchedJobTitle, setMatchedJobTitle] = useState('');
@@ -140,6 +143,7 @@ export default function AdminJobRequests() {
       const response = await jobRequestsAPI.getRequestDetails(reqId);
       setRequestDetails(response.data);
       setNewStatus(response.data.request.status);
+      setNewPublicStatus(response.data.request.public_status || '');
       setAdminNotes(response.data.request.admin_notes || '');
       setMatchedCompanyName(response.data.request.matched_company_name || '');
       setMatchedJobTitle(response.data.request.matched_job_title || '');
@@ -159,8 +163,11 @@ export default function AdminJobRequests() {
     
     setChangingStatus(true);
     try {
+      const isInternal = statusOptions.find(s => s.value === newStatus)?.is_internal;
       await jobRequestsAPI.updateStatus(selectedRequest, {
         status: newStatus,
+        public_status: newPublicStatus || null,
+        clear_public_status: isInternal && !newPublicStatus,
         admin_notes: adminNotes,
         matched_company_name: matchedCompanyName || null,
         matched_job_title: matchedJobTitle || null,
@@ -168,8 +175,13 @@ export default function AdminJobRequests() {
         interview_link: interviewLink || null,
         contract_date: contractDate || null
       });
-      const isInternal = statusOptions.find(s => s.value === newStatus)?.is_internal;
-      toast.success(isInternal ? 'Status aktualisiert (intern – keine E-Mail an Bewerber)' : 'Status aktualisiert – E-Mail wurde gesendet');
+      if (isInternal && newPublicStatus) {
+        toast.success('Status aktualisiert – Bewerber sieht öffentlichen Status, E-Mail gesendet');
+      } else if (isInternal) {
+        toast.success('Status aktualisiert (intern – keine E-Mail an Bewerber)');
+      } else {
+        toast.success('Status aktualisiert – E-Mail wurde gesendet');
+      }
       loadRequests();
       if (selectedRequest) loadRequestDetails(selectedRequest);
     } catch (error) {
@@ -774,17 +786,35 @@ export default function AdminJobRequests() {
                       <h3 className="font-bold text-gray-900 mb-3">Status verwalten</h3>
                       
                       {/* Aktueller Status */}
-                      <div className="mb-4 p-3 bg-white rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Aktueller Status:</p>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
-                            statusColors[statusOptions.find(s => s.value === requestDetails.request.status)?.color ?? 'gray'] || statusColors.gray
-                          }`}>
-                            {statusOptions.find(s => s.value === requestDetails.request.status)?.is_internal && '🔒 '}
-                            {statusOptions.find(s => s.value === requestDetails.request.status)?.label || requestDetails.request.status}
-                          </span>
-                          {statusOptions.find(s => s.value === requestDetails.request.status)?.is_internal && (
-                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-medium">Intern</span>
+                      <div className="mb-4 p-3 bg-white rounded-lg space-y-2">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Interner Status:</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
+                              statusColors[statusOptions.find(s => s.value === requestDetails.request.status)?.color ?? 'gray'] || statusColors.gray
+                            }`}>
+                              {statusOptions.find(s => s.value === requestDetails.request.status)?.is_internal && '🔒 '}
+                              {statusOptions.find(s => s.value === requestDetails.request.status)?.label || requestDetails.request.status}
+                            </span>
+                            {statusOptions.find(s => s.value === requestDetails.request.status)?.is_internal && (
+                              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-medium">Intern</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Studentensicht:</p>
+                          {requestDetails.request.public_status ? (
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
+                              statusColors[statusOptions.find(s => s.value === requestDetails.request.public_status)?.color ?? 'blue'] || statusColors.blue
+                            }`}>
+                              {requestDetails.request.public_status_label || requestDetails.request.public_status}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">
+                              {statusOptions.find(s => s.value === requestDetails.request.status)?.is_internal
+                                ? 'Student sieht: "In Bearbeitung"'
+                                : 'Student sieht den internen Status'}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -827,7 +857,7 @@ export default function AdminJobRequests() {
                       
                       <div className="space-y-3">
                         <div>
-                          <label className="label text-sm">Neuer Status</label>
+                          <label className="label text-sm">Interner Status (nur Admin)</label>
                           <div className="relative">
                             <select
                               className="input-styled appearance-none pr-10"
@@ -843,7 +873,37 @@ export default function AdminJobRequests() {
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
                           </div>
                         </div>
-                        
+
+                        {/* Öffentlicher Status - was der Student sieht */}
+                        <div className="border border-blue-200 rounded-lg p-3 bg-blue-50">
+                          <label className="label text-sm text-blue-800 font-semibold">
+                            Öffentlicher Status (Studentensicht)
+                          </label>
+                          <p className="text-xs text-blue-600 mb-2">
+                            Wird dem Bewerber angezeigt – unabhängig vom internen Status.
+                          </p>
+                          <div className="relative">
+                            <select
+                              className="input-styled appearance-none pr-10"
+                              value={newPublicStatus}
+                              onChange={(e) => setNewPublicStatus(e.target.value)}
+                            >
+                              <option value="">— Kein öffentlicher Status (Standard) —</option>
+                              {statusOptions
+                                .filter(s => !s.is_internal)
+                                .map((status) => (
+                                  <option key={status.value} value={status.value}>{status.label}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                          </div>
+                          {newPublicStatus && (
+                            <p className="text-xs text-blue-700 mt-1">
+                              Student sieht: <strong>{statusOptions.find(s => s.value === newPublicStatus)?.label}</strong>
+                            </p>
+                          )}
+                        </div>
+
                         <div>
                           <label className="label text-sm">Admin-Notizen (intern)</label>
                           <textarea
