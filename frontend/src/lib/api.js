@@ -272,6 +272,7 @@ export const jobRequestsAPI = {
   cancelRequest: (id) => api.delete(`/job-requests/my/${id}`),
   // Admin
   getStatusOptions: () => api.get('/job-requests/admin/status-options'),
+  getInviteSources: () => api.get('/job-requests/admin/invite-sources'),
   listRequests: (params) => api.get('/job-requests/admin', { params }),
   getRequestDetails: (id) => api.get(`/job-requests/admin/${id}`),
   updateStatus: (id, data) => api.put(`/job-requests/admin/${id}/status`, data),

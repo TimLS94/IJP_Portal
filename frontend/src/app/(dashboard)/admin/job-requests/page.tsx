@@ -70,6 +70,10 @@ export default function AdminJobRequests() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [positionTypeFilter, setPositionTypeFilter] = useState('');
+  const [inviteSourceFilter, setInviteSourceFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [inviteSources, setInviteSources] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const limit = 50;
@@ -95,11 +99,12 @@ export default function AdminJobRequests() {
 
   useEffect(() => {
     loadStatusOptions();
+    loadInviteSources();
   }, []);
 
   useEffect(() => {
     loadRequests();
-  }, [statusFilter, positionTypeFilter, page]);
+  }, [statusFilter, positionTypeFilter, inviteSourceFilter, dateFrom, dateTo, page]);
 
   const loadStatusOptions = async () => {
     try {
@@ -107,6 +112,15 @@ export default function AdminJobRequests() {
       setStatusOptions(response.data.statuses);
     } catch (error) {
       console.error('Fehler beim Laden der Status-Optionen');
+    }
+  };
+
+  const loadInviteSources = async () => {
+    try {
+      const response = await jobRequestsAPI.getInviteSources();
+      setInviteSources(response.data.sources);
+    } catch (error) {
+      console.error('Fehler beim Laden der Partner');
     }
   };
 
@@ -118,6 +132,9 @@ export default function AdminJobRequests() {
         limit,
         ...(statusFilter && { status_filter: statusFilter }),
         ...(positionTypeFilter && { position_type: positionTypeFilter }),
+        ...(inviteSourceFilter && { invite_source: inviteSourceFilter }),
+        ...(dateFrom && { date_from: dateFrom }),
+        ...(dateTo && { date_to: dateTo }),
         ...(search && { search })
       };
       const response = await jobRequestsAPI.listRequests(params);
@@ -269,9 +286,9 @@ export default function AdminJobRequests() {
       </div>
 
       {/* Filter */}
-      <div className="card mb-6">
+      <div className="card mb-6 space-y-4">
+        {/* Zeile 1: Suche + Stellenart + Status */}
         <div className="grid md:grid-cols-4 gap-4">
-          {/* Suche */}
           <form onSubmit={handleSearch} className="md:col-span-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -287,8 +304,7 @@ export default function AdminJobRequests() {
               </button>
             </div>
           </form>
-          
-          {/* Stellenart Filter */}
+
           <div className="relative">
             <select
               className="input-styled appearance-none pr-10"
@@ -302,8 +318,7 @@ export default function AdminJobRequests() {
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
           </div>
-          
-          {/* Status Filter */}
+
           <div className="relative">
             <select
               className="input-styled appearance-none pr-10"
@@ -320,11 +335,63 @@ export default function AdminJobRequests() {
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
           </div>
         </div>
-        
-        {/* Aktive Filter */}
-        {(statusFilter || positionTypeFilter) && (
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t">
-            <Filter className="h-4 w-4 text-gray-500" />
+
+        {/* Zeile 2: Partner + Datum */}
+        <div className="grid md:grid-cols-4 gap-4 pt-3 border-t border-gray-100">
+          {/* Partner-Dropdown */}
+          <div className="relative">
+            <select
+              className="input-styled appearance-none pr-10"
+              value={inviteSourceFilter}
+              onChange={(e) => { setInviteSourceFilter(e.target.value); setPage(0); }}
+            >
+              <option value="">Alle Partner</option>
+              {inviteSources.map((src) => (
+                <option key={src} value={src}>{src}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+          </div>
+
+          {/* Datum von */}
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Beauftragt ab</label>
+            <input
+              type="date"
+              className="input-styled"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+            />
+          </div>
+
+          {/* Datum bis */}
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Beauftragt bis</label>
+            <input
+              type="date"
+              className="input-styled"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+            />
+          </div>
+
+          {/* Reset */}
+          {(inviteSourceFilter || dateFrom || dateTo) && (
+            <div className="flex items-end">
+              <button
+                onClick={() => { setInviteSourceFilter(''); setDateFrom(''); setDateTo(''); setPage(0); }}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Datum/Partner zurücksetzen
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Aktive Filter Chips */}
+        {(statusFilter || positionTypeFilter || inviteSourceFilter || dateFrom || dateTo) && (
+          <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-gray-100">
+            <Filter className="h-4 w-4 text-gray-500 shrink-0" />
             <span className="text-sm text-gray-500">Aktive Filter:</span>
             {positionTypeFilter && (
               <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
@@ -338,8 +405,20 @@ export default function AdminJobRequests() {
                 <button onClick={() => setStatusFilter('')} className="ml-1 hover:text-purple-600">×</button>
               </span>
             )}
-            <button 
-              onClick={() => { setStatusFilter(''); setPositionTypeFilter(''); }}
+            {inviteSourceFilter && (
+              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                Partner: {inviteSourceFilter}
+                <button onClick={() => setInviteSourceFilter('')} className="ml-1 hover:text-green-600">×</button>
+              </span>
+            )}
+            {(dateFrom || dateTo) && (
+              <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
+                {dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : dateFrom ? `ab ${dateFrom}` : `bis ${dateTo}`}
+                <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="ml-1 hover:text-orange-600">×</button>
+              </span>
+            )}
+            <button
+              onClick={() => { setStatusFilter(''); setPositionTypeFilter(''); setInviteSourceFilter(''); setDateFrom(''); setDateTo(''); }}
               className="text-sm text-gray-500 hover:text-gray-700 ml-2"
             >
               Alle zurücksetzen

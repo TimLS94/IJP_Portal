@@ -348,11 +348,31 @@ async def get_status_options(current_user: User = Depends(require_admin)):
     }
 
 
+@router.get("/admin/invite-sources")
+async def get_invite_sources(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Gibt alle einzigartigen invite_source-Werte zurück, die Bewerber mit Aufträgen haben."""
+    rows = (
+        db.query(Applicant.invite_source)
+        .join(JobRequest, JobRequest.applicant_id == Applicant.id)
+        .filter(Applicant.invite_source.isnot(None))
+        .distinct()
+        .order_by(Applicant.invite_source)
+        .all()
+    )
+    return {"sources": [r[0] for r in rows if r[0]]}
+
+
 @router.get("/admin")
 async def list_job_requests(
     status_filter: Optional[JobRequestStatus] = None,
     position_type: Optional[PositionType] = None,
     search: Optional[str] = None,
+    invite_source: Optional[str] = None,
+    date_from: Optional[str] = Query(None, description="ISO date YYYY-MM-DD"),
+    date_to: Optional[str] = Query(None, description="ISO date YYYY-MM-DD"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(require_admin),
@@ -360,20 +380,37 @@ async def list_job_requests(
 ):
     """Listet alle IJP-Aufträge für Admin"""
     query = db.query(JobRequest).join(Applicant)
-    
+
     if status_filter:
         query = query.filter(JobRequest.status == status_filter)
-    
+
     if position_type:
-        # Filtern nach der Stellenart des Auftrags, nicht des Profils!
         query = query.filter(JobRequest.position_type == position_type)
-    
+
     if search:
         search_term = f"%{search}%"
         query = query.filter(
             (Applicant.first_name.ilike(search_term)) |
             (Applicant.last_name.ilike(search_term))
         )
+
+    if invite_source:
+        query = query.filter(Applicant.invite_source == invite_source)
+
+    if date_from:
+        try:
+            dt_from = datetime.fromisoformat(date_from)
+            query = query.filter(JobRequest.created_at >= dt_from)
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            from datetime import timedelta
+            dt_to = datetime.fromisoformat(date_to) + timedelta(days=1)
+            query = query.filter(JobRequest.created_at < dt_to)
+        except ValueError:
+            pass
     
     total = query.count()
     requests = query.order_by(JobRequest.created_at.desc()).offset(skip).limit(limit).all()
