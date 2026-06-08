@@ -339,18 +339,21 @@ export default function AdminJobRequests() {
         {/* Zeile 2: Partner + Datum */}
         <div className="grid md:grid-cols-4 gap-4 pt-3 border-t border-gray-100">
           {/* Partner-Dropdown */}
-          <div className="relative">
-            <select
-              className="input-styled appearance-none pr-10"
-              value={inviteSourceFilter}
-              onChange={(e) => { setInviteSourceFilter(e.target.value); setPage(0); }}
-            >
-              <option value="">Alle Partner</option>
-              {inviteSources.map((src) => (
-                <option key={src} value={src}>{src}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Partner</label>
+            <div className="relative">
+              <select
+                className="input-styled appearance-none pr-10"
+                value={inviteSourceFilter}
+                onChange={(e) => { setInviteSourceFilter(e.target.value); setPage(0); }}
+              >
+                <option value="">Alle Partner</option>
+                {inviteSources.map((src) => (
+                  <option key={src} value={src}>{src}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+            </div>
           </div>
 
           {/* Datum von */}

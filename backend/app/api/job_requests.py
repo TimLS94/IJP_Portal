@@ -353,10 +353,9 @@ async def get_invite_sources(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Gibt alle einzigartigen invite_source-Werte zurück, die Bewerber mit Aufträgen haben."""
+    """Gibt alle einzigartigen invite_source-Werte zurück (alle Bewerber, unabhängig von Aufträgen)."""
     rows = (
         db.query(Applicant.invite_source)
-        .join(JobRequest, JobRequest.applicant_id == Applicant.id)
         .filter(Applicant.invite_source.isnot(None))
         .distinct()
         .order_by(Applicant.invite_source)
