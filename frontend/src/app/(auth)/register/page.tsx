@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,8 @@ interface RegisterForm {
 export default function RegisterPage() {
   const { registerApplicant, registerCompany } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sourceToken = searchParams.get("source");
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -40,7 +42,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       if (userType === "applicant") {
-        await registerApplicant(data.email, data.password, data.firstName!, data.lastName!);
+        await registerApplicant(data.email, data.password, data.firstName!, data.lastName!, sourceToken);
         toast.success(t("auth.registrationSuccess"));
         router.push("/applicant/profile");
       } else {

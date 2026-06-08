@@ -35,11 +35,12 @@ export function AuthProvider({ children }) {
     return user;
   };
 
-  const registerApplicant = async (email, password, firstName, lastName) => {
+  const registerApplicant = async (email, password, firstName, lastName, sourceToken = null) => {
     const response = await authAPI.registerApplicant(
       { email, password, role: 'applicant' },
       firstName,
-      lastName
+      lastName,
+      sourceToken
     );
     const { access_token, user } = response.data;
 

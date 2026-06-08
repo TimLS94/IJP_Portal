@@ -42,8 +42,11 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
-  registerApplicant: (data, firstName, lastName) => 
-    api.post(`/auth/register/applicant?first_name=${firstName}&last_name=${lastName}`, data),
+  registerApplicant: (data, firstName, lastName, sourceToken = null) => {
+    let url = `/auth/register/applicant?first_name=${firstName}&last_name=${lastName}`;
+    if (sourceToken) url += `&source_token=${encodeURIComponent(sourceToken)}`;
+    return api.post(url, data);
+  },
   registerCompany: (userData, companyData, inviteToken = null) => 
     api.post('/auth/register/company', { user_data: userData, company_data: companyData, invite_token: inviteToken }),
   login: (email, password) => {
