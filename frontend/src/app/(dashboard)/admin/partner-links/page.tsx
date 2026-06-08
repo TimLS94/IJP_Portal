@@ -5,8 +5,15 @@ import {
   Link2, Plus, Trash2, Copy, Check, X, Users,
   Loader2, ToggleLeft, ToggleRight, ExternalLink, Shield
 } from "lucide-react";
-import { adminPartnerLinksAPI } from "@/lib/api";
+import { adminPartnerLinksAPI, adminAPI } from "@/lib/api";
 import toast from "react-hot-toast";
+
+interface ApplicantInvite {
+  id: number;
+  source_name: string;
+  source_country?: string;
+  is_active: boolean;
+}
 
 interface PartnerLink {
   id: number;
@@ -30,6 +37,7 @@ export default function AdminPartnerLinksPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [inviteSources, setInviteSources] = useState<ApplicantInvite[]>([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -39,7 +47,17 @@ export default function AdminPartnerLinksPage() {
 
   useEffect(() => {
     loadLinks();
+    loadInviteSources();
   }, []);
+
+  const loadInviteSources = async () => {
+    try {
+      const res = await adminAPI.listApplicantInvites();
+      setInviteSources(res.data.invites || []);
+    } catch {
+      // silent
+    }
+  };
 
   const loadLinks = async () => {
     try {
@@ -141,7 +159,7 @@ export default function AdminPartnerLinksPage() {
           <div className="text-sm text-blue-800 space-y-1">
             <p className="font-semibold">So funktionieren Partner-Links:</p>
             <ul className="list-disc list-inside space-y-0.5 text-blue-700">
-              <li>Jeder Link zeigt nur die Bewerber, die über die zugeordnete Partnerquelle kamen</li>
+              <li>Jeder Link ist mit einer Bewerber-Einladung verknüpft und zeigt nur deren Bewerber</li>
               <li>Partner sehen Namen, Dokumentenstatus und IJP-Auftragsstatus – keine Dateien</li>
               <li>Kein Login nötig – Zugriff nur über den geheimen Link-Token</li>
               <li>Links können jederzeit deaktiviert oder gelöscht werden</li>
@@ -173,17 +191,23 @@ export default function AdminPartnerLinksPage() {
               </p>
             </div>
             <div>
-              <label className="label">Partnerquelle (invite_source)</label>
-              <input
-                type="text"
+              <label className="label">Partnerquelle (Bewerber-Einladung)</label>
+              <select
                 className="input-styled"
-                placeholder="z.B. Janara"
                 value={form.partner_source}
                 onChange={(e) => setForm({ ...form, partner_source: e.target.value })}
                 required
-              />
+              >
+                <option value="">— Quelle auswählen —</option>
+                {inviteSources.map((inv) => (
+                  <option key={inv.id} value={inv.source_name}>
+                    {inv.source_name}{inv.source_country ? ` (${inv.source_country})` : ""}
+                    {!inv.is_active ? " [inaktiv]" : ""}
+                  </option>
+                ))}
+              </select>
               <p className="text-xs text-gray-500 mt-1">
-                Muss exakt mit dem Wert im Bewerber-Profil übereinstimmen
+                Aus den angelegten Bewerber-Einladungen
               </p>
             </div>
             <div className="md:col-span-2">
