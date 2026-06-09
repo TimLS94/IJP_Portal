@@ -100,33 +100,34 @@ interface Props {
   slug: string;
 }
 
-const positionTypeLabels: Record<string, string> = {
-  general: "Allgemein",
-  studentenferienjob: "Studentenferienjob",
-  saisonjob: "Saisonjob",
-  workandholiday: "Work & Holiday",
-  fachkraft: "Fachkraft",
-  ausbildung: "Ausbildung",
+const positionTypeLabelsByLang: Record<string, Record<string, string>> = {
+  de: { general: "Allgemein", studentenferienjob: "Studentenferienjob", saisonjob: "Saisonjob", workandholiday: "Work & Holiday", fachkraft: "Fachkraft", ausbildung: "Ausbildung" },
+  en: { general: "General", studentenferienjob: "Student holiday job", saisonjob: "Seasonal job", workandholiday: "Work & Holiday", fachkraft: "Skilled worker", ausbildung: "Apprenticeship" },
+  es: { general: "General", studentenferienjob: "Trabajo de vacaciones para estudiantes", saisonjob: "Trabajo de temporada", workandholiday: "Work & Holiday", fachkraft: "Trabajador cualificado", ausbildung: "Formación profesional" },
+  ru: { general: "Общее", studentenferienjob: "Студенческая подработка", saisonjob: "Сезонная работа", workandholiday: "Work & Holiday", fachkraft: "Квалифицированный специалист", ausbildung: "Профессиональное обучение" },
 };
 
-const employmentTypeLabels: Record<string, string> = {
-  fulltime: "Vollzeit",
-  parttime: "Teilzeit",
-  both: "Vollzeit oder Teilzeit",
+const employmentTypeLabelsByLang: Record<string, Record<string, string>> = {
+  de: { fulltime: "Vollzeit", parttime: "Teilzeit", both: "Vollzeit oder Teilzeit" },
+  en: { fulltime: "Full-time", parttime: "Part-time", both: "Full-time or part-time" },
+  es: { fulltime: "Tiempo completo", parttime: "Tiempo parcial", both: "Tiempo completo o parcial" },
+  ru: { fulltime: "Полная занятость", parttime: "Частичная занятость", both: "Полная или частичная занятость" },
 };
 
+const notRequiredByLang: Record<string, string> = {
+  de: "Nicht erforderlich", en: "Not required", es: "No requerido", ru: "Не требуется",
+};
 
-const languageLevelLabels: Record<string, string> = {
-  not_required: "Nicht erforderlich",
-  a1: "A1",
-  a2: "A2",
-  b1: "B1",
-  b2: "B2",
-  c1: "C1",
-  c2: "C2",
-  basic: "A2",
-  good: "B1",
-  fluent: "C1",
+const JOB_UI_TEXT: Record<string, Record<string, string>> = {
+  de: { remote: "Remote möglich", accommodation: "🏠 Unterkunft vorhanden" },
+  en: { remote: "Remote possible", accommodation: "🏠 Accommodation provided" },
+  es: { remote: "Trabajo remoto posible", accommodation: "🏠 Alojamiento incluido" },
+  ru: { remote: "Возможна удалённая работа", accommodation: "🏠 Жильё предоставляется" },
+};
+
+const LANGUAGE_LEVEL_CODES: Record<string, string> = {
+  a1: "A1", a2: "A2", b1: "B1", b2: "B2", c1: "C1", c2: "C2",
+  basic: "A2", good: "B1", fluent: "C1",
 };
 
 const languageLevelColors: Record<string, string> = {
@@ -190,6 +191,17 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
   };
 
   const [displayLanguage, setDisplayLanguage] = useState(() => resolveDisplayLang(i18n.language || "de"));
+
+  // Label-Helfer richten sich nach der angezeigten Job-Sprache (displayLanguage)
+  const posLabel = (key: string) =>
+    positionTypeLabelsByLang[displayLanguage]?.[key] ?? positionTypeLabelsByLang.de[key] ?? key;
+  const empLabel = (key: string) =>
+    employmentTypeLabelsByLang[displayLanguage]?.[key] ?? employmentTypeLabelsByLang.de[key] ?? key;
+  const langLevelLabel = (key: string) =>
+    LANGUAGE_LEVEL_CODES[key] ??
+    (key === "not_required" ? (notRequiredByLang[displayLanguage] ?? notRequiredByLang.de) : key);
+  const jobUi = (key: string) =>
+    JOB_UI_TEXT[displayLanguage]?.[key] ?? JOB_UI_TEXT.de[key];
 
   useEffect(() => {
     const handleLangChange = (lng: string) => setDisplayLanguage(resolveDisplayLang(lng));
@@ -361,7 +373,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{getTranslatedText("title")}</h1>
                 {job.position_type && (
                   <span className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap border ${positionTypeColors[job.position_type] || positionTypeColors.general}`}>
-                    {positionTypeLabels[job.position_type] || job.position_type}
+                    {posLabel(job.position_type)}
                   </span>
                 )}
               </div>
@@ -394,18 +406,18 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                 {job.employment_type && (
                   <span className="flex items-center gap-1.5">
                     <Briefcase className="h-5 w-5 text-gray-400" />
-                    {employmentTypeLabels[job.employment_type]}
+                    {empLabel(job.employment_type)}
                   </span>
                 )}
                 {job.remote_possible && (
                   <span className="flex items-center gap-1.5 text-teal-600">
                     <Globe className="h-5 w-5" />
-                    Remote möglich
+                    {jobUi("remote")}
                   </span>
                 )}
                 {job.accommodation_provided && (
                   <span className="flex items-center gap-1.5 text-amber-600">
-                    🏠 Unterkunft vorhanden
+                    {jobUi("accommodation")}
                   </span>
                 )}
               </div>
@@ -474,7 +486,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                             <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg border border-red-100">
                               <span className="font-medium text-gray-700">🇩🇪 {t("jobDetail.german")}</span>
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${languageLevelColors[job.german_level] || "bg-gray-100"}`}>
-                                {languageLevelLabels[job.german_level]}
+                                {langLevelLabel(job.german_level)}
                               </span>
                             </div>
                           )}
@@ -482,7 +494,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                             <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg border border-red-100">
                               <span className="font-medium text-gray-700">🇬🇧 {t("jobDetail.english")}</span>
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${languageLevelColors[job.english_level] || "bg-gray-100"}`}>
-                                {languageLevelLabels[job.english_level]}
+                                {langLevelLabel(job.english_level)}
                               </span>
                             </div>
                           )}
@@ -498,7 +510,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                             <div key={idx} className="flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-lg border border-amber-100">
                               <span className="font-medium text-gray-700">🌐 {lang.language}</span>
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${languageLevelColors[lang.level] || "bg-gray-100"}`}>
-                                {languageLevelLabels[lang.level]}
+                                {langLevelLabel(lang.level)}
                               </span>
                             </div>
                           ))}
