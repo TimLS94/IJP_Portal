@@ -69,8 +69,8 @@ export default function RegisterPage() {
           <p className="text-gray-600 mt-1">{t("auth.createAccount")}</p>
         </div>
 
-          {/* User Type Selection */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          {/* User Type Selection – bei source-Link nur Bewerber anzeigen */}
+          {!sourceToken && <div className="grid grid-cols-2 gap-4 mb-6">
             <button
               type="button"
               onClick={() => setUserType("applicant")}
@@ -111,7 +111,7 @@ export default function RegisterPage() {
                 <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary-600" />
               )}
             </button>
-          </div>
+          </div>}
 
           {/* Google Login für Bewerber */}
           {userType === "applicant" && (

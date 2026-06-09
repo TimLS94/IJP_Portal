@@ -14,7 +14,8 @@ declare module "@/context/AuthContext" {
       email: string,
       password: string,
       firstName: string,
-      lastName: string
+      lastName: string,
+      sourceToken?: string | null
     ) => Promise<User>;
     registerCompany: (
       email: string,
