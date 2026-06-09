@@ -1,17 +1,20 @@
 """
 Files API - Stellt hochgeladene Dateien bereit (Logos, etc.)
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 import os
 from pathlib import Path
 
 from app.services.storage_service import storage_service
 from app.core.config import settings
-from app.core.security import get_current_user
-from app.models.user import User
+from app.core.security import decode_token
 
 router = APIRouter(prefix="/files", tags=["Dateien"])
+
+# Prefixe, die öffentlich (ohne Login) abrufbar sind – z.B. Firmenlogos,
+# die ohnehin auf öffentlichen Stellenanzeigen erscheinen.
+_PUBLIC_PREFIXES = ("company-logos/",)
 
 # Erlaubte Dateierweiterungen und ihre Content-Types
 _CONTENT_TYPES = {
@@ -41,12 +44,23 @@ def _safe_resolve(file_path: str) -> Path:
 @router.get("/{file_path:path}")
 async def get_file(
     file_path: str,
-    current_user: User = Depends(get_current_user),
+    request: Request,
 ):
     """
     Liefert eine Datei aus dem Storage.
-    Nur für authentifizierte Benutzer zugänglich.
+    Öffentliche Prefixe (z.B. Firmenlogos) sind ohne Login abrufbar,
+    alle anderen Dateien (Dokumente, Pässe, CVs) nur für eingeloggte Nutzer.
     """
+    is_public = file_path.startswith(_PUBLIC_PREFIXES)
+
+    if not is_public:
+        # Auth manuell prüfen (img-Tags senden keinen Bearer-Token,
+        # daher kein Depends – aber geschützte Dateien brauchen einen gültigen Token)
+        auth_header = request.headers.get("Authorization", "")
+        token = auth_header[7:] if auth_header.lower().startswith("bearer ") else None
+        if not token or not decode_token(token):
+            raise HTTPException(status_code=401, detail="Nicht autorisiert")
+
     # Datei herunterladen (R2 / S3 Storage)
     success, content, error = await storage_service.download_file(file_path)
 
@@ -65,7 +79,7 @@ async def get_file(
         content=content,
         media_type=content_type,
         headers={
-            "Cache-Control": "private, max-age=3600",
+            "Cache-Control": ("public, max-age=86400" if is_public else "private, max-age=3600"),
             "X-Content-Type-Options": "nosniff",
         },
     )
