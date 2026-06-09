@@ -81,14 +81,26 @@ const UI_TEXT = {
     ctaJobs: "Ver ofertas de empleo",
     ctaRegister: "Registrarse ahora",
   },
+  ru: {
+    back: "Назад в блог",
+    backHref: "/blog/ru",
+    readTime: "мин чтения",
+    views: "просмотров",
+    share: "Поделиться:",
+    related: "Похожие статьи",
+    ctaTitle: "Готовы к работе в Германии?",
+    ctaText: "Зарегистрируйтесь сейчас и найдите подходящие вакансии.",
+    ctaJobs: "Смотреть вакансии",
+    ctaRegister: "Зарегистрироваться",
+  },
 } as const;
 
-const DATE_LOCALES: Record<string, string> = { de: "de-DE", en: "en-GB", es: "es-ES" };
+const DATE_LOCALES: Record<string, string> = { de: "de-DE", en: "en-GB", es: "es-ES", ru: "ru-RU" };
 
 interface Props {
   post: BlogPost;
   relatedPosts: BlogPost[];
-  language?: "de" | "en" | "es";
+  language?: "de" | "en" | "es" | "ru";
 }
 
 export default function BlogDetailClient({ post, relatedPosts, language = "de" }: Props) {

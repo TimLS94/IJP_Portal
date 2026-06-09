@@ -51,12 +51,66 @@ interface BlogPost {
 function getPostUrl(post: BlogPost): string {
   if (post.language === "es") return `/blog/es/${post.slug}`;
   if (post.language === "en") return `/blog/en/${post.slug}`;
+  if (post.language === "ru") return `/blog/ru/${post.slug}`;
   return `/blog/${post.slug}`;
 }
 
 function toBlogLanguage(uiLang: string): string {
-  return ["de", "en", "es"].includes(uiLang) ? uiLang : "de";
+  return ["de", "en", "es", "ru"].includes(uiLang) ? uiLang : "de";
 }
+
+const UI_TEXT: Record<string, Record<string, string>> = {
+  de: {
+    title: "Blog & Ratgeber",
+    subtitle: "Tipps, News und hilfreiche Informationen rund um Arbeit in Deutschland",
+    searchPlaceholder: "Artikel durchsuchen...",
+    allCategories: "Alle Kategorien",
+    searchBtn: "Suchen",
+    all: "Alle",
+    noPosts: "Keine Artikel gefunden",
+    noPostsHint: "Versuchen Sie andere Suchbegriffe oder Kategorien",
+    views: "Aufrufe",
+    readMore: "Weiterlesen",
+  },
+  en: {
+    title: "Blog & Guide",
+    subtitle: "Tips, news and helpful information about working in Germany",
+    searchPlaceholder: "Search articles...",
+    allCategories: "All categories",
+    searchBtn: "Search",
+    all: "All",
+    noPosts: "No articles found",
+    noPostsHint: "Try different search terms or categories",
+    views: "views",
+    readMore: "Read more",
+  },
+  es: {
+    title: "Blog y Guía",
+    subtitle: "Consejos, noticias e información útil sobre trabajar en Alemania",
+    searchPlaceholder: "Buscar artículos...",
+    allCategories: "Todas las categorías",
+    searchBtn: "Buscar",
+    all: "Todos",
+    noPosts: "No se encontraron artículos",
+    noPostsHint: "Pruebe otros términos de búsqueda o categorías",
+    views: "vistas",
+    readMore: "Leer más",
+  },
+  ru: {
+    title: "Блог и советы",
+    subtitle: "Советы, новости и полезная информация о работе в Германии",
+    searchPlaceholder: "Поиск статей...",
+    allCategories: "Все категории",
+    searchBtn: "Поиск",
+    all: "Все",
+    noPosts: "Статьи не найдены",
+    noPostsHint: "Попробуйте другие поисковые запросы или категории",
+    views: "просмотров",
+    readMore: "Читать далее",
+  },
+};
+
+const DATE_LOCALES: Record<string, string> = { de: "de-DE", en: "en-GB", es: "es-ES", ru: "ru-RU" };
 
 interface Props {
   initialPosts: BlogPost[];
@@ -73,6 +127,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "");
 
   const blogLang = toBlogLanguage(i18n.language);
+  const tx = UI_TEXT[blogLang] ?? UI_TEXT.de;
 
   const loadPosts = useCallback(async (category?: string, searchTerm?: string, lang?: string) => {
     setLoading(true);
@@ -107,7 +162,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
-    return new Date(dateString).toLocaleDateString("de-DE", {
+    return new Date(dateString).toLocaleDateString(DATE_LOCALES[blogLang] ?? "de-DE", {
       day: "2-digit",
       month: "long",
       year: "numeric",
@@ -121,9 +176,9 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
         <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-2xl mb-4">
           <BookOpen className="h-8 w-8 text-primary-600" />
         </div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Blog & Ratgeber</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">{tx.title}</h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Tipps, News und hilfreiche Informationen rund um Arbeit in Deutschland
+          {tx.subtitle}
         </p>
       </div>
 
@@ -137,7 +192,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
               type="text"
               className="w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-200 rounded-xl 
                        focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none"
-              placeholder="Artikel durchsuchen..."
+              placeholder={tx.searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -152,7 +207,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
               value={selectedCategory}
               onChange={(e) => handleCategoryChange(e.target.value)}
             >
-              <option value="">Alle Kategorien</option>
+              <option value="">{tx.allCategories}</option>
               {categories.map((cat) => (
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
               ))}
@@ -161,7 +216,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
           </div>
           
           <button type="submit" className="btn-primary">
-            Suchen
+            {tx.searchBtn}
           </button>
         </form>
       </div>
@@ -176,7 +231,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
           }`}
         >
-          Alle
+          {tx.all}
         </button>
         {categories.map((cat) => {
           const Icon = categoryIcons[cat.value] || BookOpen;
@@ -205,8 +260,8 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
       ) : posts.length === 0 ? (
         <div className="card text-center py-16">
           <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg mb-2">Keine Artikel gefunden</p>
-          <p className="text-gray-400">Versuchen Sie andere Suchbegriffe oder Kategorien</p>
+          <p className="text-gray-500 text-lg mb-2">{tx.noPosts}</p>
+          <p className="text-gray-400">{tx.noPostsHint}</p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -259,13 +314,13 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
                   </span>
                   <span className="flex items-center gap-1">
                     <Eye className="h-4 w-4" />
-                    {post.view_count} Aufrufe
+                    {post.view_count} {tx.views}
                   </span>
                 </div>
                 
                 {/* Lesen Link */}
                 <div className="mt-4 flex items-center text-primary-600 font-medium group-hover:gap-2 transition-all">
-                  Weiterlesen
+                  {tx.readMore}
                   <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </Link>
