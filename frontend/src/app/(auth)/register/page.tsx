@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -20,7 +20,7 @@ interface RegisterForm {
   privacy: boolean;
 }
 
-export default function RegisterPage() {
+function RegisterPageInner() {
   const { registerApplicant, registerCompany } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -279,5 +279,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageInner />
+    </Suspense>
   );
 }
