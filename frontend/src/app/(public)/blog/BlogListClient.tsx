@@ -112,6 +112,29 @@ const UI_TEXT: Record<string, Record<string, string>> = {
 
 const DATE_LOCALES: Record<string, string> = { de: "de-DE", en: "en-GB", es: "es-ES", ru: "ru-RU" };
 
+const CATEGORY_LABELS: Record<string, Record<string, string>> = {
+  de: {
+    news: "Neuigkeiten", tips: "Tipps & Tricks", career: "Karriere-Ratgeber",
+    visa: "Visa & Arbeitserlaubnis", living: "Leben in Deutschland",
+    success_stories: "Erfolgsgeschichten", company: "Für Unternehmen",
+  },
+  en: {
+    news: "News", tips: "Tips & Tricks", career: "Career Guide",
+    visa: "Visa & Work Permit", living: "Living in Germany",
+    success_stories: "Success Stories", company: "For Companies",
+  },
+  es: {
+    news: "Noticias", tips: "Consejos y trucos", career: "Guía profesional",
+    visa: "Visa y permiso de trabajo", living: "Vivir en Alemania",
+    success_stories: "Casos de éxito", company: "Para empresas",
+  },
+  ru: {
+    news: "Новости", tips: "Советы и хитрости", career: "Карьерный гид",
+    visa: "Виза и разрешение на работу", living: "Жизнь в Германии",
+    success_stories: "Истории успеха", company: "Для компаний",
+  },
+};
+
 interface Props {
   initialPosts: BlogPost[];
   categories: Category[];
@@ -128,6 +151,8 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
 
   const blogLang = toBlogLanguage(i18n.language);
   const tx = UI_TEXT[blogLang] ?? UI_TEXT.de;
+  const catLabel = (value: string, fallback: string) =>
+    CATEGORY_LABELS[blogLang]?.[value] ?? fallback;
 
   const loadPosts = useCallback(async (category?: string, searchTerm?: string, lang?: string) => {
     setLoading(true);
@@ -209,7 +234,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
             >
               <option value="">{tx.allCategories}</option>
               {categories.map((cat) => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
+                <option key={cat.value} value={cat.value}>{catLabel(cat.value, cat.label)}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
@@ -246,7 +271,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
               }`}
             >
               <Icon className="h-4 w-4" />
-              {cat.label}
+              {catLabel(cat.value, cat.label)}
             </button>
           );
         })}
@@ -292,7 +317,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
                 <div className="mb-3">
                   <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${categoryColors[post.category] || "bg-gray-100 text-gray-800 border-gray-200"}`}>
                     <Icon className="h-3 w-3" />
-                    {post.category_label}
+                    {catLabel(post.category, post.category_label)}
                   </span>
                 </div>
                 

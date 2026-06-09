@@ -97,6 +97,13 @@ const UI_TEXT = {
 
 const DATE_LOCALES: Record<string, string> = { de: "de-DE", en: "en-GB", es: "es-ES", ru: "ru-RU" };
 
+const CATEGORY_LABELS: Record<string, Record<string, string>> = {
+  de: { news: "Neuigkeiten", tips: "Tipps & Tricks", career: "Karriere-Ratgeber", visa: "Visa & Arbeitserlaubnis", living: "Leben in Deutschland", success_stories: "Erfolgsgeschichten", company: "Für Unternehmen" },
+  en: { news: "News", tips: "Tips & Tricks", career: "Career Guide", visa: "Visa & Work Permit", living: "Living in Germany", success_stories: "Success Stories", company: "For Companies" },
+  es: { news: "Noticias", tips: "Consejos y trucos", career: "Guía profesional", visa: "Visa y permiso de trabajo", living: "Vivir en Alemania", success_stories: "Casos de éxito", company: "Para empresas" },
+  ru: { news: "Новости", tips: "Советы и хитрости", career: "Карьерный гид", visa: "Виза и разрешение на работу", living: "Жизнь в Германии", success_stories: "Истории успеха", company: "Для компаний" },
+};
+
 interface Props {
   post: BlogPost;
   relatedPosts: BlogPost[];
@@ -107,6 +114,8 @@ export default function BlogDetailClient({ post, relatedPosts, language = "de" }
   const [copied, setCopied] = useState(false);
   const t = UI_TEXT[language] ?? UI_TEXT.de;
   const dateLocale = DATE_LOCALES[language] ?? "de-DE";
+  const catLabel = (value: string, fallback: string) =>
+    CATEGORY_LABELS[language]?.[value] ?? fallback;
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
@@ -183,7 +192,7 @@ export default function BlogDetailClient({ post, relatedPosts, language = "de" }
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${categoryColors[post.category] || "bg-gray-100 text-gray-800 border-gray-200"} hover:opacity-80 transition-opacity`}
           >
             <Icon className="h-4 w-4" />
-            {post.category_label}
+            {catLabel(post.category, post.category_label)}
           </Link>
         </div>
 
@@ -315,7 +324,7 @@ export default function BlogDetailClient({ post, relatedPosts, language = "de" }
                   <div className="mb-3">
                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${categoryColors[relatedPost.category] || "bg-gray-100 text-gray-800 border-gray-200"}`}>
                       <RelatedIcon className="h-3 w-3" />
-                      {relatedPost.category_label}
+                      {catLabel(relatedPost.category, relatedPost.category_label)}
                     </span>
                   </div>
                   <h3 className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2">
