@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { companyAPI } from "@/lib/api";
+import { companyAPI, resolveFileUrl } from "@/lib/api";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { Building2, Save, Loader2, Upload, Camera, X, MapPin, Globe, Phone, User, FileText } from "lucide-react";
@@ -148,7 +148,7 @@ export default function CompanyProfilePage() {
             <div className="relative">
               {logoUrl ? (
                 <div className="relative w-32 h-32 rounded-xl overflow-hidden border-2 border-gray-200 bg-white">
-                  <Image src={logoUrl} alt="Firmenlogo" fill className="object-contain p-2" />
+                  <Image src={resolveFileUrl(logoUrl)} alt="Firmenlogo" fill className="object-contain p-2" />
                   <button type="button" onClick={removeLogo} className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg">
                     <X className="h-4 w-4" />
                   </button>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { applicationsAPI, jobsAPI, documentsAPI } from "@/lib/api";
+import { applicationsAPI, jobsAPI, documentsAPI, resolveFileUrl } from "@/lib/api";
 import { trackJobView, trackJobApply, trackJobLike, trackExternalJobClick } from "@/lib/analytics";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -704,7 +704,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
               </h3>
               <div className="flex items-start gap-4">
                 {job.company.logo_url ? (
-                  <img src={job.company.logo_url} alt={job.company.name} className="w-16 h-16 rounded-lg object-contain bg-gray-100 p-2" />
+                  <img src={resolveFileUrl(job.company.logo_url)} alt={job.company.name} className="w-16 h-16 rounded-lg object-contain bg-gray-100 p-2" />
                 ) : (
                   <div className="w-16 h-16 rounded-lg bg-primary-100 flex items-center justify-center">
                     <Building2 className="h-8 w-8 text-primary-600" />

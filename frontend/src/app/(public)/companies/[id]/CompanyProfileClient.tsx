@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Building2, MapPin, Globe, Mail, Phone, Briefcase, ArrowLeft, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { resolveFileUrl } from "@/lib/api";
 
 interface Company {
   id: number;
@@ -73,7 +74,7 @@ export default function CompanyProfileClient({ company, activeJobs }: { company:
           <div className="flex items-start gap-6">
             {company.logo ? (
               <img
-                src={company.logo}
+                src={resolveFileUrl(company.logo)}
                 alt={company.company_name}
                 className="w-24 h-24 rounded-xl object-contain bg-gray-100 p-2"
               />

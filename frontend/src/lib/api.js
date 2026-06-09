@@ -3,6 +3,15 @@ import axios from 'axios';
 // API URL - für Server und Client
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1';
 
+// Wandelt relative Datei-URLs (/api/v1/files/...) in absolute Backend-URLs um.
+// Absolute URLs (http...) und leere Werte bleiben unverändert.
+export const resolveFileUrl = (url) => {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  const origin = API_URL.replace(/\/api\/v1\/?$/, '');
+  return url.startsWith('/') ? `${origin}${url}` : `${origin}/${url}`;
+};
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
