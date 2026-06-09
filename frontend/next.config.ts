@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "ijp-portal.onrender.com" },
+      { protocol: "https", hostname: "**.r2.dev" },
+      { protocol: "https", hostname: "**.r2.cloudflarestorage.com" },
+    ],
+  },
   // Verhindert dass 404-Seiten gecacht werden
   // So werden neue Blog-Artikel sofort sichtbar nach Veröffentlichung
   async headers() {

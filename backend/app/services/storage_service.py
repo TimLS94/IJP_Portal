@@ -326,12 +326,11 @@ class StorageService:
             r2_public_url = getattr(settings, 'R2_PUBLIC_URL', None)
             if r2_public_url:
                 return f"{r2_public_url}/{storage_path}"
-            else:
-                # Fallback: API-Endpunkt für Datei-Download
-                return f"/api/v1/files/{storage_path}"
-        else:
-            # Lokaler Storage: API-Endpunkt
-            return f"/api/v1/files/{storage_path}"
+
+        # Fallback / lokaler Storage: absolute API-URL zum Backend
+        # (relative URLs würden im Frontend gegen die Vercel-Domain auflösen → 404)
+        backend_url = getattr(settings, 'BACKEND_URL', '').rstrip('/')
+        return f"{backend_url}/api/v1/files/{storage_path}"
 
 
 # Singleton-Instanz

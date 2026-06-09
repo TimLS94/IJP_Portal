@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     
     # Frontend URL (für E-Mail Links)
     FRONTEND_URL: str = "http://localhost:5173"
+
+    # Backend Basis-URL (für absolute Datei-/Bild-URLs aus lokalem Storage)
+    BACKEND_URL: str = "https://ijp-portal.onrender.com"
     
     # Email Settings (SendGrid)
     SMTP_HOST: str = "smtp.sendgrid.net"
