@@ -42,6 +42,7 @@ interface Applicant {
   last_name: string;
   email: string;
   phone?: string;
+  gender?: string;
   address?: ApplicantAddress;
   nationality?: string;
   date_of_birth?: string;
@@ -965,18 +966,18 @@ export default function CompanyApplicationsPage() {
               return (
                 <div key={app.id} className="p-4 hover:bg-gray-50">
                   {/* Kopfzeile: Name + Score */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <User className="h-5 w-5 text-primary-600" />
                       </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{app.applicant_name || t('common.unknown')}</p>
-                        <p className="text-sm text-gray-500">{app.applicant_email}</p>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{app.applicant_name || t('common.unknown')}</p>
+                        <p className="text-sm text-gray-500 truncate">{app.applicant_email}</p>
                       </div>
                     </div>
                     {app.match_score !== undefined && app.match_score !== null && (
-                      <span className={`px-2.5 py-1 rounded-full text-sm font-bold ${scoreColor}`}>
+                      <span className={`px-2.5 py-1 rounded-full text-sm font-bold shrink-0 ${scoreColor}`}>
                         {app.match_score}%
                       </span>
                     )}
@@ -1049,8 +1050,8 @@ export default function CompanyApplicationsPage() {
 
       {/* Detail Modal */}
       {selectedAppId && (
-        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-8 relative">
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-4 sm:my-8 relative">
             {/* Schließen-Button immer sichtbar */}
             <button 
               onClick={closeDetails}
@@ -1066,14 +1067,14 @@ export default function CompanyApplicationsPage() {
             ) : applicantDetails ? (
               <>
                 {/* Header */}
-                <div className="p-6 border-b bg-primary-50 pr-16">
+                <div className="p-4 sm:p-6 border-b bg-primary-50 pr-14 sm:pr-16">
                   <h2 className="text-2xl font-bold text-gray-900">
                     {applicantDetails.applicant.first_name} {applicantDetails.applicant.last_name}
                   </h2>
                   <p className="text-gray-600">{applicantDetails.job?.title || selectedApp?.job_title}</p>
                 </div>
 
-                <div className="p-6 grid md:grid-cols-2 gap-6">
+                <div className="p-4 sm:p-6 grid md:grid-cols-2 gap-4 sm:gap-6">
                   {/* Kontaktdaten */}
                   <div className="bg-gray-50 rounded-xl p-5">
                     <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -1085,10 +1086,10 @@ export default function CompanyApplicationsPage() {
                         href={`mailto:${applicantDetails.applicant.email}`}
                         className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-primary-50 transition-colors"
                       >
-                        <Mail className="h-5 w-5 text-primary-600" />
-                        <div>
+                        <Mail className="h-5 w-5 text-primary-600 shrink-0" />
+                        <div className="min-w-0">
                           <p className="text-xs text-gray-500">{t('common.email')}</p>
-                          <p className="font-medium text-primary-600">{applicantDetails.applicant.email}</p>
+                          <p className="font-medium text-primary-600 break-all">{applicantDetails.applicant.email}</p>
                         </div>
                       </a>
                       <a 
@@ -1122,6 +1123,12 @@ export default function CompanyApplicationsPage() {
                       {t('common.profile')}
                     </h3>
                     <div className="space-y-2 text-sm">
+                      {applicantDetails.applicant.gender && (
+                        <div className="flex justify-between p-2 bg-white rounded">
+                          <span className="text-gray-500">Geschlecht</span>
+                          <span className="font-medium">{({ male: "Männlich", female: "Weiblich", diverse: "Divers" } as Record<string, string>)[applicantDetails.applicant.gender] || applicantDetails.applicant.gender}</span>
+                        </div>
+                      )}
                       {applicantDetails.applicant.date_of_birth && (
                         <div className="flex justify-between p-2 bg-white rounded">
                           <span className="text-gray-500">{t('applicant.dateOfBirth')}</span>

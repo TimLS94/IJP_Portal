@@ -610,6 +610,7 @@ async def get_applicant_details_for_company(
             'last_name': applicant.last_name,
             'email': applicant_user.email,
             'phone': applicant.phone,
+            'gender': applicant.gender.value if applicant.gender else None,
             'date_of_birth': applicant.date_of_birth,
             'place_of_birth': applicant.place_of_birth,
             'nationality': applicant.nationality,
