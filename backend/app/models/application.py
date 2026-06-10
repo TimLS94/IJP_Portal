@@ -73,8 +73,8 @@ class Application(Base):
     __tablename__ = "applications"
     
     id = Column(Integer, primary_key=True, index=True)
-    applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False)
-    job_posting_id = Column(Integer, ForeignKey("job_postings.id"), nullable=False)
+    applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False, index=True)
+    job_posting_id = Column(Integer, ForeignKey("job_postings.id"), nullable=False, index=True)
     
     # Status
     status = Column(Enum(ApplicationStatus, values_callable=lambda x: [e.value for e in x]), default=ApplicationStatus.PENDING)
@@ -115,8 +115,8 @@ class ApplicationDocument(Base):
     __tablename__ = "application_documents"
     
     id = Column(Integer, primary_key=True, index=True)
-    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
-    document_id = Column(Integer, ForeignKey("documents.id"), nullable=False)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+    document_id = Column(Integer, ForeignKey("documents.id"), nullable=False, index=True)
     
     # Wann wurde das Dokument freigegeben
     shared_at = Column(DateTime(timezone=True), default=utc_now)

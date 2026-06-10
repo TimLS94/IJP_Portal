@@ -5,15 +5,23 @@
 <title>JobOn Portal – Anleitung für Unternehmen</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Arial,sans-serif;font-size:16px;line-height:1.85;color:#1a1a2e;background:#f8f9fb}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:16px;line-height:1.85;color:#1a1a2e;background:white}
 @media print{
-  body{background:white}
+  html,body{background:white!important;background-color:white!important}
   .no-print{display:none!important}
   .card{box-shadow:none!important;border:1px solid #e0e0e0!important}
+  .chapter,.toc,.cover,figure{box-shadow:none!important;border-radius:0!important}
+  figcaption{background:white!important;color:#444!important}
+  .toc{background:white!important;border-radius:0!important}
   a{color:inherit;text-decoration:none}
-  .chapter{page-break-before:always}
-  figure{page-break-inside:avoid}
+  .step,.step-body,.note,table,tr,figure,.chapter-header{
+    break-inside:avoid;page-break-inside:avoid;
+  }
+  .chapter h3,.chapter h4{break-after:avoid;page-break-after:avoid}
 }
+/* Verhindert graue Balken zwischen Seiten in Playwright/Chrome PDF */
+html{background:white}
+@page{background:white;margin:12mm}
 .container{max-width:900px;margin:0 auto;padding:40px 24px}
 .cover{background:linear-gradient(135deg,#1e40af 0%,#3b82f6 50%,#60a5fa 100%);color:white;padding:64px 48px;border-radius:16px;margin-bottom:48px;position:relative;overflow:hidden}
 .cover::after{content:'';position:absolute;right:-60px;top:-60px;width:280px;height:280px;background:rgba(255,255,255,0.08);border-radius:50%}
@@ -26,21 +34,21 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:16px;line-height:1.85;col
 .toc ol{padding-left:20px}
 .toc li{margin-bottom:8px}
 .toc a{color:#3b82f6;text-decoration:none;font-weight:500}
-.chapter{background:white;border-radius:12px;padding:40px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:32px}
-.chapter-header{display:flex;align-items:center;gap:16px;margin-bottom:28px;padding-bottom:20px;border-bottom:2px solid #f0f4ff}
+.chapter{background:white;border-radius:12px;padding:28px 48px 48px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:20px}
+.chapter-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #f0f4ff}
 .chapter-num{background:linear-gradient(135deg,#1e40af,#3b82f6);color:white;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0}
 .chapter h2{font-size:22px;font-weight:700;color:#1e3a8a}
-.chapter h3{font-size:17px;font-weight:700;color:#1e40af;margin:32px 0 14px;padding-left:14px;border-left:3px solid #3b82f6}
+.chapter h3{font-size:17px;font-weight:700;color:#1e40af;margin:22px 0 10px;padding-left:14px;border-left:3px solid #3b82f6}
 .chapter h4{font-size:14px;font-weight:700;color:#374151;margin:16px 0 8px}
-.chapter p{margin-bottom:16px;color:#374151;font-size:15px;line-height:1.85}
+.chapter p{margin-bottom:18px;color:#374151;font-size:15px;line-height:1.9}
 .chapter ul,.chapter ol{padding-left:20px;margin-bottom:16px}
-.chapter li{margin-bottom:8px;color:#374151;font-size:15px}
-.steps{counter-reset:step;margin:16px 0}
-.step{display:flex;gap:16px;margin-bottom:16px;align-items:flex-start}
-.step-num{counter-increment:step;background:#eff6ff;color:#1e40af;border:2px solid #bfdbfe;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;margin-top:2px}
+.chapter li{margin-bottom:10px;color:#374151;font-size:15px;line-height:1.75}
+.steps{counter-reset:step;margin:20px 0}
+.step{display:flex;gap:16px;margin-bottom:24px;align-items:flex-start}
+.step-num{counter-increment:step;background:#eff6ff;color:#1e40af;border:2px solid #bfdbfe;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;margin-top:2px}
 .step-body strong{display:block;color:#111827;margin-bottom:6px;font-size:15px}
 .step-body p{margin:0;color:#4b5563;font-size:14px;line-height:1.7}
-.note{border-radius:8px;padding:16px 18px;margin:20px 0;font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.note{border-radius:8px;padding:18px 20px;margin:24px 0;font-size:14px;display:flex;gap:10px;align-items:flex-start}
 .note-icon{font-size:16px;flex-shrink:0;margin-top:1px}
 .note.info{background:#eff6ff;border-left:4px solid #3b82f6;color:#1e40af}
 .note.warn{background:#fffbeb;border-left:4px solid #f59e0b;color:#92400e}
@@ -54,9 +62,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:16px;line-height:1.85;col
 .badge.green{background:#dcfce7;color:#166534}.badge.green .badge-dot{background:#22c55e}
 .badge.red{background:#fee2e2;color:#991b1b}.badge.red .badge-dot{background:#ef4444}
 .badge.gray{background:#f3f4f6;color:#374151}.badge.gray .badge-dot{background:#9ca3af}
-table{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px}
-th{background:#f0f4ff;color:#1e40af;font-weight:700;text-align:left;padding:12px 14px;border-bottom:2px solid #bfdbfe;font-size:14px}
-td{padding:11px 14px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:14px}
+table{width:100%;border-collapse:collapse;margin:24px 0;font-size:14px}
+th{background:#f0f4ff;color:#1e40af;font-weight:700;text-align:left;padding:14px 16px;border-bottom:2px solid #bfdbfe;font-size:14px}
+td{padding:14px 16px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:14px}
 tr:last-child td{border-bottom:none}
 .divider{border:none;border-top:1px solid #e5e7eb;margin:32px 0}
 </style>
@@ -89,18 +97,23 @@ tr:last-child td{border-bottom:none}
 </div>
 
 <!-- CH 1: LOGIN -->
+<div style="page-break-before:always; height:52px;"></div>
 <div class="chapter" id="ch1">
   <div class="chapter-header"><div class="chapter-num">1</div><h2>Zugang &amp; Erstregistrierung</h2></div>
 
-  <h3>Registrierung über Einladungslink</h3>
-  <p>JobOn erstellt für jedes Partnerunternehmen einen personalisierten Einladungslink. Damit können Sie sich ohne manuelle Freigabe sofort registrieren.</p>
+  <h3>Registrierung</h3>
+  <p>Sie können sich auf zwei Wegen registrieren:</p>
+  <ul>
+    <li><strong>Mit Einladungslink</strong> – JobOn schickt Ihnen einen personalisierten Link. Damit ist Ihr Konto sofort freigeschaltet, ohne Wartezeit.</li>
+    <li><strong>Ohne Einladungslink</strong> – Registrierung direkt auf jobon.work möglich. Ihr Konto wird anschließend vom JobOn-Team manuell geprüft und freigeschaltet. Dies kann 1–2 Werktage dauern.</li>
+  </ul>
   <div class="steps">
     <div class="step"><div class="step-num"></div><div class="step-body"><strong>Einladungslink öffnen</strong><p>Klicken Sie auf den Link von JobOn. Sie werden automatisch zur Registrierungsseite weitergeleitet.</p></div></div>
     <div class="step"><div class="step-num"></div><div class="step-body"><strong>Formulardaten ausfüllen</strong><p>Unternehmensname, Ansprechpartner, E-Mail-Adresse und ein sicheres Passwort.</p></div></div>
     <div class="step"><div class="step-num"></div><div class="step-body"><strong>Konto bestätigen</strong><p>Sie erhalten eine Bestätigungs-E-Mail – klicken Sie auf den enthaltenen Link.</p></div></div>
     <div class="step"><div class="step-num"></div><div class="step-body"><strong>Anmelden</strong><p>Rufen Sie <strong>jobon.work</strong> auf und melden Sie sich mit E-Mail und Passwort an.</p></div></div>
   </div>
-  <div class="note info"><span class="note-icon">ℹ️</span><div>Noch kein Einladungslink? Schreiben Sie uns: <strong>business@jobon.work</strong></div></div>
+  <div class="note info"><span class="note-icon">ℹ️</span><div>Für einen Einladungslink (sofortige Freischaltung) schreiben Sie uns: <strong>business@jobon.work</strong></div></div>
 
   <h3>Passwort vergessen</h3>
   <div class="steps">
@@ -111,7 +124,7 @@ tr:last-child td{border-bottom:none}
 </div>
 
 <!-- CH 2: DASHBOARD -->
-<div class="chapter page-break" id="ch2">
+<div class="chapter" id="ch2">
   <div class="chapter-header"><div class="chapter-num">2</div><h2>Das Dashboard – Ihre Übersicht</h2></div>
   <p>Nach dem Anmelden landen Sie automatisch auf Ihrem <strong>Dashboard</strong>. Hier sehen Sie auf einen Blick alles Wichtige zu Ihrem Konto.</p>
 
@@ -324,7 +337,7 @@ tr:last-child td{border-bottom:none}
 </div>
 
 <!-- CH 8: EINSTELLUNGEN -->
-<div class="chapter page-break" id="ch8">
+<div class="chapter" id="ch8">
   <div class="chapter-header"><div class="chapter-num">8</div><h2>Einstellungen &amp; Benachrichtigungen</h2></div>
   <p>Navigieren Sie zu: <strong>Menü → Einstellungen</strong></p>
 
@@ -379,12 +392,6 @@ tr:last-child td{border-bottom:none}
   <p>Schreiben Sie uns: <strong>business@jobon.work</strong> — wir antworten in der Regel innerhalb von 1 Werktag.</p>
 </div>
 
-<hr class="divider"/>
-<div style="text-align:center;color:#9ca3af;font-size:12px;padding-bottom:48px;">
-  <p>JobOn – Internationale Fachkräfte &nbsp;·&nbsp; Husemannstr. 9, 10435 Berlin &nbsp;·&nbsp; jobon.work</p>
-  <p style="margin-top:4px;">business@jobon.work</p>
-  <p style="margin-top:8px;font-style:italic;">Dieses Dokument ist vertraulich und ausschließlich für Partnerunternehmen von JobOn bestimmt.</p>
-</div>
 
 </div>
 </body>

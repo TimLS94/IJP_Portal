@@ -346,12 +346,9 @@ async def get_company_applications(
     
     - include_filtered=False (Standard): Nur normale Bewerbungen (nicht gefiltert)
     - include_filtered=True: Nur gefilterte Bewerbungen (unter Score-Schwellenwert)
+    
+    OPTIMIERT: Nutzt gespeicherten match_score statt Neuberechnung.
     """
-    from app.services.matching_service import calculate_match_score
-    from app.services.settings_service import is_company_matching_enabled
-    
-    matching_enabled = is_company_matching_enabled(db)
-    
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -362,11 +359,14 @@ async def get_company_applications(
     if not company:
         return []
     
-    # Filter nach is_filtered Status
+    # OPTIMIERT: Lade auch User für E-Mail (verhindert N+1)
+    from sqlalchemy.orm import joinedload, selectinload
+    from app.models.user import User as UserModel
+    
     query = db.query(Application).options(
-        joinedload(Application.applicant),
+        joinedload(Application.applicant).joinedload(Applicant.user),  # User für E-Mail
         joinedload(Application.job_posting),
-        joinedload(Application.interviews)
+        selectinload(Application.interviews)  # selectinload für Collections
     ).join(JobPosting).filter(
         JobPosting.company_id == company.id
     )
@@ -379,42 +379,35 @@ async def get_company_applications(
     
     applications = query.order_by(Application.applied_at.desc()).all()
     
+    # Status-Labels einmal definieren
+    status_labels = {
+        "proposed": "Wartet auf Antwort",
+        "confirmed": "Vom Bewerber bestätigt",
+        "declined": "Vom Bewerber abgelehnt",
+        "cancelled": "Abgesagt",
+        "completed": "Durchgeführt",
+        "needs_new_dates": "Neue Termine nötig"
+    }
+    
     result = []
     for app in applications:
-        # Hole den aktuellsten Interview-Status
+        # Interview-Status aus bereits geladenen Interviews (sortiert in DB)
         interview_status = None
         interview_status_label = None
         if app.interviews:
-            # Sortiere nach created_at desc und nimm den neuesten
-            latest_interview = sorted(app.interviews, key=lambda i: i.created_at, reverse=True)[0]
+            latest_interview = app.interviews[0]  # Bereits nach created_at desc sortiert
             interview_status = latest_interview.status.value if latest_interview.status else None
-            # Status-Labels für bessere Anzeige
-            status_labels = {
-                "proposed": "Wartet auf Antwort",
-                "confirmed": "Vom Bewerber bestätigt",
-                "declined": "Vom Bewerber abgelehnt",
-                "cancelled": "Abgesagt",
-                "completed": "Durchgeführt",
-                "needs_new_dates": "Neue Termine nötig"
-            }
             interview_status_label = status_labels.get(interview_status, interview_status)
         
-        # Matching Score berechnen (nur wenn Feature aktiviert)
-        match_score = None
-        if matching_enabled and app.applicant and app.job_posting:
-            try:
-                match_result = calculate_match_score(app.applicant, app.job_posting, db=db)
-                score = match_result.get('total_score', 0)
-                match_score = int(round(score)) if score is not None else None
-            except Exception as e:
-                print(f"Matching Score Fehler für Bewerbung {app.id}: {e}")
-                match_score = None
+        # OPTIMIERT: Nutze gespeicherten match_score aus DB statt Neuberechnung
+        # Der Score wird bei Bewerbung berechnet und gespeichert
+        match_score = app.match_score
         
         app_dict = {
             "id": app.id,
             "applicant_id": app.applicant_id,
             "job_posting_id": app.job_posting_id,
-            "job_id": app.job_posting_id,  # Alias für Frontend-Filter
+            "job_id": app.job_posting_id,
             "status": app.status,
             "applicant_message": app.applicant_message,
             "company_notes": app.company_notes,
@@ -422,7 +415,7 @@ async def get_company_applications(
             "updated_at": app.updated_at,
             "job_title": app.job_posting.title if app.job_posting else None,
             "applicant_name": f"{app.applicant.first_name} {app.applicant.last_name}" if app.applicant else None,
-            "applicant_email": app.applicant.user.email if app.applicant and hasattr(app.applicant, 'user') and app.applicant.user else None,
+            "applicant_email": app.applicant.user.email if app.applicant and app.applicant.user else None,
             "interview_status": interview_status,
             "interview_status_label": interview_status_label,
             "match_score": match_score,
@@ -531,6 +524,8 @@ async def get_applicant_details_for_company(
     Gibt detaillierte Bewerber-Informationen für eine Bewerbung zurück.
     Nur für die Firma, bei der die Bewerbung eingegangen ist.
     Enthält: Profil, Kontaktdaten, Dokumente
+    
+    OPTIMIERT: Lädt alle Daten in einer Query mit Eager Loading.
     """
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur Firmen")
@@ -539,8 +534,14 @@ async def get_applicant_details_for_company(
     if not company:
         raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
     
-    # Bewerbung mit Zugriffsprüfung
-    application = db.query(Application).join(JobPosting).filter(
+    # OPTIMIERT: Alles in einer Query laden
+    from sqlalchemy.orm import joinedload, selectinload
+    
+    application = db.query(Application).options(
+        joinedload(Application.applicant).joinedload(Applicant.user),
+        joinedload(Application.job_posting),
+        selectinload(Application.shared_documents).joinedload(ApplicationDocument.document)
+    ).join(JobPosting).filter(
         Application.id == application_id,
         JobPosting.company_id == company.id
     ).first()
@@ -548,29 +549,21 @@ async def get_applicant_details_for_company(
     if not application:
         raise HTTPException(status_code=404, detail="Bewerbung nicht gefunden")
     
-    # Bewerber-Daten
-    applicant = db.query(Applicant).filter(Applicant.id == application.applicant_id).first()
+    applicant = application.applicant
     if not applicant:
         raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
-    applicant_user = db.query(User).filter(User.id == applicant.user_id).first()
+    applicant_user = applicant.user
     if not applicant_user:
         raise HTTPException(status_code=404, detail="Bewerber-Account nicht gefunden")
     
-    # NUR freigegebene Dokumente für diese Bewerbung laden (Datenschutz!)
-    shared_doc_ids = db.query(ApplicationDocument.document_id).filter(
-        ApplicationDocument.application_id == application.id
-    ).all()
-    shared_doc_ids = [d[0] for d in shared_doc_ids]
+    job = application.job_posting
     
-    if shared_doc_ids:
-        documents = db.query(Document).filter(Document.id.in_(shared_doc_ids)).all()
+    # Dokumente aus bereits geladenen shared_documents oder Fallback
+    if application.shared_documents:
+        documents = [sd.document for sd in application.shared_documents if sd.document]
     else:
-        # Fallback für alte Bewerbungen ohne explizite Freigabe: Alle Dokumente zeigen
-        # TODO: Nach Migration entfernen
+        # Fallback für alte Bewerbungen ohne explizite Freigabe
         documents = db.query(Document).filter(Document.applicant_id == applicant.id).all()
-    
-    # Job-Details
-    job = db.query(JobPosting).filter(JobPosting.id == application.job_posting_id).first()
     
     return {
         'application': {
