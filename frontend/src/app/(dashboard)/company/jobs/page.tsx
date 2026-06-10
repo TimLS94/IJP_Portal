@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, FileText, Search, X, LayoutGrid, List, Languages, Lock, Unlock, Copy, Loader2, Heart, Users, ChevronRight, Building2, Globe, ExternalLink } from "lucide-react";
+import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, FileText, Search, X, LayoutGrid, List, Languages, Lock, Unlock, Copy, Loader2, Heart, Users, ChevronRight, ChevronDown, Building2, Globe, ExternalLink } from "lucide-react";
 import { jobsAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -264,20 +264,26 @@ export default function CompanyJobsPage() {
             <input type="text" placeholder={t('common.search') + '...'} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-9 py-2.5 bg-white border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-all placeholder-gray-400 text-gray-700 text-sm" />
             {searchQuery && <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded"><X className="h-4 w-4 text-gray-400" /></button>}
           </div>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-all text-gray-700 text-sm font-medium cursor-pointer hover:border-gray-300">
-            <option value="all">{t('companyJobs.allStatus')}</option>
-            <option value="active">{t('companyJobs.active')}</option>
-            <option value="inactive">{t('companyJobs.inactive')}</option>
-            <option value="draft">{t('companyJobs.drafts')}</option>
-          </select>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-all text-gray-700 text-sm font-medium cursor-pointer hover:border-gray-300">
-            <option value="created_desc">{t('companyJobs.newestFirst')}</option>
-            <option value="created_asc">{t('companyJobs.oldestFirst')}</option>
-            <option value="deadline">{t('companyJobs.byDeadline')}</option>
-            <option value="views">{t('companyJobs.byViews')}</option>
-            <option value="likes">{t('companyJobs.byLikes')}</option>
-            <option value="applications">{t('companyJobs.byApplications')}</option>
-          </select>
+          <div className="relative">
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="appearance-none pl-4 pr-10 py-2.5 bg-white border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-all text-gray-700 text-sm font-medium cursor-pointer hover:border-gray-300">
+              <option value="all">{t('companyJobs.allStatus')}</option>
+              <option value="active">{t('companyJobs.active')}</option>
+              <option value="inactive">{t('companyJobs.inactive')}</option>
+              <option value="draft">{t('companyJobs.drafts')}</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none pl-4 pr-10 py-2.5 bg-white border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-all text-gray-700 text-sm font-medium cursor-pointer hover:border-gray-300">
+              <option value="created_desc">{t('companyJobs.newestFirst')}</option>
+              <option value="created_asc">{t('companyJobs.oldestFirst')}</option>
+              <option value="deadline">{t('companyJobs.byDeadline')}</option>
+              <option value="views">{t('companyJobs.byViews')}</option>
+              <option value="likes">{t('companyJobs.byLikes')}</option>
+              <option value="applications">{t('companyJobs.byApplications')}</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          </div>
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
             <button onClick={() => setViewMode("cards")} className={`p-2.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-white shadow-sm text-primary-600" : "text-gray-500 hover:text-gray-700"}`} title={t('companyJobs.cardView')}><LayoutGrid className="h-4 w-4" /></button>
             <button onClick={() => setViewMode("table")} className={`p-2.5 rounded-lg transition-all ${viewMode === "table" ? "bg-white shadow-sm text-primary-600" : "text-gray-500 hover:text-gray-700"}`} title={t('companyJobs.listView')}><List className="h-4 w-4" /></button>
