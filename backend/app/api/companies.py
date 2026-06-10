@@ -369,9 +369,13 @@ async def update_score_filter_settings(
     """Aktualisiert die Score-Filter Einstellungen"""
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(status_code=403, detail="Nur Firmen")
-    
+
     company = get_company_or_404(current_user, db)
-    
+
+    # Premium-Gate: Auto-Ablehnung / Score-Filter nur für Premium
+    if not getattr(company, "is_premium", False):
+        raise HTTPException(status_code=403, detail="Diese Funktion ist nur für Premium-Accounts verfügbar.")
+
     if settings.enabled is not None:
         company.auto_reject_enabled = settings.enabled
     

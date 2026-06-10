@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { applicationsAPI, interviewAPI } from "@/lib/api";
+import { applicationsAPI, interviewAPI, companyAPI } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { 
   Loader2, FileText, User, Calendar, Eye, X, Mail, Phone,
   MapPin, FilePlus, CheckCircle, Search, Filter, Briefcase,
-  Users, ArrowUpDown, ChevronUp, ChevronDown, Sparkles,
+  Users, ArrowUpDown, ChevronUp, ChevronDown, Sparkles, Lock,
   StickyNote, Save, CalendarPlus, Check, Clock, Video, MapPinned,
   XCircle, Download, AlertTriangle, HelpCircle, ExternalLink
 } from "lucide-react";
@@ -101,6 +101,7 @@ export default function CompanyApplicationsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [jobFilter, setJobFilter] = useState("all");
   const [scoreFilter, setScoreFilter] = useState("all");
+  const [isPremium, setIsPremium] = useState(false);
   const [sortBy, setSortBy] = useState("applied_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   
@@ -141,6 +142,10 @@ export default function CompanyApplicationsPage() {
 
   useEffect(() => {
     loadApplications();
+  }, []);
+
+  useEffect(() => {
+    companyAPI.getProfile().then(r => setIsPremium(!!r.data?.is_premium)).catch(() => {});
   }, []);
 
   const loadApplications = async () => {
@@ -705,20 +710,31 @@ export default function CompanyApplicationsPage() {
               <Briefcase className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
 
-            {/* Score Filter */}
-            <div className="relative">
-              <select
-                value={scoreFilter}
-                onChange={(e) => setScoreFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm bg-white cursor-pointer"
+            {/* Score Filter (Premium) */}
+            {isPremium ? (
+              <div className="relative">
+                <select
+                  value={scoreFilter}
+                  onChange={(e) => setScoreFilter(e.target.value)}
+                  className="appearance-none pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm bg-white cursor-pointer"
+                >
+                  <option value="all">{t('companyApplications.allScores')}</option>
+                  <option value="high">🟢 {t('companyApplications.scoreHigh')}</option>
+                  <option value="medium">🟡 {t('companyApplications.scoreMedium')}</option>
+                  <option value="low">🔴 {t('companyApplications.scoreLow')}</option>
+                </select>
+                <Sparkles className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              </div>
+            ) : (
+              <div
+                title="Nach Match-Score filtern – verfügbar mit Premium"
+                className="flex items-center gap-1.5 pl-3 pr-3 py-2.5 border border-dashed border-gray-300 rounded-lg text-sm text-gray-400 bg-gray-50 cursor-not-allowed select-none"
               >
-                <option value="all">{t('companyApplications.allScores')}</option>
-                <option value="high">🟢 {t('companyApplications.scoreHigh')}</option>
-                <option value="medium">🟡 {t('companyApplications.scoreMedium')}</option>
-                <option value="low">🔴 {t('companyApplications.scoreLow')}</option>
-              </select>
-              <Sparkles className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-            </div>
+                <Lock className="h-4 w-4" />
+                Score-Filter
+                <span className="text-[10px] bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded-full font-semibold">Premium</span>
+              </div>
+            )}
           </div>
 
           {/* Aktive Filter anzeigen */}
@@ -806,12 +822,18 @@ export default function CompanyApplicationsPage() {
                     </button>
                   </th>
                   <th className="text-left px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                    <button
-                      onClick={() => handleSort("match_score")}
-                      className="flex items-center gap-1 hover:text-primary-600"
-                    >
-                      Score <SortIcon column="match_score" />
-                    </button>
+                    {isPremium ? (
+                      <button
+                        onClick={() => handleSort("match_score")}
+                        className="flex items-center gap-1 hover:text-primary-600"
+                      >
+                        Score <SortIcon column="match_score" />
+                      </button>
+                    ) : (
+                      <span className="flex items-center gap-1" title="Nach Score sortieren – verfügbar mit Premium">
+                        Score <Lock className="h-3 w-3 text-gray-400" />
+                      </span>
+                    )}
                   </th>
                   <th className="text-left px-3 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                     <button

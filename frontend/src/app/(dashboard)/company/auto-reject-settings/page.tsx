@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Loader2, Save, AlertTriangle, Filter, Target, Info } from "lucide-react";
+import { ArrowLeft, Loader2, Save, AlertTriangle, Filter, Target, Info, Lock } from "lucide-react";
 import { companyAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -20,6 +20,7 @@ export default function ScoreFilterSettingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isPremium, setIsPremium] = useState(true);
 
   useEffect(() => {
     loadSettings();
@@ -27,8 +28,12 @@ export default function ScoreFilterSettingsPage() {
 
   const loadSettings = async () => {
     try {
-      const response = await companyAPI.getScoreFilterSettings();
-      setSettings(response.data);
+      const [scoreRes, profileRes] = await Promise.all([
+        companyAPI.getScoreFilterSettings(),
+        companyAPI.getProfile().catch(() => ({ data: { is_premium: false } })),
+      ]);
+      setSettings(scoreRes.data);
+      setIsPremium(!!profileRes.data?.is_premium);
     } catch (error) {
       toast.error(t('scoreFilter.loadError'));
     } finally {
@@ -74,7 +79,22 @@ export default function ScoreFilterSettingsPage() {
         </div>
       </div>
 
+      {!isPremium && (
+        <div className="rounded-xl border-2 border-dashed border-amber-300 bg-amber-50 p-6 text-center">
+          <Lock className="h-10 w-10 text-amber-500 mx-auto mb-3" />
+          <h2 className="text-lg font-bold text-gray-900 mb-1">Premium-Funktion</h2>
+          <p className="text-sm text-gray-600 mb-2">
+            Die automatische Vorfilterung von Bewerbungen nach Match-Score ist Teil von Premium.
+            So bekommst du nur noch die passendsten Kandidaten in deinen Posteingang.
+          </p>
+          <p className="text-xs text-gray-500">
+            Interesse? Schreib uns an <a href="mailto:business@jobon.work" className="text-primary-600 font-medium hover:underline">business@jobon.work</a>.
+          </p>
+        </div>
+      )}
+
       {/* Info Box */}
+      {isPremium && <>
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
         <div className="flex gap-3">
           <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -177,6 +197,7 @@ export default function ScoreFilterSettingsPage() {
           </button>
         </div>
       </div>
+      </>}
     </div>
   );
 }
