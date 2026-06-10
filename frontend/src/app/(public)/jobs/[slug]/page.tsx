@@ -4,6 +4,21 @@ import JobDetailClient from "./JobDetailClient";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
 
+// HTML in sauberen Text wandeln: Listenpunkte/Absätze als ", " trennen
+// (verhindert zusammengeklebte Wörter in den strukturierten Daten)
+function htmlToText(html?: string): string | undefined {
+  if (!html) return undefined;
+  const text = html
+    .replace(/<\/(li|p|div|h[1-6])>/gi, ", ")
+    .replace(/<br\s*\/?>/gi, ", ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s*,\s*,+/g, ", ")
+    .replace(/^[\s,]+|[\s,]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || undefined;
+}
+
 // Relative Datei-URLs (/api/v1/files/...) in absolute Backend-URLs wandeln
 function absUrl(url?: string): string | undefined {
   if (!url) return undefined;
@@ -332,9 +347,9 @@ function generateJobPostingSchema(job: Job) {
     // Zusätzliche SEO-relevante Felder
     directApply: true,
     employerOverview: job.company.description || undefined,
-    jobBenefits: job.benefits?.replace(/<[^>]*>/g, "") || undefined,
-    responsibilities: job.tasks?.replace(/<[^>]*>/g, "") || undefined,
-    qualifications: job.requirements?.replace(/<[^>]*>/g, "") || undefined,
+    jobBenefits: htmlToText(job.benefits),
+    responsibilities: htmlToText(job.tasks),
+    qualifications: htmlToText(job.requirements),
     // Unterkunft als Benefit hervorheben
     ...(job.accommodation_provided && {
       specialCommitments: "Unterkunft wird gestellt",
