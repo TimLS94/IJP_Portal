@@ -70,6 +70,10 @@ export function trackCVParse(fieldsFilled: number) {
   sendGAEvent("event", "cv_auto_import", { fields_filled: fieldsFilled });
 }
 
+export function trackAIJobGenerate() {
+  sendGAEvent("event", "ai_job_generate", {});
+}
+
 export function trackLanguageSwitch(language: string) {
   sendGAEvent("event", "language_switch", { language });
 }

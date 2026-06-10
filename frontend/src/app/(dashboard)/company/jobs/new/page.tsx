@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
 import { jobsAPI, companyAPI } from "@/lib/api";
+import { trackAIJobGenerate } from "@/lib/analytics";
 import toast from "react-hot-toast";
 import RichTextEditor from "@/components/RichTextEditor";
 import { Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown, Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2, FileText, Globe, Eye, X, Copy, MessageCircle, Sparkles, Zap } from "lucide-react";
@@ -87,6 +88,7 @@ export default function CreateJobPage() {
       setIf("contact_phone", data.contact_phone);
       setValue("accommodation_provided", !!data.accommodation_provided);
       setValue("remote_possible", !!data.remote_possible);
+      try { trackAIJobGenerate(); } catch {}
       toast.success("Stelle ausgefüllt – bitte prüfen und anpassen.");
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;

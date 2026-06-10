@@ -139,7 +139,16 @@ def generate_job_posting(prompt: str, company_context: dict | None = None) -> di
             return None
 
         data = json.loads(m.group(0))
-        return _coerce(data)
+        result = _coerce(data)
+        # Token-Verbrauch für Auswertung anhängen (vom Endpoint ausgewertet)
+        try:
+            result["_usage"] = {
+                "input_tokens": message.usage.input_tokens,
+                "output_tokens": message.usage.output_tokens,
+            }
+        except Exception:
+            result["_usage"] = {"input_tokens": 0, "output_tokens": 0}
+        return result
 
     except Exception as e:
         logger.error(f"Fehler im Job-Writer: {e}")

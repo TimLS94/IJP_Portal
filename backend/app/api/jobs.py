@@ -1215,6 +1215,20 @@ async def ai_generate_job(
             detail="KI-Generierung fehlgeschlagen. Ist der ANTHROPIC_API_KEY konfiguriert?"
         )
 
+    # Token-Verbrauch zur Auswertung mitschreiben (kumulative Zähler in den Settings)
+    usage = result.pop("_usage", {"input_tokens": 0, "output_tokens": 0})
+    try:
+        from app.services.settings_service import get_setting, set_setting
+        count = int(get_setting(db, "ai_job_gen_count", 0) or 0) + 1
+        in_tok = int(get_setting(db, "ai_job_gen_input_tokens", 0) or 0) + int(usage.get("input_tokens", 0))
+        out_tok = int(get_setting(db, "ai_job_gen_output_tokens", 0) or 0) + int(usage.get("output_tokens", 0))
+        set_setting(db, "ai_job_gen_count", count)
+        set_setting(db, "ai_job_gen_input_tokens", in_tok)
+        set_setting(db, "ai_job_gen_output_tokens", out_tok)
+        db.commit()
+    except Exception:
+        db.rollback()
+
     # Kontaktdaten aus dem Firmenprofil vorbefüllen (nur wenn noch nicht in der Anzeige)
     result["contact_person"] = company.contact_person or None
     result["contact_phone"] = company.phone or None

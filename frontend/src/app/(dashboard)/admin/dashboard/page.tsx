@@ -10,7 +10,7 @@ import {
   Shield, Users, Briefcase, FileText, TrendingUp,
   UserCheck, Building2, Clock, BookOpen, ClipboardList,
   Archive, CheckCircle, AlertTriangle, FileX, Mail, Send,
-  Calendar, LogIn, UserPlus, BarChart3, Flag, Trash2, ExternalLink, Loader2, Activity
+  Calendar, LogIn, UserPlus, BarChart3, Flag, Trash2, ExternalLink, Loader2, Activity, Sparkles
 } from "lucide-react";
 
 // Dynamic import for recharts (client-side only)
@@ -137,6 +137,7 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [emailStats, setEmailStats] = useState<EmailStats | null>(null);
   const [coldOutreachStats, setColdOutreachStats] = useState<ColdOutreachStats | null>(null);
+  const [aiUsage, setAiUsage] = useState<{ generations: number; total_tokens: number; estimated_cost_usd: number; console_url: string } | null>(null);
   const [timelineStats, setTimelineStats] = useState<TimelineStats | null>(null);
   const [jobReports, setJobReports] = useState<JobReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -166,14 +167,16 @@ export default function AdminDashboardPage() {
       setRefreshing(true);
     }
     try {
-      const [statsRes, emailRes, coldOutreachRes] = await Promise.all([
+      const [statsRes, emailRes, coldOutreachRes, aiUsageRes] = await Promise.all([
         adminAPI.getStats(days),
         adminAPI.getEmailStats(days).catch(() => ({ data: null })),
-        adminAPI.getColdOutreachStats(days).catch(() => ({ data: null }))
+        adminAPI.getColdOutreachStats(days).catch(() => ({ data: null })),
+        adminAPI.getAiUsage().catch(() => ({ data: null }))
       ]);
       setStats(statsRes.data);
       setEmailStats(emailRes.data);
       setColdOutreachStats(coldOutreachRes.data);
+      setAiUsage(aiUsageRes.data);
     } catch {
       toast.error(t("common.error"));
     } finally {
@@ -328,6 +331,38 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* KI-Nutzung (Stellengenerator) */}
+      {aiUsage && (
+        <div className="card mb-8 border border-primary-200 bg-gradient-to-br from-primary-50 to-indigo-50">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary-600" />
+              KI-Stellengenerator – Verbrauch
+            </h2>
+            <a href={aiUsage.console_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline">
+              Anthropic Guthaben ansehen →
+            </a>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-3xl font-bold text-gray-900">{aiUsage.generations.toLocaleString("de-DE")}</p>
+              <p className="text-sm text-gray-500">Generierungen gesamt</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-gray-900">{aiUsage.total_tokens.toLocaleString("de-DE")}</p>
+              <p className="text-sm text-gray-500">Tokens verbraucht</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-gray-900">${aiUsage.estimated_cost_usd.toFixed(2)}</p>
+              <p className="text-sm text-gray-500">geschätzte Kosten</p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 mt-3">
+            Selbst gezählter Verbrauch (Schätzung). Das tatsächliche Restguthaben siehst du nur in der Anthropic Console.
+          </p>
+        </div>
+      )}
 
       {/* Timeline Charts */}
       <div className="card mb-8">

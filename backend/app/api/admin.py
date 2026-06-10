@@ -40,6 +40,33 @@ def require_admin(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.get("/ai-usage")
+async def get_ai_usage(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """KI-Nutzung des Stellengenerators: Anzahl, Tokens und geschätzte Kosten.
+    Hinweis: Anthropic stellt kein Rest-Guthaben per API bereit – dies ist der
+    selbst gezählte Verbrauch. Das echte Guthaben steht in der Anthropic Console."""
+    from app.services.settings_service import get_setting
+
+    count = int(get_setting(db, "ai_job_gen_count", 0) or 0)
+    in_tok = int(get_setting(db, "ai_job_gen_input_tokens", 0) or 0)
+    out_tok = int(get_setting(db, "ai_job_gen_output_tokens", 0) or 0)
+
+    # Geschätzte Kosten (Claude Haiku 4.5: ~$1 / 1M Input, ~$5 / 1M Output)
+    est_cost_usd = round(in_tok / 1_000_000 * 1.0 + out_tok / 1_000_000 * 5.0, 4)
+
+    return {
+        "generations": count,
+        "input_tokens": in_tok,
+        "output_tokens": out_tok,
+        "total_tokens": in_tok + out_tok,
+        "estimated_cost_usd": est_cost_usd,
+        "console_url": "https://console.anthropic.com/settings/billing",
+    }
+
+
 @router.get("/stats")
 async def get_dashboard_stats(
     days: int = Query(7, ge=1, le=365, description="Zeitraum in Tagen"),
