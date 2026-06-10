@@ -516,6 +516,40 @@ def ensure_company_premium_column():
 ensure_company_premium_column()
 
 
+def ensure_job_promotions_table():
+    """Erstellt die job_promotions Tabelle und last_boosted_at auf job_postings."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS job_promotions (
+                id SERIAL PRIMARY KEY,
+                company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+                job_id INTEGER NOT NULL REFERENCES job_postings(id) ON DELETE CASCADE,
+                kind VARCHAR(20) NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        """))
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_job_promotions_company ON job_promotions (company_id)"))
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_job_promotions_created ON job_promotions (created_at)"))
+        res = db.execute(text("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'job_postings' AND column_name = 'last_boosted_at'
+        """))
+        if not res.fetchone():
+            db.execute(text("ALTER TABLE job_postings ADD COLUMN last_boosted_at TIMESTAMP WITH TIME ZONE"))
+        db.commit()
+        logger.info("job_promotions: Tabelle + last_boosted_at sichergestellt")
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"job_promotions: {e}")
+    finally:
+        db.close()
+
+
+ensure_job_promotions_table()
+
+
 def backfill_is_filtered():
     """
     Setzt is_filtered korrekt für bestehende Bewerbungen:

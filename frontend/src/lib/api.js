@@ -152,6 +152,9 @@ export const jobsAPI = {
   translate: (id, languages) => api.post(`/jobs/${id}/translate`, { languages }),
   translateText: (data) => api.post('/jobs/translate-text', data),
   aiGenerate: (prompt) => api.post('/jobs/ai-generate', { prompt }),
+  getPromotionStatus: () => api.get('/jobs/promotions/status'),
+  featureJob: (jobId) => api.post(`/jobs/${jobId}/feature`),
+  boostJob: (jobId) => api.post(`/jobs/${jobId}/boost`),
   // Job Interactions (für Bewerber)
   likeJob: (id) => api.post(`/jobs/${id}/like`),
   reportJob: (id, reason, note) => api.post(`/jobs/${id}/report`, { reason, note }),
@@ -337,6 +340,7 @@ export const interviewsAPI = interviewAPI;
 export const adminAPI = {
   getStats: (days = 7) => api.get('/admin/stats', { params: { days } }),
   getAiUsage: () => api.get('/admin/ai-usage'),
+  getPromotions: (params = {}) => api.get('/admin/promotions', { params }),
   getEmailStats: (days = 30) => api.get('/admin/email-stats', { params: { days } }),
   getColdOutreachStats: (days = 30) => api.get('/admin/cold-outreach-stats', { params: { days } }),
   getTimeline: (days = 30) => api.get('/admin/timeline', { params: { days } }),

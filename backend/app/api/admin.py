@@ -40,6 +40,39 @@ def require_admin(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.get("/promotions")
+async def list_promotions(
+    kind: Optional[str] = Query(None, description="'boost' oder 'feature'"),
+    days: int = Query(30, ge=1, le=365),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Listet von Firmen ausgelöste Booster/Hervorhebungen – für manuelles Posten in Gruppen."""
+    from app.models.job_promotion import JobPromotion
+    from app.models.job_posting import JobPosting
+
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    query = db.query(JobPromotion).filter(JobPromotion.created_at >= cutoff)
+    if kind in ("boost", "feature"):
+        query = query.filter(JobPromotion.kind == kind)
+    promos = query.order_by(JobPromotion.created_at.desc()).limit(200).all()
+
+    result = []
+    for p in promos:
+        job = db.query(JobPosting).filter(JobPosting.id == p.job_id).first()
+        company = db.query(Company).filter(Company.id == p.company_id).first()
+        result.append({
+            "id": p.id,
+            "kind": p.kind,
+            "created_at": p.created_at,
+            "job_id": p.job_id,
+            "job_title": job.title if job else "(gelöscht)",
+            "job_slug": f"{job.slug}-{job.id}" if job and job.slug else None,
+            "company_name": company.company_name if company else "(unbekannt)",
+        })
+    return {"promotions": result}
+
+
 @router.get("/ai-usage")
 async def get_ai_usage(
     current_user: User = Depends(require_admin),

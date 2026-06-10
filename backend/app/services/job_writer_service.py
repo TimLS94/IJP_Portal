@@ -138,7 +138,14 @@ def generate_job_posting(prompt: str, company_context: dict | None = None) -> di
             logger.error(f"Job-Writer: kein JSON in der Antwort: {raw[:200]}")
             return None
 
-        data = json.loads(m.group(0))
+        # strict=False erlaubt echte Zeilenumbrüche in Strings (das HTML kann welche enthalten)
+        try:
+            data = json.loads(m.group(0), strict=False)
+        except json.JSONDecodeError as je:
+            # Fallback: Steuerzeichen entfernen und erneut versuchen
+            cleaned = re.sub(r"[\x00-\x1f]+", " ", m.group(0))
+            logger.warning(f"Job-Writer: JSON-Reparatur nötig ({je})")
+            data = json.loads(cleaned, strict=False)
         result = _coerce(data)
         # Token-Verbrauch für Auswertung anhängen (vom Endpoint ausgewertet)
         try:

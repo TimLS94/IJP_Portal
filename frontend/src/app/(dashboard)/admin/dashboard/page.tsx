@@ -10,7 +10,7 @@ import {
   Shield, Users, Briefcase, FileText, TrendingUp,
   UserCheck, Building2, Clock, BookOpen, ClipboardList,
   Archive, CheckCircle, AlertTriangle, FileX, Mail, Send,
-  Calendar, LogIn, UserPlus, BarChart3, Flag, Trash2, ExternalLink, Loader2, Activity, Sparkles
+  Calendar, LogIn, UserPlus, BarChart3, Flag, Trash2, ExternalLink, Loader2, Activity, Sparkles, Rocket
 } from "lucide-react";
 
 // Dynamic import for recharts (client-side only)
@@ -138,6 +138,7 @@ export default function AdminDashboardPage() {
   const [emailStats, setEmailStats] = useState<EmailStats | null>(null);
   const [coldOutreachStats, setColdOutreachStats] = useState<ColdOutreachStats | null>(null);
   const [aiUsage, setAiUsage] = useState<{ generations: number; total_tokens: number; estimated_cost_usd: number; console_url: string } | null>(null);
+  const [boosts, setBoosts] = useState<{ id: number; created_at: string; job_title: string; job_slug: string | null; company_name: string }[]>([]);
   const [timelineStats, setTimelineStats] = useState<TimelineStats | null>(null);
   const [jobReports, setJobReports] = useState<JobReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -177,6 +178,7 @@ export default function AdminDashboardPage() {
       setEmailStats(emailRes.data);
       setColdOutreachStats(coldOutreachRes.data);
       setAiUsage(aiUsageRes.data);
+      adminAPI.getPromotions({ kind: "boost", days: 30 }).then(r => setBoosts(r.data?.promotions || [])).catch(() => {});
     } catch {
       toast.error(t("common.error"));
     } finally {
@@ -361,6 +363,29 @@ export default function AdminDashboardPage() {
           <p className="text-xs text-gray-400 mt-3">
             Selbst gezählter Verbrauch (Schätzung). Das tatsächliche Restguthaben siehst du nur in der Anthropic Console.
           </p>
+        </div>
+      )}
+
+      {/* Booster-Anfragen (manuell in Gruppen posten) */}
+      {boosts.length > 0 && (
+        <div className="card mb-8 border border-purple-200">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+            <Rocket className="h-5 w-5 text-purple-600" />
+            Booster-Anfragen (letzte 30 Tage) – manuell in Gruppen posten
+          </h2>
+          <div className="divide-y divide-gray-100">
+            {boosts.map((b) => (
+              <div key={b.id} className="flex items-center justify-between py-2 gap-4">
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{b.job_title}</p>
+                  <p className="text-sm text-gray-500">{b.company_name} · {new Date(b.created_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}</p>
+                </div>
+                {b.job_slug && (
+                  <a href={`/jobs/${b.job_slug}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline whitespace-nowrap">Stelle öffnen →</a>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

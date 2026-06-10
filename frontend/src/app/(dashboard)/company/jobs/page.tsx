@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, FileText, Search, X, LayoutGrid, List, Languages, Lock, Unlock, Copy, Loader2, Heart, Users, ChevronRight, ChevronDown, Building2, Globe, ExternalLink } from "lucide-react";
+import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, FileText, Search, X, LayoutGrid, List, Languages, Lock, Unlock, Copy, Loader2, Heart, Users, ChevronRight, ChevronDown, Building2, Globe, ExternalLink, Star, Rocket } from "lucide-react";
 import { jobsAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,7 @@ interface Job {
   location?: string;
   is_active: boolean;
   is_draft?: boolean;
+  is_featured?: boolean;
   created_at: string;
   deadline?: string;
   archived_at?: string;
@@ -83,6 +84,7 @@ export default function CompanyJobsPage() {
   ];
   const [jobs, setJobs] = useState<Job[]>([]);
   const [archivedJobs, setArchivedJobs] = useState<Job[]>([]);
+  const [promo, setPromo] = useState<{ is_premium: boolean; feature_remaining: number; boost_remaining: number } | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "active");
@@ -114,6 +116,28 @@ export default function CompanyJobsPage() {
   }, []);
 
   useEffect(() => { loadAll(); }, []);
+  useEffect(() => { jobsAPI.getPromotionStatus().then(r => setPromo(r.data)).catch(() => {}); }, []);
+
+  const handleFeature = async (job: Job) => {
+    try {
+      await jobsAPI.featureJob(job.id);
+      toast.success("Stelle wird hervorgehoben.");
+      jobsAPI.getPromotionStatus().then(r => setPromo(r.data)).catch(() => {});
+      loadAll();
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('common.error'));
+    }
+  };
+
+  const handleBoost = async (job: Job) => {
+    try {
+      const r = await jobsAPI.boostJob(job.id);
+      toast.success(r.data?.message || "Booster aktiviert.");
+      jobsAPI.getPromotionStatus().then(r => setPromo(r.data)).catch(() => {});
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('common.error'));
+    }
+  };
 
   const loadAll = async () => {
     try {
@@ -345,6 +369,26 @@ export default function CompanyJobsPage() {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button onClick={() => toggleActive(job)} className="btn-secondary text-sm flex items-center gap-1">{job.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}<span className="hidden sm:inline">{job.is_active ? t('companyJobs.deactivate') : t('companyJobs.activate')}</span></button>
+                  {promo?.is_premium && (
+                    <>
+                      <button
+                        onClick={() => handleFeature(job)}
+                        disabled={job.is_featured || (promo?.feature_remaining ?? 0) <= 0}
+                        title={job.is_featured ? "Bereits hervorgehoben" : `Hervorheben (${promo?.feature_remaining ?? 0} diesen Monat übrig)`}
+                        className="text-sm flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Star className={`h-4 w-4 ${job.is_featured ? "fill-amber-400" : ""}`} /><span className="hidden sm:inline">{job.is_featured ? "Hervorgehoben" : "Hervorheben"}</span>
+                      </button>
+                      <button
+                        onClick={() => handleBoost(job)}
+                        disabled={(promo?.boost_remaining ?? 0) <= 0}
+                        title={`Booster aktivieren (${promo?.boost_remaining ?? 0} diesen Monat übrig)`}
+                        className="text-sm flex items-center gap-1 px-3 py-2 rounded-lg border border-purple-300 text-purple-700 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Rocket className="h-4 w-4" /><span className="hidden sm:inline">Booster</span>
+                      </button>
+                    </>
+                  )}
                   <Link href={`/company/jobs/${job.id}/edit`} className="btn-primary text-sm flex items-center gap-1"><Edit className="h-4 w-4" /><span className="hidden sm:inline">{t('common.edit')}</span></Link>
                   <button onClick={() => openDeleteModal(job.id)} className="btn-danger text-sm flex items-center gap-1"><Archive className="h-4 w-4" /><span className="hidden sm:inline">{t('companyJobs.archiveBtn')}</span></button>
                 </div>

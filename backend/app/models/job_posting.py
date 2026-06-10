@@ -147,6 +147,7 @@ class JobPosting(Base):
     featured_by_admin = Column(Boolean, default=False)  # True = Admin hat aktiviert, False = Firma hat gebucht
     featured_requested_at = Column(DateTime(timezone=True), nullable=True)  # Wann Firma angefragt hat (für später)
     featured_approved_at = Column(DateTime(timezone=True), nullable=True)   # Wann Admin freigegeben hat
+    last_boosted_at = Column(DateTime(timezone=True), nullable=True)        # Letzte Booster-Aktivierung (Firma)
 
     # ========== EXTERNE JOBS (z.B. Bundesagentur für Arbeit) ==========
     is_external = Column(Boolean, default=False)           # Extern gescraptes Inserat

@@ -1540,3 +1540,110 @@ async def reindex_all_jobs(
         "api_configured": True,
         "results": results,
     }
+
+
+# ========== PREMIUM: HERVORHEBEN & BOOSTER ==========
+
+FEATURE_LIMIT_PER_MONTH = 1   # Premium: 1 Stelle pro Monat hervorheben
+BOOST_LIMIT_PER_MONTH = 2     # Premium: 2x pro Monat Booster aktivieren
+FEATURE_DURATION_DAYS = 30
+
+
+def _month_start() -> datetime:
+    now = datetime.utcnow()
+    return datetime(now.year, now.month, 1)
+
+
+def _promotion_count(db: Session, company_id: int, kind: str) -> int:
+    from app.models.job_promotion import JobPromotion
+    return db.query(JobPromotion).filter(
+        JobPromotion.company_id == company_id,
+        JobPromotion.kind == kind,
+        JobPromotion.created_at >= _month_start(),
+    ).count()
+
+
+@router.get("/promotions/status")
+async def get_promotion_status(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Premium-Status + verbleibende Hervorhebungen/Booster im aktuellen Monat."""
+    company = get_company_for_user(current_user, db)
+    if not company:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+
+    is_premium = bool(getattr(company, "is_premium", False))
+    features_used = _promotion_count(db, company.id, "feature") if is_premium else 0
+    boosts_used = _promotion_count(db, company.id, "boost") if is_premium else 0
+    return {
+        "is_premium": is_premium,
+        "feature_limit": FEATURE_LIMIT_PER_MONTH,
+        "feature_used": features_used,
+        "feature_remaining": max(0, FEATURE_LIMIT_PER_MONTH - features_used),
+        "boost_limit": BOOST_LIMIT_PER_MONTH,
+        "boost_used": boosts_used,
+        "boost_remaining": max(0, BOOST_LIMIT_PER_MONTH - boosts_used),
+    }
+
+
+def _get_own_job(job_id: int, company, db: Session) -> JobPosting:
+    job = db.query(JobPosting).filter(
+        JobPosting.id == job_id,
+        JobPosting.company_id == company.id
+    ).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
+    return job
+
+
+@router.post("/{job_id}/feature")
+async def feature_own_job(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Premium: Eigene Stelle hervorheben (1x pro Monat)."""
+    from app.models.job_promotion import JobPromotion
+    company = get_company_for_user(current_user, db)
+    if not company:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    if not getattr(company, "is_premium", False):
+        raise HTTPException(status_code=403, detail="Diese Funktion ist nur für Premium-Accounts verfügbar.")
+
+    if _promotion_count(db, company.id, "feature") >= FEATURE_LIMIT_PER_MONTH:
+        raise HTTPException(status_code=429, detail="Du hast dein Hervorheben-Kontingent für diesen Monat aufgebraucht.")
+
+    job = _get_own_job(job_id, company, db)
+    job.is_featured = True
+    job.featured_by_admin = False
+    job.featured_requested_at = datetime.utcnow()
+    job.featured_until = datetime.utcnow() + timedelta(days=FEATURE_DURATION_DAYS)
+    db.add(JobPromotion(company_id=company.id, job_id=job.id, kind="feature"))
+    db.commit()
+    return {"message": "Stelle wird hervorgehoben.", "featured_until": job.featured_until}
+
+
+@router.post("/{job_id}/boost")
+async def boost_own_job(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Premium: Booster für eigene Stelle aktivieren (2x pro Monat).
+    Hat keine technische Wirkung – der Admin sieht die Anfrage und postet manuell."""
+    from app.models.job_promotion import JobPromotion
+    company = get_company_for_user(current_user, db)
+    if not company:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+    if not getattr(company, "is_premium", False):
+        raise HTTPException(status_code=403, detail="Diese Funktion ist nur für Premium-Accounts verfügbar.")
+
+    if _promotion_count(db, company.id, "boost") >= BOOST_LIMIT_PER_MONTH:
+        raise HTTPException(status_code=429, detail="Du hast dein Booster-Kontingent für diesen Monat aufgebraucht.")
+
+    job = _get_own_job(job_id, company, db)
+    job.last_boosted_at = datetime.utcnow()
+    db.add(JobPromotion(company_id=company.id, job_id=job.id, kind="boost"))
+    db.commit()
+    return {"message": "Booster aktiviert – wird vom IJP-Team in den Gruppen gepostet."}
