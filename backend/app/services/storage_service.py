@@ -168,6 +168,27 @@ class StorageService:
             logger.error(error_msg)
             return False, "", error_msg
     
+    def list_keys(self, prefix: str) -> list:
+        """Listet vorhandene Datei-Schlüssel/Pfade unter einem Prefix (R2 oder lokal)."""
+        if not prefix:
+            return []
+        if self.use_r2:
+            try:
+                resp = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
+                return [obj["Key"] for obj in resp.get("Contents", [])]
+            except Exception as e:
+                logger.error(f"R2 list_keys Fehler: {e}")
+                return []
+        # Lokal: Dateien im Verzeichnis auflisten
+        try:
+            from app.core.config import settings
+            base = os.path.join(settings.UPLOAD_DIR, prefix)
+            if not os.path.isdir(base):
+                return []
+            return [os.path.join(prefix, f) for f in os.listdir(base) if os.path.isfile(os.path.join(base, f))]
+        except Exception:
+            return []
+
     async def download_file(self, file_path_or_key: str) -> Tuple[bool, Optional[bytes], str]:
         """
         Lädt eine Datei herunter.

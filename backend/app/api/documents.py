@@ -394,7 +394,42 @@ async def download_document(
     
     # Datei über DocumentService laden (unterstützt R2 und lokal)
     file_content = await DocumentService.get_file_content(document)
-    
+
+    # Fallback: Datei liegt evtl. unter einem anderen Schlüssel im Bewerber-Ordner
+    # (z.B. veralteter file_path aus der Übergangszeit). Wir suchen sie und heilen den Pfad.
+    if file_content is None and document.applicant_id:
+        import logging as _logging
+        _log = _logging.getLogger(__name__)
+        _log.warning(f"Dokument {document.id}: file_path '{document.file_path}' nicht gefunden – versuche Fallback.")
+
+        base = os.path.basename(document.file_path or "")
+        folder = f"documents/{document.applicant_id}/"
+        keys = storage_service.list_keys(folder)
+
+        candidates = []
+        if base:
+            candidates.append(f"{folder}{base}")  # gleicher Dateiname, korrigierter Prefix
+            candidates += [k for k in keys if os.path.basename(k) == base]  # exakter Treffer
+        if len(keys) == 1:
+            candidates.append(keys[0])  # nur eine Datei im Ordner -> eindeutig
+
+        seen = set()
+        for key in candidates:
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            ok, content, _ = await storage_service.download_file(key)
+            if ok and content:
+                file_content = content
+                # Selbstheilung: korrekten Pfad in der DB speichern
+                try:
+                    document.file_path = key
+                    db.commit()
+                    _log.info(f"Dokument {document.id}: Pfad geheilt -> '{key}'")
+                except Exception:
+                    db.rollback()
+                break
+
     if file_content is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
