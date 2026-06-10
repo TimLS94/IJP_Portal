@@ -401,13 +401,52 @@ async def download_document(
             detail="Datei nicht gefunden"
         )
     
+    download_name = _friendly_filename(document, db)
     return Response(
         content=file_content,
         media_type=document.mime_type or 'application/pdf',
         headers={
-            "Content-Disposition": f'attachment; filename="{document.original_name}"'
+            "Content-Disposition": f'attachment; filename="{download_name}"'
         }
     )
+
+
+def _friendly_filename(document, db: Session) -> str:
+    """Baut einen sauberen Download-Namen: Vorname_Nachname_Dokumenttyp.ext
+    (ASCII-sicher, fällt auf den Originalnamen zurück)."""
+    import os as _os
+    import re as _re
+    import unicodedata as _ud
+    from app.models.applicant import Applicant
+
+    type_labels = {
+        "cv": "Lebenslauf", "passport": "Reisepass", "photo": "Foto",
+        "enrollment_cert": "Immatrikulation", "enrollment_trans": "Immatrikulation_Uebersetzung",
+        "ba_declaration": "BA_Erklaerung", "language_cert": "Sprachzertifikat",
+        "diploma": "Abschlusszeugnis", "school_cert": "Schulzeugnis",
+        "work_reference": "Arbeitszeugnis", "visa": "Visum",
+        "cover_letter": "Anschreiben", "other": "Dokument",
+    }
+
+    def _clean(s: str) -> str:
+        if not s:
+            return ""
+        ascii_s = _ud.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+        return _re.sub(r"[^A-Za-z0-9]+", "_", ascii_s).strip("_")
+
+    ext = _os.path.splitext(document.original_name or "")[1] or ".pdf"
+    dtype = document.document_type.value if hasattr(document.document_type, "value") else str(document.document_type)
+    label = type_labels.get(dtype, "Dokument")
+
+    applicant = db.query(Applicant).filter(Applicant.id == document.applicant_id).first()
+    parts = []
+    if applicant:
+        parts.append(_clean(applicant.first_name))
+        parts.append(_clean(applicant.last_name))
+    parts.append(_clean(label))
+    parts = [p for p in parts if p]
+
+    return ("_".join(parts) + ext) if parts else (document.original_name or f"dokument{ext}")
 
 
 @router.delete("/{document_id}")
