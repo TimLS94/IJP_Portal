@@ -108,6 +108,11 @@ export default function Footer() {
                   {t("footer.terms")}
                 </Link>
               </li>
+              <li>
+                <Link href="/barrierefreiheit" className="hover:text-white transition-colors">
+                  Barrierefreiheit
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
