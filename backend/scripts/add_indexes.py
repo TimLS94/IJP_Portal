@@ -3,8 +3,19 @@
 Script zum Erstellen der Performance-Indizes.
 Ausführen in der Render Shell: python scripts/add_indexes.py
 """
-from sqlalchemy import text
-from app.core.database import engine
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from sqlalchemy import text, create_engine
+
+# Direkt aus Umgebungsvariable
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    print("ERROR: DATABASE_URL nicht gesetzt!")
+    sys.exit(1)
+
+engine = create_engine(DATABASE_URL)
 
 indexes = [
     "CREATE INDEX IF NOT EXISTS ix_applications_applicant_id ON applications(applicant_id)",
