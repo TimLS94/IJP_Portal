@@ -1004,8 +1004,8 @@ async def list_all_applications(
         query = query.filter(Application.status == status_filter)
     
     if position_type:
-        query = query.filter(Applicant.position_type == position_type)
-    
+        query = query.filter(JobPosting.position_type == position_type)
+
     if invite_source:
         query = query.filter(Applicant.invite_source.ilike(f"%{invite_source}%"))
     
@@ -1039,7 +1039,9 @@ async def list_all_applications(
             "applicant_name": f"{applicant.first_name} {applicant.last_name}" if applicant else "Unbekannt",
             "applicant_email": applicant_user.email if applicant_user else None,
             "applicant_phone": applicant.phone if applicant else None,
-            "position_type": applicant.position_type.value if applicant and applicant.position_type else None,
+            # Stellenart der STELLE (nicht des Bewerber-Profils) – das ist die Spalte "Stellenart"
+            "position_type": job.position_type.value if job and job.position_type else None,
+            "applicant_position_type": applicant.position_type.value if applicant and applicant.position_type else None,
             "invite_source": applicant.invite_source if applicant else None,
             "invite_source_country": applicant.invite_source_country if applicant else None,
             "job_id": job.id if job else None,

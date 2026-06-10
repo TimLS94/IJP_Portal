@@ -10,6 +10,7 @@ import { adminAPI, applicationsAPI, documentsAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 
 const positionTypeLabels: Record<string, string> = {
+  general: "Allgemein",
   studentenferienjob: "Studentenferienjob",
   saisonjob: "Saisonjob (8 Monate)",
   workandholiday: "Work & Holiday",
