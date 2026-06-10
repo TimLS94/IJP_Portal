@@ -90,6 +90,7 @@ export const applicantAPI = {
 // Company API
 export const companyAPI = {
   getProfile: () => api.get('/companies/me'),
+  requestPremiumInterest: (message) => api.post('/companies/me/premium-interest', { message: message || null }),
   createProfile: (data) => api.post('/companies/me', data),
   updateProfile: (data) => api.put('/companies/me', data),
   getCompany: (id) => api.get(`/companies/${id}`),

@@ -88,9 +88,9 @@ export default function ScoreFilterSettingsPage() {
             Match-Score werden automatisch in einen separaten Tab sortiert – so siehst du in
             der Hauptliste nur die passendsten Kandidaten (abgelehnt wird niemand).
           </p>
-          <p className="text-xs text-gray-500">
-            Interesse? Schreib uns an <a href="mailto:business@jobon.work" className="text-primary-600 font-medium hover:underline">business@jobon.work</a>.
-          </p>
+          <Link href="/company/premium" className="btn-primary inline-flex items-center gap-2 mt-1">
+            <Lock className="h-4 w-4" /> Mehr über Premium
+          </Link>
         </div>
       )}
 

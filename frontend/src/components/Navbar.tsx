@@ -30,6 +30,7 @@ import {
   Globe,
   Bell,
   Flag,
+  Crown,
   BarChart3,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -217,6 +218,7 @@ export default function Navbar() {
         { to: "/company/calendar", icon: Calendar, label: t("nav.calendar") },
         { to: "/company/team", icon: Users, label: t("nav.team") },
         { to: "/company/ijp-auftrag", icon: Briefcase, label: t("nav.ijpRequest") },
+        { to: "/company/premium", icon: Crown, label: "Premium" },
         { divider: true },
         { to: "/company/settings", icon: Settings, label: t("nav.settings") },
       ];

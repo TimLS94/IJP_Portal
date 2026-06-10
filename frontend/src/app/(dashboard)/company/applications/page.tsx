@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { applicationsAPI, interviewAPI, companyAPI } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -726,14 +727,15 @@ export default function CompanyApplicationsPage() {
                 <Sparkles className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
             ) : (
-              <div
-                title="Nach Match-Score filtern – verfügbar mit Premium"
-                className="flex items-center gap-1.5 pl-3 pr-3 py-2.5 border border-dashed border-gray-300 rounded-lg text-sm text-gray-400 bg-gray-50 cursor-not-allowed select-none"
+              <Link
+                href="/company/premium"
+                title="Nach Match-Score filtern – verfügbar mit Premium. Mehr erfahren"
+                className="flex items-center gap-1.5 pl-3 pr-3 py-2.5 border border-dashed border-amber-300 rounded-lg text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors select-none"
               >
                 <Lock className="h-4 w-4" />
                 Score-Filter
                 <span className="text-[10px] bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded-full font-semibold">Premium</span>
-              </div>
+              </Link>
             )}
           </div>
 

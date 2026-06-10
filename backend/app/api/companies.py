@@ -486,3 +486,55 @@ async def delete_logo(
         db.commit()
     
     return {"message": "Logo gelöscht"}
+
+
+class PremiumInterestRequest(BaseModel):
+    message: Optional[str] = None
+
+
+@router.post("/me/premium-interest")
+async def request_premium_interest(
+    data: PremiumInterestRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Eine Firma bekundet Interesse an Premium – benachrichtigt die Admins per E-Mail."""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+
+    company = get_company_or_404(current_user, db)
+    from app.services.email_service import email_service
+
+    note = (data.message or "").strip()
+    note_html = f"<p style='margin:16px 0;padding:12px;background:#fff;border-radius:8px;'><strong>Nachricht:</strong><br>{note}</p>" if note else ""
+
+    admin_emails = db.query(User.email).filter(User.role == UserRole.ADMIN, User.is_active == True).all()
+    for (admin_email,) in admin_emails:
+        try:
+            email_service.send_email(
+                to_email=admin_email,
+                subject=f"⭐ Premium-Interesse: {company.company_name}",
+                html_content=f"""
+                <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background:#2563eb;color:white;padding:20px;text-align:center;border-radius:10px 10px 0 0;">
+                        <h1 style="margin:0;">⭐ Premium-Interesse</h1>
+                    </div>
+                    <div style="padding:24px;background:#f9fafb;">
+                        <p>Eine Firma hat Interesse an einem Premium-Account bekundet:</p>
+                        <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                            <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:bold;">Firma:</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;">{company.company_name}</td></tr>
+                            <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:bold;">Ansprechpartner:</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;">{company.contact_person or '–'}</td></tr>
+                            <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:bold;">E-Mail:</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;">{current_user.email}</td></tr>
+                            <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:bold;">Telefon:</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;">{company.phone or '–'}</td></tr>
+                        </table>
+                        {note_html}
+                        <p style="color:#6b7280;font-size:13px;">Premium kannst du in der Nutzerverwaltung per Toggle freischalten.</p>
+                    </div>
+                </body></html>
+                """,
+                email_type="other",
+            )
+        except Exception:
+            pass
+
+    return {"message": "Anfrage gesendet. Wir melden uns bei dir!"}

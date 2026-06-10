@@ -227,13 +227,10 @@ export default function CreateJobPage() {
           </p>
           <div className="relative">
             <textarea className="input-styled w-full bg-gray-100 text-gray-400 cursor-not-allowed" rows={2} placeholder="z.B. Erntehelfer für Spargelhof bei München, Mai–Juli, Unterkunft gestellt…" disabled />
-            <button type="button" disabled className="btn-primary flex items-center gap-2 mt-3 opacity-60 cursor-not-allowed">
-              <Sparkles className="h-4 w-4" /> Premium-Funktion
-            </button>
+            <Link href="/company/premium" className="btn-primary inline-flex items-center gap-2 mt-3">
+              <Sparkles className="h-4 w-4" /> Mehr über Premium
+            </Link>
           </div>
-          <p className="text-xs text-gray-500 mt-3">
-            Interesse an Premium? Schreib uns an <a href="mailto:business@jobon.work" className="text-primary-600 font-medium hover:underline">business@jobon.work</a>.
-          </p>
         </div>
       )}
 
