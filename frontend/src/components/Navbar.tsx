@@ -273,7 +273,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center">
-              <img src="/logo.png" alt="JobOn" className="h-16 w-auto" />
+              <img src="/logo.png" alt="JobOn" width={600} height={400} className="h-16 w-auto" />
             </Link>
             <div className="hidden md:flex items-center space-x-4">
               <div className="h-8 w-24 bg-gray-100 rounded animate-pulse"></div>
