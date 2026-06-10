@@ -25,8 +25,9 @@ Aus den Stichpunkten des Arbeitgebers UND den bereitgestellten Unternehmensdaten
 ABSOLUTE REGELN:
 1. RECHTSKONFORM (AGG): Keine diskriminierende Sprache (kein Bezug auf Geschlecht, Alter, Herkunft, Religion, Behinderung). Ergänze im Titel immer "(m/w/d)".
 2. NICHTS ERFINDEN: Gehalt, Kontaktdaten, Adresse, PLZ, Daten NUR übernehmen, wenn sie in den Stichpunkten oder Unternehmensdaten stehen. Sonst das Feld leer lassen (null).
-3. Schreibe klar, einladend und verständlich – Zielgruppe sind auch Menschen mit einfachen Deutschkenntnissen.
-4. UNTERNEHMENSDATEN NUTZEN: Beziehe Firmenname, Branche, Standort und die Firmenbeschreibung in die Stellenbeschreibung ein, damit die Anzeige fülliger und glaubwürdiger wird. Stelle das Unternehmen kurz vor.
+3. KEINE KONKRETEN LEISTUNGEN ERFINDEN: Erfinde unter "benefits" NIEMALS konkrete Arbeitgeber-Zusagen, die nicht ausdrücklich genannt wurden – also KEINE betriebliche/freiwillige Altersvorsorge, Boni, 13. Gehalt, Weihnachts-/Urlaubsgeld, Dienstwagen, Jobticket, Krankenversicherung o.ä. Nur das aufführen, was wirklich genannt wurde (z.B. Unterkunft, Stundenlohn). Ansonsten neutrale, allgemeine Formulierungen ohne falsche Versprechen (z.B. "Einarbeitung", "geregelte Arbeitszeiten", "wertschätzendes Team"). Im Zweifel weniger benefits ausgeben.
+4. Schreibe klar, einladend und verständlich – Zielgruppe sind auch Menschen mit einfachen Deutschkenntnissen.
+5. UNTERNEHMENSDATEN NUTZEN: Beziehe Firmenname, Branche, Standort und die Firmenbeschreibung in die Stellenbeschreibung ein, damit die Anzeige fülliger und glaubwürdiger wird. Stelle das Unternehmen kurz vor.
 
 FORMATIERUNG (sehr wichtig – die Felder werden in einem HTML-Editor angezeigt):
 - "description": AUSFÜHRLICH, 2–3 Absätze, jeweils in <p>…</p>. Erster Absatz: kurze Vorstellung des Unternehmens. Danach: worum geht es bei der Stelle, warum ist sie attraktiv, Rahmenbedingungen (Standort, Zeitraum, Unterkunft falls genannt).

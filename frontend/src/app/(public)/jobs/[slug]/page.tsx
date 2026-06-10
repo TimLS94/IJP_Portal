@@ -4,6 +4,14 @@ import JobDetailClient from "./JobDetailClient";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
 
+// Relative Datei-URLs (/api/v1/files/...) in absolute Backend-URLs wandeln
+function absUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  if (/^https?:\/\//i.test(url)) return url;
+  const origin = API_URL.replace(/\/api\/v1\/?$/, "");
+  return url.startsWith("/") ? `${origin}${url}` : `${origin}/${url}`;
+}
+
 // Typen - Backend gibt flache Struktur zurück
 interface OtherLanguage {
   language: string;
@@ -112,7 +120,7 @@ function transformJob(apiJob: JobFromAPI): Job {
     company: {
       id: apiJob.company_id || 0,
       name: apiJob.company_name || "Unbekannt",
-      logo_url: apiJob.company_logo,
+      logo_url: absUrl(apiJob.company_logo),
       industry: apiJob.company_industry,
       city: apiJob.company_city,
       country: apiJob.company_country,

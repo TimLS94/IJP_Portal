@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MapPin, Building2, Clock, Search, Filter, Briefcase, ChevronDown, X, Languages, Heart, Loader2, SlidersHorizontal } from "lucide-react";
-import { jobsAPI } from "@/lib/api";
+import { jobsAPI, resolveFileUrl } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -46,6 +46,7 @@ interface Job {
   available_languages?: string[];
   company?: {
     company_name?: string;
+    logo?: string;
   };
 }
 
@@ -473,7 +474,15 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
                 {/* Company, location, start date */}
                 <div className="flex flex-wrap items-center gap-3 text-gray-600">
                   <span className="flex items-center gap-1.5">
-                    <Building2 className="h-4 w-4 text-gray-400" />
+                    {!job.is_external && job.company?.logo ? (
+                      <img
+                        src={resolveFileUrl(job.company.logo)}
+                        alt={job.company?.company_name || ""}
+                        className="h-5 w-5 rounded object-contain bg-white"
+                      />
+                    ) : (
+                      <Building2 className="h-4 w-4 text-gray-400" />
+                    )}
                     <span className="font-medium">
                       {job.is_external && job.external_employer_name
                         ? job.external_employer_name
