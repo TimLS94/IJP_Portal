@@ -266,16 +266,16 @@ export default function BlogDetailClient({ post, relatedPosts, language = "de" }
         </div>
       </header>
 
-      {/* Featured Image */}
-      <div className="mb-8 rounded-2xl overflow-hidden shadow-lg">
+      {/* Featured Image – feste aspect-ratio reserviert den Platz (verhindert Layout-Sprung) */}
+      <div className="mb-8 rounded-2xl overflow-hidden shadow-lg aspect-[16/9] bg-gradient-to-br from-primary-50 to-primary-100">
         {post.featured_image ? (
           <img
             src={post.featured_image}
             alt={post.title}
-            className="w-full h-auto"
+            className="w-full h-full object-cover"
           />
         ) : (
-          <div className="h-56 bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
+          <div className="w-full h-full flex items-center justify-center">
             <img src="/logo.png" alt="JobOn" className="h-20 w-auto opacity-40" />
           </div>
         )}

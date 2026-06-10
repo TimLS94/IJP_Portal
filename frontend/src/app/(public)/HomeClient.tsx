@@ -3,16 +3,11 @@
 import Link from "next/link";
 import { ArrowRight, Briefcase, Users, Building2, FileCheck, CheckCircle, Send, UserCheck, Handshake, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function HomeClient() {
   const { t } = useTranslation();
-  const [isClient, setIsClient] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const positionTypes = [
     { id: 'studentenferienjob', key: 'positionTypes.studentenferienjob', color: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200', icon: '🎓' },
@@ -36,20 +31,6 @@ export default function HomeClient() {
     { questionKey: "home.faq.q4", answerKey: "home.faq.a4" },
     { questionKey: "home.faq.q5", answerKey: "home.faq.a5" },
   ];
-
-  if (!isClient) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="bg-gray-200 rounded-3xl h-96 mb-16"></div>
-          <div className="grid grid-cols-2 gap-4 mb-16">
-            <div className="bg-gray-200 h-48 rounded-xl"></div>
-            <div className="bg-gray-200 h-48 rounded-xl"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8">
