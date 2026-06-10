@@ -84,8 +84,9 @@ export default function ScoreFilterSettingsPage() {
           <Lock className="h-10 w-10 text-amber-500 mx-auto mb-3" />
           <h2 className="text-lg font-bold text-gray-900 mb-1">Premium-Funktion</h2>
           <p className="text-sm text-gray-600 mb-2">
-            Die automatische Vorfilterung von Bewerbungen nach Match-Score ist Teil von Premium.
-            So bekommst du nur noch die passendsten Kandidaten in deinen Posteingang.
+            Der Score-Filter ist Teil von Premium. Bewerbungen unter deinem festgelegten
+            Match-Score werden automatisch in einen separaten Tab sortiert – so siehst du in
+            der Hauptliste nur die passendsten Kandidaten (abgelehnt wird niemand).
           </p>
           <p className="text-xs text-gray-500">
             Interesse? Schreib uns an <a href="mailto:business@jobon.work" className="text-primary-600 font-medium hover:underline">business@jobon.work</a>.
