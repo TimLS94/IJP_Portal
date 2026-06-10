@@ -50,6 +50,9 @@ class Company(Base):
 
     # Scraper-Flag (Firma ohne echten Account, vom BA-Scraper angelegt)
     is_scraped = Column(Boolean, default=False)
+
+    # Premium-Account (Zugriff auf KI-Stellengenerator etc.)
+    is_premium = Column(Boolean, default=False)
     
     # Absage-E-Mail Einstellungen
     rejection_email_enabled = Column(Boolean, default=True)  # Absage-E-Mail aktiviert?

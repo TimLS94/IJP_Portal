@@ -49,6 +49,7 @@ class CompanyResponse(CompanyBase):
     id: int
     user_id: int
     logo: Optional[str] = None
-    
+    is_premium: bool = False
+
     class Config:
         from_attributes = True

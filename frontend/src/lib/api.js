@@ -151,6 +151,7 @@ export const jobsAPI = {
   // Übersetzung (für Firmen)
   translate: (id, languages) => api.post(`/jobs/${id}/translate`, { languages }),
   translateText: (data) => api.post('/jobs/translate-text', data),
+  aiGenerate: (prompt) => api.post('/jobs/ai-generate', { prompt }),
   // Job Interactions (für Bewerber)
   likeJob: (id) => api.post(`/jobs/${id}/like`),
   reportJob: (id, reason, note) => api.post(`/jobs/${id}/report`, { reason, note }),
@@ -348,6 +349,7 @@ export const adminAPI = {
   getEmailTemplates: () => api.get('/admin/email/templates'),
   listUsers: (params) => api.get('/admin/users', { params }),
   toggleUserActive: (id) => api.put(`/admin/users/${id}/toggle-active`),
+  toggleCompanyPremium: (userId) => api.put(`/admin/users/${userId}/toggle-premium`),
   createAdmin: (data) => api.post('/admin/users/create-admin', data),
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
   listJobs: (params) => api.get('/admin/jobs', { params }),

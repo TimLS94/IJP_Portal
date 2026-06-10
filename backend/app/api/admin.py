@@ -526,7 +526,9 @@ async def list_users(
             company = db.query(Company).filter(Company.user_id == user.id).first()
             if company:
                 user_data["name"] = company.company_name
-        
+                user_data["company_id"] = company.id
+                user_data["is_premium"] = bool(company.is_premium)
+
         result.append(user_data)
     
     return {"total": total, "users": result}
@@ -569,6 +571,26 @@ async def toggle_user_active(
             )
     
     return {"message": f"Benutzer {'aktiviert' if user.is_active else 'deaktiviert'}", "is_active": user.is_active}
+
+
+@router.put("/users/{user_id}/toggle-premium")
+async def toggle_company_premium(
+    user_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Schaltet den Premium-Status einer Firma an/aus."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=404, detail="Firma nicht gefunden")
+
+    company = db.query(Company).filter(Company.user_id == user.id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
+
+    company.is_premium = not bool(company.is_premium)
+    db.commit()
+    return {"message": f"Premium {'aktiviert' if company.is_premium else 'deaktiviert'}", "is_premium": company.is_premium}
 
 
 @router.get("/jobs")

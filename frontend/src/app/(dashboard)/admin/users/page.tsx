@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { 
   Users, Search, UserCheck, UserX, Building2, 
   User, Shield, Filter, Plus, X, Trash2, Eye, EyeOff, Loader2,
-  Download, FileText, ShieldAlert, AlertTriangle, File, ArrowUpDown, ArrowUp, ArrowDown
+  Download, FileText, ShieldAlert, AlertTriangle, File, ArrowUpDown, ArrowUp, ArrowDown, Sparkles
 } from "lucide-react";
 
 const roleLabels: Record<string, { label: string; icon: typeof User; color: string }> = {
@@ -23,6 +23,7 @@ interface UserData {
   is_active: boolean;
   created_at: string;
   last_login_at?: string;
+  is_premium?: boolean;
 }
 
 interface GdprDocument {
@@ -106,6 +107,17 @@ export default function AdminUsersPage() {
   const toggleActive = async (userId: number) => {
     try {
       const response = await adminAPI.toggleUserActive(userId);
+      toast.success(response.data.message);
+      loadUsers();
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || "Fehler beim Aktualisieren");
+    }
+  };
+
+  const togglePremium = async (userId: number) => {
+    try {
+      const response = await adminAPI.toggleCompanyPremium(userId);
       toast.success(response.data.message);
       loadUsers();
     } catch (error: unknown) {
@@ -392,11 +404,24 @@ export default function AdminUsersPage() {
                             >
                               <ShieldAlert className="h-4 w-4" />
                             </button>
+                            {user.role === "company" && (
+                              <button
+                                onClick={() => togglePremium(user.id)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  user.is_premium
+                                    ? "text-amber-500 hover:bg-amber-50"
+                                    : "text-gray-300 hover:bg-gray-100"
+                                }`}
+                                title={user.is_premium ? "Premium aktiv – klicken zum Deaktivieren" : "Kein Premium – klicken zum Aktivieren"}
+                              >
+                                <Sparkles className="h-4 w-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => toggleActive(user.id)}
                               className={`p-2 rounded-lg transition-colors ${
-                                user.is_active 
-                                  ? "text-orange-600 hover:bg-orange-50" 
+                                user.is_active
+                                  ? "text-orange-600 hover:bg-orange-50"
                                   : "text-green-600 hover:bg-green-50"
                               }`}
                               title={user.is_active ? "Deaktivieren" : "Aktivieren"}

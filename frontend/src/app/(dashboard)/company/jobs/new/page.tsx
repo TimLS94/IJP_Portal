@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
-import { jobsAPI } from "@/lib/api";
+import { jobsAPI, companyAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 import RichTextEditor from "@/components/RichTextEditor";
 import { Briefcase, ArrowLeft, Save, Loader2, MapPin, Calendar, Euro, ChevronDown, Languages, Plus, Minus, Clock, AlertTriangle, User, Phone, Mail, Building2, FileText, Globe, Eye, X, Copy, MessageCircle, Sparkles, Zap } from "lucide-react";
@@ -27,6 +27,9 @@ export default function CreateJobPage() {
   const isTemplateMode = searchParams.get("saveAsTemplate") === "true";
   const [saving, setSaving] = useState(false);
   const [translating, setTranslating] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const [jobSettings, setJobSettings] = useState({ max_job_deadline_days: 90 });
   const [showPreview, setShowPreview] = useState(false);
   const [selectedPositionTypes, setSelectedPositionTypes] = useState<string[]>([]);
@@ -50,7 +53,45 @@ export default function CreateJobPage() {
   const updateTranslation = (f: keyof Translation, v: string) => setTranslations({ ...translations, [activeLanguage]: { ...translations[activeLanguage], [f]: v } });
   const togglePositionType = (v: string) => { if (selectedPositionTypes.includes(v)) { let n = selectedPositionTypes.filter(t => t !== v); if (v === "workandholiday") n = n.filter(t => t !== "saisonjob"); setSelectedPositionTypes(n); } else { let n = [...selectedPositionTypes, v]; if (v === "workandholiday" && !n.includes("saisonjob")) n.push("saisonjob"); setSelectedPositionTypes(n); } };
 
+  useEffect(() => { companyAPI.getProfile().then(r => setIsPremium(!!r.data?.is_premium)).catch(() => {}); }, []);
+
   const handleStartImmediate = (checked: boolean) => { setStartImmediate(checked); if (checked) setValue("start_date", new Date().toISOString().split("T")[0]); };
+
+  const handleAiGenerate = async () => {
+    if (aiPrompt.trim().length < 10) { toast.error("Bitte gib ein paar mehr Stichpunkte ein."); return; }
+    setAiGenerating(true);
+    try {
+      const { data } = await jobsAPI.aiGenerate(aiPrompt.trim());
+      // Textfelder (Deutsch) setzen
+      setTranslations(p => ({ ...p, de: {
+        title: data.title || "",
+        description: data.description || "",
+        tasks: data.tasks || "",
+        requirements: data.requirements || "",
+        benefits: data.benefits || "",
+      }}));
+      // Positionstypen
+      if (Array.isArray(data.position_types) && data.position_types.length) setSelectedPositionTypes(data.position_types);
+      // Skalare Felder
+      const setIf = (k: string, v: unknown) => { if (v !== null && v !== undefined && v !== "") setValue(k, v as string); };
+      setIf("employment_type", data.employment_type);
+      setIf("german_required", data.german_required);
+      setIf("english_required", data.english_required);
+      setIf("salary_min", data.salary_min);
+      setIf("salary_max", data.salary_max);
+      setIf("salary_type", data.salary_type);
+      setIf("location", data.location);
+      setIf("postal_code", data.postal_code);
+      setValue("accommodation_provided", !!data.accommodation_provided);
+      setValue("remote_possible", !!data.remote_possible);
+      toast.success("Stelle ausgefüllt – bitte prüfen und anpassen.");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(msg || "KI-Generierung fehlgeschlagen.");
+    } finally {
+      setAiGenerating(false);
+    }
+  };
 
   const addOtherLanguage = () => setOtherLanguages([...otherLanguages, { language: "", level: "a2", required: false }]);
   const removeOtherLanguage = (i: number) => setOtherLanguages(otherLanguages.filter((_, idx) => idx !== i));
@@ -132,6 +173,57 @@ export default function CreateJobPage() {
       </div>
 
       {isTemplateMode && <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6"><p className="text-indigo-800 text-sm flex items-center gap-2"><FileText className="h-5 w-5" /><strong>Vorlagen-Modus:</strong> Füllen Sie die Felder aus und speichern Sie als Vorlage.</p></div>}
+
+      {/* KI-Stellengenerator */}
+      {isPremium ? (
+        <div className="mb-6 rounded-2xl border-2 border-primary-200 bg-gradient-to-br from-primary-50 to-indigo-50 p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="h-5 w-5 text-primary-600" />
+            <h2 className="font-bold text-gray-900">Mit KI ausfüllen</h2>
+            <span className="text-xs bg-primary-600 text-white px-2 py-0.5 rounded-full font-medium">Premium</span>
+          </div>
+          <p className="text-sm text-gray-600 mb-3">
+            Gib ein paar Stichpunkte ein – die KI erstellt daraus eine vollständige, rechtskonforme Stellenanzeige. Du kannst alles danach anpassen.
+          </p>
+          <textarea
+            className="input-styled w-full"
+            rows={3}
+            placeholder="z.B. Erntehelfer für Spargelhof bei München, Mai–Juli, Unterkunft gestellt, kein Deutsch nötig, 13€/h, Vollzeit"
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            disabled={aiGenerating}
+          />
+          <button
+            type="button"
+            onClick={handleAiGenerate}
+            disabled={aiGenerating}
+            className="btn-primary flex items-center gap-2 mt-3"
+          >
+            {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {aiGenerating ? "Wird erstellt…" : "Stelle ausfüllen"}
+          </button>
+        </div>
+      ) : (
+        <div className="mb-6 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 p-5 relative overflow-hidden">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="h-5 w-5 text-gray-400" />
+            <h2 className="font-bold text-gray-700">Mit KI ausfüllen</h2>
+            <span className="text-xs bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full font-semibold">✨ Premium</span>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">
+            Lass die KI aus ein paar Stichpunkten eine komplette, rechtskonforme Stellenanzeige erstellen – spart dir das ganze Tippen. Verfügbar mit einem Premium-Account.
+          </p>
+          <div className="relative">
+            <textarea className="input-styled w-full bg-gray-100 text-gray-400 cursor-not-allowed" rows={2} placeholder="z.B. Erntehelfer für Spargelhof bei München, Mai–Juli, Unterkunft gestellt…" disabled />
+            <button type="button" disabled className="btn-primary flex items-center gap-2 mt-3 opacity-60 cursor-not-allowed">
+              <Sparkles className="h-4 w-4" /> Premium-Funktion
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            Interesse an Premium? Schreib uns an <a href="mailto:business@jobon.work" className="text-primary-600 font-medium hover:underline">business@jobon.work</a>.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit((d) => onSubmit(d, false))} className="space-y-8">
         {/* Mehrsprachig */}

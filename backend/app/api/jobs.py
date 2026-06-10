@@ -1170,6 +1170,46 @@ async def translate_text_direct(
         raise HTTPException(status_code=500, detail=f"Übersetzung fehlgeschlagen: {str(e)}")
 
 
+class AiGenerateJobRequest(BaseModel):
+    prompt: str
+
+
+@router.post("/ai-generate")
+async def ai_generate_job(
+    request: AiGenerateJobRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Erzeugt aus Freitext-Stichpunkten eine vollständige, AGG-konforme
+    Stellenanzeige (Felder für das Formular). Nur für Firmen.
+    """
+    company = get_company_for_user(current_user, db)
+    if not company:
+        raise HTTPException(status_code=403, detail="Nur für Firmen")
+
+    # Premium-Gate: KI-Stellengenerator nur für Premium-Accounts
+    if not getattr(company, "is_premium", False):
+        raise HTTPException(status_code=403, detail="Diese Funktion ist nur für Premium-Accounts verfügbar.")
+
+    prompt = (request.prompt or "").strip()
+    if len(prompt) < 10:
+        raise HTTPException(status_code=400, detail="Bitte gib ein paar mehr Stichpunkte ein (mind. 10 Zeichen).")
+    if len(prompt) > 4000:
+        raise HTTPException(status_code=400, detail="Eingabe zu lang (max. 4000 Zeichen).")
+
+    from app.services.job_writer_service import generate_job_posting
+    result = generate_job_posting(prompt)
+
+    if not result:
+        raise HTTPException(
+            status_code=500,
+            detail="KI-Generierung fehlgeschlagen. Ist der ANTHROPIC_API_KEY konfiguriert?"
+        )
+
+    return result
+
+
 @router.get("/{job_id}/match")
 async def get_job_match_score(
     job_id: int,

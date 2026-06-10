@@ -490,6 +490,32 @@ def ensure_partner_links_table():
 ensure_partner_links_table()
 
 
+def ensure_company_premium_column():
+    """Fügt is_premium zu companies hinzu. Bestehende Firmen werden einmalig
+    auf Premium gesetzt (Bestandskunden), neue Firmen sind standardmäßig False."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'companies' AND column_name = 'is_premium'
+        """))
+        if not result.fetchone():
+            db.execute(text("ALTER TABLE companies ADD COLUMN is_premium BOOLEAN DEFAULT FALSE"))
+            # Bestandskunden: alle bisher existierenden Firmen auf Premium
+            db.execute(text("UPDATE companies SET is_premium = TRUE"))
+            db.commit()
+            logger.info("companies: Spalte 'is_premium' hinzugefügt, Bestandsfirmen auf Premium gesetzt")
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"companies is_premium: {e}")
+    finally:
+        db.close()
+
+
+ensure_company_premium_column()
+
+
 def backfill_is_filtered():
     """
     Setzt is_filtered korrekt für bestehende Bewerbungen:
