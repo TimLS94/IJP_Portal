@@ -164,7 +164,7 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
           <span className="text-gray-600">Wird angemeldet...</span>
         </div>
       ) : (
-        <div ref={buttonRef} style={{ minHeight: "44px" }} />
+        <div ref={buttonRef} className="w-full max-w-[400px]" style={{ minHeight: "44px" }} />
       )}
     </div>
   );
