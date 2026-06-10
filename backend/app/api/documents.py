@@ -132,6 +132,19 @@ async def upload_document(
             detail="Bitte erstellen Sie zuerst Ihr Bewerber-Profil"
         )
     
+    # Bestehende Dokumente desselben Typs ersetzen (eine Datei pro Typ – verhindert
+    # Duplikate und verwaiste Datensätze). "Sonstiges" darf mehrfach vorkommen.
+    if document_type != DocumentType.OTHER:
+        existing_same_type = db.query(Document).filter(
+            Document.applicant_id == applicant.id,
+            Document.document_type == document_type
+        ).all()
+        for old in existing_same_type:
+            try:
+                await DocumentService.delete_file(old, db)
+            except Exception:
+                db.rollback()
+
     # Bytes lesen bevor wir an DocumentService weitergeben (für CV-Parsing)
     file_bytes = await file.read()
     await file.seek(0)
