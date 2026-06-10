@@ -16,6 +16,7 @@ interface Job {
   is_active: boolean;
   is_draft?: boolean;
   is_featured?: boolean;
+  featured_by_admin?: boolean;
   last_boosted_at?: string | null;
   created_at: string;
   deadline?: string;
@@ -85,7 +86,7 @@ export default function CompanyJobsPage() {
   ];
   const [jobs, setJobs] = useState<Job[]>([]);
   const [archivedJobs, setArchivedJobs] = useState<Job[]>([]);
-  const [promo, setPromo] = useState<{ is_premium: boolean; feature_remaining: number; boost_remaining: number } | null>(null);
+  const [promo, setPromo] = useState<{ is_premium: boolean; feature_remaining: number; feature_limit: number; boost_remaining: number; boost_limit: number } | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "active");
@@ -291,6 +292,20 @@ export default function CompanyJobsPage() {
         ))}
       </div>
 
+      {activeTab === "active" && promo?.is_premium && (
+        <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3">
+          <span className="text-xs bg-primary-600 text-white px-2 py-0.5 rounded-full font-medium">Premium</span>
+          <span className="flex items-center gap-1.5 text-sm text-gray-700">
+            <Star className="h-4 w-4 text-amber-500" />
+            Hervorheben: <strong>{promo.feature_remaining}/{promo.feature_limit}</strong> diesen Monat übrig
+          </span>
+          <span className="flex items-center gap-1.5 text-sm text-gray-700">
+            <Rocket className="h-4 w-4 text-purple-600" />
+            Booster: <strong>{promo.boost_remaining}/{promo.boost_limit}</strong> diesen Monat übrig
+          </span>
+        </div>
+      )}
+
       {activeTab === "active" && jobs.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <div className="relative flex-1 max-w-xs">
@@ -367,7 +382,7 @@ export default function CompanyJobsPage() {
                     {job.is_draft && <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">{t('companyJobs.draft')}</span>}
                     {!job.is_active && !job.is_draft && <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">{t('companyJobs.inactive')}</span>}
                     {job.admin_translated && <span className="flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium"><Languages className="h-3 w-3" />{t('companyJobs.translated')}</span>}
-                    {job.is_featured && <span className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium"><Star className="h-3 w-3 fill-amber-400" />Hervorgehoben</span>}
+                    {job.is_featured && <span className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium"><Star className="h-3 w-3 fill-amber-400" />{job.featured_by_admin ? "Hervorgehoben von IJP" : "Hervorgehoben"}</span>}
                     {isBoostActive(job) && <span className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium"><Rocket className="h-3 w-3" />Booster läuft</span>}
                     {job.deadline && <DeadlineBadge deadline={job.deadline} />}
                   </div>

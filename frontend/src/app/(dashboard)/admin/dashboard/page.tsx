@@ -139,6 +139,7 @@ export default function AdminDashboardPage() {
   const [coldOutreachStats, setColdOutreachStats] = useState<ColdOutreachStats | null>(null);
   const [aiUsage, setAiUsage] = useState<{ generations: number; total_tokens: number; estimated_cost_usd: number; console_url: string } | null>(null);
   const [boosts, setBoosts] = useState<{ id: number; created_at: string; job_title: string; job_slug: string | null; company_name: string }[]>([]);
+  const [features, setFeatures] = useState<{ job_id: number; job_title: string; job_slug: string | null; company_name: string; by_admin: boolean; featured_until: string | null }[]>([]);
   const [timelineStats, setTimelineStats] = useState<TimelineStats | null>(null);
   const [jobReports, setJobReports] = useState<JobReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -179,6 +180,7 @@ export default function AdminDashboardPage() {
       setColdOutreachStats(coldOutreachRes.data);
       setAiUsage(aiUsageRes.data);
       adminAPI.getPromotions({ kind: "boost", days: 30 }).then(r => setBoosts(r.data?.promotions || [])).catch(() => {});
+      adminAPI.getFeaturedJobs().then(r => setFeatures(r.data?.featured || [])).catch(() => {});
     } catch {
       toast.error(t("common.error"));
     } finally {
@@ -382,6 +384,35 @@ export default function AdminDashboardPage() {
                 </div>
                 {b.job_slug && (
                   <a href={`/jobs/${b.job_slug}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline whitespace-nowrap">Stelle öffnen →</a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Aktuell hervorgehobene Stellen */}
+      {features.length > 0 && (
+        <div className="card mb-8 border border-amber-200">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+            <Sparkles className="h-5 w-5 text-amber-500" />
+            Aktuell hervorgehobene Stellen ({features.length})
+          </h2>
+          <div className="divide-y divide-gray-100">
+            {features.map((f) => (
+              <div key={f.job_id} className="flex items-center justify-between py-2 gap-4">
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate flex items-center gap-2">
+                    {f.job_title}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${f.by_admin ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>{f.by_admin ? "von IJP" : "von Firma"}</span>
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {f.company_name}
+                    {f.featured_until && ` · bis ${new Date(f.featured_until).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}`}
+                  </p>
+                </div>
+                {f.job_slug && (
+                  <a href={`/jobs/${f.job_slug}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline whitespace-nowrap">Stelle öffnen →</a>
                 )}
               </div>
             ))}

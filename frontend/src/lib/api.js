@@ -341,6 +341,7 @@ export const adminAPI = {
   getStats: (days = 7) => api.get('/admin/stats', { params: { days } }),
   getAiUsage: () => api.get('/admin/ai-usage'),
   getPromotions: (params = {}) => api.get('/admin/promotions', { params }),
+  getFeaturedJobs: () => api.get('/admin/featured-jobs'),
   getEmailStats: (days = 30) => api.get('/admin/email-stats', { params: { days } }),
   getColdOutreachStats: (days = 30) => api.get('/admin/cold-outreach-stats', { params: { days } }),
   getTimeline: (days = 30) => api.get('/admin/timeline', { params: { days } }),

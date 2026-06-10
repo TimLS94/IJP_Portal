@@ -944,6 +944,7 @@ async def get_my_jobs(
             "like_count": like_counts.get(job.id, 0),
             "application_count": application_counts.get(job.id, 0),
             "is_featured": bool(job.is_featured),
+            "featured_by_admin": bool(job.featured_by_admin),
             "featured_until": job.featured_until,
             "last_boosted_at": job.last_boosted_at,
         }

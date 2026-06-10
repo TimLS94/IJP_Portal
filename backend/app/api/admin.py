@@ -73,6 +73,33 @@ async def list_promotions(
     return {"promotions": result}
 
 
+@router.get("/featured-jobs")
+async def list_featured_jobs(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Alle aktuell hervorgehobenen Stellen (von Firma oder IJP/Admin)."""
+    from app.models.job_posting import JobPosting
+    now = datetime.utcnow()
+    jobs = db.query(JobPosting).filter(
+        JobPosting.is_featured == True,
+        (JobPosting.featured_until == None) | (JobPosting.featured_until > now)
+    ).order_by(JobPosting.featured_until.desc().nullslast()).all()
+
+    result = []
+    for job in jobs:
+        company = db.query(Company).filter(Company.id == job.company_id).first()
+        result.append({
+            "job_id": job.id,
+            "job_title": job.title,
+            "job_slug": f"{job.slug}-{job.id}" if job.slug else None,
+            "company_name": company.company_name if company else "(unbekannt)",
+            "by_admin": bool(job.featured_by_admin),
+            "featured_until": job.featured_until,
+        })
+    return {"featured": result}
+
+
 @router.get("/ai-usage")
 async def get_ai_usage(
     current_user: User = Depends(require_admin),
