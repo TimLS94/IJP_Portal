@@ -88,6 +88,13 @@ export default function CreateJobPage() {
       setIf("contact_phone", data.contact_phone);
       setValue("accommodation_provided", !!data.accommodation_provided);
       setValue("remote_possible", !!data.remote_possible);
+      // Startdatum: "ab sofort" oder konkretes Datum
+      if (data.start_immediate) {
+        handleStartImmediate(true);
+      } else if (data.start_date) {
+        setStartImmediate(false);
+        setValue("start_date", data.start_date);
+      }
       try { trackAIJobGenerate(); } catch {}
       toast.success("Stelle ausgefüllt – bitte prüfen und anpassen.");
     } catch (e: unknown) {
@@ -325,8 +332,8 @@ export default function CreateJobPage() {
           </div>
           <div className="mb-4"><label className="label">Adresse</label><input type="text" className="input-styled" placeholder="z.B. Musterstraße 123" {...register("address")} /></div>
           <div className="flex flex-wrap gap-6 mb-6">
-            <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" {...register("remote_possible")} className="w-5 h-5 rounded" /><span>Remote möglich</span></label>
-            <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" {...register("accommodation_provided")} className="w-5 h-5 rounded" /><span>Unterkunft vorhanden</span></label>
+            <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={!!watch("remote_possible")} onChange={e => setValue("remote_possible", e.target.checked)} className="w-5 h-5 rounded" /><span>Remote möglich</span></label>
+            <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={!!watch("accommodation_provided")} onChange={e => setValue("accommodation_provided", e.target.checked)} className="w-5 h-5 rounded" /><span>Unterkunft vorhanden</span></label>
           </div>
           <div className="border-t pt-4">
             <label className="flex items-center gap-3 cursor-pointer mb-4 p-3 bg-green-50 rounded-lg border border-green-200">

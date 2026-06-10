@@ -943,6 +943,9 @@ async def get_my_jobs(
             "view_count": job.view_count or 0,
             "like_count": like_counts.get(job.id, 0),
             "application_count": application_counts.get(job.id, 0),
+            "is_featured": bool(job.is_featured),
+            "featured_until": job.featured_until,
+            "last_boosted_at": job.last_boosted_at,
         }
         result.append(job_dict)
     
@@ -1646,4 +1649,10 @@ async def boost_own_job(
     job.last_boosted_at = datetime.utcnow()
     db.add(JobPromotion(company_id=company.id, job_id=job.id, kind="boost"))
     db.commit()
-    return {"message": "Booster aktiviert – wird vom IJP-Team in den Gruppen gepostet."}
+    used = _promotion_count(db, company.id, "boost")
+    return {
+        "message": "Stelle wird geboostert.",
+        "boost_used": used,
+        "boost_limit": BOOST_LIMIT_PER_MONTH,
+        "last_boosted_at": job.last_boosted_at,
+    }

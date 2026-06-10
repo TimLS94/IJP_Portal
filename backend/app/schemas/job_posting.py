@@ -191,6 +191,7 @@ class JobPostingResponse(JobPostingBase):
     is_featured: Optional[bool] = False
     featured_until: Optional[datetime] = None
     featured_by_admin: Optional[bool] = False
+    last_boosted_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

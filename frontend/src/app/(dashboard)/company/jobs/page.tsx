@@ -16,6 +16,7 @@ interface Job {
   is_active: boolean;
   is_draft?: boolean;
   is_featured?: boolean;
+  last_boosted_at?: string | null;
   created_at: string;
   deadline?: string;
   archived_at?: string;
@@ -132,11 +133,20 @@ export default function CompanyJobsPage() {
   const handleBoost = async (job: Job) => {
     try {
       const r = await jobsAPI.boostJob(job.id);
-      toast.success(r.data?.message || "Booster aktiviert.");
+      const used = r.data?.boost_used, limit = r.data?.boost_limit;
+      toast.success(used && limit ? `Stelle wird geboostert (${used}/${limit} diesen Monat)` : "Stelle wird geboostert.");
       jobsAPI.getPromotionStatus().then(r => setPromo(r.data)).catch(() => {});
+      loadAll();
     } catch (e: unknown) {
       toast.error((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('common.error'));
     }
+  };
+
+  // Booster gilt 7 Tage als "aktiv laufend"
+  const isBoostActive = (job: Job) => {
+    if (!job.last_boosted_at) return false;
+    const diff = Date.now() - new Date(job.last_boosted_at).getTime();
+    return diff < 7 * 24 * 60 * 60 * 1000;
   };
 
   const loadAll = async () => {
@@ -357,6 +367,8 @@ export default function CompanyJobsPage() {
                     {job.is_draft && <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">{t('companyJobs.draft')}</span>}
                     {!job.is_active && !job.is_draft && <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">{t('companyJobs.inactive')}</span>}
                     {job.admin_translated && <span className="flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium"><Languages className="h-3 w-3" />{t('companyJobs.translated')}</span>}
+                    {job.is_featured && <span className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium"><Star className="h-3 w-3 fill-amber-400" />Hervorgehoben</span>}
+                    {isBoostActive(job) && <span className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium"><Rocket className="h-3 w-3" />Booster läuft</span>}
                     {job.deadline && <DeadlineBadge deadline={job.deadline} />}
                   </div>
                   <div className="flex flex-wrap items-center gap-4 text-gray-600 text-sm">
@@ -382,10 +394,10 @@ export default function CompanyJobsPage() {
                       <button
                         onClick={() => handleBoost(job)}
                         disabled={(promo?.boost_remaining ?? 0) <= 0}
-                        title={`Booster aktivieren (${promo?.boost_remaining ?? 0} diesen Monat übrig)`}
-                        className="text-sm flex items-center gap-1 px-3 py-2 rounded-lg border border-purple-300 text-purple-700 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={isBoostActive(job) ? "Booster läuft" : `Booster aktivieren (${promo?.boost_remaining ?? 0} diesen Monat übrig)`}
+                        className={`text-sm flex items-center gap-1 px-3 py-2 rounded-lg border disabled:opacity-40 disabled:cursor-not-allowed ${isBoostActive(job) ? "border-purple-500 bg-purple-100 text-purple-800" : "border-purple-300 text-purple-700 hover:bg-purple-50"}`}
                       >
-                        <Rocket className="h-4 w-4" /><span className="hidden sm:inline">Booster</span>
+                        <Rocket className="h-4 w-4" /><span className="hidden sm:inline">{isBoostActive(job) ? "Booster läuft" : "Booster"}</span>
                       </button>
                     </>
                   )}

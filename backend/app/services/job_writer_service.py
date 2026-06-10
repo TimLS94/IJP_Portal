@@ -50,11 +50,18 @@ Gib AUSSCHLIESSLICH gültiges JSON zurück, ohne Markdown-Fences, in genau diese
   "location": "Stadt oder null",
   "postal_code": "PLZ oder null",
   "accommodation_provided": true/false,
-  "remote_possible": true/false
+  "remote_possible": true/false,
+  "start_immediate": true/false,
+  "start_date": "YYYY-MM-DD oder null"
 }
 
-Wenn keine Sprachkenntnisse genannt werden, setze beide auf "not_required".
-Wähle position_types und employment_type sinnvoll anhand des Kontexts (z.B. Erntehelfer/Saison -> saisonjob + seasonal)."""
+REGELN FÜR EINZELNE FELDER:
+- "accommodation_provided": true, wenn von Unterkunft, Wohnung, Zimmer, "housing", "Unterkunft gestellt" o.ä. die Rede ist.
+- "remote_possible": true, wenn Homeoffice/Remote möglich ist.
+- "start_immediate": true, wenn "ab sofort", "sofort", "immediately", "asap" o.ä. genannt wird.
+- "start_date": konkretes Startdatum im Format YYYY-MM-DD, falls genannt (z.B. "ab Mai" -> erster des Monats). Sonst null.
+- Wenn keine Sprachkenntnisse genannt werden, setze german_required und english_required auf "not_required".
+- Wähle position_types und employment_type sinnvoll anhand des Kontexts (z.B. Erntehelfer/Saison -> saisonjob + seasonal)."""
 
 
 def _coerce(data: dict) -> dict:
@@ -91,6 +98,8 @@ def _coerce(data: dict) -> dict:
         "postal_code": (data.get("postal_code") or None) or None,
         "accommodation_provided": bool(data.get("accommodation_provided", False)),
         "remote_possible": bool(data.get("remote_possible", False)),
+        "start_immediate": bool(data.get("start_immediate", False)),
+        "start_date": (data.get("start_date") or None) or None,
     }
 
 
