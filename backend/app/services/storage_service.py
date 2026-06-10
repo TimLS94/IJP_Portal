@@ -37,10 +37,14 @@ class StorageService:
     def __init__(self):
         self.use_r2 = False
         self.s3_client = None
-        
+        # Wenn R2-Zugangsdaten konfiguriert sind, ist R2 PFLICHT – dann wird NIE
+        # still auf den (flüchtigen) lokalen Speicher zurückgefallen, um Datenverlust
+        # zu vermeiden. Uploads schlagen dann lieber mit klarer Meldung fehl.
+        self.r2_required = False
+
         # Lade Config aus settings (die lädt aus Environment Variables)
         from app.core.config import settings
-        
+
         self.bucket_name = settings.R2_BUCKET_NAME or 'jobon-documents'
         r2_account_id = settings.R2_ACCOUNT_ID
         r2_access_key = settings.R2_ACCESS_KEY_ID
@@ -51,10 +55,12 @@ class StorageService:
         logger.info(f"Storage Init - R2_SECRET_ACCESS_KEY: {'✓' if r2_secret_key else '✗'}")
         
         if BOTO3_AVAILABLE and r2_account_id and r2_access_key and r2_secret_key:
+            # R2 ist konfiguriert → ab jetzt PFLICHT (kein stiller lokaler Fallback)
+            self.r2_required = True
             try:
                 # R2 Endpoint
                 endpoint_url = f"https://{r2_account_id}.r2.cloudflarestorage.com"
-                
+
                 self.s3_client = boto3.client(
                     's3',
                     endpoint_url=endpoint_url,
@@ -65,14 +71,17 @@ class StorageService:
                         retries={'max_attempts': 3}
                     )
                 )
-                
+
                 # Test-Verbindung - prüfe nur den spezifischen Bucket (nicht list_buckets!)
                 self.s3_client.head_bucket(Bucket=self.bucket_name)
                 self.use_r2 = True
                 logger.info(f"✅ Cloudflare R2 Storage aktiv (Bucket: {self.bucket_name})")
-                
+
             except Exception as e:
-                logger.error(f"❌ R2-Verbindung fehlgeschlagen: {e}")
+                # WICHTIG: NICHT auf lokal zurückfallen – sonst gehen Uploads beim
+                # nächsten Deploy verloren. Lieber später beim Upload klar fehlschlagen.
+                logger.critical(f"❌ R2 ist konfiguriert, aber die Verbindung schlug fehl: {e}. "
+                                f"Uploads werden abgelehnt, um Datenverlust zu vermeiden.")
                 self.use_r2 = False
         else:
             logger.info("📁 Lokaler Storage aktiv (R2 nicht konfiguriert)")
@@ -96,8 +105,10 @@ class StorageService:
         """
         if self.use_r2:
             return await self._upload_to_r2(file_content, applicant_id, filename, content_type)
-        else:
-            return await self._upload_to_local(file_content, applicant_id, filename)
+        if self.r2_required:
+            # R2 konfiguriert, aber nicht erreichbar → NICHT lokal speichern (Datenverlust!)
+            return False, "", "Cloud-Speicher (R2) derzeit nicht verfügbar. Bitte später erneut versuchen."
+        return await self._upload_to_local(file_content, applicant_id, filename)
     
     async def _upload_to_r2(
         self,
@@ -293,11 +304,14 @@ class StorageService:
                 error_msg = f"R2 Upload-Fehler: {e}"
                 logger.error(error_msg)
                 return False, "", error_msg
+        elif self.r2_required:
+            # R2 konfiguriert, aber nicht erreichbar → NICHT lokal speichern (Datenverlust!)
+            return False, "", "Cloud-Speicher (R2) derzeit nicht verfügbar. Bitte später erneut versuchen."
         else:
             try:
                 import aiofiles
                 from app.core.config import settings
-                
+
                 # Vollständigen lokalen Pfad erstellen
                 full_path = os.path.join(settings.UPLOAD_DIR, storage_path)
                 os.makedirs(os.path.dirname(full_path), exist_ok=True)
