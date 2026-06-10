@@ -82,7 +82,7 @@ export default function FeedbackButton() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 left-6 z-40 w-12 h-12 bg-gray-700 hover:bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 group"
+        className="hidden sm:flex fixed bottom-6 left-6 z-40 w-12 h-12 bg-gray-700 hover:bg-gray-800 text-white rounded-full shadow-lg items-center justify-center transition-all hover:scale-105 group"
         title={t("feedbackWidget.buttonTooltip")}
       >
         <MessageCircle className="h-5 w-5" />
