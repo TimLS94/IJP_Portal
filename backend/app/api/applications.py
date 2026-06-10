@@ -313,7 +313,13 @@ async def get_my_applications(
     ).filter(
         Application.applicant_id == applicant.id
     ).order_by(Application.applied_at.desc()).all()
-    
+
+    # Bereits hochgeladene Dokumenttypen (für "erledigt"-Status der Anforderungen)
+    uploaded_types = {
+        (d.document_type.value if hasattr(d.document_type, "value") else str(d.document_type))
+        for d in db.query(Document.document_type).filter(Document.applicant_id == applicant.id).all()
+    }
+
     result = []
     for app in applications:
         app_dict = {
@@ -328,10 +334,13 @@ async def get_my_applications(
             "job_title": app.job_posting.title if app.job_posting else None,
             "company_name": app.job_posting.company.company_name if app.job_posting and app.job_posting.company else None,
             "job_translations": app.job_posting.translations if app.job_posting else None,
-            "requested_documents": app.requested_documents or []
+            "requested_documents": [
+                {**req, "fulfilled": req.get("type") in uploaded_types}
+                for req in (app.requested_documents or [])
+            ],
         }
         result.append(ApplicationWithDetails(**app_dict))
-    
+
     return result
 
 
@@ -378,7 +387,17 @@ async def get_company_applications(
         query = query.filter((Application.is_filtered == False) | (Application.is_filtered == None))
     
     applications = query.order_by(Application.applied_at.desc()).all()
-    
+
+    # Hochgeladene Dokumenttypen je Bewerber laden (für "erhalten"-Status, ohne N+1)
+    from collections import defaultdict
+    applicant_ids = {app.applicant_id for app in applications if app.applicant_id}
+    uploaded_by_applicant = defaultdict(set)
+    if applicant_ids:
+        for aid, dtype in db.query(Document.applicant_id, Document.document_type).filter(
+            Document.applicant_id.in_(applicant_ids)
+        ).all():
+            uploaded_by_applicant[aid].add(dtype.value if hasattr(dtype, "value") else str(dtype))
+
     # Status-Labels einmal definieren
     status_labels = {
         "proposed": "Wartet auf Antwort",
@@ -419,10 +438,15 @@ async def get_company_applications(
             "interview_status": interview_status,
             "interview_status_label": interview_status_label,
             "match_score": match_score,
-            "is_filtered": app.is_filtered or False
+            "is_filtered": app.is_filtered or False,
+            # Angeforderte Dokumente inkl. "erhalten"-Status (fulfilled)
+            "requested_documents": [
+                {**req, "fulfilled": req.get("type") in uploaded_by_applicant.get(app.applicant_id, set())}
+                for req in (app.requested_documents or [])
+            ],
         }
         result.append(app_dict)
-    
+
     return result
 
 
