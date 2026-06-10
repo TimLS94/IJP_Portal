@@ -3,6 +3,7 @@ E-Mail Service mit SendGrid HTTP API - CRASH-SAFE
 """
 import logging
 from typing import Optional, List
+from app.core.config import settings  # modul-weit, damit nie ein NameError 'settings' auftritt
 
 logger = logging.getLogger(__name__)
 
