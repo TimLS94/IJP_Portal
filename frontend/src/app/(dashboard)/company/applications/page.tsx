@@ -290,8 +290,8 @@ export default function CompanyApplicationsPage() {
     loadApplicantDetails(appId);
     loadCompanyNotes(appId);
     loadInterviews(appId);
-    // Set initial pending status from application
-    const app = applications.find(a => a.id === appId);
+    // Set initial pending status from application (check both lists)
+    const app = applications.find(a => a.id === appId) || filteredOutApplications.find(a => a.id === appId);
     if (app) {
       setPendingStatus(app.status);
     }
@@ -421,7 +421,8 @@ export default function CompanyApplicationsPage() {
   const saveStatusAndClose = async () => {
     if (!selectedAppId) return;
     
-    const currentApp = applications.find(a => a.id === selectedAppId);
+    // Check both application lists (normal and filtered)
+    const currentApp = applications.find(a => a.id === selectedAppId) || filteredOutApplications.find(a => a.id === selectedAppId);
     const statusChanged = pendingStatus && currentApp && pendingStatus !== currentApp.status;
     const hasNewInterview = pendingInterview !== null;
     
@@ -1438,7 +1439,7 @@ export default function CompanyApplicationsPage() {
 
                 {/* Footer mit Buttons */}
                 {(() => {
-                  const currentApp = applications.find(a => a.id === selectedAppId);
+                  const currentApp = applications.find(a => a.id === selectedAppId) || filteredOutApplications.find(a => a.id === selectedAppId);
                   const hasChanges = (pendingStatus && currentApp && pendingStatus !== currentApp.status) || pendingInterview !== null;
                   return (
                     <div className="p-4 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">

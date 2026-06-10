@@ -13,6 +13,14 @@ interface OtherLanguage {
   level: string;
 }
 
+interface JobTranslation {
+  title?: string;
+  description?: string;
+  tasks?: string;
+  requirements?: string;
+  benefits?: string;
+}
+
 interface Job {
   id: number;
   slug?: string;
@@ -34,6 +42,8 @@ interface Job {
   external_employer_name?: string;
   is_featured?: boolean;
   featured_until?: string;
+  translations?: Record<string, JobTranslation>;
+  available_languages?: string[];
   company?: {
     company_name?: string;
   };
@@ -83,7 +93,23 @@ interface JobsClientProps {
 
 export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
   const { isApplicant } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // Helper to get translated job title based on current UI language
+  const getJobTitle = (job: Job): string => {
+    const lang = i18n.language?.split('-')[0] || 'de';
+    if (lang === 'de') return job.title;
+    const translation = job.translations?.[lang];
+    return translation?.title?.trim() || job.title;
+  };
+
+  // Helper to get translated job description
+  const getJobDescription = (job: Job): string => {
+    const lang = i18n.language?.split('-')[0] || 'de';
+    if (lang === 'de') return job.description || '';
+    const translation = job.translations?.[lang];
+    return translation?.description?.trim() || job.description || '';
+  };
 
   const positionTypes = [
     { value: "", label: t("jobs.allTypes") },
@@ -406,7 +432,7 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
                       </span>
                     )}
                     <h2 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
-                      {job.title}
+                      {getJobTitle(job)}
                     </h2>
                     {job.position_type && (
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${positionTypeColors[job.position_type] || positionTypeColors.general}`}>
@@ -501,9 +527,9 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
                 )}
 
                 {/* Description preview */}
-                {job.description && (
+                {(job.description || getJobDescription(job)) && (
                   <p className="text-gray-600 text-sm line-clamp-2">
-                    {stripHtml(job.description).substring(0, 200)}...
+                    {stripHtml(getJobDescription(job)).substring(0, 200)}...
                   </p>
                 )}
 
