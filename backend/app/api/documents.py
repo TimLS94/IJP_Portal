@@ -20,6 +20,7 @@ from app.schemas.document import (
     POSITION_TYPE_LABELS
 )
 from app.services.document_service import DocumentService
+from app.services.storage_service import storage_service
 
 router = APIRouter(prefix="/documents", tags=["Dokumente"])
 
