@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -322,21 +322,27 @@ async def get_user_from_token_or_query(
 @router.get("/{document_id}/download")
 async def download_document(
     document_id: int,
+    request: Request,
     token: Optional[str] = Query(None, description="Auth token for direct download links"),
     db: Session = Depends(get_db)
 ):
-    """Lädt ein Dokument herunter. Unterstützt Token als Query-Parameter für direkte Links."""
-    # User aus Token holen (Query-Parameter oder Header)
+    """Lädt ein Dokument herunter. Token aus Query-Parameter (direkte Links)
+    ODER aus dem Authorization-Header (axios/fetch Aufrufe)."""
     current_user = None
-    
-    # Erst Query-Token versuchen
+
+    # Token aus Query-Parameter oder Authorization-Header
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.lower().startswith("bearer "):
+            token = auth_header[7:]
+
     if token:
         payload = decode_token(token)
         if payload:
             user_id = payload.get("sub")
             if user_id:
                 current_user = db.query(User).filter(User.id == int(user_id)).first()
-    
+
     if not current_user:
         raise HTTPException(status_code=401, detail="Nicht authentifiziert")
     
