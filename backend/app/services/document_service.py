@@ -133,15 +133,30 @@ class DocumentService:
     
     @staticmethod
     async def delete_file(document: Document, db: Session) -> bool:
-        """Löscht eine Datei und den Datenbank-Eintrag"""
-        
-        # Datei über StorageService löschen
-        await storage_service.delete_file(document.file_path)
-        
-        # Datenbank-Eintrag löschen
+        """Löscht den Datenbank-Eintrag und danach die Datei aus dem Storage.
+
+        Reihenfolge ist wichtig: Erst abhängige Verknüpfungen (geteilte Dokumente)
+        und der DB-Eintrag, dann die Storage-Datei. So entsteht NIE ein verwaister
+        DB-Eintrag mit fehlender Datei (Ursache von 'Datei nicht gefunden')."""
+        from app.models.application import ApplicationDocument
+
+        file_path = document.file_path
+
+        # Abhängige Verknüpfungen (mit Bewerbungen geteilte Dokumente) zuerst entfernen,
+        # sonst verletzt das Löschen die Foreign-Key-Beziehung.
+        db.query(ApplicationDocument).filter(
+            ApplicationDocument.document_id == document.id
+        ).delete(synchronize_session=False)
+
         db.delete(document)
         db.commit()
-        
+
+        # Datei erst NACH erfolgreichem DB-Commit aus dem Storage löschen
+        try:
+            await storage_service.delete_file(file_path)
+        except Exception:
+            pass
+
         return True
     
     @staticmethod

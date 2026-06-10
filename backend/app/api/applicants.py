@@ -203,14 +203,13 @@ async def parse_cv(
                 Document.document_type == "cv"
             ).first()
             
-            # Wenn ja, altes löschen
+            # Wenn ja, altes löschen (sicher: Verknüpfungen + DB zuerst, Datei danach)
             if existing_cv:
                 try:
-                    await storage_service.delete_file(existing_cv.storage_path)
-                except:
-                    pass
-                db.delete(existing_cv)
-                db.commit()
+                    from app.services.document_service import DocumentService
+                    await DocumentService.delete_file(existing_cv, db)
+                except Exception:
+                    db.rollback()
             
             # Neues Dokument speichern
             storage_filename = f"{uuid.uuid4()}.pdf"

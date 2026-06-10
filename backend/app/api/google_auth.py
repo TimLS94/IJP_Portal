@@ -114,7 +114,7 @@ async def google_login(
             
             # Willkommens-E-Mail senden
             try:
-                email_service.send_welcome_email(email, given_name or "Bewerber")
+                email_service.send_welcome_email(email, given_name or "Bewerber", "applicant")
             except Exception:
                 pass  # E-Mail-Fehler nicht kritisch
     

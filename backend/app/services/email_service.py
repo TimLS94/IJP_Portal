@@ -408,8 +408,9 @@ class EmailService:
         job_title: str, requested_documents: List[str], message: str = None
     ) -> bool:
         """Benachrichtigt den Bewerber, dass Dokumente angefordert wurden"""
+        from app.core.config import settings
         subject = f"Unterlagen angefordert: {job_title} bei {company_name}"
-        
+
         docs_list = "".join([f"<li>{doc}</li>" for doc in requested_documents])
         message_html = f"<p><strong>Nachricht:</strong> {message}</p>" if message else ""
         
