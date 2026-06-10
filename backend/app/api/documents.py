@@ -392,58 +392,67 @@ async def download_document(
             detail="Keine Berechtigung"
         )
     
-    # Datei über DocumentService laden (unterstützt R2 und lokal)
-    file_content = await DocumentService.get_file_content(document)
+    import logging as _logging, traceback as _traceback
+    _log = _logging.getLogger(__name__)
+    try:
+        # Datei über DocumentService laden (unterstützt R2 und lokal)
+        file_content = await DocumentService.get_file_content(document)
 
-    # Fallback: Datei liegt evtl. unter einem anderen Schlüssel im Bewerber-Ordner
-    # (z.B. veralteter file_path aus der Übergangszeit). Wir suchen sie und heilen den Pfad.
-    if file_content is None and document.applicant_id:
-        import logging as _logging
-        _log = _logging.getLogger(__name__)
-        _log.warning(f"Dokument {document.id}: file_path '{document.file_path}' nicht gefunden – versuche Fallback.")
+        # Fallback: Datei liegt evtl. unter einem anderen Schlüssel im Bewerber-Ordner
+        # (z.B. veralteter file_path aus der Übergangszeit). Wir suchen sie und heilen den Pfad.
+        if file_content is None and document.applicant_id:
+            _log.warning(f"Dokument {document.id}: file_path '{document.file_path}' nicht gefunden – versuche Fallback.")
 
-        base = os.path.basename(document.file_path or "")
-        folder = f"documents/{document.applicant_id}/"
-        keys = storage_service.list_keys(folder)
+            base = os.path.basename(document.file_path or "")
+            folder = f"documents/{document.applicant_id}/"
+            keys = storage_service.list_keys(folder)
+            _log.warning(f"Dokument {document.id}: {len(keys)} Datei(en) im R2-Ordner {folder}: {keys}")
 
-        candidates = []
-        if base:
-            candidates.append(f"{folder}{base}")  # gleicher Dateiname, korrigierter Prefix
-            candidates += [k for k in keys if os.path.basename(k) == base]  # exakter Treffer
-        if len(keys) == 1:
-            candidates.append(keys[0])  # nur eine Datei im Ordner -> eindeutig
+            candidates = []
+            if base:
+                candidates.append(f"{folder}{base}")
+                candidates += [k for k in keys if os.path.basename(k) == base]
+            if len(keys) == 1:
+                candidates.append(keys[0])
 
-        seen = set()
-        for key in candidates:
-            if not key or key in seen:
-                continue
-            seen.add(key)
-            ok, content, _ = await storage_service.download_file(key)
-            if ok and content:
-                file_content = content
-                # Selbstheilung: korrekten Pfad in der DB speichern
-                try:
-                    document.file_path = key
-                    db.commit()
-                    _log.info(f"Dokument {document.id}: Pfad geheilt -> '{key}'")
-                except Exception:
-                    db.rollback()
-                break
+            seen = set()
+            for key in candidates:
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                ok, content, _ = await storage_service.download_file(key)
+                if ok and content:
+                    file_content = content
+                    try:
+                        document.file_path = key
+                        db.commit()
+                        _log.info(f"Dokument {document.id}: Pfad geheilt -> '{key}'")
+                    except Exception:
+                        db.rollback()
+                    break
 
-    if file_content is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Datei nicht gefunden"
+        if file_content is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Datei nicht gefunden"
+            )
+
+        # Dateiname header-sicher machen (HTTP-Header sind latin-1; Umlaute/Akzente raus)
+        download_name = _friendly_filename(document, db)
+        safe_name = download_name.encode("ascii", "ignore").decode("ascii") or "dokument.pdf"
+
+        return Response(
+            content=file_content,
+            media_type=document.mime_type or 'application/pdf',
+            headers={
+                "Content-Disposition": f'attachment; filename="{safe_name}"'
+            }
         )
-    
-    download_name = _friendly_filename(document, db)
-    return Response(
-        content=file_content,
-        media_type=document.mime_type or 'application/pdf',
-        headers={
-            "Content-Disposition": f'attachment; filename="{download_name}"'
-        }
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        _log.error(f"Download-Fehler Dokument {document_id}: {e}\n{_traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Download fehlgeschlagen: {e}")
 
 
 def _friendly_filename(document, db: Session) -> str:
