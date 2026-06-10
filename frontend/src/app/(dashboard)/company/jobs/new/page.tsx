@@ -82,6 +82,9 @@ export default function CreateJobPage() {
       setIf("salary_type", data.salary_type);
       setIf("location", data.location);
       setIf("postal_code", data.postal_code);
+      setIf("contact_person", data.contact_person);
+      setIf("contact_email", data.contact_email);
+      setIf("contact_phone", data.contact_phone);
       setValue("accommodation_provided", !!data.accommodation_provided);
       setValue("remote_possible", !!data.remote_possible);
       toast.success("Stelle ausgefüllt – bitte prüfen und anpassen.");

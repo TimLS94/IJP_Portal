@@ -1198,14 +1198,32 @@ async def ai_generate_job(
     if len(prompt) > 4000:
         raise HTTPException(status_code=400, detail="Eingabe zu lang (max. 4000 Zeichen).")
 
+    company_context = {
+        "company_name": company.company_name,
+        "industry": company.industry,
+        "city": company.city,
+        "website": company.website,
+        "description": company.description,
+    }
+
     from app.services.job_writer_service import generate_job_posting
-    result = generate_job_posting(prompt)
+    result = generate_job_posting(prompt, company_context)
 
     if not result:
         raise HTTPException(
             status_code=500,
             detail="KI-Generierung fehlgeschlagen. Ist der ANTHROPIC_API_KEY konfiguriert?"
         )
+
+    # Kontaktdaten aus dem Firmenprofil vorbefüllen (nur wenn noch nicht in der Anzeige)
+    result["contact_person"] = company.contact_person or None
+    result["contact_phone"] = company.phone or None
+    result["contact_email"] = current_user.email or None
+    # Standort aus Profil ergänzen, falls die KI keinen erkannt hat
+    if not result.get("location") and company.city:
+        result["location"] = company.city
+    if not result.get("postal_code") and company.postal_code:
+        result["postal_code"] = company.postal_code
 
     return result
 
