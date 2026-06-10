@@ -130,6 +130,13 @@ export default function ProfileClient() {
   };
 
   const onSubmit = async (data: any) => {
+    // Bei Studentenferienjob sind die Semesterferien Pflicht
+    if ((data.position_types || []).includes("studentenferienjob")) {
+      if (!data.semester_break_start || !data.semester_break_end) {
+        toast.error(t("applicant.semesterBreakRequired", "Bitte gib deine Semesterferien an (Start und Ende) – das ist für Studentenferienjobs erforderlich."));
+        return;
+      }
+    }
     setSaving(true);
     try {
       data.other_languages = otherLanguages;

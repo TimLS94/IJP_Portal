@@ -88,11 +88,23 @@ async def update_my_profile(
         )
     
     applicant = get_applicant_or_404(current_user, db)
-    
+
     update_data = profile_data.model_dump(exclude_unset=True)
+
+    # Bei Studentenferienjob sind die Semesterferien Pflicht (abwärtskompatibel:
+    # greift nur, wenn das Profil aktiv mit dieser Stellenart gespeichert wird)
+    if "position_types" in update_data and update_data["position_types"] and "studentenferienjob" in update_data["position_types"]:
+        start = update_data.get("semester_break_start", getattr(applicant, "semester_break_start", None))
+        end = update_data.get("semester_break_end", getattr(applicant, "semester_break_end", None))
+        if not start or not end:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Für Studentenferienjobs sind die Semesterferien (Start und Ende) erforderlich."
+            )
+
     for field, value in update_data.items():
         setattr(applicant, field, value)
-    
+
     db.commit()
     db.refresh(applicant)
     return applicant
