@@ -14,6 +14,7 @@ from app.models.job_posting import JobPosting
 from app.models.user import User
 from app.services.matching_service import calculate_match_score
 from app.services.settings_service import get_setting
+from app.services.position_groups import get_applicant_position_types, position_compatible
 
 logger = logging.getLogger(__name__)
 
@@ -31,15 +32,20 @@ def get_matching_applicants(job: JobPosting, db: Session, threshold: int = 85) -
         List of matching applicants
     """
     matching_applicants = []
-    
+
+    job_type = job.position_type.value if job.position_type else None
+
     # Get all active applicants
     applicants = db.query(Applicant).join(
         User, Applicant.user_id == User.id
     ).filter(
         User.is_active == True
     ).all()
-    
+
     for applicant in applicants:
+        # Harter Filter: nur kompatible Stellenarten (Gruppen-Logik)
+        if not position_compatible(get_applicant_position_types(applicant), job_type):
+            continue
         try:
             match_result = calculate_match_score(applicant, job, db=db)
             if match_result.get("total_score", 0) >= threshold:
@@ -126,9 +132,10 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
         except Exception as e:
             logger.error(f"Failed to create notification for user {user.id}: {e}")
         
-        # Send email notification (if instant notifications enabled)
+        # Send email notification (if instant notifications enabled UND Bewerber hat Jobalert-Mails aktiv)
         instant_enabled = get_setting(db, "instant_job_notifications_enabled", True)
-        if instant_enabled and user.email:
+        wants_emails = user.email_job_alerts if user.email_job_alerts is not None else True
+        if instant_enabled and wants_emails and user.email:
             try:
                 success = email_service.send_matching_job_notification(
                     to_email=user.email,
@@ -169,7 +176,9 @@ def get_matching_jobs_for_applicant(applicant: Applicant, db: Session, threshold
         List of matching jobs with scores
     """
     matching_jobs = []
-    
+
+    applicant_types = get_applicant_position_types(applicant)
+
     # Get active jobs from the last N days
     cutoff_date = datetime.utcnow() - timedelta(days=days)
     jobs = db.query(JobPosting).filter(
@@ -177,8 +186,12 @@ def get_matching_jobs_for_applicant(applicant: Applicant, db: Session, threshold
         JobPosting.is_draft == False,
         JobPosting.created_at >= cutoff_date
     ).all()
-    
+
     for job in jobs:
+        # Harter Filter: nur kompatible Stellenarten (Gruppen-Logik)
+        job_type = job.position_type.value if job.position_type else None
+        if not position_compatible(applicant_types, job_type):
+            continue
         try:
             match_result = calculate_match_score(applicant, job, db=db)
             if match_result.get("total_score", 0) >= threshold:
@@ -254,7 +267,11 @@ def send_weekly_job_digest(db: Session) -> int:
         user = db.query(User).filter(User.id == applicant.user_id).first()
         if not user or not user.email:
             continue
-        
+
+        # Consent: nur Bewerber mit aktiven Jobalert-Mails
+        if user.email_job_alerts is False:
+            continue
+
         # Find matching jobs from the last 7 days
         matching_jobs = get_matching_jobs_for_applicant(applicant, db, threshold, days=7)
         

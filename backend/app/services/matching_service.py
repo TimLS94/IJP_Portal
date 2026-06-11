@@ -188,18 +188,29 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
 
 
 def _check_position_match(applicant: Applicant, job: JobPosting) -> dict:
-    """Prüft ob der Positionstyp passt (30 Punkte)"""
+    """Prüft ob der Positionstyp passt (30 Punkte).
+
+    Berücksichtigt symmetrische Gruppen (general↔fachkraft, saisonjob↔workandholiday),
+    sodass sich überschneidende Stellenarten ebenfalls als Treffer zählen.
+    """
+    from app.services.position_groups import get_applicant_position_types, expand_position_types
+
     job_type = job.position_type.value if job.position_type else None
-    
-    # Prüfe position_types Array (Mehrfachauswahl)
-    applicant_types = applicant.position_types or []
-    if isinstance(applicant_types, list) and job_type in applicant_types:
+    if not job_type:
+        return {"match": False, "score": 0}
+
+    applicant_types = get_applicant_position_types(applicant)
+    if not applicant_types:
+        return {"match": False, "score": 0}
+
+    # Exakter Treffer -> volle Punktzahl
+    if job_type in applicant_types:
         return {"match": True, "score": 30}
-    
-    # Fallback auf einzelnes position_type
-    if applicant.position_type and applicant.position_type.value == job_type:
+
+    # Gruppen-Treffer (Überschneidung) -> ebenfalls als Treffer werten
+    if job_type in expand_position_types(applicant_types):
         return {"match": True, "score": 30}
-    
+
     return {"match": False, "score": 0}
 
 
