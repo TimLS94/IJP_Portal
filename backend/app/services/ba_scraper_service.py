@@ -406,10 +406,28 @@ def _safe_float(val) -> Optional[float]:
         return None
 
 
+def _extract_json_object(raw: str) -> Optional[str]:
+    """Holt das erste JSON-Objekt aus einem Text (entfernt Prosa/Markdown drumherum)."""
+    if not raw:
+        return None
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    return raw[start:end + 1]
+
+
 def _parse_ai_json(raw: str, fallback_desc: str) -> dict:
-    """Parst die JSON-Antwort der KI, mit Fallback bei Fehler."""
+    """Parst die JSON-Antwort der KI, mit toleranter Extraktion + Fallback bei Fehler."""
     try:
-        result = json.loads(raw)
+        try:
+            result = json.loads(raw)
+        except Exception:
+            # Toleranter Versuch: JSON-Objekt aus Prosa/Markdown herausschneiden
+            snippet = _extract_json_object(raw)
+            if not snippet:
+                raise
+            result = json.loads(snippet)
         return {
             "description": result.get("description", ""),
             "tasks": result.get("tasks", ""),
@@ -421,7 +439,8 @@ def _parse_ai_json(raw: str, fallback_desc: str) -> dict:
             "contact_person": result.get("contact_person") or None,
             "contact_phone": result.get("contact_phone") or None,
         }
-    except Exception:
+    except Exception as exc:
+        logger.warning(f"KI-JSON konnte nicht geparst werden ({exc}); Rohantwort: {(raw or '')[:300]}")
         return {
             "description": fallback_desc, "tasks": "", "requirements": "", "benefits": "",
             "salary_min": None, "salary_max": None, "salary_type": None,
@@ -482,13 +501,21 @@ def _enhance_with_gemini(title: str, employer: str, city: str, raw_description: 
         return {"description": raw_description, "tasks": "", "requirements": "", "benefits": ""}
     try:
         from google import genai
+        from google.genai import types
         client = genai.Client(api_key=settings.GOOGLE_AI_API_KEY)
         prompt = _AI_PROMPT_TEMPLATE.format(
             title=title, employer=employer, city=city,
             raw_description=raw_description or "Keine vorhanden"
         )
-        resp = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
-        raw = resp.text.strip()
+        resp = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.3,
+            ),
+        )
+        raw = (resp.text or "").strip()
         if raw.startswith("```"):
             raw = _re.sub(r"^```[a-z]*\n?", "", raw).rstrip("`").strip()
         return _parse_ai_json(raw, raw_description)
