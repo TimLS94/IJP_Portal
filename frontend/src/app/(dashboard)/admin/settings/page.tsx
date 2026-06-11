@@ -7,7 +7,7 @@ import {
   Settings as SettingsIcon, ToggleLeft, ToggleRight, Save, Loader2,
   Sparkles, Building2, Users, AlertTriangle, RefreshCw, Clock, Trash2,
   ChevronDown, ChevronUp, Calendar, Mail, Bell, Send, Eye, Zap, CalendarDays,
-  Search, CheckCircle, XCircle, Bot
+  Search, CheckCircle, XCircle, Bot, FileText
 } from "lucide-react";
 
 interface Flags {
@@ -22,6 +22,18 @@ interface Flags {
   weekly_digest_days?: number[];
   weekly_digest_hour?: number;
   [key: string]: boolean | number | number[] | undefined;
+}
+
+interface DocRequirementDoc {
+  document_type: string;
+  label: string;
+  required: boolean;
+}
+
+interface DocRequirementPosition {
+  position_type: string;
+  position_label: string;
+  documents: DocRequirementDoc[];
 }
 
 interface ArchivePreview {
@@ -106,9 +118,65 @@ export default function AdminSettingsPage() {
   const [blogWriterWeekdays, setBlogWriterWeekdays] = useState<number[]>([1]); // 1=Montag
   const [savingBlogWriter, setSavingBlogWriter] = useState(false);
 
+  // Pflicht-Dokumente pro Stellenart State
+  const [showDocReqSection, setShowDocReqSection] = useState(false);
+  const [docRequirements, setDocRequirements] = useState<DocRequirementPosition[]>([]);
+  const [loadingDocReq, setLoadingDocReq] = useState(false);
+  const [savingDocReq, setSavingDocReq] = useState(false);
+  const [docReqDirty, setDocReqDirty] = useState(false);
+
   useEffect(() => {
     loadFlags();
   }, []);
+
+  const loadDocRequirements = async () => {
+    setLoadingDocReq(true);
+    try {
+      const response = await adminAPI.getDocumentRequirements();
+      setDocRequirements(response.data.position_types || []);
+      setDocReqDirty(false);
+    } catch (error) {
+      console.error("Fehler beim Laden der Dokumentenanforderungen:", error);
+    } finally {
+      setLoadingDocReq(false);
+    }
+  };
+
+  const toggleDocRequired = (positionType: string, docType: string) => {
+    setDocRequirements((prev) =>
+      prev.map((pos) =>
+        pos.position_type === positionType
+          ? {
+              ...pos,
+              documents: pos.documents.map((doc) =>
+                doc.document_type === docType
+                  ? { ...doc, required: !doc.required }
+                  : doc
+              ),
+            }
+          : pos
+      )
+    );
+    setDocReqDirty(true);
+  };
+
+  const saveDocRequirements = async () => {
+    setSavingDocReq(true);
+    try {
+      const overrides: Record<string, string[]> = {};
+      docRequirements.forEach((pos) => {
+        overrides[pos.position_type] = pos.documents
+          .filter((doc) => doc.required)
+          .map((doc) => doc.document_type);
+      });
+      await adminAPI.updateDocumentRequirements(overrides);
+      setDocReqDirty(false);
+    } catch (error) {
+      console.error("Fehler beim Speichern der Dokumentenanforderungen:", error);
+    } finally {
+      setSavingDocReq(false);
+    }
+  };
 
   const loadFlags = async () => {
     try {
@@ -1228,6 +1296,113 @@ export default function AdminSettingsPage() {
               <p className="text-xs text-yellow-700 mt-2">
                 {reindexResult.skipped_due_to_limit} Jobs wurden wegen des Google-Tageslimits (200/Tag) nicht gesendet. Morgen erneut ausführen.
               </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Pflicht-Dokumente pro Stellenart */}
+      <div className="card mb-8">
+        <button
+          onClick={() => {
+            const next = !showDocReqSection;
+            setShowDocReqSection(next);
+            if (next && docRequirements.length === 0) {
+              loadDocRequirements();
+            }
+          }}
+          className="w-full flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FileText className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="text-left">
+              <h2 className="text-xl font-semibold text-gray-900">Pflicht-Dokumente pro Stellenart</h2>
+              <p className="text-sm text-gray-600">
+                Festlegen, welche Dokumente Bewerber je Stellenart hochladen müssen
+              </p>
+            </div>
+          </div>
+          {showDocReqSection ? (
+            <ChevronUp className="h-5 w-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-gray-500" />
+          )}
+        </button>
+
+        {showDocReqSection && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            {loadingDocReq ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {docRequirements.map((pos) => (
+                    <div
+                      key={pos.position_type}
+                      className="border border-gray-200 rounded-xl p-4"
+                    >
+                      <h3 className="font-semibold text-gray-900 mb-3">{pos.position_label}</h3>
+                      <div className="space-y-2">
+                        {pos.documents.map((doc) => (
+                          <label
+                            key={doc.document_type}
+                            className="flex items-center gap-3 cursor-pointer group"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={doc.required}
+                              onChange={() => toggleDocRequired(pos.position_type, doc.document_type)}
+                              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span className="text-sm text-gray-700 group-hover:text-gray-900">
+                              {doc.label}
+                            </span>
+                            {doc.required ? (
+                              <span className="ml-auto text-xs font-medium text-red-600">Pflicht</span>
+                            ) : (
+                              <span className="ml-auto text-xs text-gray-400">Optional</span>
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-700">
+                    <strong>Hinweis:</strong> Angehakte Dokumente sind für die jeweilige Stellenart Pflicht.
+                    Nicht angehakte Dokumente bleiben optional und können nachgereicht werden.
+                  </p>
+                </div>
+
+                {docReqDirty && (
+                  <div className="mt-6 flex items-center justify-end gap-4">
+                    <button
+                      onClick={loadDocRequirements}
+                      className="btn-secondary"
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      onClick={saveDocRequirements}
+                      disabled={savingDocReq}
+                      className="btn-primary flex items-center gap-2"
+                    >
+                      {savingDocReq ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      Speichern
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

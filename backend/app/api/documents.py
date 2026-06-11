@@ -40,15 +40,17 @@ def get_company_for_user(user: User, db: Session) -> Company:
 
 
 @router.get("/requirements/{position_type}", response_model=DocumentRequirementsResponse)
-async def get_document_requirements(position_type: str):
-    """Gibt die Dokumentenanforderungen für einen Positionstyp zurück"""
-    if position_type not in DOCUMENT_REQUIREMENTS:
+async def get_document_requirements(position_type: str, db: Session = Depends(get_db)):
+    """Gibt die Dokumentenanforderungen für einen Positionstyp zurück (admin-konfigurierbar)"""
+    from app.services.document_requirements_service import get_effective_requirements
+    effective = get_effective_requirements(db)
+    if position_type not in effective:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unbekannter Positionstyp: {position_type}"
         )
-    
-    requirements = DOCUMENT_REQUIREMENTS[position_type]
+
+    requirements = effective[position_type]
     documents = []
     
     # Pflichtdokumente
@@ -77,12 +79,14 @@ async def get_document_requirements(position_type: str):
 
 
 @router.get("/requirements", response_model=List[DocumentRequirementsResponse])
-async def get_all_document_requirements():
-    """Gibt alle Dokumentenanforderungen für alle Positionstypen zurück"""
+async def get_all_document_requirements(db: Session = Depends(get_db)):
+    """Gibt alle Dokumentenanforderungen für alle Positionstypen zurück (admin-konfigurierbar)"""
+    from app.services.document_requirements_service import get_effective_requirements
+    effective = get_effective_requirements(db)
     all_requirements = []
-    
-    for position_type in DOCUMENT_REQUIREMENTS.keys():
-        requirements = DOCUMENT_REQUIREMENTS[position_type]
+
+    for position_type in effective.keys():
+        requirements = effective[position_type]
         documents = []
         
         for doc_type in requirements["required"]:

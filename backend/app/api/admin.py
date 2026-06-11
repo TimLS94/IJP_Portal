@@ -100,6 +100,58 @@ async def list_featured_jobs(
     return {"featured": result}
 
 
+@router.get("/document-requirements")
+async def get_document_requirements_config(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Liefert pro Stellenart die relevanten Dokumente mit aktuellem Pflicht-Status."""
+    from app.services.document_requirements_service import get_effective_requirements
+    from app.schemas.document import DOCUMENT_TYPE_LABELS, POSITION_TYPE_LABELS
+
+    effective = get_effective_requirements(db)
+    result = []
+    for pos, conf in effective.items():
+        required_vals = {dt.value for dt in conf["required"]}
+        docs = []
+        for dt in conf["required"] + conf["optional"]:
+            docs.append({
+                "document_type": dt.value,
+                "label": DOCUMENT_TYPE_LABELS.get(dt, dt.value),
+                "required": dt.value in required_vals,
+            })
+        result.append({
+            "position_type": pos,
+            "position_label": POSITION_TYPE_LABELS.get(pos, pos),
+            "documents": docs,
+        })
+    return {"position_types": result}
+
+
+class DocumentRequirementsUpdate(BaseModel):
+    # { position_type: [doc_type_value, ...] }  -> diese Dokumente sind Pflicht
+    overrides: dict
+
+
+@router.put("/document-requirements")
+async def update_document_requirements_config(
+    data: DocumentRequirementsUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Speichert pro Stellenart, welche Dokumente Pflicht sind."""
+    from app.services.settings_service import set_setting
+    from app.services.document_requirements_service import SETTING_KEY
+
+    clean = {}
+    for pos, vals in (data.overrides or {}).items():
+        if isinstance(vals, list):
+            clean[pos] = [str(v) for v in vals]
+    set_setting(db, SETTING_KEY, clean)
+    db.commit()
+    return {"message": "Dokumentenanforderungen gespeichert"}
+
+
 @router.get("/ai-usage")
 async def get_ai_usage(
     current_user: User = Depends(require_admin),

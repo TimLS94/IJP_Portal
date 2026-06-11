@@ -90,15 +90,16 @@ def check_application_requirements(applicant: Applicant, job: JobPosting, db: Se
     # Pflichtdokumente prüfen (optional - nur wenn Stellenart gesetzt)
     if applicant_position:
         try:
-            requirements = DOCUMENT_REQUIREMENTS.get(applicant_position, {})
+            from app.services.document_requirements_service import get_for_position
+            from app.schemas.document import DOCUMENT_TYPE_LABELS
+            pos_key = applicant_position.value if hasattr(applicant_position, 'value') else str(applicant_position)
+            requirements = get_for_position(db, pos_key)
             required_docs = requirements.get('required', [])
-            
-            for req in required_docs:
-                req_type = req.get('type')
-                req_type_value = req_type.value if hasattr(req_type, 'value') else str(req_type) if req_type else None
-                if req_type_value and req_type_value not in uploaded_types:
+
+            for dt in required_docs:
+                if dt.value not in uploaded_types:
                     # Als Warnung, nicht als Fehler - damit Bewerbung trotzdem möglich ist
-                    warnings.append(f"Empfohlenes Dokument fehlt: {req.get('name', 'Unbekannt')}")
+                    warnings.append(f"Empfohlenes Dokument fehlt: {DOCUMENT_TYPE_LABELS.get(dt, dt.value)}")
         except Exception:
             pass  # Bei Fehlern einfach ignorieren
     

@@ -70,7 +70,8 @@ def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
     uploaded_docs = db.query(Document.document_type).filter(Document.applicant_id == applicant.id).all()
     uploaded_types = {d[0] for d in uploaded_docs}
 
-    requirements = DOCUMENT_REQUIREMENTS.get(pos_type, {}) if pos_type else {}
+    from app.services.document_requirements_service import get_for_position
+    requirements = get_for_position(db, pos_type) if pos_type else {}
     required_docs = requirements.get("required", [])
     optional_docs = requirements.get("optional", [])
 

@@ -351,6 +351,9 @@ export const adminAPI = {
   setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),
   setFeatureFlag: (key, value) => api.put(`/admin/settings/${key}`, { value }),
   getArchiveDeletionPreview: (days) => api.get('/admin/settings/archive-deletion-preview', { params: { days } }),
+  // Pflicht-Dokumente pro Stellenart
+  getDocumentRequirements: () => api.get('/admin/document-requirements'),
+  updateDocumentRequirements: (overrides) => api.put('/admin/document-requirements', { overrides }),
   // E-Mail Benachrichtigungen
   triggerDigest: () => api.post('/admin/email/trigger-digest'),
   getEmailTemplates: () => api.get('/admin/email/templates'),
