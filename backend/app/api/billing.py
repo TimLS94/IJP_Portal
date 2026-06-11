@@ -59,7 +59,14 @@ def _ensure_price(db: Session) -> str:
 
     cached = get_setting(db, PRICE_SETTING_KEY, None)
     if cached:
-        return cached
+        # Gecachten Preis verifizieren – ungültige (z.B. Test-Preis unter Live-Key)
+        # werden verworfen und neu angelegt (Selbstheilung beim Test->Live-Wechsel).
+        try:
+            price = stripe.Price.retrieve(cached)
+            if _g(price, "active", True):
+                return cached
+        except stripe.error.InvalidRequestError:
+            pass
 
     product = stripe.Product.create(name="JobOn Premium")
     price = stripe.Price.create(
