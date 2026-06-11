@@ -228,19 +228,27 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     obj = event["data"]["object"]
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
+    # Diagnose-Infos, die in der Stripe-Event-Antwort sichtbar sind
+    diag = {"received": True, "event": event_type}
+
     try:
         if event_type == "checkout.session.completed":
             # Premium direkt aus der Checkout-Session aktivieren – ohne dass der
             # (ggf. eingeschränkte) Key ein Subscriptions-Read-Recht braucht.
             company = None
             company_id = (obj.get("metadata") or {}).get("company_id")
+            customer_id = obj.get("customer")
+            diag["metadata_company_id"] = company_id
+            diag["customer_id"] = customer_id
+
             if company_id:
                 company = db.query(Company).filter(Company.id == int(company_id)).first()
-            customer_id = obj.get("customer")
             if not company and customer_id:
                 company = db.query(Company).filter(
                     Company.stripe_customer_id == customer_id
                 ).first()
+
+            diag["company_resolved"] = company.id if company else None
 
             if company:
                 company.is_premium = True
@@ -249,6 +257,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 if customer_id and not company.stripe_customer_id:
                     company.stripe_customer_id = customer_id
                 db.commit()
+                diag["premium_set"] = True
                 logger.info(
                     f"Company {company.id}: Premium via checkout.session.completed aktiviert"
                 )
@@ -266,6 +275,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             "customer.subscription.deleted",
         ):
             company = _resolve_company(db, obj)
+            diag["company_resolved"] = company.id if company else None
             if company:
                 if event_type == "customer.subscription.deleted":
                     company.is_premium = False
@@ -276,9 +286,11 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     logger.info(f"Company {company.id}: Abo gelöscht -> Premium deaktiviert")
                 else:
                     _apply_subscription_state(db, company, obj)
+                    diag["premium_set"] = bool(company.is_premium)
     except Exception as e:
         logger.error(f"Fehler bei Webhook-Verarbeitung ({event_type}): {e}")
-        # 200 zurückgeben, damit Stripe nicht endlos retryt, wenn es ein Datenproblem ist
-        return {"received": True, "handled": False}
+        diag["handled"] = False
+        diag["error"] = str(e)
+        return diag
 
-    return {"received": True}
+    return diag
