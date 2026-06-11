@@ -146,6 +146,23 @@ async def create_checkout_session(
         )
 
     customer_id = _get_or_create_customer(db, company, current_user)
+
+    # Sicherheitsnetz gegen Doppel-Abos: prüfen, ob beim Kunden schon ein
+    # aktives/Trial-Abo existiert (best effort – falls Leserecht fehlt, greift
+    # weiterhin der is_premium-Guard oben).
+    try:
+        existing = stripe.Subscription.list(customer=customer_id, status="all", limit=20)
+        for sub in existing.data:
+            if _g(sub, "status") in ACTIVE_STATUSES:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Es besteht bereits ein aktives Abo. Verwalte es über \"Abo verwalten\".",
+                )
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
     price_id = _ensure_price(db)
     base = _frontend_url()
 
