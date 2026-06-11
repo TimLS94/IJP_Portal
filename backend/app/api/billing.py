@@ -75,8 +75,18 @@ def _ensure_price(db: Session) -> str:
 
 
 def _get_or_create_customer(db: Session, company: Company, user: User) -> str:
+    # Vorhandenen Kunden verifizieren – ungültige (z.B. Test-Kunden unter Live-Key)
+    # werden verworfen und neu angelegt (Selbstheilung beim Test->Live-Wechsel).
     if company.stripe_customer_id:
-        return company.stripe_customer_id
+        try:
+            cust = stripe.Customer.retrieve(company.stripe_customer_id)
+            if not _g(cust, "deleted", False):
+                return company.stripe_customer_id
+        except stripe.error.InvalidRequestError:
+            company.stripe_customer_id = None
+            company.stripe_subscription_id = None
+            company.premium_status = None
+            db.commit()
 
     customer = stripe.Customer.create(
         email=user.email,
@@ -243,6 +253,21 @@ async def create_portal_session(
             customer=company.stripe_customer_id,
             return_url=f"{_frontend_url()}/company/premium",
         )
+    except stripe.error.InvalidRequestError as e:
+        # Kunde existiert im aktuellen Modus nicht (z.B. Test-Kunde unter Live-Key)
+        # -> veraltete Stripe-Felder bereinigen, damit der Button verschwindet.
+        if getattr(e, "code", "") == "resource_missing" or "No such customer" in str(e):
+            company.stripe_customer_id = None
+            company.stripe_subscription_id = None
+            company.premium_status = None
+            db.commit()
+            logger.info(f"Company {company.id}: veralteten Stripe-Kunden bereinigt")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Kein gültiges Abo gefunden – die alten Zahlungsdaten wurden zurückgesetzt.",
+            )
+        logger.error(f"Stripe Portal Fehler: {e}")
+        raise HTTPException(status_code=502, detail="Kundenportal konnte nicht geöffnet werden.")
     except stripe.error.StripeError as e:
         logger.error(f"Stripe Portal Fehler: {e}")
         raise HTTPException(status_code=502, detail="Kundenportal konnte nicht geöffnet werden.")
