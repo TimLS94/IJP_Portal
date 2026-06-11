@@ -87,6 +87,13 @@ export const applicantAPI = {
   }),
 };
 
+// Billing / Premium-Abo (Stripe)
+export const billingAPI = {
+  getStatus: () => api.get('/billing/status'),
+  createCheckout: () => api.post('/billing/checkout'),
+  openPortal: () => api.post('/billing/portal'),
+};
+
 // Company API
 export const companyAPI = {
   getProfile: () => api.get('/companies/me'),

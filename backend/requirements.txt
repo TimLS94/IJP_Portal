@@ -73,3 +73,6 @@ openai>=1.51.0
 anthropic>=0.25.0
 docxtpl>=0.20.0
 google-genai>=1.0.0
+
+# Zahlungen (Premium-Abo)
+stripe>=9.0.0

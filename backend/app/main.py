@@ -19,7 +19,7 @@ logger.info("Config loaded")
 from app.core.database import engine, Base, SessionLocal
 logger.info("Database module loaded")
 
-from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales, facebook, google_auth, files, notifications, ba_scraper, ijp, partner
+from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales, facebook, google_auth, files, notifications, ba_scraper, ijp, partner, billing
 logger.info("API routers loaded")
 
 # Import Models für create_all
@@ -514,6 +514,36 @@ def ensure_company_premium_column():
 
 
 ensure_company_premium_column()
+
+
+def ensure_company_stripe_columns():
+    """Fügt die Stripe-Abo-Spalten zu companies hinzu (idempotent)."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        cols = {
+            "stripe_customer_id": "VARCHAR(255)",
+            "stripe_subscription_id": "VARCHAR(255)",
+            "premium_until": "TIMESTAMP NULL",
+            "premium_cancel_at_period_end": "BOOLEAN DEFAULT FALSE",
+        }
+        for col, ddl in cols.items():
+            result = db.execute(text("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'companies' AND column_name = :col
+            """), {"col": col})
+            if not result.fetchone():
+                db.execute(text(f"ALTER TABLE companies ADD COLUMN {col} {ddl}"))
+                logger.info(f"companies: Spalte '{col}' hinzugefügt")
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"companies stripe columns: {e}")
+    finally:
+        db.close()
+
+
+ensure_company_stripe_columns()
 
 
 def ensure_job_promotions_table():
@@ -1051,6 +1081,7 @@ app.include_router(notifications.router, prefix=settings.API_V1_PREFIX)
 app.include_router(ba_scraper.router, prefix=settings.API_V1_PREFIX)
 app.include_router(ijp.router, prefix=settings.API_V1_PREFIX)
 app.include_router(partner.router, prefix=settings.API_V1_PREFIX)
+app.include_router(billing.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

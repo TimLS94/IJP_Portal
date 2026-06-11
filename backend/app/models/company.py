@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -53,6 +53,12 @@ class Company(Base):
 
     # Premium-Account (Zugriff auf KI-Stellengenerator etc.)
     is_premium = Column(Boolean, default=False)
+
+    # Stripe-Abo (Premium-Self-Service)
+    stripe_customer_id = Column(String(255), nullable=True)       # cus_...
+    stripe_subscription_id = Column(String(255), nullable=True)   # sub_...
+    premium_until = Column(DateTime, nullable=True)               # Ende des aktuellen Abrechnungszeitraums
+    premium_cancel_at_period_end = Column(Boolean, default=False) # Abo gekündigt, läuft bis premium_until
     
     # Absage-E-Mail Einstellungen
     rejection_email_enabled = Column(Boolean, default=True)  # Absage-E-Mail aktiviert?

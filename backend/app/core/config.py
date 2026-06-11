@@ -70,6 +70,14 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
     GOOGLE_AI_API_KEY: str = ""  # Kostenlos: https://aistudio.google.com/app/apikey
+
+    # Stripe (Premium-Abo)
+    STRIPE_SECRET_KEY: str = ""          # sk_live_... / sk_test_...
+    STRIPE_PUBLISHABLE_KEY: str = ""     # pk_live_... / pk_test_... (für Frontend)
+    STRIPE_WEBHOOK_SECRET: str = ""      # whsec_... (Signaturprüfung der Webhooks)
+    STRIPE_PRICE_ID: str = ""            # price_... (29€/Monat). Leer = wird automatisch angelegt.
+    PREMIUM_PRICE_CENTS: int = 2900      # 29,00 € (Endpreis, inkl. USt)
+    PREMIUM_TRIAL_DAYS: int = 7          # Kostenlose Testphase in Tagen (0 = keine)
     
     @property
     def cors_origins_list(self) -> List[str]:
