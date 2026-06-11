@@ -546,6 +546,35 @@ def ensure_company_stripe_columns():
 ensure_company_stripe_columns()
 
 
+def ensure_premium_cancellations_table():
+    """Erstellt die Tabelle premium_cancellations (idempotent)."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS premium_cancellations (
+                id SERIAL PRIMARY KEY,
+                company_id INTEGER,
+                company_name VARCHAR(255),
+                stripe_subscription_id VARCHAR(255),
+                feedback VARCHAR(100),
+                comment TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+        db.commit()
+        logger.info("Tabelle 'premium_cancellations' sichergestellt")
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"premium_cancellations table: {e}")
+    finally:
+        db.close()
+
+
+ensure_premium_cancellations_table()
+
+
 def ensure_job_promotions_table():
     """Erstellt die job_promotions Tabelle und last_boosted_at auf job_postings."""
     from sqlalchemy import text

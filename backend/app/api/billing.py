@@ -22,6 +22,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.company import Company
+from app.models.premium_cancellation import PremiumCancellation
 from app.api.companies import get_company_or_404
 from app.services.settings_service import get_setting, set_setting
 
@@ -96,6 +97,38 @@ def _g(obj, key, default=None):
     except (KeyError, TypeError, AttributeError):
         return default
     return default if val is None else val
+
+
+def _record_cancellation(db: Session, company: Company | None, subscription) -> None:
+    """Speichert den Stripe-Kündigungsgrund (cancellation_details) – einer pro Abo."""
+    details = _g(subscription, "cancellation_details")
+    feedback = _g(details, "feedback")
+    comment = _g(details, "comment")
+    if not feedback and not comment:
+        return  # Kein Grund hinterlegt (Kündigungsgrund evtl. nicht im Portal aktiviert)
+
+    sub_id = _g(subscription, "id")
+    existing = (
+        db.query(PremiumCancellation)
+        .filter(PremiumCancellation.stripe_subscription_id == sub_id)
+        .first()
+    )
+    if existing:
+        existing.feedback = feedback
+        existing.comment = comment
+        if company:
+            existing.company_id = company.id
+            existing.company_name = company.company_name
+    else:
+        db.add(PremiumCancellation(
+            company_id=company.id if company else None,
+            company_name=company.company_name if company else None,
+            stripe_subscription_id=sub_id,
+            feedback=feedback,
+            comment=comment,
+        ))
+    db.commit()
+    logger.info(f"Kündigungsgrund erfasst (sub {sub_id}): feedback={feedback}")
 
 
 def _resolve_company(db: Session, subscription) -> Company | None:
@@ -305,17 +338,21 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         ):
             company = _resolve_company(db, obj)
             diag["company_resolved"] = company.id if company else None
-            if company:
-                if event_type == "customer.subscription.deleted":
+            if event_type == "customer.subscription.deleted":
+                _record_cancellation(db, company, obj)
+                if company:
                     company.is_premium = False
                     company.stripe_subscription_id = None
                     company.premium_until = None
                     company.premium_cancel_at_period_end = False
                     db.commit()
                     logger.info(f"Company {company.id}: Abo gelöscht -> Premium deaktiviert")
-                else:
-                    _apply_subscription_state(db, company, obj)
-                    diag["premium_set"] = bool(company.is_premium)
+            elif company:
+                _apply_subscription_state(db, company, obj)
+                diag["premium_set"] = bool(company.is_premium)
+                # Kündigung zum Periodenende -> Grund festhalten
+                if _g(obj, "cancel_at_period_end"):
+                    _record_cancellation(db, company, obj)
     except Exception as e:
         logger.error(f"Fehler bei Webhook-Verarbeitung ({event_type}): {e}")
         diag["handled"] = False

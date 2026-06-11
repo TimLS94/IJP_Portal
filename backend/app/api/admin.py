@@ -152,6 +152,48 @@ async def update_document_requirements_config(
     return {"message": "Dokumentenanforderungen gespeichert"}
 
 
+CANCELLATION_FEEDBACK_LABELS = {
+    "customer_service": "Kundenservice",
+    "low_quality": "Qualität zu niedrig",
+    "missing_features": "Funktionen fehlen",
+    "other": "Sonstiges",
+    "switched_service": "Zu anderem Anbieter gewechselt",
+    "too_complex": "Zu kompliziert",
+    "too_expensive": "Zu teuer",
+    "unused": "Nicht genutzt",
+}
+
+
+@router.get("/premium-cancellations")
+async def get_premium_cancellations(
+    limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Liste der Premium-Kündigungen inkl. Stripe-Kündigungsgrund."""
+    from app.models.premium_cancellation import PremiumCancellation
+    rows = (
+        db.query(PremiumCancellation)
+        .order_by(PremiumCancellation.updated_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return {
+        "cancellations": [
+            {
+                "id": r.id,
+                "company_id": r.company_id,
+                "company_name": r.company_name,
+                "feedback": r.feedback,
+                "feedback_label": CANCELLATION_FEEDBACK_LABELS.get(r.feedback, r.feedback),
+                "comment": r.comment,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in rows
+        ]
+    }
+
+
 @router.get("/ai-usage")
 async def get_ai_usage(
     current_user: User = Depends(require_admin),

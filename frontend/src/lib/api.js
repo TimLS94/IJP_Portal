@@ -348,6 +348,7 @@ export const interviewsAPI = interviewAPI;
 export const adminAPI = {
   getStats: (days = 7) => api.get('/admin/stats', { params: { days } }),
   getAiUsage: () => api.get('/admin/ai-usage'),
+  getPremiumCancellations: (limit = 50) => api.get('/admin/premium-cancellations', { params: { limit } }),
   getPromotions: (params = {}) => api.get('/admin/promotions', { params }),
   getFeaturedJobs: () => api.get('/admin/featured-jobs'),
   getEmailStats: (days = 30) => api.get('/admin/email-stats', { params: { days } }),

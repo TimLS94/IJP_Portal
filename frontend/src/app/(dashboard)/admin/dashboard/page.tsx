@@ -143,6 +143,7 @@ export default function AdminDashboardPage() {
   const [timelineStats, setTimelineStats] = useState<TimelineStats | null>(null);
   const [jobReports, setJobReports] = useState<JobReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [cancellations, setCancellations] = useState<{ id: number; company_name: string | null; feedback_label: string | null; comment: string | null; created_at: string | null }[]>([]);
   const [dismissingReport, setDismissingReport] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -157,6 +158,12 @@ export default function AdminDashboardPage() {
     loadStats(periodDays, !stats);
     loadJobReports();
   }, [periodDays]);
+
+  useEffect(() => {
+    adminAPI.getPremiumCancellations()
+      .then(r => setCancellations(r.data?.cancellations || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     loadTimeline(timelineDays);
@@ -1255,6 +1262,46 @@ export default function AdminDashboardPage() {
             </div>
           </Link>
         </div>
+      </div>
+
+      {/* Premium-Kündigungen */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <FileX className="h-5 w-5 text-rose-500" />
+          <h2 className="text-lg font-bold text-gray-900">Premium-Kündigungen</h2>
+          {cancellations.length > 0 && (
+            <span className="ml-1 text-xs font-medium text-gray-500">({cancellations.length})</span>
+          )}
+        </div>
+        {cancellations.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            Noch keine Kündigungen mit Begründung. Der Kündigungsgrund wird erfasst, sobald er
+            im Stripe-Kundenportal aktiviert ist und ein Kunde kündigt.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {cancellations.map((c) => (
+              <div key={c.id} className="flex flex-col gap-1 p-3 bg-gray-50 rounded-lg sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{c.company_name || "Unbekannte Firma"}</p>
+                  {c.feedback_label && (
+                    <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-700 border border-rose-200">
+                      {c.feedback_label}
+                    </span>
+                  )}
+                  {c.comment && (
+                    <p className="text-sm text-gray-600 mt-1 break-words">„{c.comment}"</p>
+                  )}
+                </div>
+                {c.created_at && (
+                  <span className="text-xs text-gray-400 whitespace-nowrap sm:ml-4">
+                    {new Date(c.created_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
