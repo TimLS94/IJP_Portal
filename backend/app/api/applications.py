@@ -280,7 +280,8 @@ async def create_application(
                 applicant_email=user.email,
                 applicant_phone=applicant.phone,
                 position_type=job.position_type.value if job.position_type else None,
-                applied_at=application.applied_at
+                applied_at=application.applied_at,
+                application_id=application.id
             )
         except Exception as e:
             logger.error(f"Fehler beim Senden der Firmen-E-Mail: {e}")

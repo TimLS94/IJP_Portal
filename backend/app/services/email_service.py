@@ -211,12 +211,17 @@ class EmailService:
         applicant_email: str = None,
         applicant_phone: str = None,
         position_type: str = None,
-        applied_at: str = None
+        applied_at: str = None,
+        application_id: int = None
     ) -> bool:
         """Benachrichtigt die Firma über eine neue Bewerbung"""
         try:
             from app.core.config import settings
             frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            # Direkt zum Bewerber-Detail springen, falls die Bewerbung bekannt ist
+            applications_link = f"{frontend_url}/company/applications"
+            if application_id:
+                applications_link += f"?application={application_id}"
         except:
             frontend_url = 'https://www.jobon.work'
         
@@ -273,7 +278,7 @@ class EmailService:
                 {contact_section}
                 
                 <p style="text-align: center; margin: 30px 0;">
-                    <a href="{frontend_url}/company/applications" 
+                    <a href="{applications_link}"
                        style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
                         Bewerbung ansehen →
                     </a>

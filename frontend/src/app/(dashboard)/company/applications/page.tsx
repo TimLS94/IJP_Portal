@@ -150,6 +150,15 @@ export default function CompanyApplicationsPage() {
     companyAPI.getProfile().then(r => setIsPremium(!!r.data?.is_premium)).catch(() => {});
   }, []);
 
+  // Deep-Link aus der E-Mail (?application=<id>) → direkt das Bewerber-Detail öffnen
+  useEffect(() => {
+    const appId = new URLSearchParams(window.location.search).get("application");
+    if (appId && !Number.isNaN(Number(appId))) {
+      openDetails(Number(appId));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadApplications = async () => {
     try {
       // Normale Bewerbungen laden (nicht gefiltert)
