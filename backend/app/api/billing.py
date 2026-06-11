@@ -230,12 +230,35 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     try:
         if event_type == "checkout.session.completed":
-            sub_id = obj.get("subscription")
-            if sub_id:
-                subscription = stripe.Subscription.retrieve(sub_id)
-                company = _resolve_company(db, subscription)
-                if company:
-                    _apply_subscription_state(db, company, subscription)
+            # Premium direkt aus der Checkout-Session aktivieren – ohne dass der
+            # (ggf. eingeschränkte) Key ein Subscriptions-Read-Recht braucht.
+            company = None
+            company_id = (obj.get("metadata") or {}).get("company_id")
+            if company_id:
+                company = db.query(Company).filter(Company.id == int(company_id)).first()
+            customer_id = obj.get("customer")
+            if not company and customer_id:
+                company = db.query(Company).filter(
+                    Company.stripe_customer_id == customer_id
+                ).first()
+
+            if company:
+                company.is_premium = True
+                if obj.get("subscription"):
+                    company.stripe_subscription_id = obj.get("subscription")
+                if customer_id and not company.stripe_customer_id:
+                    company.stripe_customer_id = customer_id
+                db.commit()
+                logger.info(
+                    f"Company {company.id}: Premium via checkout.session.completed aktiviert"
+                )
+                # Optional: Abrechnungszeitraum nachtragen (nur falls Leserecht vorhanden)
+                try:
+                    if obj.get("subscription"):
+                        sub = stripe.Subscription.retrieve(obj["subscription"])
+                        _apply_subscription_state(db, company, sub)
+                except Exception:
+                    pass
 
         elif event_type in (
             "customer.subscription.created",
