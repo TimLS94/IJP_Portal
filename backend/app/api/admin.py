@@ -164,6 +164,38 @@ CANCELLATION_FEEDBACK_LABELS = {
 }
 
 
+@router.get("/subscription-stats")
+async def get_subscription_stats(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Abo-Kennzahlen für das Admin-Dashboard."""
+    from app.models.company import Company
+    from app.models.premium_cancellation import PremiumCancellation
+
+    # Echte (nicht gescrapte) Firmen
+    real = Company.is_scraped.isnot(True)
+
+    total_companies = db.query(Company).filter(real).count()
+    premium_total = db.query(Company).filter(real, Company.is_premium == True).count()
+    active = db.query(Company).filter(Company.premium_status == "active").count()
+    trialing = db.query(Company).filter(Company.premium_status == "trialing").count()
+    trial_canceled = db.query(Company).filter(
+        Company.premium_status == "trialing",
+        Company.premium_cancel_at_period_end == True
+    ).count()
+    cancellations_total = db.query(PremiumCancellation).count()
+
+    return {
+        "total_companies": total_companies,
+        "premium_total": premium_total,
+        "active": active,
+        "trialing": trialing,
+        "trial_canceled": trial_canceled,
+        "cancellations_total": cancellations_total,
+    }
+
+
 @router.get("/premium-cancellations")
 async def get_premium_cancellations(
     limit: int = Query(50, ge=1, le=200),

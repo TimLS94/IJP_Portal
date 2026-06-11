@@ -144,6 +144,7 @@ export default function AdminDashboardPage() {
   const [jobReports, setJobReports] = useState<JobReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [cancellations, setCancellations] = useState<{ id: number; company_name: string | null; feedback_label: string | null; comment: string | null; created_at: string | null }[]>([]);
+  const [subStats, setSubStats] = useState<{ total_companies: number; premium_total: number; active: number; trialing: number; trial_canceled: number; cancellations_total: number } | null>(null);
   const [dismissingReport, setDismissingReport] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -162,6 +163,9 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     adminAPI.getPremiumCancellations()
       .then(r => setCancellations(r.data?.cancellations || []))
+      .catch(() => {});
+    adminAPI.getSubscriptionStats()
+      .then(r => setSubStats(r.data))
       .catch(() => {});
   }, []);
 
@@ -1262,6 +1266,40 @@ export default function AdminDashboardPage() {
             </div>
           </Link>
         </div>
+      </div>
+
+      {/* Abo-Übersicht (Premium) */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="h-5 w-5 text-primary-600" />
+          <h2 className="text-lg font-bold text-gray-900">Premium-Abos</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-gray-50 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-gray-900">{subStats?.total_companies ?? "–"}</div>
+            <div className="text-xs text-gray-500 mt-1">Firmen gesamt</div>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{subStats?.active ?? "–"}</div>
+            <div className="text-xs text-gray-500 mt-1">Zahlende Abos</div>
+          </div>
+          <div className="bg-blue-50 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{subStats?.trialing ?? "–"}</div>
+            <div className="text-xs text-gray-500 mt-1">Im Testzeitraum</div>
+          </div>
+          <div className="bg-amber-50 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-amber-600">{subStats?.trial_canceled ?? "–"}</div>
+            <div className="text-xs text-gray-500 mt-1">Im Test gekündigt</div>
+          </div>
+          <div className="bg-rose-50 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-rose-600">{subStats?.cancellations_total ?? "–"}</div>
+            <div className="text-xs text-gray-500 mt-1">Kündigungen gesamt</div>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">
+          „Zahlende Abos" = aktive, bezahlte Abos. „Im Testzeitraum" = laufende 7-Tage-Testphase.
+          „Im Test gekündigt" = Testphase läuft, wurde aber bereits gekündigt.
+        </p>
       </div>
 
       {/* Premium-Kündigungen */}

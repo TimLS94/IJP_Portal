@@ -150,6 +150,7 @@ def _apply_subscription_state(db: Session, company: Company, subscription) -> No
     is_active = sub_status in ACTIVE_STATUSES
 
     company.is_premium = is_active
+    company.premium_status = sub_status
     company.stripe_subscription_id = _g(subscription, "id") if is_active else None
     company.premium_cancel_at_period_end = bool(_g(subscription, "cancel_at_period_end"))
 
@@ -342,6 +343,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 _record_cancellation(db, company, obj)
                 if company:
                     company.is_premium = False
+                    company.premium_status = "canceled"
                     company.stripe_subscription_id = None
                     company.premium_until = None
                     company.premium_cancel_at_period_end = False

@@ -524,6 +524,7 @@ def ensure_company_stripe_columns():
         cols = {
             "stripe_customer_id": "VARCHAR(255)",
             "stripe_subscription_id": "VARCHAR(255)",
+            "premium_status": "VARCHAR(50)",
             "premium_until": "TIMESTAMP NULL",
             "premium_cancel_at_period_end": "BOOLEAN DEFAULT FALSE",
         }
