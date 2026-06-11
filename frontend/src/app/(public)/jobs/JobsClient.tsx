@@ -90,9 +90,17 @@ const formatDate = (dateString: string): string => {
 
 interface JobsClientProps {
   initialJobs?: Job[];
+  initialPositionType?: string;
+  initialAccommodation?: boolean;
+  hideHeader?: boolean;
 }
 
-export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
+export default function JobsClient({
+  initialJobs = [],
+  initialPositionType = "",
+  initialAccommodation = false,
+  hideHeader = false,
+}: JobsClientProps) {
   const { isApplicant } = useAuth();
   const { t, i18n } = useTranslation();
 
@@ -139,10 +147,10 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [loading, setLoading] = useState(initialJobs.length === 0);
   const [search, setSearch] = useState("");
-  const [positionType, setPositionType] = useState("");
+  const [positionType, setPositionType] = useState(initialPositionType);
   const [location, setLocation] = useState("");
   const [germanLevel, setGermanLevel] = useState("");
-  const [accommodationOnly, setAccommodationOnly] = useState(false);
+  const [accommodationOnly, setAccommodationOnly] = useState(initialAccommodation);
   const [showFilters, setShowFilters] = useState(false);
   const [likedJobs, setLikedJobs] = useState<Set<number>>(new Set());
   const [likingJob, setLikingJob] = useState<number | null>(null);
@@ -254,15 +262,17 @@ export default function JobsClient({ initialJobs = [] }: JobsClientProps) {
   const activeFilterCount = [positionType, location, germanLevel, accommodationOnly].filter(Boolean).length;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className={`container mx-auto px-4 ${hideHeader ? "pt-2 pb-8" : "py-8"}`}>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <Briefcase className="h-8 w-8 text-primary-600" />
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t("jobs.title")}</h1>
-          <p className="text-gray-600">{t("jobs.subtitle")}</p>
+      {!hideHeader && (
+        <div className="flex items-center gap-3 mb-8">
+          <Briefcase className="h-8 w-8 text-primary-600" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{t("jobs.title")}</h1>
+            <p className="text-gray-600">{t("jobs.subtitle")}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Filter Card */}
       <div className="card mb-8">

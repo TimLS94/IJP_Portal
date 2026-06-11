@@ -1,4 +1,5 @@
 import { MetadataRoute } from "next";
+import { STELLEN_ROUTES, stellenHref } from "./(public)/stellenangebote/filters";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
 const BASE_URL = "https://www.jobon.work";
@@ -54,6 +55,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: BASE_URL, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
     { url: `${BASE_URL}/jobs`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE_URL}/stellenarten`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    // SEO-Filter-Routen für Stellenangebote (Index + Kategorien)
+    ...STELLEN_ROUTES.map((r) => ({
+      url: `${BASE_URL}${stellenHref(r.slug)}`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
+      priority: r.slug ? 0.85 : 0.9,
+    })),
     { url: `${BASE_URL}/blog`, lastModified: new Date(), changeFrequency: "daily", priority: 0.7 },
     { url: `${BASE_URL}/about`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE_URL}/contact`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },

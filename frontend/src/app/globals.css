@@ -13,6 +13,15 @@ p, li, td, span {
   -ms-hyphens: auto;
 }
 
+/* Horizontale Scroll-Container ohne sichtbare Scrollbar (z.B. Filter-Chips mobil) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Keine Silbentrennung für Überschriften */
 h1, h2, h3, h4, h5, h6 {
   hyphens: none;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Briefcase, Users, Building2, FileCheck, CheckCircle, Send, UserCheck, Handshake, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
+import { hrefForPositionType } from "./stellenangebote/filters";
 
 export default function HomeClient() {
   const { t } = useTranslation();
@@ -161,7 +162,7 @@ export default function HomeClient() {
           {positionTypes.map((type) => (
             <Link
               key={type.id}
-              href={`/jobs?type=${type.id}`}
+              href={hrefForPositionType(type.id)}
               className={`${type.color} p-4 md:p-6 rounded-xl text-center border-2 transition-all hover:shadow-lg hover:scale-105 flex flex-col items-center justify-center gap-2`}
             >
               <span className="text-2xl">{type.icon}</span>

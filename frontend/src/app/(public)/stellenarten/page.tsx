@@ -7,6 +7,7 @@ import {
   Clock, FileText, Globe, Users, CheckCircle, ArrowRight,
   MapPin, Euro, Info
 } from "lucide-react";
+import { hrefForPositionType } from "../stellenangebote/filters";
 
 interface Category {
   id: string;
@@ -159,7 +160,7 @@ function CategoryCard({
           {/* CTA */}
           <div className="flex flex-wrap gap-4 pt-4">
             <Link
-              href={`/jobs?type=${category.id}`}
+              href={hrefForPositionType(category.id)}
               className={`bg-gradient-to-r ${category.gradient} text-white px-6 py-3 rounded-xl font-bold hover:opacity-90 transition-all flex items-center gap-2`}
             >
               {t("stellenarten.findJobs")}

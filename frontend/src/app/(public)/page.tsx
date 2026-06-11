@@ -78,10 +78,10 @@ export default function Home() {
           
           <h2 className="text-2xl font-bold mb-4">Unsere Stellenarten</h2>
           <ul className="mb-8">
-            <li><Link href="/jobs?position_type=studentenferienjob">Studentenferienjobs</Link> - Für Studierende aus dem Ausland</li>
-            <li><Link href="/jobs?position_type=saisonjob">Saisonjobs</Link> - 8-monatige Beschäftigung</li>
-            <li><Link href="/jobs?position_type=fachkraft">Fachkräfte</Link> - Langfristige Anstellung</li>
-            <li><Link href="/jobs?position_type=ausbildung">Ausbildung</Link> - Berufsausbildung in Deutschland</li>
+            <li><Link href="/stellenangebote/studentenjobs">Studentenferienjobs</Link> - Für Studierende aus dem Ausland</li>
+            <li><Link href="/stellenangebote/saisonjobs">Saisonjobs</Link> - 8-monatige Beschäftigung</li>
+            <li><Link href="/stellenangebote/fachkraefte">Fachkräfte</Link> - Langfristige Anstellung</li>
+            <li><Link href="/stellenangebote/ausbildung">Ausbildung</Link> - Berufsausbildung in Deutschland</li>
           </ul>
           
           <h2 className="text-2xl font-bold mb-4">Für Bewerber</h2>
