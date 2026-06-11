@@ -369,6 +369,7 @@ export const adminAPI = {
   listUsers: (params) => api.get('/admin/users', { params }),
   toggleUserActive: (id) => api.put(`/admin/users/${id}/toggle-active`),
   toggleCompanyPremium: (userId) => api.put(`/admin/users/${userId}/toggle-premium`),
+  resetCompanyStripe: (userId) => api.post(`/admin/users/${userId}/reset-stripe`),
   createAdmin: (data) => api.post('/admin/users/create-admin', data),
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
   listJobs: (params) => api.get('/admin/jobs', { params }),

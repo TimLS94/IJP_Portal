@@ -806,6 +806,31 @@ async def toggle_company_premium(
     return {"message": f"Premium {'aktiviert' if company.is_premium else 'deaktiviert'}", "is_premium": company.is_premium}
 
 
+@router.post("/users/{user_id}/reset-stripe")
+async def reset_company_stripe(
+    user_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Setzt alle Stripe-Felder einer Firma zurück (z.B. um Test-Daten zu entfernen).
+    is_premium bleibt unangetastet – das steuerst du separat über den Premium-Toggle."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=404, detail="Firma nicht gefunden")
+
+    company = db.query(Company).filter(Company.user_id == user.id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firmenprofil nicht gefunden")
+
+    company.stripe_customer_id = None
+    company.stripe_subscription_id = None
+    company.premium_status = None
+    company.premium_until = None
+    company.premium_cancel_at_period_end = False
+    db.commit()
+    return {"message": "Stripe-Daten zurückgesetzt"}
+
+
 @router.get("/jobs")
 async def list_all_jobs(
     is_active: Optional[bool] = None,

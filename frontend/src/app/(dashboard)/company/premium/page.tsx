@@ -178,11 +178,15 @@ function CompanyPremiumContent() {
           {status?.cancel_at_period_end && (
             <p className="text-sm text-amber-600 mb-3">Dein Abo wurde gekündigt und endet zum genannten Datum.</p>
           )}
-          {status?.has_subscription && (
+          {status?.has_subscription ? (
             <button onClick={handlePortal} disabled={redirecting} className="btn-secondary inline-flex items-center gap-2 mt-3">
               {redirecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}
               Abo verwalten
             </button>
+          ) : (
+            <p className="text-sm text-gray-500 mt-2">
+              Premium wurde für deinen Account von JobOn freigeschaltet – kein kostenpflichtiges Abo.
+            </p>
           )}
         </div>
       ) : (

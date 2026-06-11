@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { 
   Users, Search, UserCheck, UserX, Building2, 
   User, Shield, Filter, Plus, X, Trash2, Eye, EyeOff, Loader2,
-  Download, FileText, ShieldAlert, AlertTriangle, File, ArrowUpDown, ArrowUp, ArrowDown, Sparkles
+  Download, FileText, ShieldAlert, AlertTriangle, File, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, RotateCcw
 } from "lucide-react";
 
 const roleLabels: Record<string, { label: string; icon: typeof User; color: string }> = {
@@ -123,6 +123,18 @@ export default function AdminUsersPage() {
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || "Fehler beim Aktualisieren");
+    }
+  };
+
+  const resetStripe = async (userId: number) => {
+    if (!confirm("Stripe-Daten dieser Firma zurücksetzen? (Kunde, Abo-ID, Status werden geleert – Premium-Status bleibt unverändert.)")) return;
+    try {
+      const response = await adminAPI.resetCompanyStripe(userId);
+      toast.success(response.data.message);
+      loadUsers();
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || "Fehler beim Zurücksetzen");
     }
   };
 
@@ -405,17 +417,26 @@ export default function AdminUsersPage() {
                               <ShieldAlert className="h-4 w-4" />
                             </button>
                             {user.role === "company" && (
-                              <button
-                                onClick={() => togglePremium(user.id)}
-                                className={`p-2 rounded-lg transition-colors ${
-                                  user.is_premium
-                                    ? "text-amber-500 hover:bg-amber-50"
-                                    : "text-gray-300 hover:bg-gray-100"
-                                }`}
-                                title={user.is_premium ? "Premium aktiv – klicken zum Deaktivieren" : "Kein Premium – klicken zum Aktivieren"}
-                              >
-                                <Sparkles className="h-4 w-4" />
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => togglePremium(user.id)}
+                                  className={`p-2 rounded-lg transition-colors ${
+                                    user.is_premium
+                                      ? "text-amber-500 hover:bg-amber-50"
+                                      : "text-gray-300 hover:bg-gray-100"
+                                  }`}
+                                  title={user.is_premium ? "Premium aktiv – klicken zum Deaktivieren" : "Kein Premium – klicken zum Aktivieren"}
+                                >
+                                  <Sparkles className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => resetStripe(user.id)}
+                                  className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+                                  title="Stripe-Daten zurücksetzen (Test-Reste entfernen)"
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </button>
+                              </>
                             )}
                             <button
                               onClick={() => toggleActive(user.id)}
