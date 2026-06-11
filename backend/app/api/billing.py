@@ -87,14 +87,25 @@ def _get_or_create_customer(db: Session, company: Company, user: User) -> str:
     return customer.id
 
 
+def _g(obj, key, default=None):
+    """Sicherer Feldzugriff für Stripe-Objekte (kein dict mehr in stripe>=15) und Dicts."""
+    if obj is None:
+        return default
+    try:
+        val = obj[key]
+    except (KeyError, TypeError, AttributeError):
+        return default
+    return default if val is None else val
+
+
 def _resolve_company(db: Session, subscription) -> Company | None:
     """Findet die Firma zu einer Stripe-Subscription (über metadata oder customer)."""
-    company_id = (subscription.get("metadata") or {}).get("company_id")
+    company_id = _g(_g(subscription, "metadata"), "company_id")
     if company_id:
         company = db.query(Company).filter(Company.id == int(company_id)).first()
         if company:
             return company
-    customer_id = subscription.get("customer")
+    customer_id = _g(subscription, "customer")
     if customer_id:
         return db.query(Company).filter(Company.stripe_customer_id == customer_id).first()
     return None
@@ -102,14 +113,14 @@ def _resolve_company(db: Session, subscription) -> Company | None:
 
 def _apply_subscription_state(db: Session, company: Company, subscription) -> None:
     """Synchronisiert is_premium & Felder anhand des Subscription-Objekts."""
-    sub_status = subscription.get("status")
+    sub_status = _g(subscription, "status")
     is_active = sub_status in ACTIVE_STATUSES
 
     company.is_premium = is_active
-    company.stripe_subscription_id = subscription.get("id") if is_active else None
-    company.premium_cancel_at_period_end = bool(subscription.get("cancel_at_period_end"))
+    company.stripe_subscription_id = _g(subscription, "id") if is_active else None
+    company.premium_cancel_at_period_end = bool(_g(subscription, "cancel_at_period_end"))
 
-    period_end = subscription.get("current_period_end")
+    period_end = _g(subscription, "current_period_end")
     company.premium_until = (
         datetime.utcfromtimestamp(period_end) if (is_active and period_end) else None
     )
@@ -236,8 +247,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             # Premium direkt aus der Checkout-Session aktivieren – ohne dass der
             # (ggf. eingeschränkte) Key ein Subscriptions-Read-Recht braucht.
             company = None
-            company_id = (obj.get("metadata") or {}).get("company_id")
-            customer_id = obj.get("customer")
+            company_id = _g(_g(obj, "metadata"), "company_id")
+            customer_id = _g(obj, "customer")
+            subscription_id = _g(obj, "subscription")
             diag["metadata_company_id"] = company_id
             diag["customer_id"] = customer_id
 
@@ -252,8 +264,8 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
             if company:
                 company.is_premium = True
-                if obj.get("subscription"):
-                    company.stripe_subscription_id = obj.get("subscription")
+                if subscription_id:
+                    company.stripe_subscription_id = subscription_id
                 if customer_id and not company.stripe_customer_id:
                     company.stripe_customer_id = customer_id
                 db.commit()
@@ -263,8 +275,8 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 )
                 # Optional: Abrechnungszeitraum nachtragen (nur falls Leserecht vorhanden)
                 try:
-                    if obj.get("subscription"):
-                        sub = stripe.Subscription.retrieve(obj["subscription"])
+                    if subscription_id:
+                        sub = stripe.Subscription.retrieve(subscription_id)
                         _apply_subscription_state(db, company, sub)
                 except Exception:
                     pass
