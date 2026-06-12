@@ -1008,7 +1008,11 @@ class EmailService:
             job = match["job"]
             score = match["score"]
             job_url = f"{frontend_url}/jobs/{job.slug}-{job.id}" if job.slug else f"{frontend_url}/jobs/{job.id}"
-            company_name = job.company.company_name if job.company else "Unknown"
+            # Bei externen (gescrapten) Jobs den echten Arbeitgeber zeigen, nicht die System-Firma
+            if getattr(job, "is_external", False) and getattr(job, "external_employer_name", None):
+                company_name = job.external_employer_name
+            else:
+                company_name = job.company.company_name if job.company else "Unknown"
             
             jobs_html += f"""
             <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background: #f9fafb; border-radius: 8px; margin: 10px 0; border-left: 4px solid #10b981;">

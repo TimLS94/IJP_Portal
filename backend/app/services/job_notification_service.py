@@ -100,7 +100,13 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
         return 0
     
     logger.info(f"Found {len(matching)} matching applicants for job {job.id}")
-    
+
+    # Bei externen (gescrapten) Jobs den echten Arbeitgeber zeigen, nicht die System-Firma
+    if getattr(job, "is_external", False) and getattr(job, "external_employer_name", None):
+        employer_name = job.external_employer_name
+    else:
+        employer_name = job.company.company_name if job.company else "Unbekannt"
+
     notifications_created = 0
     emails_sent = 0
     
@@ -116,7 +122,7 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
         # Create in-app notification
         try:
             import json as _json
-            company_name = job.company.company_name if job.company else "Unbekannt"
+            company_name = employer_name
             notification = Notification(
                 user_id=user.id,
                 type="new_job",
@@ -141,7 +147,7 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
                     to_email=user.email,
                     applicant_name=f"{applicant.first_name} {applicant.last_name}",
                     job_title=job.title,
-                    company_name=job.company.company_name if job.company else "Unknown",
+                    company_name=employer_name,
                     location=job.location or "Germany",
                     match_score=score,
                     job_slug=f"{job.slug}-{job.id}" if job.slug else str(job.id)
