@@ -992,11 +992,13 @@ class EmailService:
         job_title: str,
         company_name: str,
         location: str,
-        job_slug: str
+        job_slug: str,
+        match_score: int = 0,
     ) -> bool:
         """
-        Boost email: promotes a single (boosted) job to an applicant.
-        Independent from the new-job match notification. English.
+        Boost email: promotes a single (boosted) job to an applicant – styled like
+        the matching-job notification (with match score + direct link). English.
+        Independent from the automatic new-job notification.
         """
         try:
             from app.core.config import settings
@@ -1008,34 +1010,41 @@ class EmailService:
 
         job_url = f"{frontend_url}/jobs/{job_slug}"
 
-        subject = f"🚀 Featured Job: {job_title} in {location}"
+        score_badge = ""
+        if match_score and match_score > 0:
+            score_badge = f"""
+                    <div style="background: #d1fae5; padding: 10px 15px; border-radius: 20px; display: inline-block; margin-top: 10px;">
+                        <span style="color: #065f46; font-weight: bold; font-size: 18px;">{match_score}% Match</span>
+                    </div>"""
+
+        subject = f"🚀 A job for you: {job_title}" + (f" ({match_score}% match)" if match_score else "")
         html_content = f"""
         <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
-                <h1 style="margin: 0; font-size: 24px;">🚀 Featured Opportunity</h1>
-                <p style="margin: 10px 0 0 0; font-size: 16px;">A highlighted job for you on JobOn</p>
+            <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0; font-size: 24px;">🚀 A job that fits you!</h1>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">Take a look at this opportunity on JobOn</p>
             </div>
             <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 <p style="font-size: 16px; color: #374151;">Hello {applicant_name},</p>
 
-                <p style="color: #4b5563;">Don't miss this featured job opportunity in Germany:</p>
+                <p style="color: #4b5563;">We think this job in Germany could be a great match for your profile:</p>
 
-                <div style="background: #eef2ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6366f1;">
-                    <p style="margin: 0 0 10px 0; font-size: 20px; font-weight: bold; color: #3730a3;">
+                <div style="background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+                    <p style="margin: 0 0 10px 0; font-size: 20px; font-weight: bold; color: #065f46;">
                         {job_title}
                     </p>
-                    <p style="margin: 0 0 5px 0; color: #4338ca;">
+                    <p style="margin: 0 0 5px 0; color: #047857;">
                         🏢 {company_name}
                     </p>
-                    <p style="margin: 0; color: #4338ca;">
+                    <p style="margin: 0; color: #047857;">
                         📍 {location}
-                    </p>
+                    </p>{score_badge}
                 </div>
 
                 <p style="text-align: center; margin: 30px 0;">
                     <a href="{job_url}"
-                       style="background: #4f46e5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                        Apply Now →
+                       style="background: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        View Job &amp; Apply →
                     </a>
                 </p>
 

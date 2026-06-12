@@ -86,6 +86,21 @@ export default function AdminSalesPage() {
             <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />
           </div>
         </Link>
+
+        <Link href="/admin/sales/boost-emails" className="card p-4 hover:shadow-lg transition-shadow group block">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                <Rocket className="h-6 w-6 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Boost-E-Mails</h3>
+                <p className="text-sm text-gray-500">Geboostete Stellen an passende Bewerber mailen</p>
+              </div>
+            </div>
+            <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />
+          </div>
+        </Link>
       </div>
 
       <h2 className="font-semibold text-gray-700 mb-3">Facebook Marketing</h2>

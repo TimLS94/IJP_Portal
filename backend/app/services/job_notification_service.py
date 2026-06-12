@@ -192,6 +192,7 @@ def send_boost_emails_for_job(job: JobPosting, db: Session) -> dict:
     sent = 0
     for match in matching:
         applicant = match["applicant"]
+        score = match.get("score", 0)
         user = db.query(User).filter(User.id == applicant.user_id).first()
         if not user or not user.email:
             continue
@@ -206,6 +207,7 @@ def send_boost_emails_for_job(job: JobPosting, db: Session) -> dict:
                 company_name=employer_name,
                 location=job.location or "Germany",
                 job_slug=job_slug,
+                match_score=score,
             )
             if ok:
                 sent += 1
