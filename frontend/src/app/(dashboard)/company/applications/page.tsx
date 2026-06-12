@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { applicationsAPI, interviewAPI, companyAPI } from "@/lib/api";
 import { toast } from "react-hot-toast";
@@ -150,6 +150,8 @@ export default function CompanyApplicationsPage() {
     companyAPI.getProfile().then(r => setIsPremium(!!r.data?.is_premium)).catch(() => {});
   }, []);
 
+  const deepLinkApplied = useRef(false);
+
   // Deep-Link aus der E-Mail (?application=<id>) → direkt das Bewerber-Detail öffnen
   useEffect(() => {
     const appId = new URLSearchParams(window.location.search).get("application");
@@ -158,6 +160,21 @@ export default function CompanyApplicationsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sobald die Bewerbungen geladen sind: Suchfeld mit dem Deep-Link-Bewerber
+  // vorbefüllen, damit die Liste nur diesen Kandidaten zeigt (einmalig).
+  useEffect(() => {
+    if (deepLinkApplied.current) return;
+    const appId = new URLSearchParams(window.location.search).get("application");
+    if (!appId || Number.isNaN(Number(appId))) return;
+    const id = Number(appId);
+    const app = applications.find(a => a.id === id) || filteredOutApplications.find(a => a.id === id);
+    if (app) {
+      deepLinkApplied.current = true;
+      setSearchTerm(app.applicant_email || app.applicant_name || "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applications, filteredOutApplications]);
 
   const loadApplications = async () => {
     try {
