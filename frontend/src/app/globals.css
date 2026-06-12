@@ -14,6 +14,17 @@ p, li, td, span {
   -ms-hyphens: auto;
 }
 
+/* Google Sign-In (GSI) Button/Prompt nie über den Container hinausragen lassen */
+.g_id_signin,
+div[id^="credential_picker"],
+iframe[src*="accounts.google.com/gsi"] {
+  max-width: 100% !important;
+}
+.g_id_signin > div,
+.g_id_signin iframe {
+  max-width: 100% !important;
+}
+
 /* Horizontale Scroll-Container ohne sichtbare Scrollbar (z.B. Filter-Chips mobil) */
 .scrollbar-hide {
   -ms-overflow-style: none;
