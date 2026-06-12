@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { TrendingUp, Users, ArrowRight, FileText, Loader2, Mail } from "lucide-react";
+import { TrendingUp, Users, ArrowRight, FileText, Loader2, Mail, Rocket } from "lucide-react";
 import { adminAPI } from "@/lib/api";
 
 interface FacebookStats {
@@ -90,6 +90,21 @@ export default function AdminSalesPage() {
 
       <h2 className="font-semibold text-gray-700 mb-3">Facebook Marketing</h2>
       <div className="space-y-3">
+        <Link href="/admin/sales/facebook-boost" className="card p-4 hover:shadow-lg transition-shadow group block">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                <Rocket className="h-6 w-6 text-primary-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Boost → Facebook-Posts</h3>
+                <p className="text-sm text-gray-500">Geboostete Stellen als fertige DE/ES-Posts</p>
+              </div>
+            </div>
+            <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />
+          </div>
+        </Link>
+
         <Link href="/admin/sales/facebook-groups" className="card p-4 hover:shadow-lg transition-shadow group block">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

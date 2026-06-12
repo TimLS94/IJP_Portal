@@ -38,11 +38,25 @@ class FacebookPost(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=True)  # Optionaler Titel zur Identifikation
     content = Column(Text, nullable=False)
+    kind = Column(String(20), default="post")  # 'post' | 'comment' (globale Bausteine)
     template_id = Column(Integer, nullable=True)  # Referenz zur Vorlage (optional)
     variables = Column(JSON, nullable=True)  # Gespeicherte Variablen-Werte
     is_favorite = Column(Boolean, default=False)
     times_used = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class FacebookJobPost(Base):
+    """Gecachter, KI-generierter FB-Post (DE/ES) zu einer geboosteten Stelle."""
+    __tablename__ = "facebook_job_posts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    job_id = Column(Integer, nullable=False, unique=True, index=True)
+    content_de = Column(Text, nullable=True)
+    content_es = Column(Text, nullable=True)
+    comment_text = Column(Text, nullable=True)   # Link zur JobOn-Stelle (für den Kommentar)
+    generated_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 

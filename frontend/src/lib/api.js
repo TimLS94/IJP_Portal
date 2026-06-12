@@ -462,8 +462,11 @@ export const adminAPI = {
   updateFacebookTemplate: (id, data) => api.put(`/facebook/templates/${id}`, data),
   deleteFacebookTemplate: (id) => api.delete(`/facebook/templates/${id}`),
   
-  getFacebookPosts: (favoritesOnly) => api.get('/facebook/posts', { params: { favorites_only: favoritesOnly || false } }),
+  getFacebookPosts: (favoritesOnly, kind) => api.get('/facebook/posts', { params: { favorites_only: favoritesOnly || false, ...(kind ? { kind } : {}) } }),
   createFacebookPost: (data) => api.post('/facebook/posts', data),
+  // Boost-Stellen -> FB-Post (DE/ES)
+  getBoostedJobPosts: () => api.get('/facebook/boosted-jobs'),
+  generateBoostedJobPost: (jobId) => api.post(`/facebook/boosted-jobs/${jobId}/generate`),
   updateFacebookPost: (id, data) => api.put(`/facebook/posts/${id}`, data),
   deleteFacebookPost: (id) => api.delete(`/facebook/posts/${id}`),
   markFacebookPostUsed: (id) => api.post(`/facebook/posts/${id}/use`),

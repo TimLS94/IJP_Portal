@@ -576,6 +576,40 @@ def ensure_premium_cancellations_table():
 ensure_premium_cancellations_table()
 
 
+def ensure_facebook_job_posts_table():
+    """Erstellt facebook_job_posts + kind-Spalte auf facebook_posts (idempotent)."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS facebook_job_posts (
+                id SERIAL PRIMARY KEY,
+                job_id INTEGER NOT NULL UNIQUE,
+                content_de TEXT,
+                content_es TEXT,
+                comment_text TEXT,
+                generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP
+            )
+        """))
+        res = db.execute(text("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'facebook_posts' AND column_name = 'kind'
+        """))
+        if not res.fetchone():
+            db.execute(text("ALTER TABLE facebook_posts ADD COLUMN kind VARCHAR(20) DEFAULT 'post'"))
+        db.commit()
+        logger.info("facebook_job_posts/kind sichergestellt")
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"facebook_job_posts table: {e}")
+    finally:
+        db.close()
+
+
+ensure_facebook_job_posts_table()
+
+
 def ensure_job_promotions_table():
     """Erstellt die job_promotions Tabelle und last_boosted_at auf job_postings."""
     from sqlalchemy import text

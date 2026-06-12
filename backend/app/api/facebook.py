@@ -9,7 +9,7 @@ import logging
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
-from app.models.facebook_post import FacebookGroup, FacebookPostTemplate, FacebookPost, FacebookPostLog
+from app.models.facebook_post import FacebookGroup, FacebookPostTemplate, FacebookPost, FacebookPostLog, FacebookJobPost
 from app.services.facebook_api import (
     post_to_page, comment_on_post, post_with_comments, 
     get_page_info, check_token_validity, FacebookAPIError
@@ -87,6 +87,7 @@ class TemplateResponse(BaseModel):
 class PostCreate(BaseModel):
     title: Optional[str] = None
     content: str
+    kind: str = "post"  # 'post' | 'comment'
     template_id: Optional[int] = None
     variables: Optional[dict] = None
     is_favorite: bool = False
@@ -95,6 +96,7 @@ class PostCreate(BaseModel):
 class PostUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
+    kind: Optional[str] = None
     is_favorite: Optional[bool] = None
 
 
@@ -102,6 +104,7 @@ class PostResponse(BaseModel):
     id: int
     title: Optional[str]
     content: str
+    kind: str = "post"
     template_id: Optional[int]
     variables: Optional[dict]
     is_favorite: bool
@@ -293,6 +296,7 @@ async def delete_template(
 @router.get("/posts", response_model=List[PostResponse])
 async def get_posts(
     favorites_only: bool = False,
+    kind: Optional[str] = None,  # 'post' | 'comment'
     limit: int = 50,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -301,6 +305,12 @@ async def get_posts(
     query = db.query(FacebookPost)
     if favorites_only:
         query = query.filter(FacebookPost.is_favorite == True)
+    if kind:
+        # Bestehende Einträge ohne kind als 'post' behandeln
+        if kind == "post":
+            query = query.filter((FacebookPost.kind == "post") | (FacebookPost.kind == None))
+        else:
+            query = query.filter(FacebookPost.kind == kind)
     return query.order_by(desc(FacebookPost.is_favorite), desc(FacebookPost.created_at)).limit(limit).all()
 
 
@@ -528,3 +538,89 @@ async def post_to_facebook_page(
             success=False,
             error=str(e)
         )
+
+
+# ============ Boost-Stellen -> FB-Post (DE/ES) ============
+
+def _serialize_job_post(job, cached: Optional[FacebookJobPost]):
+    company_name = None
+    if getattr(job, "is_external", False) and getattr(job, "external_employer_name", None):
+        company_name = job.external_employer_name
+    elif getattr(job, "company", None):
+        company_name = job.company.company_name
+    from app.services.facebook_post_generator import build_comment_text
+    return {
+        "job_id": job.id,
+        "title": job.title,
+        "employer": company_name or "Arbeitgeber",
+        "location": job.location,
+        "url": f"https://www.jobon.work/jobs/{job.slug}-{job.id}" if job.slug else f"https://www.jobon.work/jobs/{job.id}",
+        "content_de": cached.content_de if cached else None,
+        "content_es": cached.content_es if cached else None,
+        "comment_text": (cached.comment_text if cached else None) or build_comment_text(job),
+        "generated": bool(cached and cached.content_de),
+    }
+
+
+@router.get("/boosted-jobs")
+async def get_boosted_jobs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aktuell hervorgehobene/geboostete Stellen mit (ggf. gecachtem) FB-Post."""
+    require_admin(current_user)
+    from app.models.job_posting import JobPosting
+    now = datetime.utcnow()
+    jobs = (
+        db.query(JobPosting)
+        .filter(
+            JobPosting.is_active == True,
+            JobPosting.is_draft == False,
+            JobPosting.is_archived == False,
+            JobPosting.is_featured == True,
+        )
+        .order_by(desc(JobPosting.last_boosted_at), desc(JobPosting.created_at))
+        .all()
+    )
+    # featured_until prüfen (None = unbegrenzt)
+    jobs = [j for j in jobs if not j.featured_until or j.featured_until.replace(tzinfo=None) > now]
+
+    cached_map = {
+        c.job_id: c for c in db.query(FacebookJobPost).filter(
+            FacebookJobPost.job_id.in_([j.id for j in jobs] or [0])
+        ).all()
+    }
+    return {"jobs": [_serialize_job_post(j, cached_map.get(j.id)) for j in jobs]}
+
+
+@router.post("/boosted-jobs/{job_id}/generate")
+async def generate_boosted_job_post(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generiert (oder erneuert) den DE/ES-Facebook-Post für eine Stelle via KI."""
+    require_admin(current_user)
+    from app.models.job_posting import JobPosting
+    from app.services.facebook_post_generator import generate_job_post
+
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
+
+    try:
+        result = generate_job_post(job)
+    except Exception as e:
+        logger.error(f"FB-Post-Generierung fehlgeschlagen (Job {job_id}): {e}")
+        raise HTTPException(status_code=502, detail=f"KI-Generierung fehlgeschlagen: {e}")
+
+    cached = db.query(FacebookJobPost).filter(FacebookJobPost.job_id == job_id).first()
+    if not cached:
+        cached = FacebookJobPost(job_id=job_id)
+        db.add(cached)
+    cached.content_de = result["de"]
+    cached.content_es = result["es"]
+    cached.comment_text = result["comment"]
+    db.commit()
+    db.refresh(cached)
+    return _serialize_job_post(job, cached)
