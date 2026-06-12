@@ -174,7 +174,7 @@ class EmailService:
                 <p>Hallo {name},</p>
                 <p>vielen Dank für Ihre Registrierung bei <strong>International Job Placement</strong>!</p>
                 <p>Wir freuen uns, Sie bei der Suche nach Ihrem Traumjob zu unterstützen.</p>
-                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
             </div>
         </body></html>
         """
@@ -195,7 +195,7 @@ class EmailService:
                 <p>Hallo {applicant_name},</p>
                 <p>Ihre Bewerbung für <strong>{job_title}</strong> bei <strong>{company_name}</strong> wurde erfolgreich eingereicht.</p>
                 <p>Wir drücken Ihnen die Daumen!</p>
-                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
             </div>
         </body></html>
         """
@@ -288,7 +288,7 @@ class EmailService:
                 
                 <p style="color: #6b7280; font-size: 14px; margin: 0;">
                     Mit freundlichen Grüßen,<br>
-                    <strong>Ihr IJP Team</strong>
+                    <strong>Ihr JobOn Team</strong>
                 </p>
                 
                 <p style="color: #9ca3af; font-size: 12px; margin: 20px 0 0 0;">
@@ -314,7 +314,7 @@ class EmailService:
                 <p>Vielen Dank für Ihre Registrierung!</p>
                 <p>Ihr Konto wird derzeit von unserem Team geprüft. Sie erhalten eine E-Mail, sobald es freigeschaltet wurde.</p>
                 <p>Dies dauert in der Regel 1-2 Werktage.</p>
-                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
             </div>
         </body></html>
         """
@@ -366,7 +366,7 @@ class EmailService:
                 <p style="text-align: center; margin: 30px 0;">
                     <a href="{frontend_url}/login" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Jetzt anmelden</a>
                 </p>
-                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
             </div>
         </body></html>
         """
@@ -402,7 +402,7 @@ class EmailService:
                 <p style="text-align: center; font-size: 24px; font-weight: bold; color: #2563eb; padding: 20px; background: white; border-radius: 8px; margin: 20px 0;">
                     {display_status}
                 </p>
-                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
             </div>
         </body></html>
         """
@@ -438,7 +438,7 @@ class EmailService:
                 <p style="text-align: center; margin: 30px 0;">
                     <a href="{settings.FRONTEND_URL}/applicant/documents" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Dokumente hochladen</a>
                 </p>
-                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
             </div>
         </body></html>
         """
@@ -512,7 +512,7 @@ class EmailService:
                 <p style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
                     ⚠️ Dieser Link ist nur <strong>1 Stunde</strong> gültig.
                 </p>
-                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
             </div>
         </body></html>
         """
@@ -904,7 +904,7 @@ class EmailService:
                 <p style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
                     ⚠️ Dieser Link ist nur <strong>1 Stunde</strong> gültig.
                 </p>
-                <p>Mit freundlichen Grüßen,<br>Ihr IJP Team</p>
+                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
             </div>
         </body></html>
         """
@@ -973,7 +973,7 @@ class EmailService:
                 
                 <p style="color: #6b7280; font-size: 14px; margin: 0;">
                     Best regards,<br>
-                    <strong>Your IJP Team</strong>
+                    <strong>Your JobOn Team</strong>
                 </p>
                 
                 <p style="color: #9ca3af; font-size: 12px; margin: 20px 0 0 0;">
@@ -1027,7 +1027,7 @@ class EmailService:
             <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 <p style="font-size: 16px; color: #374151;">Hello {applicant_name},</p>
 
-                <p style="color: #4b5563;">We think this job in Germany could be a great match for your profile:</p>
+                <p style="color: #4b5563;">We think this job could be a great match for your profile:</p>
 
                 <div style="background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
                     <p style="margin: 0 0 10px 0; font-size: 20px; font-weight: bold; color: #065f46;">
@@ -1052,7 +1052,7 @@ class EmailService:
 
                 <p style="color: #6b7280; font-size: 14px; margin: 0;">
                     Best regards,<br>
-                    <strong>Your IJP Team</strong>
+                    <strong>Your JobOn Team</strong>
                 </p>
 
                 <p style="color: #9ca3af; font-size: 12px; margin: 20px 0 0 0;">
@@ -1149,7 +1149,7 @@ class EmailService:
                 
                 <p style="color: #6b7280; font-size: 14px; margin: 0;">
                     Best regards,<br>
-                    <strong>Your IJP Team</strong>
+                    <strong>Your JobOn Team</strong>
                 </p>
                 
                 <p style="color: #9ca3af; font-size: 12px; margin: 20px 0 0 0;">
