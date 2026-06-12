@@ -31,7 +31,8 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [consent, setConsent] = useState(false);
-  const consentRef = useRef(false); // gegen Stale-Closure im Google-Callback
+  const [needsConsent, setNeedsConsent] = useState(false);     // erst nach erkannter Neu-Registrierung
+  const [pendingCredential, setPendingCredential] = useState<string | null>(null);
   const { setAuth } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
@@ -59,41 +60,53 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
     }
   };
 
-  const handleGoogleResponse = async (response: { credential?: string }) => {
-    if (!response.credential) {
-      toast.error("Google Login fehlgeschlagen");
-      return;
-    }
+  const submitGoogle = async (credential: string, accepted: boolean) => {
     setProcessing(true);
     try {
-      const result = await authAPI.googleLogin(response.credential, consentRef.current);
+      const result = await authAPI.googleLogin(credential, accepted);
       const { access_token, user, is_new_user } = result.data;
 
       localStorage.setItem("token", access_token);
       localStorage.setItem("user", JSON.stringify(user));
       setAuth(access_token, user);
+      setNeedsConsent(false);
+      setPendingCredential(null);
 
       if (user.role === "company") {
-        toast.success("Erfolgreich angemeldet!");
+        toast.success(t("auth.loginSuccess"));
         router.push("/company/dashboard");
       } else if (user.role === "admin") {
-        toast.success("Erfolgreich angemeldet!");
+        toast.success(t("auth.loginSuccess"));
         router.push("/admin/dashboard");
       } else if (is_new_user) {
-        toast.success("Willkommen! Dein Konto wurde erstellt.");
+        toast.success(t("auth.accountCreated"));
         router.push("/applicant/profile");
       } else {
-        toast.success("Erfolgreich angemeldet!");
+        toast.success(t("auth.loginSuccess"));
         router.push("/applicant/applications");
       }
 
       if (onSuccess) onSuccess(user);
     } catch (error: any) {
-      const message = error.response?.data?.detail || "Google Login fehlgeschlagen";
-      toast.error(message);
+      const detail = error.response?.data?.detail;
+      if (detail === "privacy_required") {
+        // Neuer Nutzer: Datenschutz-Zustimmung jetzt einblenden, Credential merken
+        setPendingCredential(credential);
+        setNeedsConsent(true);
+      } else {
+        toast.error(typeof detail === "string" ? detail : t("auth.googleLoginFailed"));
+      }
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleGoogleResponse = async (response: { credential?: string }) => {
+    if (!response.credential) {
+      toast.error(t("auth.googleLoginFailed"));
+      return;
+    }
+    await submitGoogle(response.credential, false);
   };
 
   const renderGoogleButton = () => {
@@ -163,28 +176,38 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
 
   return (
     <div className="w-full flex flex-col items-center gap-3">
-      {/* Datenschutz-Zustimmung (Pflicht für neue Konten) */}
-      <label className="flex items-start gap-2 w-full max-w-[400px] text-sm text-gray-600 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={consent}
-          onChange={(e) => { setConsent(e.target.checked); consentRef.current = e.target.checked; }}
-          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 shrink-0"
-        />
-        <span>
-          {t("auth.privacyText")}{" "}
-          <Link href="/datenschutz" target="_blank" className="text-primary-600 hover:underline">
-            {t("auth.privacyLink")}
-          </Link>{" "}
-          {t("auth.privacyText2")}
-          <span className="text-gray-400"> ({t("auth.requiredForNewAccount", "für neue Konten erforderlich")})</span>
-        </span>
-      </label>
-
       {processing ? (
         <div className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg bg-gray-50 w-full max-w-[400px]">
           <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
-          <span className="text-gray-600">Wird angemeldet...</span>
+          <span className="text-gray-600">{t("auth.signingIn")}</span>
+        </div>
+      ) : needsConsent ? (
+        /* Neuer Nutzer erkannt -> jetzt Datenschutz-Zustimmung einblenden */
+        <div className="w-full max-w-[400px] flex flex-col gap-3 p-4 rounded-xl border border-primary-200 bg-primary-50/50">
+          <p className="text-sm text-gray-700">{t("auth.googleNeedsConsent")}</p>
+          <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 shrink-0"
+            />
+            <span>
+              {t("auth.privacyText")}{" "}
+              <Link href="/datenschutz" target="_blank" className="text-primary-600 hover:underline">
+                {t("auth.privacyLink")}
+              </Link>{" "}
+              {t("auth.privacyText2")}
+            </span>
+          </label>
+          <button
+            type="button"
+            disabled={!consent || !pendingCredential}
+            onClick={() => pendingCredential && submitGoogle(pendingCredential, true)}
+            className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {t("auth.createAccount")}
+          </button>
         </div>
       ) : (
         <div ref={buttonRef} className="w-full max-w-[400px]" style={{ minHeight: "44px" }} />

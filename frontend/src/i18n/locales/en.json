@@ -188,7 +188,7 @@
     "login": "Login",
     "register": "Register",
     "registerButton": "Register",
-    "createAccount": "Create your account",
+    "createAccount": "Create account",
     "email": "Email",
     "password": "Password",
     "confirmPassword": "Confirm Password",
@@ -237,7 +237,11 @@
     "approvalDuration": "This process usually takes 1-2 business days.",
     "backToHome": "Back to Homepage",
     "welcomeBack": "Welcome back!",
-    "accountNotActivated": "Your account has not been activated yet. Please wait for activation by an administrator."
+    "accountNotActivated": "Your account has not been activated yet. Please wait for activation by an administrator.",
+    "googleNeedsConsent": "You don't have an account yet. Please accept the privacy policy to register.",
+    "accountCreated": "Welcome! Your account has been created.",
+    "signingIn": "Signing in...",
+    "googleLoginFailed": "Google sign-in failed"
   },
   "forgotPassword": {
     "title": "Forgot Password?",

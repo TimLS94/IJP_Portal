@@ -188,7 +188,7 @@
     "login": "Anmelden",
     "register": "Registrieren",
     "registerButton": "Registrieren",
-    "createAccount": "Erstellen Sie Ihr Konto",
+    "createAccount": "Konto erstellen",
     "email": "E-Mail",
     "password": "Passwort",
     "confirmPassword": "Passwort bestätigen",
@@ -237,7 +237,11 @@
     "approvalDuration": "Dieser Prozess dauert in der Regel 1-2 Werktage.",
     "backToHome": "Zurück zur Startseite",
     "welcomeBack": "Willkommen zurück!",
-    "accountNotActivated": "Ihr Konto wurde noch nicht freigeschaltet. Bitte warten Sie auf die Aktivierung durch einen Administrator."
+    "accountNotActivated": "Ihr Konto wurde noch nicht freigeschaltet. Bitte warten Sie auf die Aktivierung durch einen Administrator.",
+    "googleNeedsConsent": "Du hast noch kein Konto. Bitte stimme der Datenschutzerklärung zu, um dich zu registrieren.",
+    "accountCreated": "Willkommen! Dein Konto wurde erstellt.",
+    "signingIn": "Wird angemeldet...",
+    "googleLoginFailed": "Google-Anmeldung fehlgeschlagen"
   },
   "forgotPassword": {
     "title": "Passwort vergessen?",

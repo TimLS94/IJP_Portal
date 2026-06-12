@@ -184,7 +184,7 @@
     "login": "Iniciar sesión",
     "register": "Registrarse",
     "registerButton": "Registrarse",
-    "createAccount": "Cree su cuenta",
+    "createAccount": "Crear cuenta",
     "email": "Correo electrónico",
     "password": "Contraseña",
     "confirmPassword": "Confirmar contraseña",
@@ -233,7 +233,11 @@
     "approvalDuration": "Este proceso suele tardar 1-2 días hábiles.",
     "backToHome": "Volver a la página principal",
     "welcomeBack": "¡Bienvenido de nuevo!",
-    "accountNotActivated": "Su cuenta aún no ha sido activada. Por favor espere la activación por parte de un administrador."
+    "accountNotActivated": "Su cuenta aún no ha sido activada. Por favor espere la activación por parte de un administrador.",
+    "googleNeedsConsent": "Aún no tienes una cuenta. Acepta la política de privacidad para registrarte.",
+    "accountCreated": "¡Bienvenido/a! Tu cuenta ha sido creada.",
+    "signingIn": "Iniciando sesión...",
+    "googleLoginFailed": "Error al iniciar sesión con Google"
   },
   "forgotPassword": {
     "title": "¿Olvidó su contraseña?",

@@ -91,11 +91,12 @@ async def google_login(
             user.google_id = google_id
             db.commit()
         else:
-            # Neuer User - Registrierung: Datenschutz-Zustimmung erforderlich
+            # Neuer User - Registrierung: Datenschutz-Zustimmung erforderlich.
+            # Code statt Text, damit das Frontend lokalisiert anzeigen kann.
             if not data.accepted_privacy:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Bitte akzeptiere die Datenschutzerklärung, um ein Konto zu erstellen."
+                    detail="privacy_required"
                 )
             is_new_user = True
 
