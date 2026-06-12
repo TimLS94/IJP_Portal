@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body {
+  /* Kein horizontales Scrollen / Abschneiden durch zu breite Elemente (z.B. Google-Button) */
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
   /* next/font (Inter) über die CSS-Variable nutzen -> inkl. CLS-sicherer Fallback-Metriken */
   font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

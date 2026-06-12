@@ -150,9 +150,10 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
         requestAnimationFrame(measure);
         return;
       }
-      // Google erlaubt 200–400px; Container minus 8px Sicherheitsabstand, damit der
-      // Button (inkl. Rand) garantiert hineinpasst und zentriert sitzt
-      const width = Math.max(200, Math.min(400, (containerWidth || 360) - 8));
+      // Google erlaubt 200–400px; zusätzlich aufs Viewport begrenzen, damit der
+      // Button selbst bei ungenauer Messung nie über den Bildschirm hinausragt
+      const viewport = typeof window !== "undefined" ? window.innerWidth : 360;
+      const width = Math.max(200, Math.min(400, (containerWidth || 360) - 8, viewport - 48));
       buttonRef.current.innerHTML = "";
       window.google.accounts.id.renderButton(buttonRef.current, {
         theme: "outline",
