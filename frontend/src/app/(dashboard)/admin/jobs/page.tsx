@@ -286,7 +286,7 @@ export default function AdminJobsPage() {
                         <span>Erstellt: {formatDate(job.created_at)}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2 w-full sm:w-auto shrink-0">
                       {/* Aktivieren/Deaktivieren Toggle */}
                       <button
                         onClick={() => handleToggleActive(job)}
