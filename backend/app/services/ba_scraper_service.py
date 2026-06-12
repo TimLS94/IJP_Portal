@@ -417,7 +417,7 @@ def _extract_json_object(raw: str) -> Optional[str]:
     return raw[start:end + 1]
 
 
-def _parse_ai_json(raw: str, fallback_desc: str) -> dict:
+def _parse_ai_json(raw: str, fallback_desc: str, model: str = "unbekannt") -> dict:
     """Parst die JSON-Antwort der KI, mit toleranter Extraktion + Fallback bei Fehler."""
     try:
         try:
@@ -438,6 +438,7 @@ def _parse_ai_json(raw: str, fallback_desc: str) -> dict:
             "salary_type": result.get("salary_type") or None,
             "contact_person": result.get("contact_person") or None,
             "contact_phone": result.get("contact_phone") or None,
+            "ai_model": model,
         }
     except Exception as exc:
         logger.warning(f"KI-JSON konnte nicht geparst werden ({exc}); Rohantwort: {(raw or '')[:300]}")
@@ -445,12 +446,13 @@ def _parse_ai_json(raw: str, fallback_desc: str) -> dict:
             "description": fallback_desc, "tasks": "", "requirements": "", "benefits": "",
             "salary_min": None, "salary_max": None, "salary_type": None,
             "contact_person": None, "contact_phone": None,
+            "ai_model": "fallback",
         }
 
 
 def _enhance_with_openai(title: str, employer: str, city: str, raw_description: str) -> dict:
     if not settings.OPENAI_API_KEY:
-        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": ""}
+        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": "", "ai_model": "fallback"}
     try:
         from openai import OpenAI
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
@@ -465,15 +467,15 @@ def _enhance_with_openai(title: str, employer: str, city: str, raw_description: 
             max_tokens=1200,
             response_format={"type": "json_object"},
         )
-        return _parse_ai_json(resp.choices[0].message.content, raw_description)
+        return _parse_ai_json(resp.choices[0].message.content, raw_description, model="gpt-4o-mini")
     except Exception as exc:
         logger.warning(f"OpenAI fehlgeschlagen für '{title}': {exc}")
-        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": ""}
+        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": "", "ai_model": "fallback"}
 
 
 def _enhance_with_anthropic(title: str, employer: str, city: str, raw_description: str) -> dict:
     if not settings.ANTHROPIC_API_KEY:
-        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": ""}
+        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": "", "ai_model": "fallback"}
     try:
         import anthropic
         client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
@@ -489,16 +491,16 @@ def _enhance_with_anthropic(title: str, employer: str, city: str, raw_descriptio
         raw = msg.content[0].text.strip()
         if raw.startswith("```"):
             raw = _re.sub(r"^```[a-z]*\n?", "", raw).rstrip("`").strip()
-        return _parse_ai_json(raw, raw_description)
+        return _parse_ai_json(raw, raw_description, model="claude-haiku-4-5")
     except Exception as exc:
         logger.warning(f"Anthropic fehlgeschlagen für '{title}': {exc}")
-        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": ""}
+        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": "", "ai_model": "fallback"}
 
 
 def _enhance_with_gemini(title: str, employer: str, city: str, raw_description: str) -> dict:
     """Google Gemini – kostenloser Tier über google-genai SDK."""
     if not settings.GOOGLE_AI_API_KEY:
-        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": ""}
+        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": "", "ai_model": "fallback"}
     try:
         from google import genai
         from google.genai import types
@@ -518,10 +520,10 @@ def _enhance_with_gemini(title: str, employer: str, city: str, raw_description: 
         raw = (resp.text or "").strip()
         if raw.startswith("```"):
             raw = _re.sub(r"^```[a-z]*\n?", "", raw).rstrip("`").strip()
-        return _parse_ai_json(raw, raw_description)
+        return _parse_ai_json(raw, raw_description, model="gemini-2.5-flash")
     except Exception as exc:
         logger.warning(f"Gemini fehlgeschlagen für '{title}': {exc}")
-        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": ""}
+        return {"description": raw_description, "tasks": "", "requirements": "", "benefits": "", "ai_model": "fallback"}
 
 
 def _enhance_with_ai(ai_provider: str, title: str, employer: str, city: str, raw_description: str) -> dict:
@@ -699,6 +701,7 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                         salary_type = enhanced.get("salary_type")
                         contact_person = enhanced.get("contact_person")
                         contact_phone = enhanced.get("contact_phone")
+                        enrichment_source = enhanced.get("ai_model") or "fallback"
                         ai_enhanced += 1
                     else:
                         description = parsed["description"]
@@ -709,6 +712,7 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                         salary_max = parsed.get("salary_max")
                         salary_type = parsed.get("salary_type")
                         contact_person = contact_phone = None
+                        enrichment_source = "regelbasiert"
 
                     # Sprachanforderungen aus Beschreibung erkennen
                     full_text = f"{title} {raw_desc}"
@@ -755,6 +759,7 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                         external_url=external_url,
                         external_id=ref_nr,
                         external_employer_name=employer_name,
+                        enrichment_source=enrichment_source,
                     )
                     db.add(job)
                     db.flush()  # ID sofort vergeben (für Google Indexing)
@@ -833,12 +838,14 @@ def backfill_descriptions(db: Session, ai_provider: str = "none") -> dict:
                 job.contact_person = enhanced["contact_person"]
             if enhanced.get("contact_phone") and not job.contact_phone:
                 job.contact_phone = enhanced["contact_phone"]
+            job.enrichment_source = enhanced.get("ai_model") or "fallback"
             ai_enhanced += 1
         else:
             job.description = parsed["description"]
             job.tasks = parsed["tasks"]
             job.requirements = parsed["requirements"]
             job.benefits = parsed["benefits"]
+            job.enrichment_source = "regelbasiert"
 
         if parsed["employment_type"] and not job.employment_type:
             job.employment_type = parsed["employment_type"]

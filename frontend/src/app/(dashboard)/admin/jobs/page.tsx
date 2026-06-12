@@ -41,6 +41,7 @@ interface Job {
   position_type: string;
   is_active: boolean;
   is_external?: boolean;
+  enrichment_source?: string | null;
   view_count?: number;
   like_count?: number;
   external_click_count?: number;
@@ -262,6 +263,24 @@ export default function AdminJobsPage() {
                           <span className="flex items-center gap-1 text-orange-600">
                             <ExternalLink className="h-4 w-4" />
                             {job.external_click_count || 0} Ext. Klicks
+                          </span>
+                        )}
+                        {job.enrichment_source && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              job.enrichment_source === "fallback"
+                                ? "bg-red-100 text-red-700"
+                                : job.enrichment_source === "regelbasiert"
+                                ? "bg-gray-100 text-gray-600"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                            title="Wie wurde diese Anzeige aufbereitet?"
+                          >
+                            {job.enrichment_source === "fallback"
+                              ? "⚠ Fallback (Rohtext)"
+                              : job.enrichment_source === "regelbasiert"
+                              ? "Regelbasiert"
+                              : `KI: ${job.enrichment_source}`}
                           </span>
                         )}
                         <span>Erstellt: {formatDate(job.created_at)}</span>

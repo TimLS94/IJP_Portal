@@ -871,6 +871,7 @@ async def list_all_jobs(
             "location": job.location,
             "is_active": job.is_active,
             "is_external": job.is_external or False,
+            "enrichment_source": job.enrichment_source,
             "created_at": job.created_at,
             "company_name": company.company_name if company else "Unbekannt",
             "application_count": app_count,

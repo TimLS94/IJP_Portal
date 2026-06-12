@@ -130,6 +130,7 @@ def ensure_external_job_columns():
             ("job_postings", "external_url", "VARCHAR(500)"),
             ("job_postings", "external_id", "VARCHAR(100)"),
             ("job_postings", "external_employer_name", "VARCHAR(255)"),
+            ("job_postings", "enrichment_source", "VARCHAR(50)"),
             ("companies", "is_scraped", "BOOLEAN DEFAULT FALSE"),
         ]
         allowed_tables = {t for t, _, _ in new_columns}

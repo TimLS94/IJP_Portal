@@ -155,7 +155,8 @@ class JobPosting(Base):
     external_url = Column(String(500))                     # Link zum Originalinserat
     external_id = Column(String(100), index=True)          # BA Referenznummer (Deduplizierung)
     external_employer_name = Column(String(255))           # Echter Arbeitgebername
-    
+    enrichment_source = Column(String(50))                 # Wie aufbereitet: "regelbasiert" | "fallback" | Modellname (z.B. "gemini-2.5-flash")
+
     # ========== MEHRSPRACHIGE INHALTE ==========
     # Struktur: {"en": {"title": "...", "description": "...", "tasks": "...", "requirements": "...", "benefits": "..."}, "es": {...}, "ru": {...}}
     # Die Hauptfelder (title, description etc.) sind der deutsche Fallback
