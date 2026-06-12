@@ -559,6 +559,8 @@ def _serialize_job_post(job, cached: Optional[FacebookJobPost]):
         "content_es": cached.content_es if cached else None,
         "comment_text": (cached.comment_text if cached else None) or build_comment_text(job),
         "generated": bool(cached and cached.content_de),
+        "boost_emails_sent_at": cached.boost_emails_sent_at.isoformat() if (cached and cached.boost_emails_sent_at) else None,
+        "boost_emails_count": (cached.boost_emails_count if cached else 0) or 0,
     }
 
 
@@ -656,4 +658,15 @@ async def send_boost_emails(
     result = send_boost_emails_for_job(job, db)
     if result.get("error"):
         raise HTTPException(status_code=400, detail=result["error"])
+
+    # Versand protokollieren (Zeitpunkt + Anzahl) am gecachten Job-Post
+    cached = db.query(FacebookJobPost).filter(FacebookJobPost.job_id == job_id).first()
+    if not cached:
+        cached = FacebookJobPost(job_id=job_id)
+        db.add(cached)
+    cached.boost_emails_sent_at = datetime.utcnow()
+    cached.boost_emails_count = result.get("sent", 0)
+    db.commit()
+
+    result["sent_at"] = cached.boost_emails_sent_at.isoformat()
     return result

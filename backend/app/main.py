@@ -650,6 +650,10 @@ def ensure_facebook_schema():
             "error_message TEXT",
             "posted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         ],
+        "facebook_job_posts": [
+            "boost_emails_sent_at TIMESTAMP",
+            "boost_emails_count INTEGER DEFAULT 0",
+        ],
     }
     db = SessionLocal()
     try:

@@ -56,6 +56,8 @@ class FacebookJobPost(Base):
     content_de = Column(Text, nullable=True)
     content_es = Column(Text, nullable=True)
     comment_text = Column(Text, nullable=True)   # Link zur JobOn-Stelle (für den Kommentar)
+    boost_emails_sent_at = Column(DateTime(timezone=True), nullable=True)  # Wann zuletzt Boost-Mails versendet
+    boost_emails_count = Column(Integer, default=0)                        # Anzahl beim letzten Versand
     generated_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

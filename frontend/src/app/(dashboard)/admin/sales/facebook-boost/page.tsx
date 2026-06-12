@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  Rocket, Copy, Loader2, ArrowLeft, Sparkles, Building2, MapPin, ExternalLink, MessageSquare, Mail
+  Rocket, Copy, Loader2, ArrowLeft, Sparkles, Building2, MapPin, ExternalLink, MessageSquare, Mail, CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
 import { adminAPI } from "@/lib/api";
@@ -18,6 +18,8 @@ interface BoostedJob {
   content_es: string | null;
   comment_text: string;
   generated: boolean;
+  boost_emails_sent_at: string | null;
+  boost_emails_count: number;
 }
 
 export default function FacebookBoostPage() {
@@ -62,6 +64,7 @@ export default function FacebookBoostPage() {
     try {
       const r = await adminAPI.sendBoostEmails(jobId);
       toast.success(`${r.data?.sent ?? 0} Boost-E-Mails gesendet (${r.data?.matched ?? 0} passende Bewerber)`);
+      load(); // Tracking-Infos (zuletzt gesendet) aktualisieren
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       toast.error(detail || "E-Mail-Versand fehlgeschlagen");
@@ -123,7 +126,7 @@ export default function FacebookBoostPage() {
                     title="Boost-E-Mail (englisch) an passende Bewerber senden"
                   >
                     {sendingEmails === job.job_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                    Boost-E-Mails senden
+                    {job.boost_emails_sent_at ? "Boost-E-Mails erneut senden" : "Boost-E-Mails senden"}
                   </button>
                   <button
                     onClick={() => generate(job.job_id)}
@@ -134,6 +137,22 @@ export default function FacebookBoostPage() {
                     {job.generated ? "Neu generieren" : "Post generieren"}
                   </button>
                 </div>
+              </div>
+
+              {/* Boost-E-Mail Versand-Status */}
+              <div className="mb-4 text-sm">
+                {job.boost_emails_sent_at ? (
+                  <span className="inline-flex items-center gap-1.5 text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Boost-E-Mails versendet am{" "}
+                    {new Date(job.boost_emails_sent_at).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {" · "}{job.boost_emails_count} E-Mail{job.boost_emails_count === 1 ? "" : "s"}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-gray-500">
+                    <Mail className="h-4 w-4" /> Noch keine Boost-E-Mails versendet
+                  </span>
+                )}
               </div>
 
               {job.generated ? (
