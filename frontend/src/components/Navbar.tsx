@@ -428,11 +428,11 @@ export default function Navbar() {
                             notifications.map((notif) => (
                               <div
                                 key={notif.id}
-                                onClick={() => {
-                                  if (!notif.is_read) handleMarkAsRead(notif.id);
+                                onClick={async () => {
+                                  if (!notif.is_read) await handleMarkAsRead(notif.id);
                                   if (notif.reference_type === "job" && notif.reference_id) {
-                                    router.push(`/jobs/${notif.reference_id}`);
                                     setNotifMenuOpen(false);
+                                    router.push(`/jobs/${notif.reference_id}`);
                                   }
                                 }}
                                 className={`px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors ${

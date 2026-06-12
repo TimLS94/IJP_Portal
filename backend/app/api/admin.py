@@ -1675,7 +1675,15 @@ async def delete_user(
     
     # Password Reset Tokens löschen (falls vorhanden)
     db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user_id).delete()
-    
+
+    # Benachrichtigungen löschen (user_id ist NOT NULL -> sonst FK-Fehler beim Löschen)
+    from app.models.notification import Notification
+    db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
+
+    # Team-Mitgliedschaften des Nutzers löschen
+    from app.models.company_member import CompanyMember
+    db.query(CompanyMember).filter(CompanyMember.user_id == user_id).delete(synchronize_session=False)
+
     # Zugehörige Daten löschen
     if user.role == UserRole.APPLICANT:
         applicant = db.query(Applicant).filter(Applicant.user_id == user_id).first()
