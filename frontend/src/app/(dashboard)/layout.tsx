@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { Loader2 } from "lucide-react";
@@ -13,12 +13,17 @@ export default function DashboardLayout({
 }) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push("/login");
+      // Ziel-URL (inkl. Query, z.B. ?application=) für Redirect nach Login merken
+      const search = typeof window !== "undefined" ? window.location.search : "";
+      const target = `${pathname}${search}`;
+      const redirectParam = target && target !== "/" ? `?redirect=${encodeURIComponent(target)}` : "";
+      router.push(`/login${redirectParam}`);
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, router, pathname]);
 
   if (loading) {
     return (

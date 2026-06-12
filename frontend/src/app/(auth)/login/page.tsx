@@ -33,7 +33,17 @@ export default function LoginPage() {
       const user = await login(data.email, data.password);
       toast.success(t("auth.loginSuccess"));
 
-      if (user.role === "applicant") {
+      // Deep-Link aus E-Mail (?redirect=...) beibehalten, sonst Rollen-Standard
+      const rawRedirect = typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("redirect")
+        : null;
+      const safeRedirect = rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+        ? rawRedirect
+        : null;
+
+      if (safeRedirect) {
+        router.push(safeRedirect);
+      } else if (user.role === "applicant") {
         router.push("/applicant/profile");
       } else if (user.role === "company") {
         router.push("/company/dashboard");
