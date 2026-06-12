@@ -38,9 +38,6 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   const router = useRouter();
   const buttonRef = useRef<HTMLDivElement>(null);
   const renderedRef = useRef(false);
-  const resizeCleanupRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => () => resizeCleanupRef.current?.(), []);
 
   useEffect(() => {
     // 1) GSI-Script SOFORT laden (parallel zur Config) -> Button erscheint schneller
@@ -153,8 +150,9 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
         requestAnimationFrame(measure);
         return;
       }
-      // Google erlaubt 200–400px; Container minus 2px Puffer, damit nichts über den Rand ragt
-      const width = Math.max(200, Math.min(400, (containerWidth || 360) - 2));
+      // Google erlaubt 200–400px; Container minus 8px Sicherheitsabstand, damit der
+      // Button (inkl. Rand) garantiert hineinpasst und zentriert sitzt
+      const width = Math.max(200, Math.min(400, (containerWidth || 360) - 8));
       buttonRef.current.innerHTML = "";
       window.google.accounts.id.renderButton(buttonRef.current, {
         theme: "outline",
@@ -167,13 +165,9 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
       renderedRef.current = true;
     };
 
-    // Zwei Frames warten damit das Layout stabil ist
+    // Zwei Frames warten damit das Layout stabil ist (nur EINMAL rendern – kein
+    // Neu-Rendern bei Resize, das sonst zu falschen Breiten/abgeschnittenem Rand führt)
     requestAnimationFrame(() => requestAnimationFrame(measure));
-
-    // Bei Größenänderung neu rendern (z.B. responsive)
-    const onResize = () => { renderedRef.current = false; attempts = 0; measure(); };
-    window.addEventListener("resize", onResize);
-    resizeCleanupRef.current = () => window.removeEventListener("resize", onResize);
   };
 
   const initGoogle = () => {
@@ -246,7 +240,7 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
           </button>
         </div>
       ) : (
-        <div key="gsi-button" ref={buttonRef} className="w-full max-w-[400px] overflow-hidden flex justify-center" style={{ minHeight: "44px" }} />
+        <div key="gsi-button" ref={buttonRef} className="w-full max-w-[400px] flex justify-center" style={{ minHeight: "44px" }} />
       )}
     </div>
   );
