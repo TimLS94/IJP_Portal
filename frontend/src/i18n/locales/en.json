@@ -753,7 +753,8 @@
       "work_reference": "Work Reference",
       "visa": "Visa",
       "other": "Other"
-    }
+    },
+    "fieldsAutofilled": "{{count}} fields were filled in automatically – please review!"
   },
   "documents": {
     "title": "My Documents",
@@ -1192,7 +1193,8 @@
       "unpublish": "Unpublish",
       "saved": "Post saved",
       "deleted": "Post deleted"
-    }
+    },
+    "linkCopied": "Link copied!"
   },
   "industries": {
     "agriculture": "Agriculture",
@@ -1594,7 +1596,7 @@
     "allRequirementsMet": "All requirements met!",
     "messageOptional": "Message (optional)",
     "addPersonalMessage": "Add a personal message...",
-    "loginToApply": "to apply",
+    "loginToApply": "Please sign in to apply",
     "login": "Login",
     "ijpService": "Commission IJP",
     "ijpServiceDesc": "Would you like us to find the right job for you? We connect you with our partner companies!",
@@ -1625,7 +1627,12 @@
     "cancel": "Cancel",
     "remember": "Save",
     "remembered": "Saved",
-    "applyNote": "to apply"
+    "applyNote": "to apply",
+    "onlyApplicants": "Only applicants can apply for jobs",
+    "applySuccess": "Application submitted successfully!",
+    "reportSelectReason": "Please select a reason",
+    "reportSuccess": "Job reported — thank you for your feedback!",
+    "reportFailed": "Reporting failed"
   },
   "matching": {
     "veryGood": "Very good match",

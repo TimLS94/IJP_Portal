@@ -233,13 +233,13 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
 
   const handleApply = async () => {
     if (!isAuthenticated) {
-      toast.error("Bitte melden Sie sich an, um sich zu bewerben");
+      toast.error(t("jobDetail.loginToApply"));
       router.push("/login");
       return;
     }
 
     if (!isApplicant) {
-      toast.error("Nur Bewerber können sich auf Stellen bewerben");
+      toast.error(t("jobDetail.onlyApplicants"));
       return;
     }
 
@@ -255,7 +255,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
           await applicationsAPI.shareDocuments(newApp.id, selectedDocIds);
         } catch {}
       }
-      toast.success("Bewerbung erfolgreich eingereicht!");
+      toast.success(t("jobDetail.applySuccess"));
       setApplied(true);
       setShowApplyForm(false);
       try { trackJobApply(job.id, job.title); } catch {}
@@ -275,17 +275,17 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
 
   const handleReport = async () => {
     if (!reportReason) {
-      toast.error("Bitte wähle einen Grund aus");
+      toast.error(t("jobDetail.reportSelectReason"));
       return;
     }
     setReporting(true);
     try {
       await jobsAPI.reportJob(job.id, reportReason, reportNote || undefined);
-      toast.success("Stelle wurde gemeldet — Danke für dein Feedback!");
+      toast.success(t("jobDetail.reportSuccess"));
       setReported(true);
       setShowReportModal(false);
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Melden fehlgeschlagen");
+      toast.error(error.response?.data?.detail || t("jobDetail.reportFailed"));
     } finally {
       setReporting(false);
     }

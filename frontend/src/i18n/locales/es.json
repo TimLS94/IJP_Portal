@@ -748,7 +748,8 @@
       "work_reference": "Referencia laboral",
       "visa": "Visa",
       "other": "Otro"
-    }
+    },
+    "fieldsAutofilled": "¡Se rellenaron {{count}} campos automáticamente! Por favor, revísalos."
   },
   "documents": {
     "title": "Mis documentos",
@@ -1187,7 +1188,8 @@
       "unpublish": "Despublicar",
       "saved": "Publicación guardada",
       "deleted": "Publicación eliminada"
-    }
+    },
+    "linkCopied": "¡Enlace copiado!"
   },
   "industries": {
     "agriculture": "Agricultura",
@@ -1551,7 +1553,7 @@
     "allRequirementsMet": "¡Todos los requisitos cumplidos!",
     "messageOptional": "Mensaje (opcional)",
     "addPersonalMessage": "Añada un mensaje personal...",
-    "loginToApply": "para solicitar",
+    "loginToApply": "Inicia sesión para postularte",
     "login": "Iniciar sesión",
     "ijpService": "Contratar IJP",
     "ijpServiceDesc": "¿Quiere que encontremos el trabajo adecuado para usted? ¡Le conectamos con nuestras empresas asociadas!",
@@ -1582,7 +1584,12 @@
     "cancel": "Cancelar",
     "remember": "Guardar",
     "remembered": "Guardado",
-    "applyNote": "para solicitar"
+    "applyNote": "para solicitar",
+    "onlyApplicants": "Solo los candidatos pueden postularse",
+    "applySuccess": "¡Candidatura enviada con éxito!",
+    "reportSelectReason": "Selecciona un motivo",
+    "reportSuccess": "Empleo reportado: ¡gracias por tu comentario!",
+    "reportFailed": "Error al reportar"
   },
   "matching": {
     "veryGood": "Muy buena coincidencia",

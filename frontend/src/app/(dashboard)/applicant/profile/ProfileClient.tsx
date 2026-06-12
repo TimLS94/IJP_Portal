@@ -204,7 +204,7 @@ export default function ProfileClient() {
 
       try { trackCVParse(filled); } catch {}
       if (filled > 0) {
-        toast.success(`${filled} Felder wurden automatisch ausgefüllt – bitte überprüfen!`);
+        toast.success(t("applicant.fieldsAutofilled", { count: filled }));
       } else {
         toast.success(t("applicant.cvParsed"));
       }

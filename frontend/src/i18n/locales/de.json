@@ -753,7 +753,8 @@
       "work_reference": "Arbeitszeugnis",
       "visa": "Visum",
       "other": "Sonstiges"
-    }
+    },
+    "fieldsAutofilled": "{{count}} Felder wurden automatisch ausgefüllt – bitte überprüfen!"
   },
   "documents": {
     "title": "Meine Dokumente",
@@ -1192,7 +1193,8 @@
       "unpublish": "Zurückziehen",
       "saved": "Beitrag gespeichert",
       "deleted": "Beitrag gelöscht"
-    }
+    },
+    "linkCopied": "Link kopiert!"
   },
   "industries": {
     "agriculture": "Landwirtschaft",
@@ -1594,7 +1596,7 @@
     "allRequirementsMet": "Alle Voraussetzungen erfüllt!",
     "messageOptional": "Nachricht (optional)",
     "addPersonalMessage": "Fügen Sie eine persönliche Nachricht hinzu...",
-    "loginToApply": "um sich zu bewerben",
+    "loginToApply": "Bitte melde dich an, um dich zu bewerben",
     "login": "Anmelden",
     "ijpService": "IJP beauftragen",
     "ijpServiceDesc": "Sie möchten, dass wir den passenden Job für Sie finden? Wir vermitteln Sie an unsere Partnerunternehmen!",
@@ -1625,7 +1627,12 @@
     "cancel": "Abbrechen",
     "remember": "Merken",
     "remembered": "Gemerkt",
-    "applyNote": "um sich zu bewerben"
+    "applyNote": "um sich zu bewerben",
+    "onlyApplicants": "Nur Bewerber können sich auf Stellen bewerben",
+    "applySuccess": "Bewerbung erfolgreich eingereicht!",
+    "reportSelectReason": "Bitte wähle einen Grund aus",
+    "reportSuccess": "Stelle wurde gemeldet — Danke für dein Feedback!",
+    "reportFailed": "Melden fehlgeschlagen"
   },
   "matching": {
     "veryGood": "Sehr gute Übereinstimmung",

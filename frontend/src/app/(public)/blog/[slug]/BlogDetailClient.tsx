@@ -56,6 +56,7 @@ const UI_TEXT = {
     ctaText: "Registrieren Sie sich jetzt und entdecken Sie passende Stellenangebote.",
     ctaJobs: "Stellenangebote ansehen",
     ctaRegister: "Jetzt registrieren",
+    linkCopied: "Link kopiert!",
   },
   en: {
     back: "Back to blog",
@@ -68,6 +69,7 @@ const UI_TEXT = {
     ctaText: "Register now and discover suitable job offers.",
     ctaJobs: "View job listings",
     ctaRegister: "Register now",
+    linkCopied: "Link copied!",
   },
   es: {
     back: "Volver al blog",
@@ -80,6 +82,7 @@ const UI_TEXT = {
     ctaText: "Regístrate ahora y descubre ofertas de empleo adecuadas.",
     ctaJobs: "Ver ofertas de empleo",
     ctaRegister: "Registrarse ahora",
+    linkCopied: "¡Enlace copiado!",
   },
   ru: {
     back: "Назад в блог",
@@ -92,6 +95,7 @@ const UI_TEXT = {
     ctaText: "Зарегистрируйтесь сейчас и найдите подходящие вакансии.",
     ctaJobs: "Смотреть вакансии",
     ctaRegister: "Зарегистрироваться",
+    linkCopied: "Ссылка скопирована!",
   },
 } as const;
 
@@ -136,7 +140,7 @@ export default function BlogDetailClient({ post, relatedPosts, language = "de" }
   const copyToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
-    toast.success("Link kopiert!");
+    toast.success(t.linkCopied);
     setTimeout(() => setCopied(false), 2000);
   };
 
