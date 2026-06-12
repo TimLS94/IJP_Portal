@@ -168,6 +168,54 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
     return notifications_created
 
 
+def send_boost_emails_for_job(job: JobPosting, db: Session) -> dict:
+    """Versendet die eigenständige Boost-E-Mail (manuell ausgelöst) an passende Bewerber.
+
+    Unabhängig von der "Neue Stelle"-Benachrichtigung. Nutzt denselben
+    Stellenart-Gruppen-Filter + Match-Schwelle und respektiert email_job_alerts.
+    """
+    from app.services.email_service import email_service
+
+    if not job.is_active or getattr(job, "is_draft", False):
+        return {"matched": 0, "sent": 0, "error": "Stelle ist inaktiv/Entwurf"}
+
+    threshold = get_setting(db, "job_notifications_threshold", 85)
+    matching = get_matching_applicants(job, db, threshold)
+
+    # Echten Arbeitgeber bei externen Stellen verwenden
+    if getattr(job, "is_external", False) and getattr(job, "external_employer_name", None):
+        employer_name = job.external_employer_name
+    else:
+        employer_name = job.company.company_name if job.company else "Unbekannt"
+
+    job_slug = f"{job.slug}-{job.id}" if job.slug else str(job.id)
+    sent = 0
+    for match in matching:
+        applicant = match["applicant"]
+        user = db.query(User).filter(User.id == applicant.user_id).first()
+        if not user or not user.email:
+            continue
+        # Consent: nur Bewerber mit aktiven Jobalert-Mails
+        if user.email_job_alerts is False:
+            continue
+        try:
+            ok = email_service.send_boost_job_notification(
+                to_email=user.email,
+                applicant_name=f"{applicant.first_name} {applicant.last_name}",
+                job_title=job.title,
+                company_name=employer_name,
+                location=job.location or "Germany",
+                job_slug=job_slug,
+            )
+            if ok:
+                sent += 1
+        except Exception as e:
+            logger.error(f"Boost-Mail an {user.email} fehlgeschlagen: {e}")
+
+    logger.info(f"Boost-Mails für Job {job.id}: {sent} von {len(matching)} passenden Bewerbern")
+    return {"matched": len(matching), "sent": sent}
+
+
 def get_matching_jobs_for_applicant(applicant: Applicant, db: Session, threshold: int = 70, days: int = 7) -> List[dict]:
     """
     Finds all active jobs that match an applicant's profile.

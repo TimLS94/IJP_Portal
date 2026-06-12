@@ -984,7 +984,77 @@ class EmailService:
         </body></html>
         """
         return self.send_email(to_email, subject, html_content, email_type="job_match")
-    
+
+    def send_boost_job_notification(
+        self,
+        to_email: str,
+        applicant_name: str,
+        job_title: str,
+        company_name: str,
+        location: str,
+        job_slug: str
+    ) -> bool:
+        """
+        Boost email: promotes a single (boosted) job to an applicant.
+        Independent from the new-job match notification. English.
+        """
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+        except Exception:
+            frontend_url = 'https://www.jobon.work'
+        if not frontend_url or 'localhost' in frontend_url:
+            frontend_url = 'https://www.jobon.work'
+
+        job_url = f"{frontend_url}/jobs/{job_slug}"
+
+        subject = f"🚀 Featured Job: {job_title} in {location}"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0; font-size: 24px;">🚀 Featured Opportunity</h1>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">A highlighted job for you on JobOn</p>
+            </div>
+            <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <p style="font-size: 16px; color: #374151;">Hello {applicant_name},</p>
+
+                <p style="color: #4b5563;">Don't miss this featured job opportunity in Germany:</p>
+
+                <div style="background: #eef2ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6366f1;">
+                    <p style="margin: 0 0 10px 0; font-size: 20px; font-weight: bold; color: #3730a3;">
+                        {job_title}
+                    </p>
+                    <p style="margin: 0 0 5px 0; color: #4338ca;">
+                        🏢 {company_name}
+                    </p>
+                    <p style="margin: 0; color: #4338ca;">
+                        📍 {location}
+                    </p>
+                </div>
+
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{job_url}"
+                       style="background: #4f46e5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                        Apply Now →
+                    </a>
+                </p>
+
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+
+                <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                    Best regards,<br>
+                    <strong>Your IJP Team</strong>
+                </p>
+
+                <p style="color: #9ca3af; font-size: 12px; margin: 20px 0 0 0;">
+                    IJP International Job Placement UG (haftungsbeschränkt)<br>
+                    Husemannstr. 9, 10435 Berlin
+                </p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content, email_type="job_boost")
+
     @_safe_email_call
     def send_weekly_job_digest(
         self,

@@ -636,3 +636,24 @@ async def generate_boosted_job_post(
     db.commit()
     db.refresh(cached)
     return _serialize_job_post(job, cached)
+
+
+@router.post("/boosted-jobs/{job_id}/send-emails")
+async def send_boost_emails(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Versendet die Boost-E-Mail (englisch) manuell an passende Bewerber."""
+    require_admin(current_user)
+    from app.models.job_posting import JobPosting
+    from app.services.job_notification_service import send_boost_emails_for_job
+
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
+
+    result = send_boost_emails_for_job(job, db)
+    if result.get("error"):
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result

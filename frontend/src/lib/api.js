@@ -467,6 +467,7 @@ export const adminAPI = {
   // Boost-Stellen -> FB-Post (DE/ES)
   getBoostedJobPosts: () => api.get('/facebook/boosted-jobs'),
   generateBoostedJobPost: (jobId) => api.post(`/facebook/boosted-jobs/${jobId}/generate`),
+  sendBoostEmails: (jobId) => api.post(`/facebook/boosted-jobs/${jobId}/send-emails`),
   updateFacebookPost: (id, data) => api.put(`/facebook/posts/${id}`, data),
   deleteFacebookPost: (id) => api.delete(`/facebook/posts/${id}`),
   markFacebookPostUsed: (id) => api.post(`/facebook/posts/${id}/use`),
