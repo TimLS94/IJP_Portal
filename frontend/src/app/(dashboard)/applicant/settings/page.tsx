@@ -467,26 +467,29 @@ export default function ApplicantSettingsPage() {
                 </ul>
               </div>
               
-              <div>
-                <label className="label">{t('settings.passwordConfirm')}</label>
-                <div className="relative">
-                  <input
-                    type={showPasswords.deletePassword ? 'text' : 'password'}
-                    className="input-styled pr-10"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility('deletePassword')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  >
-                    {showPasswords.deletePassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
+              {/* Passwortfeld nur für Konten MIT Passwort (Google-Nutzer haben keins) */}
+              {accountInfo?.has_password && (
+                <div>
+                  <label className="label">{t('settings.passwordConfirm')}</label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.deletePassword ? 'text' : 'password'}
+                      className="input-styled pr-10"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('deletePassword')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    >
+                      {showPasswords.deletePassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-              
+              )}
+
               <div>
                 <label className="label">
                   {t('settings.typeDelete')}

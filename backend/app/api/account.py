@@ -349,7 +349,14 @@ async def delete_account(
     
     # Password Reset Tokens löschen
     db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user_id).delete()
-    
+
+    # Benachrichtigungen + Team-Mitgliedschaften löschen (user_id ist NOT NULL,
+    # sonst FK-Fehler beim Löschen des Users)
+    from app.models.notification import Notification
+    from app.models.company_member import CompanyMember
+    db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
+    db.query(CompanyMember).filter(CompanyMember.user_id == user_id).delete(synchronize_session=False)
+
     # User löschen
     db.delete(current_user)
     db.commit()
