@@ -38,6 +38,9 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   const router = useRouter();
   const buttonRef = useRef<HTMLDivElement>(null);
   const renderedRef = useRef(false);
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => resizeCleanupRef.current?.(), []);
 
   useEffect(() => {
     loadGoogleConfig();
@@ -124,13 +127,20 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
       cancel_on_tap_outside: true,
     });
 
-    // Breite nach Layout-Tick messen (offsetWidth ist 0 wenn DOM noch nicht final ist)
+    // Breite nach Layout-Tick messen; wenn DOM noch nicht final (Breite 0), erneut versuchen
+    let attempts = 0;
     const measure = () => {
-      if (!buttonRef.current) return;
-      const containerWidth = buttonRef.current.getBoundingClientRect().width;
-      // Google erlaubt 200–400px; wir nehmen den Container, gedeckelt auf 400
-      const width = Math.max(200, Math.min(400, Math.round(containerWidth) || 400));
-      window.google!.accounts.id.renderButton(buttonRef.current, {
+      if (!buttonRef.current || !window.google) return;
+      const containerWidth = Math.floor(buttonRef.current.getBoundingClientRect().width);
+      if (containerWidth < 100 && attempts < 20) {
+        attempts++;
+        requestAnimationFrame(measure);
+        return;
+      }
+      // Google erlaubt 200–400px; Container minus 2px Puffer, damit nichts über den Rand ragt
+      const width = Math.max(200, Math.min(400, (containerWidth || 360) - 2));
+      buttonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(buttonRef.current, {
         theme: "outline",
         size: "large",
         width,
@@ -143,6 +153,11 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
 
     // Zwei Frames warten damit das Layout stabil ist
     requestAnimationFrame(() => requestAnimationFrame(measure));
+
+    // Bei Größenänderung neu rendern (z.B. responsive)
+    const onResize = () => { renderedRef.current = false; attempts = 0; measure(); };
+    window.addEventListener("resize", onResize);
+    resizeCleanupRef.current = () => window.removeEventListener("resize", onResize);
   };
 
   const initGoogle = () => {
@@ -215,7 +230,7 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
           </button>
         </div>
       ) : (
-        <div ref={buttonRef} className="w-full max-w-[400px]" style={{ minHeight: "44px" }} />
+        <div ref={buttonRef} className="w-full max-w-[400px] overflow-hidden flex justify-center" style={{ minHeight: "44px" }} />
       )}
     </div>
   );
