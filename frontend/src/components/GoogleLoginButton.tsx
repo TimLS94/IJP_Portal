@@ -213,13 +213,13 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   return (
     <div className="w-full flex flex-col items-center gap-3">
       {processing ? (
-        <div className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg bg-gray-50 w-full max-w-[400px]">
+        <div key="gsi-processing" className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg bg-gray-50 w-full max-w-[400px]">
           <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
           <span className="text-gray-600">{t("auth.signingIn")}</span>
         </div>
       ) : needsConsent ? (
         /* Neuer Nutzer erkannt -> jetzt Datenschutz-Zustimmung einblenden */
-        <div className="w-full max-w-[400px] flex flex-col gap-3 p-4 rounded-xl border border-primary-200 bg-primary-50/50">
+        <div key="gsi-consent" className="w-full max-w-[400px] flex flex-col gap-3 p-4 rounded-xl border border-primary-200 bg-primary-50/50">
           <p className="text-sm text-gray-700">{t("auth.googleNeedsConsent")}</p>
           <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
             <input
@@ -246,7 +246,7 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
           </button>
         </div>
       ) : (
-        <div ref={buttonRef} className="w-full max-w-[400px] overflow-hidden flex justify-center" style={{ minHeight: "44px" }} />
+        <div key="gsi-button" ref={buttonRef} className="w-full max-w-[400px] overflow-hidden flex justify-center" style={{ minHeight: "44px" }} />
       )}
     </div>
   );
