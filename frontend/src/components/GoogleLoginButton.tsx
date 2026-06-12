@@ -43,7 +43,23 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   useEffect(() => () => resizeCleanupRef.current?.(), []);
 
   useEffect(() => {
-    loadGoogleConfig();
+    // 1) GSI-Script SOFORT laden (parallel zur Config) -> Button erscheint schneller
+    if (typeof document !== "undefined" && !document.getElementById("google-gsi-script")) {
+      const s = document.createElement("script");
+      s.id = "google-gsi-script";
+      s.src = "https://accounts.google.com/gsi/client";
+      s.async = true;
+      s.defer = true;
+      document.body.appendChild(s);
+    }
+    // 2) Client-ID bevorzugt aus Env (kein Backend-Roundtrip), sonst per API
+    const envClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (envClientId) {
+      setGoogleConfig({ enabled: true, client_id: envClientId });
+      setLoading(false);
+    } else {
+      loadGoogleConfig();
+    }
   }, []);
 
   useEffect(() => {

@@ -99,6 +99,10 @@ export default function RootLayout({
   return (
     <html lang="de" className={`${inter.variable} h-full`}>
       <head>
+        {/* Schnellerer Abruf des Google-Sign-In-Scripts */}
+        <link rel="preconnect" href="https://accounts.google.com" />
+        <link rel="dns-prefetch" href="https://accounts.google.com" />
+        <link rel="preconnect" href="https://www.gstatic.com" crossOrigin="anonymous" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
