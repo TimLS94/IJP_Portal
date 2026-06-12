@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* next/font (Inter) über die CSS-Variable nutzen -> inkl. CLS-sicherer Fallback-Metriken */
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Automatische Silbentrennung für lange deutsche Wörter - nur für Fließtext */
