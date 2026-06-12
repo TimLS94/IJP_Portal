@@ -88,13 +88,18 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
 
       if (onSuccess) onSuccess(user);
     } catch (error: any) {
+      const status = error.response?.status;
       const detail = error.response?.data?.detail;
-      if (detail === "privacy_required") {
+      const detailStr = typeof detail === "string" ? detail : "";
+      const isPrivacy =
+        detail === "privacy_required" ||
+        (status === 400 && (detailStr.toLowerCase().includes("datenschutz") || detailStr.toLowerCase().includes("privacy")));
+      if (isPrivacy) {
         // Neuer Nutzer: Datenschutz-Zustimmung jetzt einblenden, Credential merken
         setPendingCredential(credential);
         setNeedsConsent(true);
       } else {
-        toast.error(typeof detail === "string" ? detail : t("auth.googleLoginFailed"));
+        toast.error(detailStr || t("auth.googleLoginFailed"));
       }
     } finally {
       setProcessing(false);
