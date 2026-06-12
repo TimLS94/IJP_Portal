@@ -1,7 +1,7 @@
 """
 Google OAuth für Bewerber-Registrierung und Login
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from google.oauth2 import id_token
@@ -34,6 +34,7 @@ class GoogleAuthResponse(BaseModel):
 @router.post("/login", response_model=GoogleAuthResponse)
 async def google_login(
     data: GoogleAuthRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -111,12 +112,11 @@ async def google_login(
             )
             db.add(applicant)
             db.commit()
-            
-            # Willkommens-E-Mail senden
-            try:
-                email_service.send_welcome_email(email, given_name or "Bewerber", "applicant")
-            except Exception:
-                pass  # E-Mail-Fehler nicht kritisch
+
+            # Willkommens-E-Mail im Hintergrund senden (blockiert den Login nicht)
+            background_tasks.add_task(
+                email_service.send_welcome_email, email, given_name or "Bewerber", "applicant"
+            )
     
     # Login-Zeit aktualisieren
     user.last_login_at = datetime.now(timezone.utc)
