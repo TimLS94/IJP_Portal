@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { authAPI } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 
@@ -28,7 +30,10 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   const [googleConfig, setGoogleConfig] = useState<{ enabled: boolean; client_id?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [consent, setConsent] = useState(false);
+  const consentRef = useRef(false); // gegen Stale-Closure im Google-Callback
   const { setAuth } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   const buttonRef = useRef<HTMLDivElement>(null);
   const renderedRef = useRef(false);
@@ -61,7 +66,7 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
     }
     setProcessing(true);
     try {
-      const result = await authAPI.googleLogin(response.credential);
+      const result = await authAPI.googleLogin(response.credential, consentRef.current);
       const { access_token, user, is_new_user } = result.data;
 
       localStorage.setItem("token", access_token);
@@ -157,7 +162,25 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   if (!googleConfig?.enabled) return null;
 
   return (
-    <div className="w-full flex justify-center">
+    <div className="w-full flex flex-col items-center gap-3">
+      {/* Datenschutz-Zustimmung (Pflicht für neue Konten) */}
+      <label className="flex items-start gap-2 w-full max-w-[400px] text-sm text-gray-600 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={consent}
+          onChange={(e) => { setConsent(e.target.checked); consentRef.current = e.target.checked; }}
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 shrink-0"
+        />
+        <span>
+          {t("auth.privacyText")}{" "}
+          <Link href="/datenschutz" target="_blank" className="text-primary-600 hover:underline">
+            {t("auth.privacyLink")}
+          </Link>{" "}
+          {t("auth.privacyText2")}
+          <span className="text-gray-400"> ({t("auth.requiredForNewAccount", "für neue Konten erforderlich")})</span>
+        </span>
+      </label>
+
       {processing ? (
         <div className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg bg-gray-50 w-full max-w-[400px]">
           <Loader2 className="h-5 w-5 animate-spin text-gray-600" />

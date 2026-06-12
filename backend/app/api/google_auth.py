@@ -21,6 +21,7 @@ router = APIRouter(prefix="/auth/google", tags=["Google OAuth"])
 class GoogleAuthRequest(BaseModel):
     """Google ID Token vom Frontend"""
     credential: str  # Google ID Token
+    accepted_privacy: bool = False  # Datenschutz-Zustimmung (nur bei Neu-Registrierung Pflicht)
 
 
 class GoogleAuthResponse(BaseModel):
@@ -90,9 +91,14 @@ async def google_login(
             user.google_id = google_id
             db.commit()
         else:
-            # Neuer User - Registrierung
+            # Neuer User - Registrierung: Datenschutz-Zustimmung erforderlich
+            if not data.accepted_privacy:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Bitte akzeptiere die Datenschutzerklärung, um ein Konto zu erstellen."
+                )
             is_new_user = True
-            
+
             # User erstellen (ohne Passwort)
             user = User(
                 email=email,
