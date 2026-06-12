@@ -129,3 +129,32 @@ def generate_job_post(job) -> dict:
         "es": (result.get("es") or "").strip(),
         "comment": build_comment_text(job),
     }
+
+
+def generate_and_store_job_post(job_id: int) -> None:
+    """Generiert den FB-Post für eine Stelle und speichert ihn (eigene DB-Session,
+    für Background-Tasks bei Boost/Hervorheben). Best effort – Fehler werden nur geloggt."""
+    from app.core.database import SessionLocal
+    from app.models.job_posting import JobPosting
+    from app.models.facebook_post import FacebookJobPost
+
+    db = SessionLocal()
+    try:
+        job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+        if not job:
+            return
+        result = generate_job_post(job)
+        cached = db.query(FacebookJobPost).filter(FacebookJobPost.job_id == job_id).first()
+        if not cached:
+            cached = FacebookJobPost(job_id=job_id)
+            db.add(cached)
+        cached.content_de = result["de"]
+        cached.content_es = result["es"]
+        cached.comment_text = result["comment"]
+        db.commit()
+        logger.info(f"FB-Post automatisch generiert für Job {job_id}")
+    except Exception as e:
+        db.rollback()
+        logger.warning(f"FB-Post Auto-Generierung fehlgeschlagen (Job {job_id}): {e}")
+    finally:
+        db.close()

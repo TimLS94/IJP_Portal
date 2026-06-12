@@ -608,7 +608,69 @@ def ensure_facebook_job_posts_table():
         db.close()
 
 
+def ensure_facebook_schema():
+    """Fügt fehlende Spalten zu den facebook_* Tabellen hinzu (Schema-Drift-Fix).
+    create_all legt nur neue Tabellen an, ergänzt aber keine Spalten in bestehenden."""
+    from sqlalchemy import text
+    fb_columns = {
+        "facebook_groups": [
+            "facebook_group_id VARCHAR(100)",
+            "type VARCHAR(50) DEFAULT 'external'",
+            "cluster VARCHAR(100)",
+            "members INTEGER DEFAULT 0",
+            "notes TEXT",
+            "last_posted_at TIMESTAMP",
+            "is_active BOOLEAN DEFAULT TRUE",
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "updated_at TIMESTAMP",
+        ],
+        "facebook_post_templates": [
+            "category VARCHAR(100)",
+            "is_default BOOLEAN DEFAULT FALSE",
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "updated_at TIMESTAMP",
+        ],
+        "facebook_posts": [
+            "title VARCHAR(255)",
+            "kind VARCHAR(20) DEFAULT 'post'",
+            "template_id INTEGER",
+            "variables JSON",
+            "is_favorite BOOLEAN DEFAULT FALSE",
+            "times_used INTEGER DEFAULT 0",
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "updated_at TIMESTAMP",
+        ],
+        "facebook_post_logs": [
+            "post_id INTEGER",
+            "group_id INTEGER",
+            "group_name VARCHAR(255)",
+            "content TEXT",
+            "status VARCHAR(50) DEFAULT 'manual'",
+            "facebook_post_id VARCHAR(100)",
+            "error_message TEXT",
+            "posted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        ],
+    }
+    db = SessionLocal()
+    try:
+        for table, cols in fb_columns.items():
+            for col_def in cols:
+                col_name = col_def.split()[0]
+                try:
+                    db.execute(text(f'ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col_def}'))
+                except Exception as ce:
+                    logger.debug(f"{table}.{col_name}: {ce}")
+        db.commit()
+        logger.info("facebook_* Spalten sichergestellt")
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"ensure_facebook_schema: {e}")
+    finally:
+        db.close()
+
+
 ensure_facebook_job_posts_table()
+ensure_facebook_schema()
 
 
 def ensure_job_promotions_table():

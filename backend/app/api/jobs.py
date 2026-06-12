@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import exists as sa_exists
 from sqlalchemy.orm import Session, joinedload
@@ -1604,6 +1604,7 @@ def _get_own_job(job_id: int, company, db: Session) -> JobPosting:
 @router.post("/{job_id}/feature")
 async def feature_own_job(
     job_id: int,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1625,12 +1626,16 @@ async def feature_own_job(
     job.featured_until = datetime.utcnow() + timedelta(days=FEATURE_DURATION_DAYS)
     db.add(JobPromotion(company_id=company.id, job_id=job.id, kind="feature"))
     db.commit()
+    # FB-Gruppenpost (DE/ES) automatisch im Hintergrund generieren
+    from app.services.facebook_post_generator import generate_and_store_job_post
+    background_tasks.add_task(generate_and_store_job_post, job.id)
     return {"message": "Stelle wird hervorgehoben.", "featured_until": job.featured_until}
 
 
 @router.post("/{job_id}/boost")
 async def boost_own_job(
     job_id: int,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1650,6 +1655,9 @@ async def boost_own_job(
     job.last_boosted_at = datetime.utcnow()
     db.add(JobPromotion(company_id=company.id, job_id=job.id, kind="boost"))
     db.commit()
+    # FB-Gruppenpost (DE/ES) automatisch im Hintergrund generieren
+    from app.services.facebook_post_generator import generate_and_store_job_post
+    background_tasks.add_task(generate_and_store_job_post, job.id)
     used = _promotion_count(db, company.id, "boost")
     return {
         "message": "Stelle wird geboostert.",

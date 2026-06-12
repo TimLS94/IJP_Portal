@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from typing import List, Optional
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from app.core.database import get_db
@@ -570,20 +570,32 @@ async def get_boosted_jobs(
     """Aktuell hervorgehobene/geboostete Stellen mit (ggf. gecachtem) FB-Post."""
     require_admin(current_user)
     from app.models.job_posting import JobPosting
+    from sqlalchemy import or_
     now = datetime.utcnow()
+    boost_cutoff = now - timedelta(days=30)
     jobs = (
         db.query(JobPosting)
         .filter(
             JobPosting.is_active == True,
             JobPosting.is_draft == False,
             JobPosting.is_archived == False,
-            JobPosting.is_featured == True,
+            or_(
+                JobPosting.is_featured == True,
+                JobPosting.last_boosted_at >= boost_cutoff,
+            ),
         )
         .order_by(desc(JobPosting.last_boosted_at), desc(JobPosting.created_at))
         .all()
     )
-    # featured_until prüfen (None = unbegrenzt)
-    jobs = [j for j in jobs if not j.featured_until or j.featured_until.replace(tzinfo=None) > now]
+    # featured_until prüfen: hervorgehobene mit abgelaufenem Datum raus,
+    # kürzlich geboostete bleiben drin
+    def _still_relevant(j):
+        if j.last_boosted_at and j.last_boosted_at.replace(tzinfo=None) >= boost_cutoff:
+            return True
+        if j.is_featured and (not j.featured_until or j.featured_until.replace(tzinfo=None) > now):
+            return True
+        return False
+    jobs = [j for j in jobs if _still_relevant(j)]
 
     cached_map = {
         c.job_id: c for c in db.query(FacebookJobPost).filter(
