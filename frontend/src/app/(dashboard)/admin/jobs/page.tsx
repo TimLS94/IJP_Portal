@@ -76,7 +76,8 @@ export default function AdminJobsPage() {
         skip: page * limit,
         limit,
         ...(activeFilter !== "" && { is_active: activeFilter === "true" }),
-        ...(typeFilter && { position_type: typeFilter })
+        ...(typeFilter && { position_type: typeFilter }),
+        _t: Date.now()  // Cache-Busting: verhindert veraltete GET-Antwort aus dem Browser-Cache
       };
       const response = await adminAPI.listJobs(params);
       setJobs(response.data.jobs || []);
@@ -148,9 +149,12 @@ export default function AdminJobsPage() {
   };
 
   const handleToggleActive = async (job: Job) => {
+    const newActive = !job.is_active;
     try {
-      await adminAPI.updateJob(job.id, { is_active: !job.is_active });
-      toast.success(job.is_active ? "Stelle deaktiviert" : "Stelle aktiviert");
+      await adminAPI.updateJob(job.id, { is_active: newActive });
+      // Optimistisch sofort aktualisieren, damit der Button-Status ohne Reload stimmt
+      setJobs(prev => prev.map(j => j.id === job.id ? { ...j, is_active: newActive } : j));
+      toast.success(newActive ? "Stelle aktiviert" : "Stelle deaktiviert");
       loadJobs();
     } catch {
       toast.error("Fehler beim Ändern des Status");
