@@ -21,6 +21,7 @@ const SENDER_OPTIONS = [
   { email: "info@jobon.work", name: "JobOn Info" },
   { email: "tim@jobon.work", name: "Tim Schäfer" },
   { email: "noreply@jobon.work", name: "JobOn" },
+  { email: "service@internationaljobplacement.com", name: "International Job Placement" },
 ];
 
 export default function ColdOutreachPage() {
