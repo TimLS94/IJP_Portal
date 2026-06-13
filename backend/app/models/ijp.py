@@ -14,6 +14,7 @@ class IJPBetrieb(Base):
     city = Column(String(100), nullable=True)
     country = Column(String(100), nullable=True)
     betriebsnummer = Column(String(50), nullable=True)
+    bezeichnung = Column(String(255), nullable=True)  # z.B. "das Restaurant", "der Betrieb" – für Vollmacht
     phone = Column(String(50), nullable=True)
     email = Column(String(255), nullable=True)
     website = Column(String(500), nullable=True)

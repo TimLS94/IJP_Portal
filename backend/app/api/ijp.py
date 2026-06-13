@@ -101,8 +101,9 @@ Tim Schäfer
             {"key": "street",              "label": "Straße"},
             {"key": "postal_code",         "label": "PLZ"},
             {"key": "city",                "label": "Ort"},
+            {"key": "betriebsnummer",      "label": "Betriebsnummer"},
             {"key": "betrieb_bezeichnung", "label": "Bezeichnung (z.B. das Restaurant, der Betrieb, das Hotel)"},
-            {"key": "date",                "label": "Datum (z.B. 01.06.2025)"},
+            {"key": "date",                "label": "Datum (automatisch heute)"},
         ],
     },
     {
@@ -156,6 +157,12 @@ def seed_ijp_templates(db: Session) -> None:
         exists = db.query(IJPTemplate).filter(IJPTemplate.doc_type == seed["doc_type"]).first()
         if not exists:
             db.add(IJPTemplate(**seed))
+        else:
+            # Backfill: neu hinzugekommene Variablen ergänzen, ohne bestehende Anpassungen zu überschreiben
+            existing_keys = {v.get("key") for v in (exists.variables or [])}
+            missing = [v for v in seed["variables"] if v.get("key") not in existing_keys]
+            if missing:
+                exists.variables = list(exists.variables or []) + missing
     db.commit()
 
 
@@ -177,6 +184,7 @@ class BetriebCreate(BaseModel):
     city: Optional[str] = None
     country: Optional[str] = None
     betriebsnummer: Optional[str] = None
+    bezeichnung: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     website: Optional[str] = None
@@ -194,6 +202,7 @@ class BetriebResponse(BaseModel):
     city: Optional[str] = None
     country: Optional[str] = None
     betriebsnummer: Optional[str] = None
+    bezeichnung: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     website: Optional[str] = None
@@ -485,14 +494,17 @@ def generate_document(req: DocumentRequest, db: Session = Depends(get_db), curre
         gender = req.gender or "male"
 
     variables = {
-        "betrieb_name":      betrieb.name,
-        "contact_person":    betrieb.contact_person or "",
-        "street":            betrieb.street or "",
-        "postal_code":       betrieb.postal_code or "",
-        "city":              betrieb.city or "",
-        "applicant_name":    applicant_name,
-        "gender_article":    "die Arbeitnehmerin" if gender == "female" else "der Arbeitnehmer",
-        "gender_possessive": "ihrer" if gender == "female" else "seiner",
+        "betrieb_name":        betrieb.name,
+        "contact_person":      betrieb.contact_person or "",
+        "street":              betrieb.street or "",
+        "postal_code":         betrieb.postal_code or "",
+        "city":                betrieb.city or "",
+        "betriebsnummer":      betrieb.betriebsnummer or "",
+        "betrieb_bezeichnung": betrieb.bezeichnung or "die Firma",
+        "date":                datetime.now().strftime("%d.%m.%Y"),
+        "applicant_name":      applicant_name,
+        "gender_article":      "die Arbeitnehmerin" if gender == "female" else "der Arbeitnehmer",
+        "gender_possessive":   "ihrer" if gender == "female" else "seiner",
     }
 
     template_text = req.custom_template or tmpl.template_text

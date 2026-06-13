@@ -34,6 +34,7 @@ interface Company {
   city: string | null;
   country: string | null;
   betriebsnummer: string | null;
+  bezeichnung: string | null;
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -45,7 +46,7 @@ interface Company {
 
 const EMPTY_COMPANY: Omit<Company, "id" | "contacts"> = {
   name: "", contact_person: null, street: null, postal_code: null,
-  city: null, country: null, betriebsnummer: null, phone: null,
+  city: null, country: null, betriebsnummer: null, bezeichnung: null, phone: null,
   email: null, website: null, industry: null, status: null, notes: null,
 };
 
@@ -440,6 +441,10 @@ function CompanyModal({
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Betriebsnummer</label>
             <input className="input-field" value={form.betriebsnummer ?? ""} onChange={(e) => set("betriebsnummer", e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Bezeichnung (für Vollmacht)</label>
+            <input className="input-field" value={form.bezeichnung ?? ""} onChange={(e) => set("bezeichnung", e.target.value)} placeholder="z.B. das Restaurant, der Betrieb, das Hotel" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Notizen</label>

@@ -378,6 +378,7 @@ def ensure_crm_columns():
             ("ijp_betriebe", "status", "VARCHAR(50)"),
             ("ijp_betriebe", "country", "VARCHAR(100)"),
             ("ijp_betriebe", "notes", "TEXT"),
+            ("ijp_betriebe", "bezeichnung", "VARCHAR(255)"),
         ]
         allowed_tables = {t for t, _, _ in new_cols}
         allowed_cols = {c for _, c, _ in new_cols}

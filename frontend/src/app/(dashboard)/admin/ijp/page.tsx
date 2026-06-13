@@ -19,6 +19,7 @@ interface Betrieb {
   postal_code: string;
   city: string;
   betriebsnummer?: string;
+  bezeichnung?: string;
   phone?: string;
   email?: string;
 }
@@ -515,6 +516,9 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
     return {
       betrieb_name: betrieb?.name || "", contact_person: betrieb?.contact_person || "",
       street: betrieb?.street || "", postal_code: betrieb?.postal_code || "", city: betrieb?.city || "",
+      betriebsnummer: betrieb?.betriebsnummer || "",
+      betrieb_bezeichnung: betrieb?.bezeichnung || "die Firma",
+      date: new Date().toLocaleDateString("de-DE"),
       applicant_name: appName,
       gender_article: gender === "female" ? "die Arbeitnehmerin" : "der Arbeitnehmer",
       gender_possessive: gender === "female" ? "ihrer" : "seiner",
