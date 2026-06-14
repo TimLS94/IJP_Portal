@@ -56,6 +56,8 @@ class CompanyDocument(Base):
     name = Column(String(255), nullable=False)
     original_filename = Column(String(255), nullable=False)
     file_content = Column(LargeBinary, nullable=False)
+    # "template" = befüllbare Dokumentenservice-Vorlage, "attachment" = statischer Anhang zum Mitsenden
+    kind = Column(String(20), nullable=False, default="template", server_default="template")
     created_at = Column(DateTime(timezone=True), default=utc_now)
 
     company = relationship("IJPBetrieb", back_populates="company_documents")

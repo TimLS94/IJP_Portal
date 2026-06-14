@@ -686,6 +686,7 @@ class CompanyDocumentResponse(BaseModel):
     company_id: int
     name: str
     original_filename: str
+    kind: str = "template"
     created_at: datetime
     class Config:
         from_attributes = True
@@ -1107,14 +1108,19 @@ async def upload_company_document(
     company_id: int,
     file: UploadFile = File(...),
     name: str = Form(...),
+    kind: str = Form("template"),
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_admin),
 ):
     company = db.query(IJPBetrieb).filter(IJPBetrieb.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Firma nicht gefunden")
-    if not (file.filename.lower().endswith(".docx") or file.filename.lower().endswith(".pdf")):
-        raise HTTPException(status_code=400, detail="Nur .docx- und .pdf-Dateien werden unterstützt")
+    if kind not in ("template", "attachment"):
+        raise HTTPException(status_code=400, detail="Ungültige Dokumentart")
+    # Vorlagen für den Dokumentenservice müssen befüllbar sein → nur .docx/.pdf.
+    # Anhänge dürfen beliebige Dateitypen sein.
+    if kind == "template" and not (file.filename.lower().endswith(".docx") or file.filename.lower().endswith(".pdf")):
+        raise HTTPException(status_code=400, detail="Vorlagen müssen .docx- oder .pdf-Dateien sein")
 
     contents = await file.read()
 
@@ -1123,6 +1129,7 @@ async def upload_company_document(
         name=name,
         original_filename=file.filename,
         file_content=contents,
+        kind=kind,
     )
     db.add(doc)
     db.commit()
@@ -1143,8 +1150,14 @@ def download_company_document(
     ).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
-    is_pdf = doc.original_filename.lower().endswith(".pdf")
-    media_type = "application/pdf" if is_pdf else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    fname = doc.original_filename.lower()
+    if fname.endswith(".pdf"):
+        media_type = "application/pdf"
+    elif fname.endswith(".docx"):
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    else:
+        import mimetypes
+        media_type = mimetypes.guess_type(doc.original_filename)[0] or "application/octet-stream"
     return StreamingResponse(
         io.BytesIO(doc.file_content),
         media_type=media_type,
@@ -1314,8 +1327,13 @@ def list_all_employer_docs(
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_admin),
 ):
-    """Alle hochgeladenen Firmendokumente für den IJP-Dokumente-Tab."""
-    return db.query(CompanyDocument).order_by(CompanyDocument.company_id, CompanyDocument.name).all()
+    """Alle befüllbaren Dokumentenservice-Vorlagen für den IJP-Dokumente-Tab (ohne reine Anhänge)."""
+    return (
+        db.query(CompanyDocument)
+        .filter(CompanyDocument.kind == "template")
+        .order_by(CompanyDocument.company_id, CompanyDocument.name)
+        .all()
+    )
 
 
 @router.post("/employer-docs/{doc_id}/fill")

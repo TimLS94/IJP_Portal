@@ -60,6 +60,7 @@ interface CompanyDoc {
   company_id: number;
   name: string;
   original_filename: string;
+  kind?: "template" | "attachment";
   created_at: string;
 }
 
@@ -160,8 +161,7 @@ function ContactCard({
 function CompanyDocuments({ company }: { company: Company }) {
   const [docs, setDocs] = useState<CompanyDoc[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadingKind, setUploadingKind] = useState<DocKind | null>(null);
 
   const load = useCallback(async () => {
     try { const r = await crmAPI.getDocuments(company.id); setDocs(r.data); }
@@ -170,21 +170,19 @@ function CompanyDocuments({ company }: { company: Company }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const name = window.prompt("Anzeigename für dieses Dokument:", file.name.replace(".docx", ""));
+  const upload = async (file: File, kind: DocKind) => {
+    const name = window.prompt("Anzeigename für dieses Dokument:", file.name.replace(/\.[^.]+$/, ""));
     if (!name) return;
-    setUploading(true);
+    setUploadingKind(kind);
     try {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("name", name);
+      fd.append("kind", kind);
       await crmAPI.uploadDocument(company.id, fd);
       await load();
     } catch { alert("Upload fehlgeschlagen"); } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
+      setUploadingKind(null);
     }
   };
 
@@ -206,22 +204,90 @@ function CompanyDocuments({ company }: { company: Company }) {
     await load();
   };
 
+  const templates = docs.filter((d) => (d.kind ?? "template") === "template");
+  const attachments = docs.filter((d) => d.kind === "attachment");
+
+  return (
+    <div className="space-y-5">
+      <DocSection
+        title="Dokumentenservice-Vorlagen"
+        hint="Befüllbare .docx/.pdf-Vorlagen (mit Bewerberdaten)"
+        accept=".docx,.pdf"
+        kind="template"
+        docs={templates}
+        loading={loading}
+        uploading={uploadingKind === "template"}
+        emptyText="Noch keine Vorlagen hochgeladen."
+        onUpload={upload}
+        onDownload={handleDownload}
+        onDelete={handleDelete}
+      />
+      <DocSection
+        title="Anhänge zum Mitsenden"
+        hint="Beliebige Dateien, die wir unverändert anhängen"
+        accept="*"
+        kind="attachment"
+        docs={attachments}
+        loading={loading}
+        uploading={uploadingKind === "attachment"}
+        emptyText="Noch keine Anhänge hochgeladen."
+        onUpload={upload}
+        onDownload={handleDownload}
+        onDelete={handleDelete}
+      />
+    </div>
+  );
+}
+
+type DocKind = "template" | "attachment";
+
+function DocSection({
+  title, hint, accept, kind, docs, loading, uploading, emptyText,
+  onUpload, onDownload, onDelete,
+}: {
+  title: string;
+  hint: string;
+  accept: string;
+  kind: DocKind;
+  docs: CompanyDoc[];
+  loading: boolean;
+  uploading: boolean;
+  emptyText: string;
+  onUpload: (file: File, kind: DocKind) => void;
+  onDownload: (doc: CompanyDoc) => void;
+  onDelete: (doc: CompanyDoc) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-          Dokument-Vorlagen ({docs.length})
-        </h3>
+        <div>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            {title} ({docs.length})
+          </h3>
+          <p className="text-[11px] text-gray-400">{hint}</p>
+        </div>
         <label className={`flex items-center gap-1 text-xs font-medium cursor-pointer ${uploading ? "text-gray-400" : "text-primary-600 hover:text-primary-700"}`}>
           {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
           {uploading ? "Lädt…" : "Hochladen"}
-          <input ref={fileRef} type="file" accept=".docx,.pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
+          <input
+            ref={fileRef}
+            type="file"
+            accept={accept}
+            className="hidden"
+            disabled={uploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onUpload(file, kind);
+              if (fileRef.current) fileRef.current.value = "";
+            }}
+          />
         </label>
       </div>
       {loading ? (
         <p className="text-xs text-gray-400">Lädt…</p>
       ) : docs.length === 0 ? (
-        <p className="text-sm text-gray-400 italic">Noch keine Vorlagen hochgeladen.</p>
+        <p className="text-sm text-gray-400 italic">{emptyText}</p>
       ) : (
         <div className="space-y-1.5">
           {docs.map((doc) => (
@@ -231,10 +297,10 @@ function CompanyDocuments({ company }: { company: Company }) {
                 <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
                 <p className="text-xs text-gray-400 truncate">{doc.original_filename}</p>
               </div>
-              <button onClick={() => handleDownload(doc)} title="Original herunterladen" className="p-1 text-gray-400 hover:text-primary-600 flex-shrink-0">
+              <button onClick={() => onDownload(doc)} title="Herunterladen" className="p-1 text-gray-400 hover:text-primary-600 flex-shrink-0">
                 <Download className="h-3.5 w-3.5" />
               </button>
-              <button onClick={() => handleDelete(doc)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0">
+              <button onClick={() => onDelete(doc)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
