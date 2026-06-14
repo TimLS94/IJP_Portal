@@ -223,8 +223,8 @@ function CompanyDocuments({ company }: { company: Company }) {
         onDelete={handleDelete}
       />
       <DocSection
-        title="Anhänge zum Mitsenden"
-        hint="Beliebige Dateien, die wir unverändert anhängen"
+        title="Interne Firmendokumente"
+        hint="Beliebige Dateien zum Ablegen (werden unverändert gespeichert)"
         accept="*"
         kind="attachment"
         docs={attachments}
