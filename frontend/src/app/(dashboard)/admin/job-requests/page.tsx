@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { jobRequestsAPI } from '@/lib/api';
+import { jobRequestsAPI, adminAPI, adminPartnerLinksAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { 
   ClipboardList, User, Search, Download, ChevronDown, Eye, 
@@ -74,6 +74,9 @@ export default function AdminJobRequests() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [inviteSources, setInviteSources] = useState<string[]>([]);
+  const [partnerLinks, setPartnerLinks] = useState<{ name: string; partner_source: string }[]>([]);
+  const [sourceEdit, setSourceEdit] = useState('');
+  const [savingSource, setSavingSource] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const limit = 50;
@@ -100,7 +103,17 @@ export default function AdminJobRequests() {
   useEffect(() => {
     loadStatusOptions();
     loadInviteSources();
+    loadPartnerLinks();
   }, []);
+
+  const loadPartnerLinks = async () => {
+    try {
+      const response = await adminPartnerLinksAPI.list();
+      setPartnerLinks(response.data.links || []);
+    } catch (error) {
+      console.error('Fehler beim Laden der Partner-Links');
+    }
+  };
 
   useEffect(() => {
     loadRequests();
@@ -159,6 +172,7 @@ export default function AdminJobRequests() {
     try {
       const response = await jobRequestsAPI.getRequestDetails(reqId);
       setRequestDetails(response.data);
+      setSourceEdit(response.data.applicant?.invite_source || '');
       setNewStatus(response.data.request.status);
       setNewPublicStatus(response.data.request.public_status || '');
       setAdminNotes(response.data.request.admin_notes || '');
@@ -172,6 +186,25 @@ export default function AdminJobRequests() {
       setSelectedRequest(null);
     } finally {
       setDetailsLoading(false);
+    }
+  };
+
+  const handleSaveSource = async () => {
+    if (!requestDetails?.applicant?.id) return;
+    setSavingSource(true);
+    try {
+      await adminAPI.updateApplicantSource(requestDetails.applicant.id, sourceEdit || null);
+      toast.success(sourceEdit ? `Quelle gesetzt: ${sourceEdit}` : 'Auf "direkt" gesetzt');
+      setRequestDetails((prev: any) => ({
+        ...prev,
+        applicant: { ...prev.applicant, invite_source: sourceEdit || null },
+      }));
+      loadRequests();
+      loadInviteSources();
+    } catch (error) {
+      toast.error('Fehler beim Speichern der Quelle');
+    } finally {
+      setSavingSource(false);
     }
   };
 
@@ -621,12 +654,35 @@ export default function AdminJobRequests() {
                           📋 {positionTypeLabels[requestDetails.request.position_type] || requestDetails.request.position_type}
                         </span>
                       )}
-                      {requestDetails.applicant.invite_source && (
-                        <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          Partner: {requestDetails.applicant.invite_source}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-lg px-2 py-1">
+                        <Users className="h-4 w-4 text-purple-700 shrink-0" />
+                        <label className="text-xs text-purple-800 font-medium shrink-0">Quelle:</label>
+                        <select
+                          value={sourceEdit}
+                          onChange={(e) => setSourceEdit(e.target.value)}
+                          className="text-sm bg-white border border-purple-200 rounded px-2 py-1 max-w-[220px]"
+                          title="Partner-Quelle nachträglich zuordnen"
+                        >
+                          <option value="">Direkt (keine Quelle)</option>
+                          {sourceEdit && !partnerLinks.some((l) => l.partner_source === sourceEdit) && (
+                            <option value={sourceEdit}>{sourceEdit} (aktuell)</option>
+                          )}
+                          {partnerLinks.map((l, idx) => (
+                            <option key={`${l.partner_source}-${idx}`} value={l.partner_source}>
+                              {l.name} ({l.partner_source})
+                            </option>
+                          ))}
+                        </select>
+                        {sourceEdit !== (requestDetails.applicant.invite_source || '') && (
+                          <button
+                            onClick={handleSaveSource}
+                            disabled={savingSource}
+                            className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 disabled:opacity-50 shrink-0"
+                          >
+                            {savingSource ? '…' : 'Speichern'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <button 

@@ -382,6 +382,7 @@ export const adminAPI = {
   getInviteSources: () => api.get('/admin/applications/invite-sources'),
   // Bewerber
   listApplicants: (params) => api.get('/admin/applicants', { params }),
+  updateApplicantSource: (id, inviteSource) => api.patch(`/admin/applicants/${id}/source`, { invite_source: inviteSource }),
   getApplicantDocuments: (id) => api.get(`/admin/applicants/${id}/documents`),
   downloadAllDocuments: (id) => api.get(`/admin/applicants/${id}/documents/download-all`, { responseType: 'blob' }),
   

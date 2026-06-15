@@ -1545,6 +1545,40 @@ async def list_all_applicants(
     return {"total": total, "applicants": result}
 
 
+class UpdateApplicantSourceRequest(BaseModel):
+    invite_source: Optional[str] = None  # leer/None = direkt (keine Quelle)
+
+
+@router.patch("/applicants/{applicant_id}/source")
+async def update_applicant_source(
+    applicant_id: int,
+    data: UpdateApplicantSourceRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Setzt/korrigiert die Quelle (Partner) eines Bewerbers nachträglich.
+
+    invite_source muss exakt dem partner_source eines Partner-Links entsprechen,
+    damit der Bewerber in der Partner-Ansicht erscheint. Leerer Wert = direkt.
+    """
+    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
+
+    source = (data.invite_source or "").strip() or None
+    applicant.invite_source = source
+    if source is None:
+        # Auf "direkt" zurücksetzen: auch Token-Verknüpfung und Land entfernen
+        applicant.invite_source_country = None
+        applicant.invite_token_id = None
+    else:
+        # Manuelle Zuordnung: ggf. Land vom passenden Partner-Link übernehmen entfällt
+        # (Partner-Links haben kein Land); Token-Verknüpfung lösen, da manuell gesetzt
+        applicant.invite_token_id = None
+    db.commit()
+    return {"message": "Quelle aktualisiert", "invite_source": source}
+
+
 @router.get("/applicants/export/csv")
 async def export_applicants_csv(
     invite_source: Optional[str] = None,

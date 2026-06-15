@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Mail, Lock, User, Building2, Loader2, Eye, EyeOff, CheckCircle } from "lucide-react";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
+import { getStoredSource, clearStoredSource } from "@/lib/sourceTracking";
 
 interface RegisterForm {
   email: string;
@@ -24,7 +25,16 @@ function RegisterPageInner() {
   const { registerApplicant, registerCompany } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sourceToken = searchParams.get("source");
+  const urlSource = searchParams.get("source");
+  // Quelle aus der URL oder – falls der Nutzer vorher herumgeklickt hat – aus dem localStorage.
+  // Fallback erst nach dem Mount lesen (kein localStorage beim SSR → Hydration-Mismatch vermeiden).
+  const [sourceToken, setSourceToken] = useState<string | null>(urlSource);
+  useEffect(() => {
+    if (!urlSource) {
+      const stored = getStoredSource();
+      if (stored) setSourceToken(stored);
+    }
+  }, [urlSource]);
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -43,6 +53,7 @@ function RegisterPageInner() {
     try {
       if (userType === "applicant") {
         await registerApplicant(data.email, data.password, data.firstName!, data.lastName!, sourceToken);
+        clearStoredSource();  // Quelle wurde verwendet – nicht für nächste Person aufheben
         toast.success(t("auth.registrationSuccess"));
         router.push("/applicant/profile");
       } else {
