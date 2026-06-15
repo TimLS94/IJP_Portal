@@ -368,7 +368,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
               })()}
 
               <div className="flex items-start justify-between gap-4 mb-4">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{getTranslatedText("title")}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 min-w-0 break-words hyphens-auto">{getTranslatedText("title")}</h1>
                 {job.position_type && (
                   <span className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap border ${positionTypeColors[job.position_type] || positionTypeColors.general}`}>
                     {posLabel(job.position_type)}
@@ -424,7 +424,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
               {getTranslatedText("description") && (
                 <div className="prose max-w-none">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{getLabel("description")}</h3>
-                  <div dangerouslySetInnerHTML={{ __html: textToHtml(getTranslatedText("description")) }} className="text-gray-600" />
+                  <div dangerouslySetInnerHTML={{ __html: textToHtml(getTranslatedText("description")) }} className="text-gray-600 break-words" />
                 </div>
               )}
 
@@ -432,7 +432,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
               {getTranslatedText("tasks") && (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{getLabel("tasks")}</h3>
-                  <div dangerouslySetInnerHTML={{ __html: textToHtml(getTranslatedText("tasks")) }} className="text-gray-600 prose max-w-none" />
+                  <div dangerouslySetInnerHTML={{ __html: textToHtml(getTranslatedText("tasks")) }} className="text-gray-600 prose max-w-none break-words" />
                 </div>
               )}
 
@@ -440,7 +440,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
               {getTranslatedText("requirements") && (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{getLabel("requirements")}</h3>
-                  <div dangerouslySetInnerHTML={{ __html: textToHtml(getTranslatedText("requirements")) }} className="text-gray-600 prose max-w-none" />
+                  <div dangerouslySetInnerHTML={{ __html: textToHtml(getTranslatedText("requirements")) }} className="text-gray-600 prose max-w-none break-words" />
                 </div>
               )}
 
@@ -448,7 +448,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
               {getTranslatedText("benefits") && (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{getLabel("benefits")}</h3>
-                  <div dangerouslySetInnerHTML={{ __html: textToHtml(getTranslatedText("benefits")) }} className="text-gray-600 prose max-w-none" />
+                  <div dangerouslySetInnerHTML={{ __html: textToHtml(getTranslatedText("benefits")) }} className="text-gray-600 prose max-w-none break-words" />
                 </div>
               )}
 
