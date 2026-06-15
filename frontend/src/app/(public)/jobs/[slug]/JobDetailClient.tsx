@@ -332,7 +332,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
       <div className="max-w-6xl mx-auto px-4 pb-8">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* LEFT COLUMN - Job Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 min-w-0 space-y-6">
             {/* Job Header Card */}
             <div className="card">
               {/* Sprachauswahl - nur Sprachen mit tatsächlichem Inhalt */}
@@ -522,7 +522,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
           </div>
 
           {/* RIGHT COLUMN - Sidebar (order changes on mobile) */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 min-w-0">
             {/* Apply Button Card - Mobile: 3rd, Desktop: 1st */}
             <div className="card order-3 lg:order-1" id="apply">
               {job.is_external ? (
