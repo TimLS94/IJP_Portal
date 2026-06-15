@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   FolderOpen, Building2, Plus, Edit, Trash2, FileDown,
   Loader2, Search, ChevronDown, X, Save, RotateCcw,
-  Eye, Code2, FileText, ArrowLeft, AlertCircle,
+  Eye, Code2, FileText, ArrowLeft, AlertCircle, FileSignature, Upload,
 } from "lucide-react";
-import { ijpAPI, crmAPI } from "@/lib/api";
+import { ijpAPI, crmAPI, contractsAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ const EMPTY_BETRIEB: Omit<Betrieb, "id"> = {
 // ── Root Page ─────────────────────────────────────────────────────────────────
 
 export default function AdminIJPPage() {
-  const [tab, setTab] = useState<"betriebe" | "dokument" | "vorlagen" | "arbeitgeber">("betriebe");
+  const [tab, setTab] = useState<"betriebe" | "dokument" | "vorlagen" | "arbeitgeber" | "vertraege">("betriebe");
   const [betriebe, setBetriebe] = useState<Betrieb[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loadingBetriebe, setLoadingBetriebe] = useState(true);
@@ -78,6 +78,7 @@ export default function AdminIJPPage() {
     { key: "betriebe",    icon: Building2, label: `Betriebe (${betriebe.length})` },
     { key: "vorlagen",    icon: FileText,  label: `Vorlagen (${templates.length})` },
     { key: "dokument",    icon: FileDown,  label: "Dokument erstellen" },
+    { key: "vertraege",   icon: FileSignature, label: "Vertragsvorlagen" },
     { key: "arbeitgeber", icon: Building2, label: "Arbeitgeber-Formular" },
   ] as const;
 
@@ -105,7 +106,108 @@ export default function AdminIJPPage() {
       {tab === "betriebe"    && <BetriebeTab betriebe={betriebe} loading={loadingBetriebe} onRefresh={loadBetriebe} />}
       {tab === "vorlagen"    && <VorlagenTab templates={templates} loading={loadingTemplates} onRefresh={loadTemplates} />}
       {tab === "dokument"    && <DokumentTab betriebe={betriebe} templates={templates} />}
+      {tab === "vertraege"   && <ContractTemplatesTab />}
       {tab === "arbeitgeber" && <ArbeitgeberFormularTab />}
+    </div>
+  );
+}
+
+// ── Vertragsvorlagen Tab ────────────────────────────────────────────────────────
+
+interface ContractTemplate {
+  id: number;
+  name: string;
+  original_filename: string;
+  created_at: string;
+}
+
+function ContractTemplatesTab() {
+  const [templates, setTemplates] = useState<ContractTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { const r = await contractsAPI.listTemplates(); setTemplates(r.data || []); }
+    catch { toast.error("Vertragsvorlagen konnten nicht geladen werden"); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".docx")) {
+      toast.error("Nur .docx-Vorlagen werden unterstützt");
+      return;
+    }
+    const name = window.prompt("Name der Vertragsvorlage:", file.name.replace(/\.docx$/i, ""));
+    if (!name) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("name", name);
+      await contractsAPI.uploadTemplate(fd);
+      toast.success("Vorlage hochgeladen");
+      await load();
+    } catch { toast.error("Upload fehlgeschlagen"); }
+    finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
+  };
+
+  const handleDelete = async (t: ContractTemplate) => {
+    if (!confirm(`Vorlage „${t.name}" wirklich löschen?`)) return;
+    try { await contractsAPI.deleteTemplate(t.id); await load(); }
+    catch { toast.error("Löschen fehlgeschlagen"); }
+  };
+
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+            <FileSignature className="h-5 w-5 text-primary-600" /> Vertragsvorlagen ({templates.length})
+          </h2>
+          <p className="text-sm text-gray-500">Word-Vorlagen (.docx) mit Platzhaltern – werden beim Versenden mit Bewerberdaten gefüllt.</p>
+        </div>
+        <label className={`btn-primary text-sm flex items-center gap-2 cursor-pointer ${uploading ? "opacity-60" : ""}`}>
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          {uploading ? "Lädt…" : "Vorlage hochladen"}
+          <input ref={fileRef} type="file" accept=".docx" className="hidden" onChange={handleUpload} disabled={uploading} />
+        </label>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-800">
+        <strong>Verfügbare Platzhalter</strong> (in der Word-Datei einfügen):{" "}
+        <code className="font-mono">{"{{NAME}}"}</code>, <code className="font-mono">{"{{VORNAME}}"}</code>,{" "}
+        <code className="font-mono">{"{{NACHNAME}}"}</code>, <code className="font-mono">{"{{STRASSE}}"}</code>,{" "}
+        <code className="font-mono">{"{{PLZ}}"}</code>, <code className="font-mono">{"{{ORT}}"}</code>,{" "}
+        <code className="font-mono">{"{{LAND}}"}</code>, <code className="font-mono">{"{{GEBURTSDATUM}}"}</code>,{" "}
+        <code className="font-mono">{"{{NATIONALITAET}}"}</code>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary-600" /></div>
+      ) : templates.length === 0 ? (
+        <p className="text-sm text-gray-400 italic py-4">Noch keine Vertragsvorlagen hochgeladen.</p>
+      ) : (
+        <div className="space-y-2">
+          {templates.map((t) => (
+            <div key={t.id} className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-3 py-2">
+              <FileSignature className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{t.name}</p>
+                <p className="text-xs text-gray-400 truncate">{t.original_filename}</p>
+              </div>
+              <button onClick={() => handleDelete(t)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

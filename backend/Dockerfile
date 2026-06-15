@@ -27,6 +27,8 @@ RUN apt-get update && apt-get install -y \
     # Fonts
     fonts-liberation \
     fonts-noto-color-emoji \
+    # LibreOffice (headless) für docx→PDF-Konvertierung (Verträge)
+    libreoffice-writer --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Python dependencies

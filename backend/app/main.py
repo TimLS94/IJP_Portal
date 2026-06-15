@@ -19,11 +19,11 @@ logger.info("Config loaded")
 from app.core.database import engine, Base, SessionLocal
 logger.info("Database module loaded")
 
-from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales, facebook, google_auth, files, notifications, ba_scraper, ijp, partner, billing
+from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales, facebook, google_auth, files, notifications, ba_scraper, ijp, partner, billing, contracts
 logger.info("API routers loaded")
 
 # Import Models für create_all
-from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request, facebook_post, ijp as ijp_model  # noqa: F401 (needed for create_all)
+from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request, facebook_post, ijp as ijp_model, contract as contract_model  # noqa: F401 (needed for create_all)
 logger.info("Models loaded")
 
 from app.core.seed_data import seed_database
@@ -1220,6 +1220,7 @@ app.include_router(ba_scraper.router, prefix=settings.API_V1_PREFIX)
 app.include_router(ijp.router, prefix=settings.API_V1_PREFIX)
 app.include_router(partner.router, prefix=settings.API_V1_PREFIX)
 app.include_router(billing.router, prefix=settings.API_V1_PREFIX)
+app.include_router(contracts.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

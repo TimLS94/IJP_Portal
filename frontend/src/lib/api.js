@@ -549,6 +549,22 @@ export const adminPartnerLinksAPI = {
   delete: (id) => api.delete(`/admin/partner-links/${id}`),
 };
 
+// Verträge (IJP-Auftrag)
+export const contractsAPI = {
+  // Admin
+  listTemplates: () => api.get('/contracts/templates'),
+  uploadTemplate: (formData) => api.post('/contracts/templates', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteTemplate: (id) => api.delete(`/contracts/templates/${id}`),
+  getForRequest: (requestId) => api.get(`/contracts/job-requests/${requestId}`),
+  send: (requestId, templateId) => api.post(`/contracts/job-requests/${requestId}`, { template_id: templateId }),
+  downloadGenerated: (id) => api.get(`/contracts/${id}/download/generated`, { responseType: 'blob' }),
+  downloadSigned: (id) => api.get(`/contracts/${id}/download/signed`, { responseType: 'blob' }),
+  // Bewerber
+  my: () => api.get('/contracts/my'),
+  download: (id) => api.get(`/contracts/${id}/download`, { responseType: 'blob' }),
+  sign: (id, formData) => api.post(`/contracts/${id}/sign`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+};
+
 // Public: Partner-Ansicht (kein Auth, nur Token)
 export const partnerAPI = {
   getView: (token, params = {}) => {

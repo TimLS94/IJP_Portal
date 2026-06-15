@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { jobRequestsAPI, applicantAPI } from "@/lib/api";
+import { jobRequestsAPI, applicantAPI, contractsAPI } from "@/lib/api";
 import toast from "react-hot-toast";
-import { 
+import {
   ClipboardList, CheckCircle, AlertTriangle, FileText, Loader2,
-  MapPin, Calendar, X, Shield, Clock, ExternalLink, Briefcase, Building2
+  MapPin, Calendar, X, Shield, Clock, ExternalLink, Briefcase, Building2,
+  Download, Upload, FileSignature
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -54,9 +55,58 @@ export default function ApplicantJobRequestPage() {
   // Stornieren
   const [cancellingId, setCancellingId] = useState<number | null>(null);
 
+  // Verträge (nach job_request_id)
+  const [contractsByRequest, setContractsByRequest] = useState<Record<number, any>>({});
+  const [signingId, setSigningId] = useState<number | null>(null);
+
   useEffect(() => {
     loadData();
   }, []);
+
+  const loadContracts = async () => {
+    try {
+      const res = await contractsAPI.my();
+      const map: Record<number, any> = {};
+      for (const c of (res.data.contracts || [])) {
+        // neueste Verträge stehen zuerst → nur den ersten je Auftrag behalten
+        if (!map[c.job_request_id]) map[c.job_request_id] = c;
+      }
+      setContractsByRequest(map);
+    } catch (error) {
+      console.error('Fehler beim Laden der Verträge:', error);
+    }
+  };
+
+  const handleDownloadContract = async (contractId: number, filename: string) => {
+    try {
+      const res = await contractsAPI.download(contractId);
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename || 'Vertrag.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Download fehlgeschlagen');
+    }
+  };
+
+  const handleUploadSigned = async (contractId: number, file: File) => {
+    setSigningId(contractId);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      await contractsAPI.sign(contractId, fd);
+      toast.success('Unterschriebener Vertrag hochgeladen – vielen Dank!');
+      await loadContracts();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || 'Upload fehlgeschlagen');
+    } finally {
+      setSigningId(null);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -65,9 +115,10 @@ export default function ApplicantJobRequestPage() {
         jobRequestsAPI.getMyRequests(),
         applicantAPI.getProfile()
       ]);
-      
+
       setRequests(requestsRes.data.requests || []);
       setProfile(profileRes.data);
+      loadContracts();
     } catch (error) {
       console.error('Fehler beim Laden:', error);
     } finally {
@@ -292,6 +343,54 @@ export default function ApplicantJobRequestPage() {
                     </div>
                   )}
                   
+                  {/* Vertrag unterschreiben */}
+                  {contractsByRequest[request.id] && (() => {
+                    const c = contractsByRequest[request.id];
+                    const signed = c.status === 'signed';
+                    return (
+                      <div className={`mt-4 p-4 rounded-xl border ${signed ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+                        <h4 className={`font-bold flex items-center gap-2 mb-2 ${signed ? 'text-green-800' : 'text-blue-800'}`}>
+                          <FileSignature className="h-5 w-5" />
+                          {signed ? t('jobRequest.contractSigned') : t('jobRequest.contractToSign')}
+                        </h4>
+                        {signed ? (
+                          <p className="text-green-900 text-sm flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4" />
+                            {t('jobRequest.contractSignedHint')}
+                          </p>
+                        ) : (
+                          <>
+                            <p className="text-blue-900 text-sm mb-3">{t('jobRequest.contractSignSteps')}</p>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() => handleDownloadContract(c.id, c.generated_filename)}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-100 font-medium text-sm"
+                              >
+                                <Download className="h-4 w-4" />
+                                {t('jobRequest.contractDownload')}
+                              </button>
+                              <label className={`inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm cursor-pointer ${signingId === c.id ? 'opacity-60' : ''}`}>
+                                {signingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                                {t('jobRequest.contractUploadSigned')}
+                                <input
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  className="hidden"
+                                  disabled={signingId === c.id}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleUploadSigned(c.id, file);
+                                    e.currentTarget.value = '';
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {request.notes && (
                     <p className="mt-3 text-sm text-gray-500 italic">"{request.notes}"</p>
                   )}

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { jobRequestsAPI, adminAPI, adminPartnerLinksAPI } from '@/lib/api';
+import { jobRequestsAPI, adminAPI, adminPartnerLinksAPI, contractsAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { 
-  ClipboardList, User, Search, Download, ChevronDown, Eye, 
+import {
+  ClipboardList, User, Search, Download, ChevronDown, Eye,
   Phone, Mail, MapPin, FileText, X, Loader2, Calendar,
-  GraduationCap, Shield, CheckCircle, Filter, Users
+  GraduationCap, Shield, CheckCircle, Filter, Users, FileSignature, Upload
 } from 'lucide-react';
 
 const positionTypeLabels: Record<string, string> = {
@@ -77,6 +77,12 @@ export default function AdminJobRequests() {
   const [partnerLinks, setPartnerLinks] = useState<{ name: string; partner_source: string }[]>([]);
   const [sourceEdit, setSourceEdit] = useState('');
   const [savingSource, setSavingSource] = useState(false);
+
+  // Verträge
+  const [contractTemplates, setContractTemplates] = useState<{ id: number; name: string }[]>([]);
+  const [contract, setContract] = useState<any>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [sendingContract, setSendingContract] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const limit = 50;
@@ -104,6 +110,7 @@ export default function AdminJobRequests() {
     loadStatusOptions();
     loadInviteSources();
     loadPartnerLinks();
+    loadContractTemplates();
   }, []);
 
   const loadPartnerLinks = async () => {
@@ -112,6 +119,56 @@ export default function AdminJobRequests() {
       setPartnerLinks(response.data.links || []);
     } catch (error) {
       console.error('Fehler beim Laden der Partner-Links');
+    }
+  };
+
+  const loadContractTemplates = async () => {
+    try {
+      const response = await contractsAPI.listTemplates();
+      setContractTemplates(response.data || []);
+    } catch (error) {
+      console.error('Fehler beim Laden der Vertragsvorlagen');
+    }
+  };
+
+  const blobDownload = (data: BlobPart, filename: string) => {
+    const url = window.URL.createObjectURL(new Blob([data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleSendContract = async () => {
+    if (!selectedRequest || !selectedTemplateId) return;
+    setSendingContract(true);
+    try {
+      await contractsAPI.send(selectedRequest, Number(selectedTemplateId));
+      toast.success('Vertrag erstellt und an den Bewerber gesendet');
+      const r = await contractsAPI.getForRequest(selectedRequest);
+      setContract(r.data.contract);
+      setSelectedTemplateId('');
+      loadRequests();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || 'Vertrag konnte nicht gesendet werden');
+    } finally {
+      setSendingContract(false);
+    }
+  };
+
+  const handleDownloadContract = async (kind: 'generated' | 'signed') => {
+    if (!contract) return;
+    try {
+      const res = kind === 'generated'
+        ? await contractsAPI.downloadGenerated(contract.id)
+        : await contractsAPI.downloadSigned(contract.id);
+      const fallback = kind === 'generated' ? contract.generated_filename : (contract.signed_filename || 'unterschrieben.pdf');
+      blobDownload(res.data, fallback);
+    } catch {
+      toast.error('Download fehlgeschlagen');
     }
   };
 
@@ -173,6 +230,11 @@ export default function AdminJobRequests() {
       const response = await jobRequestsAPI.getRequestDetails(reqId);
       setRequestDetails(response.data);
       setSourceEdit(response.data.applicant?.invite_source || '');
+      setSelectedTemplateId('');
+      try {
+        const c = await contractsAPI.getForRequest(reqId);
+        setContract(c.data.contract);
+      } catch { setContract(null); }
       setNewStatus(response.data.request.status);
       setNewPublicStatus(response.data.request.public_status || '');
       setAdminNotes(response.data.request.admin_notes || '');
@@ -805,6 +867,91 @@ export default function AdminJobRequests() {
                               <span className="text-xs text-gray-500">{doc.document_type}</span>
                             </div>
                           ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Vertrag */}
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-3">
+                        <FileSignature className="h-5 w-5 text-primary-600" />
+                        Vertrag
+                      </h3>
+
+                      {contract ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            {contract.status === 'signed' ? (
+                              <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 flex items-center gap-1">
+                                <CheckCircle className="h-4 w-4" /> Unterschrieben
+                              </span>
+                            ) : (
+                              <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                Gesendet – wartet auf Unterschrift
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button onClick={() => handleDownloadContract('generated')} className="text-sm btn-secondary flex items-center gap-1">
+                              <Download className="h-4 w-4" /> Gesendetes PDF
+                            </button>
+                            {contract.status === 'signed' && (
+                              <button onClick={() => handleDownloadContract('signed')} className="text-sm btn-primary flex items-center gap-1">
+                                <Download className="h-4 w-4" /> Unterschriebene Datei
+                              </button>
+                            )}
+                          </div>
+                          <div className="pt-2 border-t border-gray-200">
+                            <p className="text-xs text-gray-500 mb-2">Neuen Vertrag senden (ersetzt den bisherigen Status):</p>
+                            <div className="flex gap-2">
+                              <select
+                                value={selectedTemplateId}
+                                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                                className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1.5"
+                              >
+                                <option value="">Vorlage wählen…</option>
+                                {contractTemplates.map((t) => (
+                                  <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={handleSendContract}
+                                disabled={!selectedTemplateId || sendingContract}
+                                className="text-sm btn-secondary disabled:opacity-50 flex items-center gap-1"
+                              >
+                                {sendingContract ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                                Senden
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : contractTemplates.length === 0 ? (
+                        <p className="text-sm text-gray-500">
+                          Noch keine Vertragsvorlage vorhanden. Lade zuerst unter <strong>IJP Dokumentenservice → Vertragsvorlagen</strong> eine Vorlage hoch.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-600">Vorlage wählen – Name & Adresse werden automatisch eingetragen, der Bewerber erhält ein PDF zum Unterschreiben.</p>
+                          <div className="flex gap-2">
+                            <select
+                              value={selectedTemplateId}
+                              onChange={(e) => setSelectedTemplateId(e.target.value)}
+                              className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1.5"
+                            >
+                              <option value="">Vorlage wählen…</option>
+                              {contractTemplates.map((t) => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={handleSendContract}
+                              disabled={!selectedTemplateId || sendingContract}
+                              className="text-sm btn-primary disabled:opacity-50 flex items-center gap-1"
+                            >
+                              {sendingContract ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                              Vertrag senden
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
