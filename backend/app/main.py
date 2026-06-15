@@ -833,8 +833,13 @@ def cleanup_jobs():
         
         deleted_count = 0
         for job in old_archived_jobs:
-            # Bewerbungen löschen
-            db.query(Application).filter(Application.job_posting_id == job.id).delete()
+            # Bewerbungen über ORM löschen, damit abhängige Dokumente/Interviews
+            # per Cascade mitgelöscht werden (Bulk-DELETE umgeht die Cascade und
+            # verletzt den FK application_documents_application_id_fkey)
+            applications = db.query(Application).filter(Application.job_posting_id == job.id).all()
+            for application in applications:
+                db.delete(application)
+            db.flush()
             db.delete(job)
             deleted_count += 1
             logger.info(f"Job {job.id} '{job.title}' endgültig gelöscht ({archive_deletion_days} Tage im Archiv)")
