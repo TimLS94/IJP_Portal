@@ -352,7 +352,30 @@ def list_applicants_for_ijp(search: Optional[str] = None, db: Session = Depends(
     ]
 
 
+# Verfügbare Platzhalter, die generate_document automatisch füllt.
+# Muss mit dem variables-Dict in generate_document übereinstimmen.
+AVAILABLE_TEMPLATE_VARIABLES = [
+    {"key": "betrieb_name",        "label": "Firmenname",                             "requires_applicant": False},
+    {"key": "contact_person",      "label": "Ansprechpartner",                        "requires_applicant": False},
+    {"key": "street",              "label": "Straße",                                 "requires_applicant": False},
+    {"key": "postal_code",         "label": "PLZ",                                    "requires_applicant": False},
+    {"key": "city",                "label": "Ort",                                    "requires_applicant": False},
+    {"key": "betriebsnummer",      "label": "Betriebsnummer",                         "requires_applicant": False},
+    {"key": "betrieb_bezeichnung", "label": "Bezeichnung (z.B. das Restaurant)",      "requires_applicant": False},
+    {"key": "date",                "label": "Datum (automatisch heute)",              "requires_applicant": False},
+    {"key": "applicant_name",      "label": "Name des Bewerbers",                     "requires_applicant": True},
+    {"key": "gender_article",      "label": "Geschlechtsartikel (der/die Arbeitnehmer:in)", "requires_applicant": True},
+    {"key": "gender_possessive",   "label": "Possessivpronomen (seiner/ihrer)",       "requires_applicant": True},
+]
+
+
 # ── Templates CRUD ────────────────────────────────────────────────────────────
+
+@router.get("/template-variables")
+def list_template_variables(current_user: User = Depends(_require_admin)):
+    """Verfügbare Platzhalter für den Vorlagen-Editor."""
+    return {"variables": AVAILABLE_TEMPLATE_VARIABLES}
+
 
 @router.get("/templates", response_model=List[TemplateResponse])
 def list_templates(db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):

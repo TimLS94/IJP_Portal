@@ -388,6 +388,14 @@ function TemplateEditor({ template, onSave, onCancel }: { template: Template | n
   const [saving, setSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Verfügbare Platzhalter (vom Backend) für das Dropdown
+  const [availableVars, setAvailableVars] = useState<{ key: string; label: string; requires_applicant?: boolean }[]>([]);
+  useEffect(() => {
+    ijpAPI.getTemplateVariables()
+      .then((r) => setAvailableVars(r.data.variables || []))
+      .catch(() => {});
+  }, []);
+
   // Auto-slug from label (only for new templates)
   const handleLabelChange = (val: string) => {
     setLabel(val);
@@ -399,6 +407,15 @@ function TemplateEditor({ template, onSave, onCancel }: { template: Template | n
   // Variable management
   const addVar = () => setVariables([...variables, { key: "", label: "" }]);
   const removeVar = (i: number) => setVariables(variables.filter((_, idx) => idx !== i));
+  const addAvailableVar = (key: string) => {
+    const found = availableVars.find((a) => a.key === key);
+    if (!found) return;
+    if (variables.some((v) => v.key === key)) {
+      toast.error("Variable bereits hinzugefügt");
+      return;
+    }
+    setVariables([...variables, { key: found.key, label: found.label }]);
+  };
   const updateVar = (i: number, field: keyof TemplateVar, val: string) =>
     setVariables(variables.map((v, idx) => idx === i ? { ...v, [field]: val } : v));
 
@@ -477,12 +494,30 @@ function TemplateEditor({ template, onSave, onCancel }: { template: Template | n
 
       {/* Variables */}
       <div className="card mb-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
           <h3 className="font-semibold text-gray-800">Variablen</h3>
-          <button onClick={addVar} className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1 font-medium">
-            <Plus className="h-4 w-4" />Variable hinzufügen
-          </button>
+          <div className="flex items-center gap-2">
+            <select
+              value=""
+              onChange={(e) => { if (e.target.value) { addAvailableVar(e.target.value); e.target.value = ""; } }}
+              className="input text-sm py-1.5 max-w-[260px]"
+              title="Verfügbare Variable auswählen"
+            >
+              <option value="">+ Verfügbare Variable…</option>
+              {availableVars.map((a) => (
+                <option key={a.key} value={a.key}>
+                  {a.label}{a.requires_applicant ? " (nur mit Bewerber)" : ""}
+                </option>
+              ))}
+            </select>
+            <button onClick={addVar} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 font-medium whitespace-nowrap">
+              <Plus className="h-4 w-4" />Eigene
+            </button>
+          </div>
         </div>
+        <p className="text-xs text-gray-400 mb-3">
+          Wähle oben eine <strong>verfügbare Variable</strong> – diese werden beim Erstellen automatisch mit Firmendaten/Datum (und bei Bewerber-Dokumenten mit Bewerberdaten) gefüllt. „Eigene" nur für selbst gepflegte Platzhalter.
+        </p>
         {variables.length === 0 ? (
           <p className="text-sm text-gray-400 italic">Noch keine Variablen definiert. Variablen werden im Text als {"{{"}<span className="font-mono">variable_name</span>{"}}"}  verwendet.</p>
         ) : (

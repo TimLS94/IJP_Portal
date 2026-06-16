@@ -511,6 +511,7 @@ export const ijpAPI = {
   // Templates (CRUD)
   getTemplates: () => api.get('/ijp/templates'),
   getTemplate: (docType) => api.get(`/ijp/templates/${docType}`),
+  getTemplateVariables: () => api.get('/ijp/template-variables'),
   createTemplate: (data) => api.post('/ijp/templates', data),
   updateTemplate: (docType, data) => api.put(`/ijp/templates/${docType}`, data),
   deleteTemplate: (docType) => api.delete(`/ijp/templates/${docType}`),
