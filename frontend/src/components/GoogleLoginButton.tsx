@@ -37,8 +37,7 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   const { t } = useTranslation();
   const router = useRouter();
   const buttonRef = useRef<HTMLDivElement>(null);
-  const initializedRef = useRef(false);
-  const lastWidthRef = useRef(0);
+  const renderedRef = useRef(false);
 
   useEffect(() => {
     // 1) GSI-Script SOFORT laden (parallel zur Config) -> Button erscheint schneller
@@ -59,6 +58,12 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
       loadGoogleConfig();
     }
   }, []);
+
+  useEffect(() => {
+    if (googleConfig?.enabled && googleConfig?.client_id) {
+      initGoogle();
+    }
+  }, [googleConfig]);
 
   const loadGoogleConfig = async () => {
     try {
@@ -125,76 +130,70 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
     await submitGoogle(response.credential, false);
   };
 
-  // Rendert den Google-Button passend zur aktuellen Container-Breite.
-  // Wird bei jeder relevanten Breitenänderung erneut aufgerufen (ResizeObserver),
-  // damit der Button nie abgeschnitten oder zu schmal bleibt.
-  const renderAtCurrentWidth = () => {
-    if (!window.google || !googleConfig?.client_id || !buttonRef.current) return;
+  const renderGoogleButton = () => {
+    if (renderedRef.current || !window.google || !googleConfig?.client_id || !buttonRef.current) return;
 
-    if (!initializedRef.current) {
-      window.google.accounts.id.initialize({
-        client_id: googleConfig.client_id,
-        callback: handleGoogleResponse,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      });
-      initializedRef.current = true;
-    }
-
-    const containerWidth = Math.floor(buttonRef.current.getBoundingClientRect().width);
-    if (containerWidth < 100) return; // Layout noch nicht final – Observer feuert erneut
-
-    // Google erlaubt 200–400px. Auf Container- und Viewport-Breite begrenzen,
-    // damit der Button exakt passt und nie über den Rand hinausragt.
-    const viewport = typeof window !== "undefined" ? window.innerWidth : 360;
-    const width = Math.max(200, Math.min(400, containerWidth, viewport - 32));
-    if (width === lastWidthRef.current) return; // keine Änderung → kein Re-Render (verhindert Flackern)
-    lastWidthRef.current = width;
-
-    buttonRef.current.innerHTML = "";
-    window.google.accounts.id.renderButton(buttonRef.current, {
-      theme: "outline",
-      size: "large",
-      width,
-      text: "continue_with",
-      locale: "de",
-      shape: "rectangular",
+    window.google.accounts.id.initialize({
+      client_id: googleConfig.client_id,
+      callback: handleGoogleResponse,
+      auto_select: false,
+      cancel_on_tap_outside: true,
     });
+
+    // Breite nach Layout-Tick messen; wenn DOM noch nicht final (Breite 0), erneut versuchen
+    let attempts = 0;
+    const measure = () => {
+      if (!buttonRef.current || !window.google) return;
+      const containerWidth = Math.floor(buttonRef.current.getBoundingClientRect().width);
+      if (containerWidth < 100 && attempts < 20) {
+        attempts++;
+        requestAnimationFrame(measure);
+        return;
+      }
+      // Google erlaubt 200–400px; zusätzlich aufs Viewport begrenzen, damit der
+      // Button selbst bei ungenauer Messung nie über den Bildschirm hinausragt
+      const viewport = typeof window !== "undefined" ? window.innerWidth : 360;
+      const width = Math.max(200, Math.min(400, (containerWidth || 360) - 8, viewport - 48));
+      buttonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(buttonRef.current, {
+        theme: "outline",
+        size: "large",
+        width,
+        text: "continue_with",
+        locale: "de",
+        shape: "rectangular",
+      });
+      renderedRef.current = true;
+    };
+
+    // Zwei Frames warten damit das Layout stabil ist (nur EINMAL rendern – kein
+    // Neu-Rendern bei Resize, das sonst zu falschen Breiten/abgeschnittenem Rand führt)
+    requestAnimationFrame(() => requestAnimationFrame(measure));
   };
 
-  // Button rendern sobald GSI bereit ist und an Container-Breite koppeln.
-  useEffect(() => {
-    if (!googleConfig?.enabled || !googleConfig?.client_id) return;
-    if (processing || needsConsent) return; // Button-Div ist dann nicht gemountet
-
-    lastWidthRef.current = 0; // Remount → Neu-Render erzwingen
-    let observer: ResizeObserver | null = null;
-    let waitInterval: ReturnType<typeof setInterval> | null = null;
-
-    const start = () => {
-      if (!buttonRef.current) return;
-      renderAtCurrentWidth();
-      observer = new ResizeObserver(() => renderAtCurrentWidth());
-      observer.observe(buttonRef.current);
-    };
-
-    if (window.google) {
-      start();
-    } else {
-      waitInterval = setInterval(() => {
-        if (window.google) {
-          if (waitInterval) clearInterval(waitInterval);
-          waitInterval = null;
-          start();
-        }
-      }, 100);
+  const initGoogle = () => {
+    if (document.getElementById("google-gsi-script")) {
+      if (window.google) {
+        renderGoogleButton();
+      } else {
+        const interval = setInterval(() => {
+          if (window.google) {
+            clearInterval(interval);
+            renderGoogleButton();
+          }
+        }, 100);
+      }
+      return;
     }
 
-    return () => {
-      if (observer) observer.disconnect();
-      if (waitInterval) clearInterval(waitInterval);
-    };
-  }, [googleConfig, processing, needsConsent]);
+    const script = document.createElement("script");
+    script.id = "google-gsi-script";
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = renderGoogleButton;
+    document.body.appendChild(script);
+  };
 
   if (loading) {
     return (
