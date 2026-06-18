@@ -1,6 +1,7 @@
 import Link from "next/link";
 import JobsClient from "../jobs/JobsClient";
 import { STELLEN_ROUTES, StellenRoute, stellenHref } from "./filters";
+import { jsonLdHtml } from "@/lib/jsonLd";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
@@ -74,11 +75,11 @@ export default async function StellenLanding({ route }: { route: StellenRoute })
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(faqLd) }}
       />
 
       <div className="container mx-auto px-4 pt-8 pb-2">

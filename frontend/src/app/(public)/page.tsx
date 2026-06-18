@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import HomeClient from "./HomeClient";
 import Link from "next/link";
+import { jsonLdHtml } from "@/lib/jsonLd";
 
 export const metadata: Metadata = {
   title: "JobOn | Internationale Saisonkräfte für Hotels & Gastronomie finden",
@@ -60,11 +61,11 @@ export default function Home() {
       {/* JSON-LD Schemas für Google */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(organizationSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(websiteSchema) }}
       />
       
       {/* SEO-freundlicher Content für Crawler (noscript fallback) */}

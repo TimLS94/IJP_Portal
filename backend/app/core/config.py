@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # JWT - WICHTIG: SECRET_KEY muss in Produktion über Environment Variable gesetzt werden!
     SECRET_KEY: str = _DEFAULT_SECRET_KEY
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8  # 8 Stunden (vorher 24h – zu lange für Sicherheit)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30  # 30 Tage – Nutzer bleiben eingeloggt
 
     # Password Policy
     MIN_PASSWORD_LENGTH: int = 10  # NIST empfiehlt mindestens 10 (besser 12)

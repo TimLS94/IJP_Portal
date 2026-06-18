@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import FeedbackButton from "@/components/FeedbackButton";
+import { jsonLdHtml } from "@/lib/jsonLd";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -105,7 +106,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://www.gstatic.com" crossOrigin="anonymous" />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdHtml(organizationSchema) }}
         />
       </head>
       <body className="min-h-full flex flex-col bg-gray-50 text-gray-900 antialiased">

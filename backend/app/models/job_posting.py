@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Date, Boolean, DateTime, Enum, JSON, Float
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 import enum
 from app.core.database import Base, utc_now
+from app.core.sanitizer import sanitize_html
 from app.models.applicant import PositionType
 
 
@@ -89,6 +90,15 @@ class JobPosting(Base):
     tasks = Column(Text)  # NEU: Aufgaben
     requirements = Column(Text)
     benefits = Column(Text)
+
+    # Sicherheit: Freitext-Felder werden bei jedem Schreibzugriff von gefährlichem
+    # HTML bereinigt (XSS-Schutz), egal ob von Firma, Admin, BA-Scraper oder KI gesetzt.
+    # Diese Felder werden im Frontend als HTML gerendert.
+    @validates("description", "tasks", "requirements", "benefits")
+    def _sanitize_rich_text(self, key, value):
+        if value is None:
+            return None
+        return sanitize_html(value)
     
     # Ort und Zeit
     location = Column(String(255))

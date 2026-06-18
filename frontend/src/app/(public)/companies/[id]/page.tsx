@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import CompanyProfileClient from "./CompanyProfileClient";
+import { jsonLdHtml } from "@/lib/jsonLd";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
 
@@ -120,7 +121,7 @@ export default async function CompanyProfilePage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       <CompanyProfileClient company={company} activeJobs={activeJobs} />
     </>

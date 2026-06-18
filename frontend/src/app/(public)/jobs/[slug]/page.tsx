@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import JobDetailClient from "./JobDetailClient";
+import { jsonLdHtml } from "@/lib/jsonLd";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
 
@@ -377,7 +378,7 @@ export default async function JobDetailPage({
       {/* JSON-LD Schema für Google */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       
       {/* Client Component für interaktive Elemente */}

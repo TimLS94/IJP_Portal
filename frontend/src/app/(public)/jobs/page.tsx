@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import JobsClient from "./JobsClient";
 import Link from "next/link";
+import { jsonLdHtml } from "@/lib/jsonLd";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
 
@@ -87,7 +88,7 @@ export default async function JobsPage() {
       {/* JSON-LD Schema für Google */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       
       {/* SEO-freundliche Job-Liste (für Crawler sichtbar) */}
