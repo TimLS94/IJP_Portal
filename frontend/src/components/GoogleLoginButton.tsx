@@ -172,10 +172,11 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
         requestAnimationFrame(measure);
         return;
       }
-      // Google erlaubt 200–400px; zusätzlich aufs Viewport begrenzen, damit der
-      // Button selbst bei ungenauer Messung nie über den Bildschirm hinausragt
+      // Google erlaubt 200–400px. Auf die echte Card-Innenbreite begrenzen:
+      // Seite hat px-4 (32px) + Card p-6 (48px) = 80px horizontales Padding.
+      // Sonst ragt der (breitere) personalisierte "Als … fortfahren"-Button rechts raus.
       const viewport = typeof window !== "undefined" ? window.innerWidth : 360;
-      const width = Math.max(200, Math.min(400, (containerWidth || 360) - 8, viewport - 48));
+      const width = Math.max(200, Math.min(400, (containerWidth || 360) - 8, viewport - 88));
       buttonRef.current.innerHTML = "";
       window.google.accounts.id.renderButton(buttonRef.current, {
         theme: "outline",
