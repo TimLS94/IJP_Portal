@@ -462,6 +462,31 @@ def ensure_job_request_public_status_column():
 ensure_job_request_public_status_column()
 
 
+def ensure_job_request_status_enum_values():
+    """Ergänzt fehlende Werte im Postgres-Enum 'jobrequeststatus'.
+
+    Die internen Status (zav_requested, visa_received …) wurden später im Code
+    ergänzt, der DB-Enum-Typ kannte sie aber noch nicht -> Speichern schlug fehl.
+    ALTER TYPE ... ADD VALUE IF NOT EXISTS ist idempotent (Postgres 12+).
+    Auf SQLite/lokal gibt es keinen Enum-Typ -> Fehler wird ignoriert.
+    """
+    from sqlalchemy import text
+    from app.models.job_request import JobRequestStatus
+    db = SessionLocal()
+    try:
+        for st in JobRequestStatus:
+            try:
+                db.execute(text(f"ALTER TYPE jobrequeststatus ADD VALUE IF NOT EXISTS '{st.value}'"))
+                db.commit()
+            except Exception:
+                db.rollback()
+    finally:
+        db.close()
+
+
+ensure_job_request_status_enum_values()
+
+
 def ensure_partner_links_table():
     """Erstellt die partner_links Tabelle falls sie noch nicht existiert."""
     from sqlalchemy import text
