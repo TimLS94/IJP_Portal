@@ -441,6 +441,7 @@ async def list_job_requests(
             "document_count": doc_count,
             "invite_source": applicant.invite_source if applicant else None,
             "invite_source_country": applicant.invite_source_country if applicant else None,
+            "assigned_betrieb_name": req.assigned_betrieb.name if req.assigned_betrieb else None,
             "created_at": req.created_at,
             "updated_at": req.updated_at,
         })
@@ -483,6 +484,9 @@ async def get_job_request_details(
             "interview_date": req.interview_date,
             "interview_link": req.interview_link,
             "contract_date": req.contract_date,
+            # Intern zugeteilter Arbeitgeber (CRM-Betrieb)
+            "assigned_betrieb_id": req.assigned_betrieb_id,
+            "assigned_betrieb_name": req.assigned_betrieb.name if req.assigned_betrieb else None,
             "created_at": req.created_at,
             "updated_at": req.updated_at,
             # Position Type vom Auftrag!
@@ -527,6 +531,36 @@ async def get_job_request_details(
             for doc in documents
         ]
     }
+
+
+class AssignBetriebSchema(BaseModel):
+    betrieb_id: Optional[int] = None  # None = Zuweisung entfernen
+
+
+@router.put("/admin/{request_id}/assign-betrieb")
+async def assign_betrieb_to_request(
+    request_id: int,
+    data: AssignBetriebSchema,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Teilt einem IJP-Auftrag intern einen Arbeitgeber (CRM-Betrieb) zu."""
+    from app.models.ijp import IJPBetrieb
+    req = db.query(JobRequest).filter(JobRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Auftrag nicht gefunden")
+
+    if data.betrieb_id is not None:
+        betrieb = db.query(IJPBetrieb).filter(IJPBetrieb.id == data.betrieb_id).first()
+        if not betrieb:
+            raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
+        req.assigned_betrieb_id = betrieb.id
+        name = betrieb.name
+    else:
+        req.assigned_betrieb_id = None
+        name = None
+    db.commit()
+    return {"assigned_betrieb_id": req.assigned_betrieb_id, "assigned_betrieb_name": name}
 
 
 @router.put("/admin/{request_id}/status")

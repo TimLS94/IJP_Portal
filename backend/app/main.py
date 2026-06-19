@@ -487,6 +487,29 @@ def ensure_job_request_status_enum_values():
 ensure_job_request_status_enum_values()
 
 
+def ensure_job_request_assigned_betrieb_column():
+    """Fügt assigned_betrieb_id (intern zugeteilter Arbeitgeber) zu job_requests hinzu."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'job_requests' AND column_name = 'assigned_betrieb_id'
+        """))
+        if not result.fetchone():
+            db.execute(text("ALTER TABLE job_requests ADD COLUMN assigned_betrieb_id INTEGER REFERENCES ijp_betriebe(id) ON DELETE SET NULL"))
+            db.commit()
+            logger.info("job_requests: Spalte 'assigned_betrieb_id' hinzugefügt")
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"job_requests assigned_betrieb_id: {e}")
+    finally:
+        db.close()
+
+
+ensure_job_request_assigned_betrieb_column()
+
+
 def ensure_partner_links_table():
     """Erstellt die partner_links Tabelle falls sie noch nicht existiert."""
     from sqlalchemy import text

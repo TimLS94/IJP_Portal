@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { jobRequestsAPI, adminAPI, adminPartnerLinksAPI, contractsAPI } from '@/lib/api';
+import { jobRequestsAPI, adminAPI, adminPartnerLinksAPI, contractsAPI, ijpAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 import {
   ClipboardList, User, Search, Download, ChevronDown, Eye,
   Phone, Mail, MapPin, FileText, X, Loader2, Calendar,
-  GraduationCap, Shield, CheckCircle, Filter, Users, FileSignature, Upload
+  GraduationCap, Shield, CheckCircle, Filter, Users, FileSignature, Upload, Building2
 } from 'lucide-react';
 
 const positionTypeLabels: Record<string, string> = {
@@ -47,6 +47,7 @@ interface JobRequest {
   privacy_consent_date?: string;
   invite_source?: string;
   invite_source_country?: string;
+  assigned_betrieb_name?: string | null;
   created_at: string;
   updated_at?: string;
 }
@@ -77,6 +78,10 @@ export default function AdminJobRequests() {
   const [partnerLinks, setPartnerLinks] = useState<{ name: string; partner_source: string }[]>([]);
   const [sourceEdit, setSourceEdit] = useState('');
   const [savingSource, setSavingSource] = useState(false);
+
+  // Arbeitgeber-Zuteilung (CRM-Betriebe)
+  const [betriebe, setBetriebe] = useState<{ id: number; name: string }[]>([]);
+  const [assigningBetrieb, setAssigningBetrieb] = useState(false);
 
   // Verträge
   const [contractTemplates, setContractTemplates] = useState<{ id: number; name: string }[]>([]);
@@ -111,7 +116,38 @@ export default function AdminJobRequests() {
     loadInviteSources();
     loadPartnerLinks();
     loadContractTemplates();
+    loadBetriebe();
   }, []);
+
+  const loadBetriebe = async () => {
+    try {
+      const response = await ijpAPI.getBetriebe();
+      setBetriebe(response.data || []);
+    } catch (error) {
+      console.error('Fehler beim Laden der Betriebe');
+    }
+  };
+
+  const handleAssignBetrieb = async (betriebId: string) => {
+    if (!selectedRequest) return;
+    setAssigningBetrieb(true);
+    try {
+      const res = await jobRequestsAPI.assignBetrieb(selectedRequest, betriebId ? Number(betriebId) : null);
+      setRequestDetails((prev: any) => ({
+        ...prev,
+        request: {
+          ...prev.request,
+          assigned_betrieb_id: res.data.assigned_betrieb_id,
+          assigned_betrieb_name: res.data.assigned_betrieb_name,
+        },
+      }));
+      toast.success(betriebId ? 'Arbeitgeber zugeteilt' : 'Zuteilung entfernt');
+    } catch {
+      toast.error('Fehler beim Zuteilen');
+    } finally {
+      setAssigningBetrieb(false);
+    }
+  };
 
   const loadPartnerLinks = async () => {
     try {
@@ -584,6 +620,11 @@ export default function AdminJobRequests() {
                     <tr key={req.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">{req.applicant_name}</div>
+                        {req.assigned_betrieb_name && (
+                          <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                            <Building2 className="h-3 w-3" />{req.assigned_betrieb_name}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex flex-col gap-1">
@@ -955,6 +996,29 @@ export default function AdminJobRequests() {
                         </div>
                       )}
                     </div>
+
+                    {/* Arbeitgeber zuteilen (intern) */}
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-2">
+                        <Building2 className="h-5 w-5 text-primary-600" />
+                        Arbeitgeber (intern)
+                      </h3>
+                      <p className="text-xs text-gray-500 mb-2">Zur internen Nachverfolgung – nur für IJP sichtbar, nicht für den Bewerber.</p>
+                      <select
+                        className="input-styled"
+                        value={requestDetails.request.assigned_betrieb_id ?? ''}
+                        disabled={assigningBetrieb}
+                        onChange={(e) => handleAssignBetrieb(e.target.value)}
+                      >
+                        <option value="">— Kein Arbeitgeber zugeteilt —</option>
+                        {betriebe.map((b) => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                      {betriebe.length === 0 && (
+                        <p className="text-xs text-gray-400 mt-1">Noch keine Betriebe im CRM angelegt.</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Rechte Spalte */}
@@ -1149,11 +1213,17 @@ export default function AdminJobRequests() {
                               value={newStatus}
                               onChange={(e) => setNewStatus(e.target.value)}
                             >
-                              {statusOptions.map((status) => (
-                                <option key={status.value} value={status.value}>
-                                  {status.is_internal ? `🔒 ${status.label}` : status.label}
-                                </option>
-                              ))}
+                              {statusOptions
+                                .filter((status) =>
+                                  status.is_internal ||
+                                  ['on_hold', 'cancelled', 'withdrawn'].includes(status.value) ||
+                                  status.value === requestDetails.request.status
+                                )
+                                .map((status) => (
+                                  <option key={status.value} value={status.value}>
+                                    {status.is_internal ? `🔒 ${status.label}` : status.label}
+                                  </option>
+                                ))}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
                           </div>

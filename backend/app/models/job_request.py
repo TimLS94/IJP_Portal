@@ -168,14 +168,18 @@ class JobRequest(Base):
     interview_link = Column(String(500))         # Zoom/Teams/Meet Link für Interview
     contract_date = Column(DateTime)             # Vertragsdatum
     
+    # Intern zugeteilter Arbeitgeber (aus CRM-Betrieben) – zum Nachverfolgen
+    assigned_betrieb_id = Column(Integer, ForeignKey("ijp_betriebe.id", ondelete="SET NULL"), nullable=True)
+
     # Admin-Notizen (intern)
     admin_notes = Column(Text)
     assigned_admin_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    
+
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=utc_now)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
-    
+
     # Relationships
     applicant = relationship("Applicant", back_populates="job_requests")
     assigned_admin = relationship("User", foreign_keys=[assigned_admin_id])
+    assigned_betrieb = relationship("IJPBetrieb", foreign_keys=[assigned_betrieb_id])

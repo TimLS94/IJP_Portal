@@ -300,6 +300,7 @@ export const jobRequestsAPI = {
   listRequests: (params) => api.get('/job-requests/admin', { params }),
   getRequestDetails: (id) => api.get(`/job-requests/admin/${id}`),
   updateStatus: (id, data) => api.put(`/job-requests/admin/${id}/status`, data),
+  assignBetrieb: (id, betriebId) => api.put(`/job-requests/admin/${id}/assign-betrieb`, { betrieb_id: betriebId }),
   exportCSV: (params) => api.get('/job-requests/admin/export/csv', { params, responseType: 'blob' }),
   downloadDocuments: (id) => api.get(`/job-requests/admin/${id}/documents/download-all`, { responseType: 'blob' }),
 };
