@@ -239,6 +239,9 @@
     "welcomeBack": "Willkommen zurück!",
     "accountNotActivated": "Ihr Konto wurde noch nicht freigeschaltet. Bitte warten Sie auf die Aktivierung durch einen Administrator.",
     "googleNeedsConsent": "Du hast noch kein Konto. Bitte stimme der Datenschutzerklärung zu, um dich zu registrieren.",
+    "googleAlmostDone": "Fast geschafft!",
+    "googleSignedInAs": "Angemeldet mit Google als",
+    "cancel": "Abbrechen",
     "accountCreated": "Willkommen! Dein Konto wurde erstellt.",
     "signingIn": "Wird angemeldet...",
     "googleLoginFailed": "Google-Anmeldung fehlgeschlagen"

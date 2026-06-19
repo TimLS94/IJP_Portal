@@ -239,6 +239,9 @@
     "welcomeBack": "Welcome back!",
     "accountNotActivated": "Your account has not been activated yet. Please wait for activation by an administrator.",
     "googleNeedsConsent": "You don't have an account yet. Please accept the privacy policy to register.",
+    "googleAlmostDone": "Almost done!",
+    "googleSignedInAs": "Signed in with Google as",
+    "cancel": "Cancel",
     "accountCreated": "Welcome! Your account has been created.",
     "signingIn": "Signing in...",
     "googleLoginFailed": "Google sign-in failed"

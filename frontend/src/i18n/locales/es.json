@@ -235,6 +235,9 @@
     "welcomeBack": "¡Bienvenido de nuevo!",
     "accountNotActivated": "Su cuenta aún no ha sido activada. Por favor espere la activación por parte de un administrador.",
     "googleNeedsConsent": "Aún no tienes una cuenta. Acepta la política de privacidad para registrarte.",
+    "googleAlmostDone": "¡Casi listo!",
+    "googleSignedInAs": "Conectado con Google como",
+    "cancel": "Cancelar",
     "accountCreated": "¡Bienvenido/a! Tu cuenta ha sido creada.",
     "signingIn": "Iniciando sesión...",
     "googleLoginFailed": "Error al iniciar sesión con Google"

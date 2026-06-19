@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authAPI } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle } from "lucide-react";
 
 declare global {
   interface Window {
@@ -130,6 +130,28 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
     await submitGoogle(response.credential, false);
   };
 
+  // E-Mail aus dem Google-Credential (JWT) lesen, um sie in der Consent-Box anzuzeigen.
+  const googleEmail = useMemo(() => {
+    if (!pendingCredential) return null;
+    try {
+      const part = pendingCredential.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      const payload = JSON.parse(decodeURIComponent(escape(atob(part))));
+      return typeof payload.email === "string" ? payload.email : null;
+    } catch {
+      return null;
+    }
+  }, [pendingCredential]);
+
+  // Zurück vom Datenschutz-Schritt zum Google-Button (Nutzer bricht ab).
+  // renderedRef zurücksetzen und Button neu rendern, da das Button-Div neu gemountet wird.
+  const handleCancelConsent = () => {
+    setNeedsConsent(false);
+    setPendingCredential(null);
+    setConsent(false);
+    renderedRef.current = false;
+    requestAnimationFrame(() => requestAnimationFrame(renderGoogleButton));
+  };
+
   const renderGoogleButton = () => {
     if (renderedRef.current || !window.google || !googleConfig?.client_id || !buttonRef.current) return;
 
@@ -214,9 +236,22 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
         </div>
       ) : needsConsent ? (
         /* Neuer Nutzer erkannt -> jetzt Datenschutz-Zustimmung einblenden */
-        <div key="gsi-consent" className="w-full max-w-[400px] flex flex-col gap-3 p-4 rounded-xl border border-primary-200 bg-primary-50/50">
-          <p className="text-sm text-gray-700">{t("auth.googleNeedsConsent")}</p>
-          <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
+        <div key="gsi-consent" className="w-full max-w-[400px] flex flex-col gap-4 p-5 rounded-xl border border-primary-200 bg-primary-50/60 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 shrink-0">
+              <CheckCircle className="h-5 w-5 text-primary-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900 leading-tight">{t("auth.googleAlmostDone")}</p>
+              {googleEmail && (
+                <p className="text-xs text-gray-600 leading-snug mt-0.5 truncate">
+                  {t("auth.googleSignedInAs")} <span className="font-medium">{googleEmail}</span>
+                </p>
+              )}
+              <p className="text-xs text-gray-500 leading-snug mt-0.5">{t("auth.googleNeedsConsent")}</p>
+            </div>
+          </div>
+          <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
             <input
               type="checkbox"
               checked={consent}
@@ -238,6 +273,13 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
             className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t("auth.createAccount")}
+          </button>
+          <button
+            type="button"
+            onClick={handleCancelConsent}
+            className="text-xs text-gray-500 hover:text-gray-700 underline self-center"
+          >
+            {t("auth.cancel")}
           </button>
         </div>
       ) : (
