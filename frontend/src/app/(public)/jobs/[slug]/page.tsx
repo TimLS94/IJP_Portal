@@ -333,8 +333,12 @@ function generateJobPostingSchema(job: Job) {
       name: job.company.name,
       value: job.id.toString(),
     },
-    datePosted: job.created_at,
-    validThrough: job.valid_until || undefined,
+    // Google erwartet ISO 8601 (Datum). Rohes created_at (mit Mikrosekunden, ohne
+    // Zeitzone) ist ungültig -> als YYYY-MM-DD formatieren.
+    datePosted: job.created_at ? new Date(job.created_at).toISOString().split("T")[0] : undefined,
+    validThrough: job.valid_until
+      ? new Date(job.valid_until).toISOString().split("T")[0]
+      : undefined,
     employmentType,
     jobLocationType,
     hiringOrganization: {
