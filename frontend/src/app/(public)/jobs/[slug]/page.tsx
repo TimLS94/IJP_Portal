@@ -74,6 +74,7 @@ interface JobFromAPI {
   company_website?: string;
   translations?: Record<string, Record<string, string>>;
   available_languages?: string[];
+  is_external?: boolean;
 }
 
 // Transformiertes Format für Client
@@ -121,6 +122,7 @@ interface Job {
   company: Company;
   translations?: Record<string, Record<string, string>>;
   available_languages?: string[];
+  is_external?: boolean;
 }
 
 // Transformiert API-Response zu Client-Format
@@ -350,7 +352,9 @@ function generateJobPostingSchema(job: Job) {
     jobLocation,
     baseSalary: salaryValue,
     // Zusätzliche SEO-relevante Felder
-    directApply: true,
+    // Nur true bei eigenen Stellen (Bewerbung direkt auf jobon.work).
+    // Externe (BA-)Stellen leiten zum Arbeitgeber weiter -> false (Google-Richtlinie).
+    directApply: !job.is_external,
     employerOverview: job.company.description || undefined,
     jobBenefits: htmlToText(job.benefits),
     responsibilities: htmlToText(job.tasks),
