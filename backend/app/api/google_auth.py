@@ -4,6 +4,7 @@ Google OAuth für Bewerber-Registrierung und Login
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from datetime import datetime, timezone
@@ -22,6 +23,7 @@ class GoogleAuthRequest(BaseModel):
     """Google ID Token vom Frontend"""
     credential: str  # Google ID Token
     accepted_privacy: bool = False  # Datenschutz-Zustimmung (nur bei Neu-Registrierung Pflicht)
+    source_token: Optional[str] = None  # Partner-/Einladungs-Token für Quellen-Tracking
 
 
 class GoogleAuthResponse(BaseModel):
@@ -110,12 +112,30 @@ async def google_login(
             )
             db.add(user)
             db.flush()  # ID generieren
-            
+
+            # Quellen-Tracking: source_token (Partner-/Einladungslink) auflösen
+            invite_source = None
+            invite_source_country = None
+            invite_token_id = None
+            if data.source_token:
+                from app.models.applicant_invite import ApplicantInviteToken
+                invite = db.query(ApplicantInviteToken).filter(
+                    ApplicantInviteToken.token == data.source_token
+                ).first()
+                if invite and invite.is_valid():
+                    invite_source = invite.source_name
+                    invite_source_country = invite.source_country
+                    invite_token_id = invite.id
+                    invite.use()
+
             # Applicant-Profil erstellen
             applicant = Applicant(
                 user_id=user.id,
                 first_name=given_name or "Vorname",
-                last_name=family_name or "Nachname"
+                last_name=family_name or "Nachname",
+                invite_source=invite_source,
+                invite_source_country=invite_source_country,
+                invite_token_id=invite_token_id,
             )
             db.add(applicant)
             db.commit()

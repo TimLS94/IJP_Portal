@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Loader2, CheckCircle } from "lucide-react";
+import { getStoredSource, clearStoredSource } from "@/lib/sourceTracking";
 
 declare global {
   interface Window {
@@ -79,11 +80,12 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   const submitGoogle = async (credential: string, accepted: boolean) => {
     setProcessing(true);
     try {
-      const result = await authAPI.googleLogin(credential, accepted);
+      const result = await authAPI.googleLogin(credential, accepted, getStoredSource());
       const { access_token, user, is_new_user } = result.data;
 
       localStorage.setItem("token", access_token);
       localStorage.setItem("user", JSON.stringify(user));
+      clearStoredSource();  // Quelle wurde verwendet
       setAuth(access_token, user);
       setNeedsConsent(false);
       setPendingCredential(null);
