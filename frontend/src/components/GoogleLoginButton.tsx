@@ -80,7 +80,13 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
   const submitGoogle = async (credential: string, accepted: boolean) => {
     setProcessing(true);
     try {
-      const result = await authAPI.googleLogin(credential, accepted, getStoredSource());
+      // Quelle robust ermitteln: zuerst direkt aus der aktuellen URL (?source=…),
+      // sonst aus dem localStorage (falls vorher herumgeklickt wurde).
+      const urlSource = typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("source")
+        : null;
+      const sourceToken = urlSource || getStoredSource();
+      const result = await authAPI.googleLogin(credential, accepted, sourceToken);
       const { access_token, user, is_new_user } = result.data;
 
       localStorage.setItem("token", access_token);

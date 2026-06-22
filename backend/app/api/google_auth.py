@@ -154,7 +154,22 @@ async def google_login(
     
     # Applicant-Daten laden
     applicant = db.query(Applicant).filter(Applicant.user_id == user.id).first()
-    
+
+    # Quelle nachtragen, falls über einen Partner-/Einladungslink eingeloggt und
+    # noch keine Quelle gesetzt ist (z.B. Konto existierte bereits). Greift auch,
+    # falls das Setzen bei der Neu-Registrierung nicht funktioniert hat.
+    if applicant and data.source_token and not applicant.invite_source:
+        from app.models.applicant_invite import ApplicantInviteToken
+        invite = db.query(ApplicantInviteToken).filter(
+            ApplicantInviteToken.token == data.source_token
+        ).first()
+        if invite and invite.is_valid():
+            applicant.invite_source = invite.source_name
+            applicant.invite_source_country = invite.source_country
+            applicant.invite_token_id = invite.id
+            invite.use()
+            db.commit()
+
     return GoogleAuthResponse(
         access_token=access_token,
         user={
