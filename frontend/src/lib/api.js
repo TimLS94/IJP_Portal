@@ -72,6 +72,11 @@ export const authAPI = {
   updateEmailPreferences: (data) => api.put('/auth/email-preferences', data),
   // Google OAuth
   getGoogleConfig: () => api.get('/auth/google/config'),
+  /**
+   * @param {string} credential
+   * @param {boolean} [acceptedPrivacy]
+   * @param {string | null} [sourceToken]
+   */
   googleLogin: (credential, acceptedPrivacy = false, sourceToken = null) => api.post('/auth/google/login', { credential, accepted_privacy: acceptedPrivacy, source_token: sourceToken }),
 };
 
