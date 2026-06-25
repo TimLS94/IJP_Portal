@@ -329,6 +329,22 @@ export default function CompanyJobsPage() {
         </div>
       )}
 
+      {activeTab === "active" && promo && !promo.is_premium && jobs.length > 0 && (
+        <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+          <p className="font-medium text-gray-900 mb-1">Mehr Sichtbarkeit für einzelne Stellen – auch ohne Premium</p>
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
+            <span className="flex items-center gap-1.5">
+              <Star className="h-4 w-4 text-amber-500 shrink-0" />
+              <span><strong>Hervorheben (7,99 €):</strong> Deine Stelle erscheint 14 Tage lang oben in den Suchergebnissen.</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Rocket className="h-4 w-4 text-purple-600 shrink-0" />
+              <span><strong>Booster (4,99 €):</strong> Wir stellen deine Stelle aktiv unserem Bewerberpool vor und bewerben sie über unsere Kanäle.</span>
+            </span>
+          </div>
+        </div>
+      )}
+
       {activeTab === "active" && jobs.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <div className="relative flex-1 max-w-xs">
@@ -444,7 +460,7 @@ export default function CompanyJobsPage() {
                       <button
                         onClick={() => handleBuyPromotion(job, "feature")}
                         disabled={job.is_featured || !job.is_active || job.is_draft}
-                        title={job.is_featured ? "Bereits hervorgehoben" : "Stelle einmalig hervorheben (7,99 €, 14 Tage)"}
+                        title={job.is_featured ? "Bereits hervorgehoben" : "Hervorheben (7,99 €): erscheint 14 Tage lang oben in den Suchergebnissen"}
                         className="text-sm flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Star className={`h-4 w-4 ${job.is_featured ? "fill-amber-400" : ""}`} /><span className="hidden sm:inline">{job.is_featured ? "Hervorgehoben" : "Hervorheben 7,99 €"}</span>
@@ -452,7 +468,7 @@ export default function CompanyJobsPage() {
                       <button
                         onClick={() => handleBuyPromotion(job, "boost")}
                         disabled={!job.is_active || job.is_draft}
-                        title={isBoostActive(job) ? "Booster läuft" : "Stelle einmalig boostern (4,99 €)"}
+                        title={isBoostActive(job) ? "Booster läuft" : "Booster (4,99 €): Stelle wird aktiv dem Bewerberpool vorgestellt und über unsere Kanäle beworben"}
                         className={`text-sm flex items-center gap-1 px-3 py-2 rounded-lg border disabled:opacity-40 disabled:cursor-not-allowed ${isBoostActive(job) ? "border-purple-500 bg-purple-100 text-purple-800" : "border-purple-300 text-purple-700 hover:bg-purple-50"}`}
                       >
                         <Rocket className="h-4 w-4" /><span className="hidden sm:inline">{isBoostActive(job) ? "Booster läuft" : "Booster 4,99 €"}</span>
