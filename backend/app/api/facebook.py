@@ -607,6 +607,61 @@ async def get_boosted_jobs(
     return {"jobs": [_serialize_job_post(j, cached_map.get(j.id)) for j in jobs]}
 
 
+@router.get("/boosted-jobs/other")
+async def get_other_jobs_for_boost(
+    search: Optional[str] = None,
+    limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aktive Stellen OHNE aktiven Boost/Hervorhebung – damit der Vertrieb sie
+    bei Bedarf manuell boostern (Boost-E-Mails senden) kann."""
+    require_admin(current_user)
+    from app.models.job_posting import JobPosting
+    from sqlalchemy.orm import joinedload
+    from sqlalchemy import and_, or_, not_
+    now = datetime.utcnow()
+    boost_cutoff = now - timedelta(days=30)
+
+    # NULL-sicher: aktuell hervorgehoben ODER in den letzten 30 Tagen geboostet
+    is_featured_active = and_(
+        JobPosting.is_featured.is_(True),
+        or_(JobPosting.featured_until.is_(None), JobPosting.featured_until > now),
+    )
+    is_recently_boosted = and_(
+        JobPosting.last_boosted_at.isnot(None),
+        JobPosting.last_boosted_at >= boost_cutoff,
+    )
+
+    query = (
+        db.query(JobPosting)
+        .options(joinedload(JobPosting.company))
+        .filter(
+            JobPosting.is_active == True,
+            JobPosting.is_draft == False,
+            JobPosting.is_archived == False,
+            not_(or_(is_featured_active, is_recently_boosted)),
+        )
+    )
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                JobPosting.title.ilike(pattern),
+                JobPosting.location.ilike(pattern),
+                JobPosting.external_employer_name.ilike(pattern),
+            )
+        )
+    jobs = query.order_by(desc(JobPosting.created_at)).limit(limit).all()
+
+    cached_map = {
+        c.job_id: c for c in db.query(FacebookJobPost).filter(
+            FacebookJobPost.job_id.in_([j.id for j in jobs] or [0])
+        ).all()
+    }
+    return {"jobs": [_serialize_job_post(j, cached_map.get(j.id)) for j in jobs]}
+
+
 @router.post("/boosted-jobs/{job_id}/generate")
 async def generate_boosted_job_post(
     job_id: int,
