@@ -97,6 +97,8 @@ export const billingAPI = {
   getStatus: () => api.get('/billing/status'),
   createCheckout: () => api.post('/billing/checkout'),
   openPortal: () => api.post('/billing/portal'),
+  // Einmalzahlung (ohne Premium): Stelle boostern / hervorheben. kind = 'boost' | 'feature'
+  createPromotionCheckout: (jobId, kind) => api.post('/billing/promotion-checkout', { job_id: jobId, kind }),
 };
 
 // Company API

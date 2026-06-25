@@ -11,10 +11,11 @@ Der Premium-Status (Company.is_premium) wird ausschließlich über die Webhooks
 gesetzt – nie clientseitig. Der Admin-Toggle bleibt als manueller Override.
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -33,6 +34,18 @@ router = APIRouter(prefix="/billing", tags=["Billing"])
 # Aktive Abo-Status, bei denen Premium gilt
 ACTIVE_STATUSES = {"active", "trialing"}
 PRICE_SETTING_KEY = "stripe_price_id_auto"  # Cache für automatisch erstellte Price-ID
+
+# Einmalig bezahlte Promotions (Nicht-Premium): Label + Preis je Aktion
+PAID_FEATURE_DURATION_DAYS = 14  # gekaufte Hervorhebung gilt 14 Tage
+PROMOTION_KINDS = {
+    "boost": ("Stelle boostern", settings.BOOST_PRICE_CENTS),
+    "feature": ("Stelle hervorheben (14 Tage)", settings.FEATURE_PRICE_CENTS),
+}
+
+
+class PromotionCheckoutRequest(BaseModel):
+    job_id: int
+    kind: str  # "boost" | "feature"
 
 
 def _require_stripe():
@@ -181,6 +194,130 @@ def _apply_subscription_state(db: Session, company: Company, subscription) -> No
     )
 
 
+def _apply_paid_promotion(db: Session, session_obj, background_tasks: BackgroundTasks, diag: dict) -> None:
+    """Wendet eine per Einmalzahlung gekaufte Promotion (boost/feature) auf die Stelle an.
+
+    Wird aus dem Webhook (checkout.session.completed mit metadata.purpose="promotion")
+    aufgerufen. Idempotent über stripe_session_id, damit doppelte Webhooks nicht
+    doppelt wirken.
+    """
+    from app.models.job_posting import JobPosting
+    from app.models.job_promotion import JobPromotion
+
+    meta = _g(session_obj, "metadata")
+    session_id = _g(session_obj, "id")
+    kind = _g(meta, "kind")
+    job_id = _g(meta, "job_id")
+    company_id = _g(meta, "company_id")
+    diag["promotion_kind"] = kind
+
+    # Nur bei tatsächlich abgeschlossener Zahlung
+    if _g(session_obj, "payment_status") not in ("paid", "no_payment_required"):
+        diag["promotion_skipped"] = "unpaid"
+        return
+    if not (kind in PROMOTION_KINDS and job_id and company_id):
+        diag["promotion_skipped"] = "missing_metadata"
+        return
+
+    # Idempotenz: diese Session schon verarbeitet?
+    if session_id and db.query(JobPromotion).filter(
+        JobPromotion.stripe_session_id == session_id
+    ).first():
+        diag["promotion_skipped"] = "already_processed"
+        return
+
+    job = db.query(JobPosting).filter(
+        JobPosting.id == int(job_id),
+        JobPosting.company_id == int(company_id),
+    ).first()
+    if not job:
+        diag["promotion_skipped"] = "job_not_found"
+        return
+
+    now = datetime.utcnow()
+    if kind == "feature":
+        job.is_featured = True
+        job.featured_by_admin = False
+        job.featured_requested_at = now
+        job.featured_until = now + timedelta(days=PAID_FEATURE_DURATION_DAYS)
+    else:  # "boost"
+        job.last_boosted_at = now
+
+    db.add(JobPromotion(
+        company_id=int(company_id),
+        job_id=job.id,
+        kind=kind,
+        source="paid",
+        stripe_session_id=session_id,
+    ))
+    db.commit()
+    diag["promotion_applied"] = True
+    logger.info(f"Company {company_id}: bezahlte Promotion '{kind}' für Job {job.id} aktiviert")
+
+    # FB-Gruppenpost (DE/ES) automatisch im Hintergrund generieren – wie bei Premium
+    try:
+        from app.services.facebook_post_generator import generate_and_store_job_post
+        background_tasks.add_task(generate_and_store_job_post, job.id)
+    except Exception as e:
+        logger.warning(f"FB-Post-Generierung konnte nicht geplant werden: {e}")
+
+
+@router.post("/promotion-checkout")
+async def create_promotion_checkout(
+    req: PromotionCheckoutRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Erstellt eine Stripe Checkout Session für eine einmalige Promotion
+    (Stelle boostern 4,99 € / hervorheben 7,99 €) – auch ohne Premium-Abo."""
+    _require_stripe()
+    company = get_company_or_404(current_user, db)
+
+    kind = (req.kind or "").strip().lower()
+    if kind not in PROMOTION_KINDS:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ungültige Aktion.")
+
+    from app.models.job_posting import JobPosting
+    job = db.query(JobPosting).filter(
+        JobPosting.id == req.job_id,
+        JobPosting.company_id == company.id,
+    ).first()
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stelle nicht gefunden.")
+
+    label, amount = PROMOTION_KINDS[kind]
+    customer_id = _get_or_create_customer(db, company, current_user)
+    base = _frontend_url()
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            customer=customer_id,
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "product_data": {"name": label},
+                    "unit_amount": amount,
+                },
+                "quantity": 1,
+            }],
+            billing_address_collection="auto",
+            success_url=f"{base}/company/jobs?promo=success",
+            cancel_url=f"{base}/company/jobs?promo=canceled",
+            metadata={
+                "purpose": "promotion",
+                "company_id": str(company.id),
+                "job_id": str(job.id),
+                "kind": kind,
+            },
+        )
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe Promotion-Checkout Fehler: {e}")
+        raise HTTPException(status_code=502, detail="Checkout konnte nicht gestartet werden.")
+
+    return {"url": session.url}
+
+
 @router.post("/checkout")
 async def create_checkout_session(
     current_user: User = Depends(get_current_user),
@@ -301,7 +438,11 @@ async def get_billing_status(
 
 
 @router.post("/webhook")
-async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+async def stripe_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """Empfängt Stripe-Webhooks und synchronisiert den Premium-Status."""
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
@@ -327,6 +468,11 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     try:
         if event_type == "checkout.session.completed":
+            # Einmalzahlung für eine Promotion (boost/feature) – aktiviert KEIN Premium.
+            if _g(_g(obj, "metadata"), "purpose") == "promotion":
+                _apply_paid_promotion(db, obj, background_tasks, diag)
+                return diag
+
             # Premium direkt aus der Checkout-Session aktivieren – ohne dass der
             # (ggf. eingeschränkte) Key ein Subscriptions-Read-Recht braucht.
             company = None

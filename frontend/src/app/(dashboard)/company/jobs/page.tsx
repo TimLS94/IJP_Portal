@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Briefcase, Plus, MapPin, Calendar, Edit, Trash2, Eye, EyeOff, Clock, Archive, RotateCcw, AlertTriangle, FileText, Search, X, LayoutGrid, List, Languages, Lock, Unlock, Copy, Loader2, Heart, Users, ChevronRight, ChevronDown, Building2, Globe, ExternalLink, Star, Rocket } from "lucide-react";
-import { jobsAPI } from "@/lib/api";
+import { jobsAPI, billingAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
@@ -119,6 +119,29 @@ export default function CompanyJobsPage() {
 
   useEffect(() => { loadAll(); }, []);
   useEffect(() => { jobsAPI.getPromotionStatus().then(r => setPromo(r.data)).catch(() => {}); }, []);
+
+  // Rückkehr von Stripe-Checkout (Einmalzahlung Boost/Hervorheben)
+  useEffect(() => {
+    const promoParam = searchParams.get("promo");
+    if (promoParam === "success") {
+      toast.success("Zahlung erfolgreich! Deine Stelle wird in Kürze freigeschaltet.");
+    } else if (promoParam === "canceled") {
+      toast("Zahlung abgebrochen.", { icon: "ℹ️" });
+    }
+  }, [searchParams]);
+
+  const handleBuyPromotion = async (job: Job, kind: "boost" | "feature") => {
+    try {
+      const r = await billingAPI.createPromotionCheckout(job.id, kind);
+      if (r.data?.url) {
+        window.location.href = r.data.url;
+      } else {
+        toast.error(t('common.error'));
+      }
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('common.error'));
+    }
+  };
 
   const handleFeature = async (job: Job) => {
     try {
@@ -413,6 +436,26 @@ export default function CompanyJobsPage() {
                         className={`text-sm flex items-center gap-1 px-3 py-2 rounded-lg border disabled:opacity-40 disabled:cursor-not-allowed ${isBoostActive(job) ? "border-purple-500 bg-purple-100 text-purple-800" : "border-purple-300 text-purple-700 hover:bg-purple-50"}`}
                       >
                         <Rocket className="h-4 w-4" /><span className="hidden sm:inline">{isBoostActive(job) ? "Booster läuft" : "Booster"}</span>
+                      </button>
+                    </>
+                  )}
+                  {promo && !promo.is_premium && (
+                    <>
+                      <button
+                        onClick={() => handleBuyPromotion(job, "feature")}
+                        disabled={job.is_featured || !job.is_active || job.is_draft}
+                        title={job.is_featured ? "Bereits hervorgehoben" : "Stelle einmalig hervorheben (7,99 €, 14 Tage)"}
+                        className="text-sm flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Star className={`h-4 w-4 ${job.is_featured ? "fill-amber-400" : ""}`} /><span className="hidden sm:inline">{job.is_featured ? "Hervorgehoben" : "Hervorheben 7,99 €"}</span>
+                      </button>
+                      <button
+                        onClick={() => handleBuyPromotion(job, "boost")}
+                        disabled={!job.is_active || job.is_draft}
+                        title={isBoostActive(job) ? "Booster läuft" : "Stelle einmalig boostern (4,99 €)"}
+                        className={`text-sm flex items-center gap-1 px-3 py-2 rounded-lg border disabled:opacity-40 disabled:cursor-not-allowed ${isBoostActive(job) ? "border-purple-500 bg-purple-100 text-purple-800" : "border-purple-300 text-purple-700 hover:bg-purple-50"}`}
+                      >
+                        <Rocket className="h-4 w-4" /><span className="hidden sm:inline">{isBoostActive(job) ? "Booster läuft" : "Booster 4,99 €"}</span>
                       </button>
                     </>
                   )}
