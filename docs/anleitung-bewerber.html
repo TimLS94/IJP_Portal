@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<title>JobOn Portal – Anleitung für Bewerber</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:16px;line-height:1.85;color:#1a1a2e;background:white}
+@media print{
+  html,body{background:white!important;background-color:white!important}
+  .no-print{display:none!important}
+  .card{box-shadow:none!important;border:1px solid #e0e0e0!important}
+  .chapter,.toc,.cover,figure{box-shadow:none!important;border-radius:0!important}
+  figcaption{background:white!important;color:#444!important}
+  .toc{background:white!important;border-radius:0!important}
+  a{color:inherit;text-decoration:none}
+  .step,.step-body,.note,table,tr,figure,.chapter-header{
+    break-inside:avoid;page-break-inside:avoid;
+  }
+  .chapter h3,.chapter h4{break-after:avoid;page-break-after:avoid}
+}
+html{background:white}
+@page{background:white;margin:12mm}
+.container{max-width:900px;margin:0 auto;padding:40px 24px}
+.cover{background:linear-gradient(135deg,#1e40af 0%,#3b82f6 50%,#60a5fa 100%);color:white;padding:64px 48px;border-radius:16px;margin-bottom:48px;position:relative;overflow:hidden}
+.cover::after{content:'';position:absolute;right:-60px;top:-60px;width:280px;height:280px;background:rgba(255,255,255,0.08);border-radius:50%}
+.cover-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;opacity:.75;margin-bottom:12px}
+.cover h1{font-size:36px;font-weight:800;line-height:1.2;margin-bottom:16px}
+.cover p{font-size:16px;opacity:.85;max-width:520px}
+.cover-meta{margin-top:40px;font-size:12px;opacity:.6}
+.toc{background:white;border-radius:12px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:48px}
+.toc h2{font-size:18px;font-weight:700;margin-bottom:20px;color:#1e40af}
+.toc ol{padding-left:20px}
+.toc li{margin-bottom:8px}
+.toc a{color:#3b82f6;text-decoration:none;font-weight:500}
+.chapter{background:white;border-radius:12px;padding:28px 48px 48px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:20px}
+.chapter-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #f0f4ff}
+.chapter-num{background:linear-gradient(135deg,#1e40af,#3b82f6);color:white;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0}
+.chapter h2{font-size:22px;font-weight:700;color:#1e3a8a}
+.chapter h3{font-size:17px;font-weight:700;color:#1e40af;margin:22px 0 10px;padding-left:14px;border-left:3px solid #3b82f6}
+.chapter h4{font-size:14px;font-weight:700;color:#374151;margin:16px 0 8px}
+.chapter p{margin-bottom:18px;color:#374151;font-size:15px;line-height:1.9}
+.chapter ul,.chapter ol{padding-left:20px;margin-bottom:16px}
+.chapter li{margin-bottom:10px;color:#374151;font-size:15px;line-height:1.75}
+.steps{counter-reset:step;margin:20px 0}
+.step{display:flex;gap:16px;margin-bottom:24px;align-items:flex-start}
+.step-num{counter-increment:step;background:#eff6ff;color:#1e40af;border:2px solid #bfdbfe;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;margin-top:2px}
+.step-num::before{content:counter(step)}
+.step-body strong{display:block;color:#111827;margin-bottom:6px;font-size:15px}
+.step-body p{margin:0;color:#4b5563;font-size:14px;line-height:1.7}
+.note{border-radius:8px;padding:18px 20px;margin:24px 0;font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.note-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.note.info{background:#eff6ff;border-left:4px solid #3b82f6;color:#1e40af}
+.note.warn{background:#fffbeb;border-left:4px solid #f59e0b;color:#92400e}
+.note.tip{background:#f0fdf4;border-left:4px solid #22c55e;color:#166534}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.badge.yellow{background:#fef3c7;color:#92400e}.badge.yellow .badge-dot{background:#f59e0b}
+.badge.blue{background:#dbeafe;color:#1e40af}.badge.blue .badge-dot{background:#3b82f6}
+.badge.indigo{background:#e0e7ff;color:#3730a3}.badge.indigo .badge-dot{background:#6366f1}
+.badge.green{background:#dcfce7;color:#166534}.badge.green .badge-dot{background:#22c55e}
+.badge.red{background:#fee2e2;color:#991b1b}.badge.red .badge-dot{background:#ef4444}
+.badge.gray{background:#f3f4f6;color:#374151}.badge.gray .badge-dot{background:#9ca3af}
+table{width:100%;border-collapse:collapse;margin:24px 0;font-size:14px}
+th{background:#f0f4ff;color:#1e40af;font-weight:700;text-align:left;padding:14px 16px;border-bottom:2px solid #bfdbfe;font-size:14px}
+td{padding:14px 16px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:14px}
+tr:last-child td{border-bottom:none}
+.divider{border:none;border-top:1px solid #e5e7eb;margin:32px 0}
+figure{margin:32px 0 28px 0;border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.12);border:1px solid #e5e7eb}
+figure img{width:100%;display:block}
+figcaption{background:#f8f9fb;padding:10px 16px;font-size:13px;color:#6b7280;font-style:italic}
+.shot-ph{display:none}
+figure.missing .shot-ph{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;min-height:220px;background:#f1f5ff;color:#64748b;font-size:14px;text-align:center;padding:24px}
+.shot-ph .shot-ph-icon{font-size:30px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-label">JobOn – Internationale Fachkräfte</div>
+  <h1>Benutzerhandbuch<br>für Bewerber</h1>
+  <p>Schritt-für-Schritt Anleitung zur Nutzung des JobOn-Portals — von der Registrierung bis zur erfolgreichen Vermittlung.</p>
+  <div class="cover-meta">Version 1.0 &nbsp;·&nbsp; Stand: Juni 2026 &nbsp;·&nbsp; jobon.work</div>
+</div>
+
+<!-- INHALTSVERZEICHNIS -->
+<div class="toc">
+  <h2>Inhaltsverzeichnis</h2>
+  <ol>
+    <li><a href="#ch1">Registrierung &amp; Anmeldung</a></li>
+    <li><a href="#ch2">Ihr Profil ausfüllen</a></li>
+    <li><a href="#ch3">Dokumente hochladen</a></li>
+    <li><a href="#ch4">Stellen suchen &amp; bewerben</a></li>
+    <li><a href="#ch5">Ihre Bewerbungen verfolgen</a></li>
+    <li><a href="#ch6">Gemerkte Stellen</a></li>
+    <li><a href="#ch7">IJP beauftragen (Vermittlungsservice)</a></li>
+    <li><a href="#ch8">Einstellungen &amp; Benachrichtigungen</a></li>
+    <li><a href="#ch9">Häufige Fragen (FAQ)</a></li>
+  </ol>
+</div>
+
+<!-- CH 1 -->
+<div style="page-break-before:always; height:52px;"></div>
+<div class="chapter" id="ch1">
+  <div class="chapter-header"><div class="chapter-num">1</div><h2>Registrierung &amp; Anmeldung</h2></div>
+  <p>Die Nutzung von JobOn ist für Bewerber komplett kostenlos. Sie registrieren sich direkt auf jobon.work.</p>
+
+  <h3>Konto erstellen</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Auf jobon.work „Registrieren" klicken</strong><p>Den Button finden Sie oben rechts. Wählen Sie die Registrierung als Bewerber.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Daten eingeben</strong><p>Vorname, Nachname, E-Mail-Adresse und ein Passwort (mindestens 6 Zeichen).</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Alternativ mit Google anmelden</strong><p>Mit einem Klick über Ihr Google-Konto – ohne separates Passwort.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Konto bestätigen</strong><p>Sie erhalten eine Bestätigungs-E-Mail – klicken Sie auf den enthaltenen Link.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Anmelden</strong><p>Melden Sie sich anschließend auf <strong>jobon.work</strong> mit E-Mail und Passwort an.</p></div></div>
+  </div>
+  <div class="note tip"><span class="note-icon">💡</span><div>Verwenden Sie eine E-Mail-Adresse, die Sie regelmäßig abrufen – wichtige Nachrichten zu Ihren Bewerbungen kommen per E-Mail.</div></div>
+
+  <h3>Passwort vergessen</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>„Passwort vergessen" klicken</strong><p>Den Link finden Sie unterhalb des Anmeldeformulars.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>E-Mail-Adresse eingeben</strong><p>Sie erhalten eine Reset-E-Mail (gültig 24 Stunden).</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Neues Passwort festlegen</strong><p>Öffnen Sie den Link in der E-Mail und vergeben Sie ein neues Passwort.</p></div></div>
+  </div>
+</div>
+
+<!-- CH 2 -->
+<div class="chapter" id="ch2">
+  <div class="chapter-header"><div class="chapter-num">2</div><h2>Ihr Profil ausfüllen</h2></div>
+  <p>Navigieren Sie zu: <strong>Menü → Mein Profil</strong>. Ein vollständiges Profil ist die Voraussetzung, um sich zu bewerben und JobOn zu beauftragen.</p>
+
+  <figure class="missing">
+    <img src="screenshots/b_profile.png" alt="Mein Profil" onerror="this.closest('figure').classList.add('missing'); this.remove();"/>
+    <div class="shot-ph"><div class="shot-ph-icon">📷</div><div>Screenshot folgt: Mein Profil</div></div>
+    <figcaption>Mein Profil – Stellenart, persönliche Daten und Studieninformationen</figcaption>
+  </figure>
+
+  <h3>Stellenart wählen</h3>
+  <p>Wählen Sie zuerst die Stellenart, für die Sie sich interessieren. Davon hängt ab, welche Dokumente später benötigt werden.</p>
+  <table>
+    <tr><th>Stellenart</th><th>Für wen?</th></tr>
+    <tr><td>Studentenferienjob</td><td>Studierende, die in den Semesterferien in Deutschland arbeiten möchten</td></tr>
+    <tr><td>Saisonjob</td><td>Befristete Saisonarbeit (z. B. Landwirtschaft, Tourismus)</td></tr>
+    <tr><td>Work &amp; Holiday</td><td>Arbeiten und Reisen im Rahmen eines Working-Holiday-Visums</td></tr>
+    <tr><td>Fachkräfte</td><td>Qualifizierte Fachkräfte für eine längerfristige Anstellung</td></tr>
+    <tr><td>Ausbildung</td><td>Bewerber, die eine Ausbildung in Deutschland beginnen möchten</td></tr>
+  </table>
+
+  <h3>Persönliche Daten &amp; Adresse</h3>
+  <table>
+    <tr><th>Feld</th><th>Hinweis</th></tr>
+    <tr><td>Geburtsdatum</td><td>Pflichtangabe</td></tr>
+    <tr><td>Geburtsort</td><td>Ort und Land Ihrer Geburt</td></tr>
+    <tr><td>Nationalität</td><td>Aus der Liste auswählen</td></tr>
+    <tr><td>Telefonnummer</td><td>Für Rückfragen und Terminabsprachen</td></tr>
+    <tr><td>Heimatadresse</td><td>Ihre vollständige Adresse im Heimatland</td></tr>
+  </table>
+
+  <h3>Studieninformationen</h3>
+  <p>Für Studentenjobs ergänzen Sie Ihre Universität, den Studiengang, das aktuelle Semester sowie den Zeitraum Ihrer Semesterferien.</p>
+
+  <h3>Profil automatisch ausfüllen (Lebenslauf-Upload)</h3>
+  <p>Sie müssen nicht alles von Hand eintippen: Laden Sie Ihren Lebenslauf hoch und JobOn übernimmt passende Angaben automatisch in Ihr Profil. Prüfen Sie die übernommenen Daten anschließend und korrigieren Sie sie bei Bedarf.</p>
+  <div class="note warn"><span class="note-icon">⚠️</span><div>Klicken Sie zum Schluss immer auf <strong>„Profil speichern"</strong>.</div></div>
+</div>
+
+<!-- CH 3 -->
+<div class="chapter" id="ch3">
+  <div class="chapter-header"><div class="chapter-num">3</div><h2>Dokumente hochladen</h2></div>
+  <p>Navigieren Sie zu: <strong>Menü → Meine Dokumente</strong>. Je nach gewählter Stellenart zeigt Ihnen JobOn genau, welche Dokumente erforderlich sind.</p>
+
+  <figure class="missing">
+    <img src="screenshots/b_documents.png" alt="Meine Dokumente" onerror="this.closest('figure').classList.add('missing'); this.remove();"/>
+    <div class="shot-ph"><div class="shot-ph-icon">📷</div><div>Screenshot folgt: Meine Dokumente</div></div>
+    <figcaption>Meine Dokumente – Pflichtdokumente und Upload-Fortschritt</figcaption>
+  </figure>
+
+  <h3>So laden Sie ein Dokument hoch</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>„Dokument hochladen" klicken</strong><p>Der Upload-Dialog öffnet sich.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Dokumenttyp wählen</strong><p>Z. B. Reisepass, Lebenslauf, Zeugnis.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Datei auswählen</strong><p>Nur PDF-Dateien, maximal 10 MB pro Datei.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Hochladen</strong><p>Das Dokument erscheint in der Liste Ihrer hochgeladenen Dokumente.</p></div></div>
+  </div>
+
+  <h3>Fortschritt im Blick</h3>
+  <p>Oben sehen Sie, wie viele der Pflichtdokumente Sie bereits hochgeladen haben (z. B. „3 von 5"). Geben Sie optional eine kurze Beschreibung an, z. B. „Seite 1–5 des Reisepasses".</p>
+  <div class="note info"><span class="note-icon">ℹ️</span><div>Erst wenn alle Pflichtdokumente vorliegen, können Sie sich bewerben und JobOn beauftragen. Verifizierte Dokumente sind mit einem Häkchen markiert.</div></div>
+</div>
+
+<!-- CH 4 -->
+<div class="chapter" id="ch4">
+  <div class="chapter-header"><div class="chapter-num">4</div><h2>Stellen suchen &amp; bewerben</h2></div>
+  <p>Über <strong>Menü → Stellenangebote</strong> durchsuchen Sie alle aktuell ausgeschriebenen Stellen.</p>
+
+  <figure class="missing">
+    <img src="screenshots/b_jobs.png" alt="Stellensuche" onerror="this.closest('figure').classList.add('missing'); this.remove();"/>
+    <div class="shot-ph"><div class="shot-ph-icon">📷</div><div>Screenshot folgt: Stellensuche</div></div>
+    <figcaption>Stellensuche – Filter nach Stellenart, Ort und Sprache</figcaption>
+  </figure>
+
+  <h3>Passende Stellen finden</h3>
+  <ul>
+    <li><strong>Filter nutzen</strong> – Schränken Sie nach Stellenart, Ort und benötigten Sprachkenntnissen ein.</li>
+    <li><strong>Match-Score</strong> – Bei vielen Stellen sehen Sie, wie gut Ihr Profil zur Stelle passt.</li>
+    <li><strong>Merken</strong> – Klicken Sie auf das Herz-Symbol, um eine Stelle für später zu speichern.</li>
+  </ul>
+
+  <h3>Auf eine Stelle bewerben</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Stelle öffnen</strong><p>Klicken Sie auf eine Anzeige, um alle Details zu sehen.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>„Jetzt bewerben" klicken</strong><p>Der Button befindet sich in der Stellenanzeige.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Bewerbung absenden</strong><p>Ihr Profil und Ihre hochgeladenen Dokumente werden an das Unternehmen übermittelt.</p></div></div>
+  </div>
+  <div class="note warn"><span class="note-icon">⚠️</span><div>Achten Sie darauf, dass Ihr Profil vollständig und Ihre Dokumente hochgeladen sind – sonst können Sie sich nicht bewerben.</div></div>
+</div>
+
+<!-- CH 5 -->
+<div class="chapter" id="ch5">
+  <div class="chapter-header"><div class="chapter-num">5</div><h2>Ihre Bewerbungen verfolgen</h2></div>
+  <p>Unter <strong>Menü → Meine Bewerbungen</strong> sehen Sie alle Stellen, auf die Sie sich beworben haben, und den jeweiligen Status.</p>
+
+  <figure class="missing">
+    <img src="screenshots/b_applications.png" alt="Meine Bewerbungen" onerror="this.closest('figure').classList.add('missing'); this.remove();"/>
+    <div class="shot-ph"><div class="shot-ph-icon">📷</div><div>Screenshot folgt: Meine Bewerbungen</div></div>
+    <figcaption>Meine Bewerbungen – Status jeder Bewerbung im Überblick</figcaption>
+  </figure>
+
+  <h3>Was die Status bedeuten</h3>
+  <div class="badges">
+    <span class="badge yellow"><span class="badge-dot"></span>Ausstehend</span>
+    <span class="badge blue"><span class="badge-dot"></span>In Prüfung</span>
+    <span class="badge indigo"><span class="badge-dot"></span>Gespräch geplant</span>
+    <span class="badge green"><span class="badge-dot"></span>Angenommen</span>
+    <span class="badge red"><span class="badge-dot"></span>Abgelehnt</span>
+  </div>
+  <table>
+    <tr><th>Status</th><th>Bedeutung</th></tr>
+    <tr><td>Ausstehend</td><td>Ihre Bewerbung ist eingegangen und wartet auf Prüfung.</td></tr>
+    <tr><td>In Prüfung</td><td>Das Unternehmen sieht sich Ihre Bewerbung gerade an.</td></tr>
+    <tr><td>Gespräch geplant</td><td>Es liegt ein Terminvorschlag für ein Vorstellungsgespräch vor.</td></tr>
+    <tr><td>Angenommen</td><td>Glückwunsch – Sie wurden ausgewählt!</td></tr>
+    <tr><td>Abgelehnt</td><td>Diese Bewerbung war leider nicht erfolgreich.</td></tr>
+  </table>
+
+  <h3>Auf einen Gesprächstermin reagieren</h3>
+  <p>Schlägt ein Unternehmen Termine vor, erhalten Sie eine E-Mail. Öffnen Sie die Bewerbung und bestätigen Sie einen der vorgeschlagenen Termine. Bei Videogesprächen finden Sie dort auch den Meeting-Link.</p>
+  <div class="note info"><span class="note-icon">ℹ️</span><div>Bei jeder wichtigen Statusänderung werden Sie automatisch per E-Mail informiert.</div></div>
+</div>
+
+<!-- CH 6 -->
+<div class="chapter" id="ch6">
+  <div class="chapter-header"><div class="chapter-num">6</div><h2>Gemerkte Stellen</h2></div>
+  <p>Unter <strong>Menü → Gemerkte Stellen</strong> finden Sie alle Stellen wieder, die Sie mit dem Herz-Symbol gespeichert haben.</p>
+
+  <figure class="missing">
+    <img src="screenshots/b_liked.png" alt="Gemerkte Stellen" onerror="this.closest('figure').classList.add('missing'); this.remove();"/>
+    <div class="shot-ph"><div class="shot-ph-icon">📷</div><div>Screenshot folgt: Gemerkte Stellen</div></div>
+    <figcaption>Gemerkte Stellen – Ihre gespeicherten Favoriten</figcaption>
+  </figure>
+
+  <ul>
+    <li><strong>Öffnen</strong> – Klicken Sie eine gemerkte Stelle an, um sich direkt zu bewerben.</li>
+    <li><strong>Entfernen</strong> – Klicken Sie erneut auf das Herz, um eine Stelle aus der Merkliste zu nehmen.</li>
+  </ul>
+</div>
+
+<!-- CH 7 -->
+<div class="chapter" id="ch7">
+  <div class="chapter-header"><div class="chapter-num">7</div><h2>IJP beauftragen – der Vermittlungsservice</h2></div>
+  <p>Sie möchten nicht selbst suchen? Mit einem IJP-Auftrag beauftragen Sie uns, aktiv passende Stellen für Sie zu finden. Navigieren Sie zu: <strong>Menü → IJP beauftragen</strong>.</p>
+
+  <figure class="missing">
+    <img src="screenshots/b_ijp.png" alt="IJP beauftragen" onerror="this.closest('figure').classList.add('missing'); this.remove();"/>
+    <div class="shot-ph"><div class="shot-ph-icon">📷</div><div>Screenshot folgt: IJP beauftragen</div></div>
+    <figcaption>IJP beauftragen – Vermittlungsservice für Bewerber</figcaption>
+  </figure>
+
+  <h3>Ihre Vorteile</h3>
+  <ul>
+    <li><strong>Persönliche Betreuung</strong> – Wir suchen aktiv nach passenden Stellen für Sie.</li>
+    <li><strong>Exklusiver Zugang</strong> – Zugang zu Stellen bei über 30 Partnern, die nicht öffentlich ausgeschrieben sind.</li>
+    <li><strong>Unterstützung</strong> – Hilfe bei Dokumenten und der Anreise.</li>
+    <li><strong>Kostenlos</strong> – Der Service ist für Bewerber komplett kostenlos.</li>
+  </ul>
+
+  <h3>Voraussetzungen</h3>
+  <p>Bevor Sie beauftragen können, müssen Ihr Profil vollständig und alle Pflichtdokumente hochgeladen sein.</p>
+
+  <h3>So beauftragen Sie IJP</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Stellenart(en) wählen</strong><p>Für welche Art von Stelle sollen wir suchen?</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Bevorzugte Region angeben (optional)</strong><p>Z. B. München, Bayern oder Süddeutschland.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Zusätzliche Wünsche eintragen (optional)</strong><p>Besondere Anforderungen, Präferenzen oder Zeitraum.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Datenschutz bestätigen</strong><p>Sie stimmen der Weitergabe Ihrer Daten an passende Partnerunternehmen zu.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>„Jetzt IJP beauftragen" klicken</strong><p>Ihr Auftrag wird erstellt und erscheint unter „Ihre aktiven Aufträge".</p></div></div>
+  </div>
+
+  <h3>Ihre Aufträge verfolgen</h3>
+  <p>Unter „Ihre aktiven Aufträge" sehen Sie den Fortschritt: an welches Unternehmen Sie vermittelt wurden, anstehende Vorstellungsgespräche und Vertragsdaten. Einen Auftrag können Sie jederzeit zurückziehen.</p>
+  <div class="note info"><span class="note-icon">ℹ️</span><div>Der Vermittlungsprozess kann je nach Verfügbarkeit einige Wochen dauern. Mit der Beauftragung stimmen Sie der Weitergabe Ihrer Daten an Partnerunternehmen zu.</div></div>
+</div>
+
+<!-- CH 8 -->
+<div class="chapter" id="ch8">
+  <div class="chapter-header"><div class="chapter-num">8</div><h2>Einstellungen &amp; Benachrichtigungen</h2></div>
+  <p>Navigieren Sie zu: <strong>Menü → Einstellungen</strong>. Hier verwalten Sie Ihr Konto und Ihre Benachrichtigungen.</p>
+
+  <figure class="missing">
+    <img src="screenshots/b_settings.png" alt="Einstellungen" onerror="this.closest('figure').classList.add('missing'); this.remove();"/>
+    <div class="shot-ph"><div class="shot-ph-icon">📷</div><div>Screenshot folgt: Einstellungen</div></div>
+    <figcaption>Einstellungen – Konto, Sicherheit und Benachrichtigungen</figcaption>
+  </figure>
+
+  <h3>E-Mail-Benachrichtigungen</h3>
+  <table>
+    <tr><th>Benachrichtigung</th><th>Wann wird sie gesendet?</th></tr>
+    <tr><td>Stellenbenachrichtigungen</td><td>Wenn neue, zu Ihrem Profil passende Stellen erscheinen</td></tr>
+    <tr><td>Bewerbungs-Updates</td><td>Bei Statusänderungen Ihrer Bewerbungen</td></tr>
+  </table>
+  <p>Sie entscheiden selbst, welche E-Mails Sie erhalten möchten – einfach per Schalter aktivieren oder deaktivieren.</p>
+
+  <h3>E-Mail oder Passwort ändern</h3>
+  <div class="steps">
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Einstellungen öffnen</strong><p>Bereich „Sicherheit".</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>E-Mail oder Passwort ändern</strong><p>Zur Bestätigung geben Sie Ihr aktuelles Passwort ein.</p></div></div>
+    <div class="step"><div class="step-num"></div><div class="step-body"><strong>Speichern</strong><p>Die Änderung ist sofort aktiv.</p></div></div>
+  </div>
+
+  <h3>Konto löschen</h3>
+  <p>Unter „Account löschen" können Sie Ihr Konto dauerhaft entfernen. Dabei werden Ihr Profil, alle Dokumente und Bewerbungen unwiderruflich gelöscht. Zur Bestätigung geben Sie „DELETE" ein.</p>
+  <div class="note warn"><span class="note-icon">⚠️</span><div>Das Löschen des Kontos kann nicht rückgängig gemacht werden.</div></div>
+</div>
+
+<!-- CH 9: FAQ -->
+<div class="chapter" id="ch9">
+  <div class="chapter-header"><div class="chapter-num">9</div><h2>Häufige Fragen (FAQ)</h2></div>
+
+  <h3>Was kostet die Nutzung von JobOn?</h3>
+  <p>Für Bewerber ist JobOn – inklusive Vermittlungsservice – komplett kostenlos.</p>
+
+  <h3>Warum kann ich mich nicht bewerben oder IJP nicht beauftragen?</h3>
+  <p>In der Regel ist Ihr Profil noch unvollständig oder es fehlen Pflichtdokumente. Vervollständigen Sie beides und versuchen Sie es erneut.</p>
+
+  <h3>Wie erfahre ich von neuen passenden Stellen?</h3>
+  <p>Aktivieren Sie unter Einstellungen die Stellenbenachrichtigungen – dann informieren wir Sie per E-Mail über passende neue Stellen.</p>
+
+  <h3>Was passiert nach meiner Bewerbung?</h3>
+  <p>Das Unternehmen prüft Ihre Bewerbung. Bei jeder Statusänderung (In Prüfung, Gespräch geplant, Angenommen, Abgelehnt) erhalten Sie eine E-Mail.</p>
+
+  <h3>Wie nehme ich an einem Vorstellungsgespräch teil?</h3>
+  <p>Sobald ein Unternehmen Termine vorschlägt, bestätigen Sie einen davon in der Bewerbung. Bei Videogesprächen finden Sie dort den Meeting-Link.</p>
+
+  <h3>Kann ich meine Daten wieder löschen?</h3>
+  <p>Ja. Über Einstellungen → Account löschen entfernen Sie Ihr Konto und alle Daten unwiderruflich.</p>
+
+  <h3>Ich habe eine Frage, die hier nicht beantwortet wird</h3>
+  <p>Schreiben Sie uns: <strong>service@internationaljobplacement.com</strong> — wir helfen Ihnen gerne weiter.</p>
+</div>
+
+</div>
+</body>
+</html>

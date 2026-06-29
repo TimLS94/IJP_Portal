@@ -23,7 +23,7 @@ from app.api import auth, applicants, companies, jobs, applications, documents, 
 logger.info("API routers loaded")
 
 # Import Models für create_all
-from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request, facebook_post, ijp as ijp_model, contract as contract_model  # noqa: F401 (needed for create_all)
+from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request, facebook_post, ijp as ijp_model, contract as contract_model, job_promotion  # noqa: F401 (needed for create_all)
 logger.info("Models loaded")
 
 from app.core.seed_data import seed_database

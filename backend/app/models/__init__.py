@@ -17,6 +17,7 @@ from app.models.email_log import EmailLog, EmailType
 from app.models.job_interaction import JobInteraction, InteractionType, ReportReason
 from app.models.notification import Notification
 from app.models.applicant_invite import ApplicantInviteToken
+from app.models.job_promotion import JobPromotion
 
 __all__ = [
     "User", "Applicant", "Company", "CompanyMember", "CompanyRole", "JobPosting", 
@@ -24,5 +25,5 @@ __all__ = [
     "Interview", "InterviewStatus", "GlobalSettings", "CompanyRequest", 
     "CompanyRequestType", "CompanyRequestStatus", "JobTemplate", "InviteToken",
     "JobInteraction", "InteractionType", "ReportReason", "Notification",
-    "ApplicantInviteToken"
+    "ApplicantInviteToken", "JobPromotion"
 ]
