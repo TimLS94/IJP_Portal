@@ -143,4 +143,29 @@ h1, h2, h3, h4, h5, h6 {
   .radio-card-unselected {
     @apply border-gray-200 bg-white hover:border-gray-300;
   }
+  
+  /* Prose-Styles für HTML-Content (Listen, etc.) */
+  .prose ul {
+    @apply list-disc list-inside my-4 space-y-1;
+  }
+  
+  .prose ol {
+    @apply list-decimal list-inside my-4 space-y-1;
+  }
+  
+  .prose li {
+    @apply text-gray-600;
+  }
+  
+  .prose p {
+    @apply my-2;
+  }
+  
+  .prose strong {
+    @apply font-semibold text-gray-900;
+  }
+  
+  .prose a {
+    @apply text-primary-600 hover:text-primary-700 underline;
+  }
 }
