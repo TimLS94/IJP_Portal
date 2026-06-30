@@ -79,7 +79,7 @@ def _get_cv_fallback(applicant_id: int, db: Session) -> Optional[dict]:
         return None
 
 
-def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Session] = None) -> dict:
+def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Session] = None, include_admin_details: bool = False) -> dict:
     """
     Berechnet den Matching-Score zwischen Bewerber und Stelle.
     
@@ -91,12 +91,16 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
     - Verfügbarkeit: 10 Punkte
     - Positionstyp: 5 Punkte (REDUZIERT)
     
+    Args:
+        include_admin_details: Wenn True, werden detaillierte Infos für Admins/Firmen hinzugefügt
+    
     Returns:
         dict: {
             "total_score": int (0-100),
             "breakdown": {...},
             "details": [str],
-            "data_quality": {...}  # NEU: Datenqualitäts-Indikator
+            "data_quality": {...},
+            "admin_details": {...}  # Nur wenn include_admin_details=True
         }
     """
     scores = {
@@ -108,19 +112,31 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
         "availability": 0
     }
     details = []
+    admin_details = {} if include_admin_details else None
     data_quality = _calculate_data_quality(applicant, job)
 
-    # CV-Fallback: wenn Erfahrungsfelder leer sind → CV aus DB parsen
-    cv_fallback = None
+    # CV-Analyse: Prüfe ob immer oder nur als Fallback
+    cv_data = None
+    cv_used = False
     profile_has_experience = (
         applicant.work_experience_years or
         applicant.work_experiences or
         applicant.work_experience
     )
-    if not profile_has_experience and db:
-        cv_fallback = _get_cv_fallback(applicant.id, db)
-        if cv_fallback:
-            details.append("ℹ️ Erfahrung aus Lebenslauf ergänzt (Profil leer)")
+    
+    if db:
+        from app.services.settings_service import get_setting
+        always_analyze_cv = get_setting(db, "matching_always_analyze_cv", True)
+        
+        if always_analyze_cv or not profile_has_experience:
+            cv_data = _get_cv_fallback(applicant.id, db)
+            if cv_data:
+                if not profile_has_experience:
+                    cv_used = True
+                    details.append("ℹ️ Erfahrung aus Lebenslauf ergänzt (Profil leer)")
+                elif include_admin_details:
+                    # CV-Daten für Admin-Details speichern (zum Vergleich)
+                    admin_details["cv_parsed"] = cv_data
 
     # 1. Positionstyp-Match (30 Punkte)
     position_match = _check_position_match(applicant, job)
@@ -130,11 +146,13 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
     else:
         details.append(f"✗ Positionstyp stimmt nicht überein")
     
+    # CV-Fallback für Erfahrung (wenn Profil leer oder immer analysieren aktiv)
+    cv_fallback = cv_data if cv_used else None
+    
     # 2. Deutschkenntnisse (25 Punkte)
-    german_match = _check_language_match(
-        applicant.german_level.value if applicant.german_level else "keine",
-        job.german_required.value if job.german_required else "not_required"
-    )
+    applicant_german = applicant.german_level.value if applicant.german_level else "keine"
+    job_german = job.german_required.value if job.german_required else "not_required"
+    german_match = _check_language_match(applicant_german, job_german)
     scores["german_level"] = german_match["score"]
     if german_match["exceeds"]:
         details.append(f"✓ Deutschkenntnisse übertreffen Anforderungen")
@@ -143,25 +161,56 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
     else:
         details.append(f"✗ Deutschkenntnisse unter Anforderungen ({german_match['gap']} Stufen)")
     
+    if include_admin_details:
+        admin_details["german"] = {
+            "applicant_level": applicant_german,
+            "required_level": job_german,
+            "score": german_match["score"],
+            "max_score": 25,
+            "meets": german_match["meets"],
+            "gap": german_match["gap"]
+        }
+    
     # 3. Englischkenntnisse (15 Punkte)
-    english_match = _check_language_match(
-        applicant.english_level.value if applicant.english_level else "keine",
-        job.english_required.value if job.english_required else "not_required",
-        max_score=15  # Englisch hat nur 15 Punkte max
-    )
+    applicant_english = applicant.english_level.value if applicant.english_level else "keine"
+    job_english = job.english_required.value if job.english_required else "not_required"
+    english_match = _check_language_match(applicant_english, job_english, max_score=15)
     scores["english_level"] = english_match["score"]
     if english_match["meets"] or english_match["exceeds"]:
         details.append(f"✓ Englischkenntnisse erfüllen Anforderungen")
     elif job.english_required and job.english_required.value != "not_required":
         details.append(f"✗ Englischkenntnisse unter Anforderungen")
     
-    # 4. Berufserfahrung (20 Punkte) — mit CV-Fallback
-    exp_match = _check_experience_match(applicant, job, cv_fallback=cv_fallback)
+    if include_admin_details:
+        admin_details["english"] = {
+            "applicant_level": applicant_english,
+            "required_level": job_english,
+            "score": english_match["score"],
+            "max_score": 15,
+            "meets": english_match["meets"],
+            "gap": english_match["gap"]
+        }
+    
+    # 4. Berufserfahrung (20 Punkte) — mit CV-Fallback oder CV-Daten
+    # Wenn CV immer analysiert wird, nutze CV-Daten zusätzlich zum Profil
+    exp_cv_data = cv_data if cv_data and not cv_used else cv_fallback
+    exp_match = _check_experience_match(applicant, job, cv_fallback=exp_cv_data)
     scores["experience"] = exp_match["score"]
     if exp_match["has_experience"]:
         years = exp_match["years"] or 0
-        source = " (aus CV)" if cv_fallback and not profile_has_experience else ""
+        source = " (aus CV)" if cv_used else ""
         details.append(f"✓ {years} Jahre Berufserfahrung{source}")
+    
+    if include_admin_details:
+        admin_details["experience"] = {
+            "years": exp_match.get("years", 0),
+            "entries": exp_match.get("entries", 0),
+            "relevant_entries": exp_match.get("relevant_entries", []),
+            "score": exp_match["score"],
+            "max_score": 20,
+            "cv_used": cv_used,
+            "cv_available": cv_data is not None
+        }
     
     # 5. Verfügbarkeit (10 Punkte)
     availability_match = _check_availability_match(applicant, job)
@@ -169,22 +218,43 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
     if availability_match["available"]:
         details.append(f"✓ Verfügbarkeit passt")
     
-    # 6. Positionstyp-Match (5 Punkte) - STARK REDUZIERT
-    position_match = _check_position_match(applicant, job)
-    scores["position_type"] = position_match["score"]
-    if position_match["match"]:
-        details.append(f"✓ Positionstyp passt")
+    if include_admin_details:
+        admin_details["availability"] = {
+            "available": availability_match.get("available", False),
+            "score": availability_match["score"],
+            "max_score": 10
+        }
+    
+    # 6. Textvergleich (25 Punkte) - Profil vs. Stellenbeschreibung
+    text_match = _check_text_match(applicant, job)
+    scores["text_match"] = text_match["score"]
+    if text_match["score"] > 0:
+        details.append(f"✓ Profil-Keywords passen zur Stelle ({len(text_match.get('matched_keywords', []))} Treffer)")
+    
+    if include_admin_details:
+        admin_details["text_match"] = {
+            "matched_keywords": text_match.get("matched_keywords", []),
+            "score": text_match["score"],
+            "max_score": 25
+        }
     
     # Gesamtscore berechnen (max 100)
     total_score = min(100, sum(scores.values()))
     
-    return {
+    result = {
         "total_score": total_score,
         "breakdown": scores,
         "details": details,
         "recommendation": _get_recommendation(total_score),
         "data_quality": data_quality
     }
+    
+    if include_admin_details:
+        admin_details["cv_analyzed"] = cv_data is not None
+        admin_details["profile_has_experience"] = profile_has_experience
+        result["admin_details"] = admin_details
+    
+    return result
 
 
 def _check_position_match(applicant: Applicant, job: JobPosting) -> dict:

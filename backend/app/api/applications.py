@@ -695,7 +695,8 @@ async def get_application_match_score(
     if not applicant or not job:
         return {"enabled": True, "message": "Daten unvollständig", "total_score": 0}
     
-    match = calculate_match_score(applicant, job, db=db)
+    # Firmen bekommen detaillierte Admin-Infos
+    match = calculate_match_score(applicant, job, db=db, include_admin_details=True)
     return {
         "enabled": True,
         "application_id": application_id,

@@ -74,6 +74,12 @@ DEFAULT_SETTINGS = {
         "value": "9",
         "value_type": "integer",
         "description": "Uhrzeit für Digest-E-Mail (0-23, UTC)"
+    },
+    # Matching-Einstellungen
+    "matching_always_analyze_cv": {
+        "value": "true",
+        "value_type": "boolean",
+        "description": "CV immer analysieren (nicht nur als Fallback wenn Profil leer ist)"
     }
 }
 

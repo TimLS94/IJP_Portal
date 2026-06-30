@@ -122,6 +122,11 @@ export default function CompanyApplicationsPage() {
   const [notesLoading, setNotesLoading] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   
+  // Match-Score Details
+  const [matchDetails, setMatchDetails] = useState<any>(null);
+  const [matchDetailsLoading, setMatchDetailsLoading] = useState(false);
+  const [showMatchDetails, setShowMatchDetails] = useState(false);
+  
   // Dokumente anfordern
   const [showDocRequestModal, setShowDocRequestModal] = useState(false);
   const [selectedDocTypes, setSelectedDocTypes] = useState<string[]>([]);
@@ -314,6 +319,8 @@ export default function CompanyApplicationsPage() {
     setCompanyNotes("");
     setPendingInterview(null);
     setInterviews([]);
+    setMatchDetails(null);
+    setShowMatchDetails(false);
     loadApplicantDetails(appId);
     loadCompanyNotes(appId);
     loadInterviews(appId);
@@ -321,6 +328,19 @@ export default function CompanyApplicationsPage() {
     const app = applications.find(a => a.id === appId) || filteredOutApplications.find(a => a.id === appId);
     if (app) {
       setPendingStatus(app.status);
+    }
+  };
+  
+  const loadMatchDetails = async (appId: number) => {
+    if (!isPremium) return;
+    setMatchDetailsLoading(true);
+    try {
+      const response = await applicationsAPI.getMatchScore(appId);
+      setMatchDetails(response.data);
+    } catch (error) {
+      console.error("Fehler beim Laden der Match-Details");
+    } finally {
+      setMatchDetailsLoading(false);
     }
   };
 
@@ -1205,6 +1225,172 @@ export default function CompanyApplicationsPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Match-Score Details (Premium) */}
+                  {isPremium && selectedApp?.match_score !== undefined && (
+                    <div className="md:col-span-2 bg-gradient-to-r from-primary-50 to-blue-50 rounded-xl p-5 border border-primary-100">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 text-primary-600" />
+                          Matching-Score Analyse
+                        </h3>
+                        <button
+                          onClick={() => {
+                            if (!matchDetails && selectedAppId) {
+                              loadMatchDetails(selectedAppId);
+                            }
+                            setShowMatchDetails(!showMatchDetails);
+                          }}
+                          className="px-3 py-1.5 bg-white border border-primary-200 text-primary-700 rounded-lg text-sm font-medium hover:bg-primary-50 transition-colors flex items-center gap-1"
+                        >
+                          {showMatchDetails ? (
+                            <>Details ausblenden <ChevronUp className="h-4 w-4" /></>
+                          ) : (
+                            <>Details anzeigen <ChevronDown className="h-4 w-4" /></>
+                          )}
+                        </button>
+                      </div>
+                      
+                      {/* Score-Übersicht */}
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className={`text-4xl font-bold ${
+                          (selectedApp?.match_score || 0) >= 70 ? 'text-green-600' : 
+                          (selectedApp?.match_score || 0) >= 40 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {selectedApp?.match_score}%
+                        </div>
+                        <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all ${
+                              (selectedApp?.match_score || 0) >= 70 ? 'bg-green-500' : 
+                              (selectedApp?.match_score || 0) >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${selectedApp?.match_score || 0}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Detaillierte Aufschlüsselung */}
+                      {showMatchDetails && (
+                        <div className="mt-4">
+                          {matchDetailsLoading ? (
+                            <div className="flex justify-center py-4">
+                              <Loader2 className="h-6 w-6 text-primary-600 animate-spin" />
+                            </div>
+                          ) : matchDetails?.admin_details ? (
+                            <div className="space-y-3">
+                              {/* Breakdown-Balken */}
+                              <div className="grid gap-2">
+                                {matchDetails.breakdown && Object.entries(matchDetails.breakdown).map(([key, value]: [string, any]) => {
+                                  const maxScores: Record<string, number> = {
+                                    position_type: 30, german_level: 25, english_level: 15,
+                                    experience: 20, text_match: 25, availability: 10
+                                  };
+                                  const labels: Record<string, string> = {
+                                    position_type: "Positionstyp", german_level: "Deutsch",
+                                    english_level: "Englisch", experience: "Erfahrung",
+                                    text_match: "Profil-Match", availability: "Verfügbarkeit"
+                                  };
+                                  const max = maxScores[key] || 25;
+                                  const percent = Math.round((Number(value) / max) * 100);
+                                  return (
+                                    <div key={key} className="bg-white rounded-lg p-3">
+                                      <div className="flex justify-between text-sm mb-1">
+                                        <span className="font-medium text-gray-700">{labels[key] || key}</span>
+                                        <span className={`font-bold ${percent >= 70 ? 'text-green-600' : percent >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                          {value}/{max}
+                                        </span>
+                                      </div>
+                                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div 
+                                          className={`h-full rounded-full ${percent >= 70 ? 'bg-green-500' : percent >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                          style={{ width: `${percent}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Admin-Details */}
+                              <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                                <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                  <HelpCircle className="h-4 w-4 text-gray-500" />
+                                  Detailanalyse
+                                </h4>
+                                <div className="space-y-2 text-sm">
+                                  {/* Deutsch */}
+                                  {matchDetails.admin_details.german && (
+                                    <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                      <span>Deutsch: <strong>{matchDetails.admin_details.german.applicant_level?.toUpperCase()}</strong></span>
+                                      <span className="text-gray-500">
+                                        Anforderung: {matchDetails.admin_details.german.required_level?.toUpperCase()}
+                                        {matchDetails.admin_details.german.gap > 0 && (
+                                          <span className="text-red-600 ml-2">({matchDetails.admin_details.german.gap} Stufen unter Anforderung)</span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {/* Englisch */}
+                                  {matchDetails.admin_details.english && (
+                                    <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                      <span>Englisch: <strong>{matchDetails.admin_details.english.applicant_level?.toUpperCase()}</strong></span>
+                                      <span className="text-gray-500">
+                                        Anforderung: {matchDetails.admin_details.english.required_level?.toUpperCase()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {/* Erfahrung */}
+                                  {matchDetails.admin_details.experience && (
+                                    <div className="p-2 bg-gray-50 rounded">
+                                      <div className="flex justify-between">
+                                        <span>Erfahrung: <strong>{matchDetails.admin_details.experience.years} Jahre</strong></span>
+                                        <span className="text-gray-500">{matchDetails.admin_details.experience.entries} Einträge</span>
+                                      </div>
+                                      {matchDetails.admin_details.experience.cv_available && (
+                                        <span className="text-xs text-blue-600 mt-1 block">
+                                          ✓ Lebenslauf wurde analysiert
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {/* Text-Match Keywords */}
+                                  {matchDetails.admin_details.text_match?.matched_keywords?.length > 0 && (
+                                    <div className="p-2 bg-gray-50 rounded">
+                                      <span className="text-gray-600">Passende Keywords:</span>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {matchDetails.admin_details.text_match.matched_keywords.map((kw: string, i: number) => (
+                                          <span key={i} className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded text-xs">
+                                            {kw}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Details-Liste */}
+                              {matchDetails.details && matchDetails.details.length > 0 && (
+                                <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                                  <h4 className="font-medium text-gray-700 mb-2">Zusammenfassung</h4>
+                                  <ul className="space-y-1 text-sm">
+                                    {matchDetails.details.map((detail: string, i: number) => (
+                                      <li key={i} className={detail.startsWith('✓') ? 'text-green-700' : detail.startsWith('✗') ? 'text-red-700' : 'text-gray-600'}>
+                                        {detail}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-gray-500 text-sm">Keine Details verfügbar</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Dokumente */}
                   <div className="md:col-span-2 bg-gray-50 rounded-xl p-5">
