@@ -3,11 +3,16 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { companyAPI, jobsAPI, applicationsAPI } from "@/lib/api";
-import { Building2, Briefcase, Users, Plus, FileText, Languages, X } from "lucide-react";
+import { Building2, Briefcase, Users, Plus, FileText, Languages, X, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface Company {
   company_name: string;
+  logo?: string;
+  industry?: string;
+  description?: string;
+  city?: string;
+  website?: string;
 }
 
 interface Job {
@@ -139,6 +144,38 @@ export default function CompanyDashboardPage() {
                 ))}
                 {translatedJobs.length > 3 && <span className="text-xs text-indigo-600">+{translatedJobs.length - 3} {t('common.more')}</span>}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profil-Vollständigkeits-Hinweis */}
+      {company && (!company.logo || !company.description || !company.industry || !company.city) && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="bg-amber-100 p-2 rounded-lg">
+              <AlertCircle className="h-6 w-6 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-amber-800">
+                Ihr Firmenprofil ist unvollständig
+              </p>
+              <p className="text-sm text-amber-700 mt-1">
+                Ein vollständiges Profil macht Ihr Unternehmen für Bewerber attraktiver. Es fehlen:
+              </p>
+              <ul className="text-sm text-amber-700 mt-2 space-y-1">
+                {!company.logo && <li>• Firmenlogo</li>}
+                {!company.description && <li>• Unternehmensbeschreibung</li>}
+                {!company.industry && <li>• Branche</li>}
+                {!company.city && <li>• Standort</li>}
+              </ul>
+              <Link 
+                href="/company/profile" 
+                className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
+              >
+                <Building2 className="h-4 w-4" />
+                Profil vervollständigen
+              </Link>
             </div>
           </div>
         </div>
