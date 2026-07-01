@@ -415,12 +415,12 @@ async def get_dashboard_stats(
     
     # Erfolgreiche Vermittlungen = Stellen mit mindestens einer angenommenen Bewerbung
     # Stellen mit mindestens einer angenommenen Bewerbung (gesamt)
-    jobs_with_accepted = db.query(func.count(func.distinct(Application.job_id))).filter(
+    jobs_with_accepted = db.query(func.count(func.distinct(Application.job_posting_id))).filter(
         Application.status == ApplicationStatus.ACCEPTED
     ).scalar() or 0
-    
+
     # Stellen mit angenommener Bewerbung im Zeitraum
-    jobs_with_accepted_in_period = db.query(func.count(func.distinct(Application.job_id))).filter(
+    jobs_with_accepted_in_period = db.query(func.count(func.distinct(Application.job_posting_id))).filter(
         Application.status == ApplicationStatus.ACCEPTED,
         Application.updated_at >= period_start_utc
     ).scalar() or 0
