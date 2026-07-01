@@ -1272,7 +1272,7 @@ export default function AdminJobRequests() {
                         
                         <button
                           onClick={handleStatusChange}
-                          disabled={changingStatus || newStatus === requestDetails.request.status}
+                          disabled={changingStatus}
                           className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                           {changingStatus ? (
@@ -1280,14 +1280,8 @@ export default function AdminJobRequests() {
                           ) : (
                             <CheckCircle className="h-5 w-5" />
                           )}
-                          Status aktualisieren
+                          Speichern
                         </button>
-                        
-                        {newStatus === requestDetails.request.status && (
-                          <p className="text-xs text-gray-500 text-center">
-                            Wählen Sie einen anderen Status aus
-                          </p>
-                        )}
                       </div>
                     </div>
                     
