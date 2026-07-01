@@ -413,19 +413,31 @@ async def get_dashboard_stats(
     
     stats["deletion_reasons"] = deletion_stats
     
-    # Erfolgreiche Vermittlungen = Angenommene Bewerbungen (realistischer als nur archivierte Stellen)
-    accepted_total = stats["applications"]["accepted"]
-    accepted_in_period = stats["applications"]["accepted_in_period"]
-    total_applications = stats["applications"]["total"]
+    # Erfolgreiche Vermittlungen = Stellen mit mindestens einer angenommenen Bewerbung
+    from app.models.application import Application, ApplicationStatus
+    
+    # Stellen mit mindestens einer angenommenen Bewerbung (gesamt)
+    jobs_with_accepted = db.query(func.count(func.distinct(Application.job_id))).filter(
+        Application.status == ApplicationStatus.ACCEPTED
+    ).scalar() or 0
+    
+    # Stellen mit angenommener Bewerbung im Zeitraum
+    jobs_with_accepted_in_period = db.query(func.count(func.distinct(Application.job_id))).filter(
+        Application.status == ApplicationStatus.ACCEPTED,
+        Application.updated_at >= period_start_utc
+    ).scalar() or 0
+    
+    total_jobs = stats["jobs"]["total"]
     
     stats["success_rate"] = {
-        "total_successes": accepted_total,  # Angenommene Bewerbungen
-        "successes_in_period": accepted_in_period,
+        "total_successes": jobs_with_accepted,  # Stellen mit Vermittlung
+        "successes_in_period": jobs_with_accepted_in_period,
         "success_percentage": round(
-            (accepted_total / total_applications * 100) 
-            if total_applications > 0 else 0, 1
+            (jobs_with_accepted / total_jobs * 100) 
+            if total_jobs > 0 else 0, 1
         ),
-        # Zusätzlich: Archivierte Stellen mit "über JobOn besetzt"
+        "accepted_applications": stats["applications"]["accepted"],  # Zusätzlich: Anzahl angenommener Bewerbungen
+        # Archivierte Stellen mit "über JobOn besetzt"
         "jobs_filled_via_jobon": deletion_stats["filled_via_jobon"],
         "jobs_filled_in_period": deletion_stats["in_period"]["filled_via_jobon"]
     }
