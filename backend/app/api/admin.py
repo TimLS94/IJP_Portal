@@ -414,8 +414,6 @@ async def get_dashboard_stats(
     stats["deletion_reasons"] = deletion_stats
     
     # Erfolgreiche Vermittlungen = Stellen mit mindestens einer angenommenen Bewerbung
-    from app.models.application import Application, ApplicationStatus
-    
     # Stellen mit mindestens einer angenommenen Bewerbung (gesamt)
     jobs_with_accepted = db.query(func.count(func.distinct(Application.job_id))).filter(
         Application.status == ApplicationStatus.ACCEPTED
