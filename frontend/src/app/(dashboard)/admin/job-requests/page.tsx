@@ -796,7 +796,7 @@ export default function AdminJobRequests() {
                   </button>
                 </div>
 
-                <div className="p-6 grid md:grid-cols-2 gap-6">
+                <div className="p-6 grid lg:grid-cols-2 gap-6 overflow-hidden">
                   {/* Linke Spalte */}
                   <div className="space-y-6">
                     {/* Kontaktdaten */}

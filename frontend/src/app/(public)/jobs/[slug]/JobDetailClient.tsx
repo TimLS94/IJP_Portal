@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { applicationsAPI, jobsAPI, documentsAPI, resolveFileUrl } from "@/lib/api";
-import { trackJobView, trackJobApply, trackJobLike, trackExternalJobClick } from "@/lib/analytics";
+import { trackJobView, trackJobApply, trackJobLike, trackExternalJobClick, trackJobContactClick } from "@/lib/analytics";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import {
@@ -786,12 +786,20 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                 <div className="space-y-3">
                   {job.contact_person && <p className="font-semibold text-gray-900">{job.contact_person}</p>}
                   {job.contact_phone && (
-                    <a href={`tel:${job.contact_phone}`} className="flex items-center gap-2 text-gray-600 hover:text-primary-600">
+                    <a 
+                      href={`tel:${job.contact_phone}`} 
+                      className="flex items-center gap-2 text-gray-600 hover:text-primary-600"
+                      onClick={() => trackJobContactClick(job.id, job.title, "phone", job.company?.name)}
+                    >
                       <Phone className="h-4 w-4" />{job.contact_phone}
                     </a>
                   )}
                   {job.contact_email && (
-                    <a href={`mailto:${job.contact_email}`} className="flex items-center gap-2 text-gray-600 hover:text-primary-600">
+                    <a 
+                      href={`mailto:${job.contact_email}`} 
+                      className="flex items-center gap-2 text-gray-600 hover:text-primary-600"
+                      onClick={() => trackJobContactClick(job.id, job.title, "email", job.company?.name)}
+                    >
                       <Mail className="h-4 w-4" />{job.contact_email}
                     </a>
                   )}

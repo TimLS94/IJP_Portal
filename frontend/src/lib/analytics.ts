@@ -84,3 +84,17 @@ export function trackJobSearch(query: string, resultCount?: number) {
     result_count: resultCount ?? -1,
   });
 }
+
+export function trackJobContactClick(
+  jobId: number,
+  jobTitle: string,
+  contactType: "email" | "phone",
+  companyName?: string
+) {
+  sendGAEvent("event", "job_contact_click", {
+    job_id: jobId,
+    job_title: jobTitle,
+    contact_type: contactType,
+    company_name: companyName ?? "",
+  });
+}
