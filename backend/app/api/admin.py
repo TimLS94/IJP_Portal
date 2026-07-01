@@ -412,13 +412,22 @@ async def get_dashboard_stats(
                 deletion_stats["in_period"]["expired"] = count
     
     stats["deletion_reasons"] = deletion_stats
+    
+    # Erfolgreiche Vermittlungen = Angenommene Bewerbungen (realistischer als nur archivierte Stellen)
+    accepted_total = stats["applications"]["accepted"]
+    accepted_in_period = stats["applications"]["accepted_in_period"]
+    total_applications = stats["applications"]["total"]
+    
     stats["success_rate"] = {
-        "total_successes": deletion_stats["filled_via_jobon"],
-        "successes_in_period": deletion_stats["in_period"]["filled_via_jobon"],
+        "total_successes": accepted_total,  # Angenommene Bewerbungen
+        "successes_in_period": accepted_in_period,
         "success_percentage": round(
-            (deletion_stats["filled_via_jobon"] / deletion_stats["total_deleted"] * 100) 
-            if deletion_stats["total_deleted"] > 0 else 0, 1
-        )
+            (accepted_total / total_applications * 100) 
+            if total_applications > 0 else 0, 1
+        ),
+        # Zusätzlich: Archivierte Stellen mit "über JobOn besetzt"
+        "jobs_filled_via_jobon": deletion_stats["filled_via_jobon"],
+        "jobs_filled_in_period": deletion_stats["in_period"]["filled_via_jobon"]
     }
     
     return stats
