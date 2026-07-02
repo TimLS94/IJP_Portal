@@ -175,6 +175,9 @@ class JobPosting(Base):
     admin_translated = Column(Boolean, default=False)  # True wenn vom Admin übersetzt
     admin_translated_at = Column(DateTime)  # Wann vom Admin übersetzt
     admin_translated_languages = Column(JSON, default=[])  # Welche Sprachen vom Admin übersetzt wurden
+
+    # KI-Teaser für Telegram (1 knackiger Satz je Sprache): {"de": "...", "en": "...", ...}
+    telegram_teaser = Column(JSON, default={})
     
     # Relationships
     company = relationship("Company", back_populates="job_postings")

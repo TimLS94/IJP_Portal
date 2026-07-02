@@ -728,19 +728,23 @@ ensure_facebook_schema()
 
 
 def ensure_telegram_schema():
-    """Fügt fehlende Spalten zur telegram_subscribers-Tabelle hinzu (Schema-Drift-Fix)."""
+    """Fügt fehlende Telegram-bezogene Spalten hinzu (Schema-Drift-Fix)."""
     from sqlalchemy import text
-    cols = ['language VARCHAR DEFAULT \'de\'']
+    table_cols = {
+        "telegram_subscribers": ["language VARCHAR DEFAULT 'de'"],
+        "job_postings": ["telegram_teaser JSON"],
+    }
     db = SessionLocal()
     try:
-        for col_def in cols:
-            col_name = col_def.split()[0]
-            try:
-                db.execute(text(f'ALTER TABLE telegram_subscribers ADD COLUMN IF NOT EXISTS {col_def}'))
-            except Exception as ce:
-                logger.debug(f"telegram_subscribers.{col_name}: {ce}")
+        for table, cols in table_cols.items():
+            for col_def in cols:
+                col_name = col_def.split()[0]
+                try:
+                    db.execute(text(f'ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col_def}'))
+                except Exception as ce:
+                    logger.debug(f"{table}.{col_name}: {ce}")
         db.commit()
-        logger.info("telegram_subscribers Spalten sichergestellt")
+        logger.info("Telegram-Spalten sichergestellt")
     except Exception as e:
         db.rollback()
         logger.debug(f"ensure_telegram_schema: {e}")

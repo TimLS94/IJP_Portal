@@ -14,6 +14,8 @@ Settings (GlobalSettings):
 - telegram_group_language:  Sprache der Gruppen-Posts (Default "de")
 """
 import os
+import re
+import json
 import html
 import logging
 from typing import Optional
@@ -21,6 +23,7 @@ from typing import Optional
 import httpx
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.services.settings_service import get_setting
 from app.services.position_groups import position_compatible
 
@@ -215,6 +218,75 @@ def _job_url(job) -> str:
     return f"{BASE_URL}/jobs/{slug}-{job.id}"
 
 
+def _strip_html(text: Optional[str]) -> str:
+    if not text:
+        return ""
+    return re.sub(r"<[^>]*>", " ", text).strip()
+
+
+def generate_teaser(job) -> dict:
+    """Erzeugt per OpenAI einen knackigen 1-Satz-Teaser je Sprache (de/en/es/ru).
+
+    Ein einziger API-Call gibt JSON mit allen 4 Sprachen zurück. Bei fehlendem
+    Key oder Fehler wird {} zurückgegeben (Post funktioniert dann ohne Teaser).
+    """
+    if not settings.OPENAI_API_KEY:
+        return {}
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        context = (
+            f"Titel: {job.title}\n"
+            f"Arbeitgeber: {_employer_name(job)}\n"
+            f"Ort: {job.location or ''}\n"
+            f"Beschreibung: {_strip_html(getattr(job, 'description', ''))[:600]}\n"
+            f"Benefits: {_strip_html(getattr(job, 'benefits', ''))[:300]}"
+        )
+        prompt = (
+            "Du schreibst kurze, knackige Teaser für einen Telegram-Job-Kanal. "
+            "Fasse die folgende Stelle in EINEM attraktiven, konkreten Satz zusammen "
+            "(max. ~90 Zeichen, keine Emojis, kein Titel-Wiederholen, kein Ort-Wiederholen, "
+            "hebe das Interessanteste hervor, z.B. Benefits/Unterkunft/Trinkgeld). "
+            "Antworte als JSON mit den Schlüsseln de, en, es, ru (Übersetzungen desselben Satzes).\n\n"
+            f"{context}"
+        )
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=400,
+            response_format={"type": "json_object"},
+        )
+        data = json.loads(resp.choices[0].message.content)
+        return {k: str(v).strip() for k, v in data.items() if k in SUPPORTED_LANGUAGES and v}
+    except Exception as exc:
+        logger.warning(f"Teaser-Generierung fehlgeschlagen für Job {getattr(job, 'id', '?')}: {exc}")
+        return {}
+
+
+def ensure_teaser(job, db: Session) -> dict:
+    """Gibt den gespeicherten Teaser zurück oder erzeugt ihn einmalig und speichert ihn."""
+    existing = getattr(job, "telegram_teaser", None)
+    if existing:
+        return existing
+    teaser = generate_teaser(job)
+    if teaser:
+        job.telegram_teaser = teaser
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+    return teaser
+
+
+def _teaser_line(job, lang: str) -> Optional[str]:
+    teaser = getattr(job, "telegram_teaser", None) or {}
+    if not isinstance(teaser, dict):
+        return None
+    text = teaser.get(_norm_lang(lang)) or teaser.get(DEFAULT_LANGUAGE)
+    return html.escape(text) if text else None
+
+
 def _localized_title(job, lang: str) -> str:
     """Titel der Stelle in der Zielsprache (Fallback: deutsches Basisfeld)."""
     lang = _norm_lang(lang)
@@ -240,6 +312,9 @@ def format_job_message(job, lang: str = DEFAULT_LANGUAGE) -> str:
     lines.append(f"📍 {location}")
     if pos_label:
         lines.append(f"🏷️ {pos_label}")
+    teaser = _teaser_line(job, lang)
+    if teaser:
+        lines.append(f"✨ {teaser}")
     if getattr(job, "is_external", False):
         lines.append(f"ℹ️ <i>{t(lang, 'external')}</i>")
     lines.append("")
@@ -267,6 +342,9 @@ def broadcast_new_job(job, db: Session) -> dict:
 
     if not getattr(job, "is_active", False) or getattr(job, "is_draft", False):
         return {"sent_group": False, "sent_subscribers": 0, "reason": "inactive"}
+
+    # KI-Teaser einmalig erzeugen/laden (für alle Empfänger wiederverwendet)
+    ensure_teaser(job, db)
 
     # 1) In die Gruppe posten (in der konfigurierten Gruppen-Sprache)
     sent_group = False
