@@ -712,7 +712,7 @@ export default function AdminDashboardPage() {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Erfolgreiche Vermittlungen</h2>
-              <p className="text-sm text-gray-600">Stellen mit mindestens einer angenommenen Bewerbung</p>
+              <p className="text-sm text-gray-600">Angenommene Bewerbungen + über JobOn besetzte Stellen</p>
             </div>
           </div>
           

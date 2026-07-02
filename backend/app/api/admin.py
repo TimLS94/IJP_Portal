@@ -413,27 +413,36 @@ async def get_dashboard_stats(
     
     stats["deletion_reasons"] = deletion_stats
     
-    # Erfolgreiche Vermittlungen = Stellen mit mindestens einer angenommenen Bewerbung
-    # Stellen mit mindestens einer angenommenen Bewerbung (gesamt)
-    jobs_with_accepted = db.query(func.count(func.distinct(Application.job_posting_id))).filter(
-        Application.status == ApplicationStatus.ACCEPTED
-    ).scalar() or 0
-
-    # Stellen mit angenommener Bewerbung im Zeitraum
-    jobs_with_accepted_in_period = db.query(func.count(func.distinct(Application.job_posting_id))).filter(
-        Application.status == ApplicationStatus.ACCEPTED,
-        Application.updated_at >= period_start_utc
-    ).scalar() or 0
+    # Erfolgreiche Vermittlungen: zwei Kanäle
+    #   1) Angenommene Bewerbungen (Status ACCEPTED)
+    #   2) Über JobOn besetzte Stellen (archiviert mit deletion_reason=filled_via_jobon)
+    # Für die Erfolgsquote werden die vermittelten Stellen aus beiden Kanälen als
+    # distinkte Stellen-IDs vereinigt, damit keine Stelle doppelt zählt.
+    accepted_job_ids = {
+        row[0] for row in db.query(Application.job_posting_id).filter(
+            Application.status == ApplicationStatus.ACCEPTED
+        ).distinct().all()
+    }
+    jobon_job_ids = {
+        row[0] for row in db.query(JobPosting.id).filter(
+            JobPosting.deletion_reason == JobDeletionReason.FILLED_VIA_JOBON
+        ).all()
+    }
+    placed_jobs_total = len(accepted_job_ids | jobon_job_ids)
     
     total_jobs = stats["jobs"]["total"]
     
     stats["success_rate"] = {
-        # Vermittlungen = Anzahl angenommener Bewerbungen (jede Annahme = 1 vermittelte Person)
-        "total_successes": stats["applications"]["accepted"],
-        "successes_in_period": stats["applications"]["accepted_in_period"],
-        # Erfolgsquote = Anteil der Stellen mit mindestens einer Vermittlung
+        # Vermittlungen = angenommene Bewerbungen + über JobOn besetzte Stellen
+        # (Doppelzählung möglich, falls beide Kanäle denselben Fall betreffen)
+        "total_successes": stats["applications"]["accepted"] + deletion_stats["filled_via_jobon"],
+        "successes_in_period": (
+            stats["applications"]["accepted_in_period"]
+            + deletion_stats["in_period"]["filled_via_jobon"]
+        ),
+        # Erfolgsquote = Anteil der vermittelten Stellen (angenommen oder über JobOn) an allen Stellen
         "success_percentage": round(
-            (jobs_with_accepted / total_jobs * 100)
+            (placed_jobs_total / total_jobs * 100)
             if total_jobs > 0 else 0, 1
         ),
         "accepted_applications": stats["applications"]["accepted"],  # Zusätzlich: Anzahl angenommener Bewerbungen
