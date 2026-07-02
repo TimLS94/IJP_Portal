@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Send, CheckCircle, XCircle, RefreshCw, Loader2,
-  Users, MessageSquare, Link as LinkIcon, AlertTriangle,
+  Users, MessageSquare, Link as LinkIcon, AlertTriangle, Megaphone, Copy,
 } from "lucide-react";
 import { telegramAPI } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -16,9 +16,12 @@ interface WebhookInfo {
 
 interface Status {
   configured: boolean;
+  bot_link: string | null;
   group_chat_id: string | null;
   group_language: string;
   supported_languages: string[];
+  promo_enabled: boolean;
+  promo_hour: number;
   subscribers_total: number;
   subscribers_active: number;
   webhook: WebhookInfo | null;
@@ -64,6 +67,31 @@ export default function AdminTelegramPage() {
       toast.error(msg || "Webhook konnte nicht gesetzt werden");
     } finally {
       setSettingWebhook(false);
+    }
+  };
+
+  const [promoSaving, setPromoSaving] = useState(false);
+
+  const savePromo = async (enabled: boolean, hour: number) => {
+    setPromoSaving(true);
+    try {
+      await telegramAPI.setPromoSettings(enabled, hour);
+      toast.success("Werbe-Einstellungen gespeichert");
+      await loadStatus();
+    } catch {
+      toast.error("Konnte nicht gespeichert werden");
+    } finally {
+      setPromoSaving(false);
+    }
+  };
+
+  const handlePromoNow = async () => {
+    try {
+      await telegramAPI.promoNow();
+      toast.success("Werbung in die Gruppe gepostet");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(msg || "Konnte nicht gepostet werden");
     }
   };
 
@@ -164,6 +192,25 @@ export default function AdminTelegramPage() {
                 <p className="text-xs text-gray-600 mt-1">Abonnenten gesamt</p>
               </div>
             </div>
+
+            {status.bot_link && (
+              <div className="flex items-center justify-between gap-2 p-3 bg-sky-50 rounded-lg">
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-600">Bot-Link zum Teilen</p>
+                  <a href={status.bot_link} target="_blank" rel="noreferrer"
+                     className="text-sm font-medium text-sky-700 truncate block">
+                    {status.bot_link}
+                  </a>
+                </div>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(status.bot_link!); toast.success("Link kopiert"); }}
+                  className="p-2 rounded-lg hover:bg-sky-100 shrink-0"
+                  title="Link kopieren"
+                >
+                  <Copy className="h-4 w-4 text-sky-700" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Aktionen */}
@@ -207,6 +254,49 @@ export default function AdminTelegramPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Tägliche Abo-Werbung */}
+          <div className="card space-y-3">
+            <div className="flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-sky-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Tägliche Abo-Werbung</h2>
+            </div>
+            <p className="text-sm text-gray-600">
+              Der Bot postet einmal täglich eine kurze Werbung in die Gruppe („Abonniere den Bot…“) –
+              in der Gruppen-Sprache, mit Link zum Bot.
+            </p>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={status.promo_enabled}
+                disabled={promoSaving}
+                onChange={(e) => savePromo(e.target.checked, status.promo_hour)}
+                className="h-4 w-4"
+              />
+              <span className="text-sm text-gray-800">Tägliche Werbung aktiv</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700">Uhrzeit:</span>
+              <select
+                value={status.promo_hour}
+                disabled={promoSaving}
+                onChange={(e) => savePromo(status.promo_enabled, parseInt(e.target.value))}
+                className="border rounded-lg px-3 py-2 text-sm"
+              >
+                {Array.from({ length: 24 }, (_, h) => (
+                  <option key={h} value={h}>{String(h).padStart(2, "0")}:00 UTC</option>
+                ))}
+              </select>
+              <button
+                onClick={handlePromoNow}
+                disabled={!status.group_chat_id}
+                className="btn-secondary flex items-center gap-2 disabled:opacity-50 ml-auto"
+              >
+                <Send className="h-4 w-4" />
+                Jetzt posten
+              </button>
+            </div>
           </div>
 
           {/* Anleitung */}

@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import JobsClient from "./JobsClient";
 import Link from "next/link";
 import { jsonLdHtml } from "@/lib/jsonLd";
+import TelegramSubscribeBanner from "@/components/TelegramSubscribeBanner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
 
@@ -130,6 +131,9 @@ export default async function JobsPage() {
         </ul>
       </div>
       
+      {/* Telegram-Abo-Banner */}
+      <TelegramSubscribeBanner />
+
       {/* Client Component für interaktive Elemente */}
       <JobsClient initialJobs={jobs} />
     </>

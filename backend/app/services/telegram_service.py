@@ -92,6 +92,7 @@ TEXTS = {
         "external": "Externe Stelle",
         "cta": "Jetzt ansehen &amp; bewerben",
         "group_registered": "✅ Diese Gruppe erhält ab jetzt neue Stellen von JobOn.",
+        "promo": "📢 <b>Verpasse keine neue Stelle!</b>\n\nAbonniere unseren Bot und bekomme neue Jobs sofort persönlich aufs Handy – gefiltert nach Stellenart &amp; Ort, in deiner Sprache.\n\n👉 Jetzt kostenlos starten: {link}",
     },
     "en": {
         "welcome": "👋 <b>Welcome to the JobOn jobs bot!</b>\n\nPlease choose your language first:",
@@ -107,6 +108,7 @@ TEXTS = {
         "external": "External job",
         "cta": "View &amp; apply now",
         "group_registered": "✅ This group will now receive new jobs from JobOn.",
+        "promo": "📢 <b>Never miss a new job!</b>\n\nSubscribe to our bot and get new jobs instantly on your phone – filtered by job type &amp; location, in your language.\n\n👉 Start for free now: {link}",
     },
     "es": {
         "welcome": "👋 <b>¡Bienvenido/a al bot de empleos de JobOn!</b>\n\nPor favor, elige primero tu idioma:",
@@ -122,6 +124,7 @@ TEXTS = {
         "external": "Oferta externa",
         "cta": "Ver y postularse",
         "group_registered": "✅ Este grupo recibirá ahora nuevas ofertas de JobOn.",
+        "promo": "📢 <b>¡No te pierdas ninguna oferta!</b>\n\nSuscríbete a nuestro bot y recibe nuevas ofertas al instante en tu móvil – filtradas por tipo y lugar, en tu idioma.\n\n👉 Empieza gratis ahora: {link}",
     },
     "ru": {
         "welcome": "👋 <b>Добро пожаловать в бот вакансий JobOn!</b>\n\nСначала выберите язык:",
@@ -137,6 +140,7 @@ TEXTS = {
         "external": "Внешняя вакансия",
         "cta": "Смотреть и откликнуться",
         "group_registered": "✅ Эта группа будет получать новые вакансии от JobOn.",
+        "promo": "📢 <b>Не пропустите ни одной вакансии!</b>\n\nПодпишитесь на нашего бота и получайте новые вакансии сразу на телефон – с фильтром по типу и городу, на вашем языке.\n\n👉 Начните бесплатно: {link}",
     },
 }
 
@@ -378,6 +382,38 @@ def broadcast_new_job(job, db: Session) -> dict:
         f"Telegram-Broadcast Job {job.id}: Gruppe={sent_group}, Abonnenten={sent_count}"
     )
     return {"sent_group": sent_group, "sent_subscribers": sent_count}
+
+
+# ---- Bot-Identität & Promo ----
+
+_bot_username_cache: Optional[str] = None
+
+
+def get_bot_username() -> Optional[str]:
+    """Holt den @username des Bots (via getMe, gecacht)."""
+    global _bot_username_cache
+    if _bot_username_cache:
+        return _bot_username_cache
+    result = _api("getMe", {})
+    if result and result.get("username"):
+        _bot_username_cache = result["username"]
+    return _bot_username_cache
+
+
+def bot_link() -> Optional[str]:
+    username = get_bot_username()
+    return f"https://t.me/{username}" if username else None
+
+
+def send_group_promo(db: Session) -> bool:
+    """Postet die Abo-Werbung in die Gruppe (in der Gruppen-Sprache)."""
+    group_chat_id = get_setting(db, GROUP_CHAT_SETTING, None)
+    if not group_chat_id:
+        return False
+    lang = _norm_lang(get_setting(db, GROUP_LANG_SETTING, DEFAULT_LANGUAGE))
+    link = bot_link() or BASE_URL
+    result = send_message(group_chat_id, t(lang, "promo").format(link=link), disable_preview=True)
+    return result is not None
 
 
 # ---- Webhook-Verwaltung (Admin) ----

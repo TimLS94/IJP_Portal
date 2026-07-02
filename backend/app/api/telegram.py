@@ -184,15 +184,28 @@ async def telegram_webhook(
 
 # ---------------- Admin ----------------
 
+@router.get("/info")
+def telegram_info():
+    """Öffentlich: Bot-Link für den 'Jobs per Telegram'-Button auf der Website."""
+    return {
+        "configured": tg.is_configured(),
+        "username": tg.get_bot_username() if tg.is_configured() else None,
+        "link": tg.bot_link() if tg.is_configured() else None,
+    }
+
+
 @router.get("/status")
 def telegram_status(current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
     total = db.query(TelegramSubscriber).count()
     active = db.query(TelegramSubscriber).filter(TelegramSubscriber.is_active == True).count()  # noqa: E712
     return {
         "configured": tg.is_configured(),
+        "bot_link": tg.bot_link() if tg.is_configured() else None,
         "group_chat_id": get_setting(db, tg.GROUP_CHAT_SETTING, None),
         "group_language": tg._norm_lang(get_setting(db, tg.GROUP_LANG_SETTING, tg.DEFAULT_LANGUAGE)),
         "supported_languages": tg.SUPPORTED_LANGUAGES,
+        "promo_enabled": bool(get_setting(db, "telegram_promo_enabled", True)),
+        "promo_hour": int(get_setting(db, "telegram_promo_hour", 10)),
         "subscribers_total": total,
         "subscribers_active": active,
         "webhook": tg.get_webhook_info() if tg.is_configured() else None,
@@ -235,3 +248,31 @@ def telegram_test(current_user: User = Depends(require_admin), db: Session = Dep
         raise HTTPException(status_code=400, detail="Keine Gruppe gesetzt (/hier_posten im Gruppen-Chat senden)")
     result = tg.send_message(group_chat_id, "✅ Test: Der JobOn-Bot ist mit dieser Gruppe verbunden.")
     return {"ok": result is not None}
+
+
+class PromoSettingsRequest(BaseModel):
+    enabled: bool
+    hour: int
+
+
+@router.post("/promo-settings")
+def telegram_promo_settings(
+    data: PromoSettingsRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Aktiviert/deaktiviert den täglichen Promo-Post und setzt die Uhrzeit (UTC)."""
+    if not (0 <= data.hour <= 23):
+        raise HTTPException(status_code=400, detail="Stunde muss zwischen 0 und 23 liegen")
+    set_setting(db, "telegram_promo_enabled", data.enabled)
+    set_setting(db, "telegram_promo_hour", data.hour)
+    db.commit()
+    return {"ok": True, "enabled": data.enabled, "hour": data.hour}
+
+
+@router.post("/promo-now")
+def telegram_promo_now(current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Postet die Abo-Werbung sofort in die Gruppe (Test)."""
+    if not tg.send_group_promo(db):
+        raise HTTPException(status_code=400, detail="Keine Gruppe gesetzt oder Senden fehlgeschlagen")
+    return {"ok": True}

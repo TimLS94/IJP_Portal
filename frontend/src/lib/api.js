@@ -496,10 +496,13 @@ export const adminAPI = {
 
 // Telegram-Bot API (Admin)
 export const telegramAPI = {
+  getInfo: () => api.get('/telegram/info'), // öffentlich: Bot-Link
   getStatus: () => api.get('/telegram/status'),
   setWebhook: () => api.post('/telegram/set-webhook'),
   test: () => api.post('/telegram/test'),
   setGroupLanguage: (language) => api.post('/telegram/group-language', { language }),
+  setPromoSettings: (enabled, hour) => api.post('/telegram/promo-settings', { enabled, hour }),
+  promoNow: () => api.post('/telegram/promo-now'),
 };
 
 // BA-Scraper API (Admin)

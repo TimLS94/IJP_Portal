@@ -939,6 +939,42 @@ async def periodic_cleanup(interval_hours: int = 6):
         cleanup_jobs()
 
 
+async def telegram_daily_promo():
+    """Background-Task: postet täglich eine Abo-Werbung in die Telegram-Gruppe."""
+    from datetime import datetime, timedelta
+    from app.core.database import SessionLocal
+    from app.services.settings_service import get_setting
+    from app.services import telegram_service as tg
+
+    while True:
+        db = SessionLocal()
+        try:
+            enabled = get_setting(db, "telegram_promo_enabled", True)
+            hour = int(get_setting(db, "telegram_promo_hour", 10))
+        finally:
+            db.close()
+
+        if not enabled or not tg.is_configured():
+            await asyncio.sleep(3600)  # deaktiviert: in 1h erneut prüfen
+            continue
+
+        now = datetime.utcnow()
+        next_run = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if next_run <= now:
+            next_run += timedelta(days=1)
+        await asyncio.sleep((next_run - now).total_seconds())
+
+        db = SessionLocal()
+        try:
+            if get_setting(db, "telegram_promo_enabled", True):
+                tg.send_group_promo(db)
+                logger.info("Telegram-Promo in Gruppe gepostet")
+        except Exception as e:
+            logger.warning(f"Telegram-Promo fehlgeschlagen: {e}")
+        finally:
+            db.close()
+
+
 async def weekly_job_digest():
     """Background-Task für wöchentliche Job-Digest E-Mails (konfigurierbare Wochentage und Uhrzeit)"""
     from datetime import datetime, timedelta
@@ -1209,6 +1245,9 @@ async def lifespan(app: FastAPI):
     # Starte wöchentlichen Blog-Writer (jeden Montag 08:00 UTC)
     blog_writer_task = asyncio.create_task(weekly_blog_writer())
 
+    # Starte täglichen Telegram-Promo-Post
+    telegram_promo_task = asyncio.create_task(telegram_daily_promo())
+
     yield
 
     # Cleanup bei Shutdown
@@ -1216,11 +1255,13 @@ async def lifespan(app: FastAPI):
     digest_task.cancel()
     company_digest_task.cancel()
     blog_writer_task.cancel()
+    telegram_promo_task.cancel()
     try:
         await cleanup_task
         await digest_task
         await company_digest_task
         await blog_writer_task
+        await telegram_promo_task
     except asyncio.CancelledError:
         pass
 
