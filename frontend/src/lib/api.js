@@ -494,6 +494,13 @@ export const adminAPI = {
     api.post('/facebook/page/post', { message, comments, link }),
 };
 
+// Telegram-Bot API (Admin)
+export const telegramAPI = {
+  getStatus: () => api.get('/telegram/status'),
+  setWebhook: () => api.post('/telegram/set-webhook'),
+  test: () => api.post('/telegram/test'),
+};
+
 // BA-Scraper API (Admin)
 export const baScraperAPI = {
   getConfig: () => api.get('/admin/ba-scraper/config'),
