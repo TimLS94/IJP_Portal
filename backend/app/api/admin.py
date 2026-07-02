@@ -428,10 +428,12 @@ async def get_dashboard_stats(
     total_jobs = stats["jobs"]["total"]
     
     stats["success_rate"] = {
-        "total_successes": jobs_with_accepted,  # Stellen mit Vermittlung
-        "successes_in_period": jobs_with_accepted_in_period,
+        # Vermittlungen = Anzahl angenommener Bewerbungen (jede Annahme = 1 vermittelte Person)
+        "total_successes": stats["applications"]["accepted"],
+        "successes_in_period": stats["applications"]["accepted_in_period"],
+        # Erfolgsquote = Anteil der Stellen mit mindestens einer Vermittlung
         "success_percentage": round(
-            (jobs_with_accepted / total_jobs * 100) 
+            (jobs_with_accepted / total_jobs * 100)
             if total_jobs > 0 else 0, 1
         ),
         "accepted_applications": stats["applications"]["accepted"],  # Zusätzlich: Anzahl angenommener Bewerbungen
