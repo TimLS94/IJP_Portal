@@ -80,6 +80,14 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
         logger.info(f"Job {job.id} ist inaktiv/Entwurf — keine Benachrichtigung")
         return 0
 
+    # Telegram-Broadcast (Gruppe + Abonnenten) — unabhängig vom Bewerber-Matching
+    try:
+        from app.services import telegram_service
+        if telegram_service.is_configured():
+            telegram_service.broadcast_new_job(job, db)
+    except Exception as e:
+        logger.warning(f"Telegram-Broadcast für Job {job.id} fehlgeschlagen: {e}")
+
     from app.services.email_service import email_service
     from app.models.notification import Notification
 

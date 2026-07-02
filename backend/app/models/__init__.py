@@ -18,12 +18,13 @@ from app.models.job_interaction import JobInteraction, InteractionType, ReportRe
 from app.models.notification import Notification
 from app.models.applicant_invite import ApplicantInviteToken
 from app.models.job_promotion import JobPromotion
+from app.models.telegram_subscriber import TelegramSubscriber
 
 __all__ = [
-    "User", "Applicant", "Company", "CompanyMember", "CompanyRole", "JobPosting", 
+    "User", "Applicant", "Company", "CompanyMember", "CompanyRole", "JobPosting",
     "Application", "Document", "BlogPost", "PasswordResetToken", "JobRequest",
-    "Interview", "InterviewStatus", "GlobalSettings", "CompanyRequest", 
+    "Interview", "InterviewStatus", "GlobalSettings", "CompanyRequest",
     "CompanyRequestType", "CompanyRequestStatus", "JobTemplate", "InviteToken",
     "JobInteraction", "InteractionType", "ReportReason", "Notification",
-    "ApplicantInviteToken", "JobPromotion"
+    "ApplicantInviteToken", "JobPromotion", "TelegramSubscriber"
 ]
