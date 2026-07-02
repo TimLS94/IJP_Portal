@@ -15,6 +15,7 @@ class TelegramSubscriber(Base):
     username = Column(String, nullable=True)
     first_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    language = Column(String, default="de")  # de | en | es | ru
 
     # Optionale Filter des Abonnenten
     position_type = Column(
@@ -23,7 +24,8 @@ class TelegramSubscriber(Base):
     )  # None = alle Stellenarten
     location = Column(String, nullable=True)  # None = alle Orte (Teilstring-Match)
 
-    # Zustand für den /start-Filter-Dialog: None | "awaiting_position" | "awaiting_location"
+    # Zustand für den /start-Dialog:
+    # None | "awaiting_language" | "awaiting_position" | "awaiting_location"
     state = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)

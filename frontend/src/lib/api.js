@@ -499,6 +499,7 @@ export const telegramAPI = {
   getStatus: () => api.get('/telegram/status'),
   setWebhook: () => api.post('/telegram/set-webhook'),
   test: () => api.post('/telegram/test'),
+  setGroupLanguage: (language) => api.post('/telegram/group-language', { language }),
 };
 
 // BA-Scraper API (Admin)

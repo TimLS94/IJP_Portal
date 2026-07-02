@@ -2,11 +2,12 @@
 Telegram-Bot-Endpunkte.
 
 - POST /telegram/webhook : Empfängt Updates von Telegram (öffentlich, per Secret-Header abgesichert).
-- Admin-Endpunkte        : Status, Webhook setzen/löschen, Testnachricht.
+- Admin-Endpunkte        : Status, Webhook setzen, Testnachricht, Gruppen-Sprache.
 """
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -28,26 +29,11 @@ def require_admin(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-# ---------------- Webhook ----------------
+# ---------------- Webhook / Bot-Dialog ----------------
 
-WELCOME = (
-    "👋 <b>Willkommen beim JobOn-Stellen-Bot!</b>\n\n"
-    "Du bekommst neue Stellen direkt hier. Wähle zuerst eine Stellenart, "
-    "die dich interessiert:"
-)
-
-HELP = (
-    "ℹ️ <b>JobOn-Stellen-Bot</b>\n\n"
-    "/start – Abo starten / Filter neu einstellen\n"
-    "/filter – Stellenart &amp; Ort ändern\n"
-    "/stop – keine Stellen mehr erhalten\n"
-    "/hilfe – diese Hilfe\n"
-)
-
-
-def _get_or_create_subscriber(db: Session, chat_id: str, message: dict) -> TelegramSubscriber:
+def _get_or_create_subscriber(db: Session, chat_id: str, from_user: dict) -> TelegramSubscriber:
     sub = db.query(TelegramSubscriber).filter(TelegramSubscriber.chat_id == chat_id).first()
-    from_user = message.get("from", {}) or {}
+    from_user = from_user or {}
     if not sub:
         sub = TelegramSubscriber(
             chat_id=chat_id,
@@ -61,13 +47,25 @@ def _get_or_create_subscriber(db: Session, chat_id: str, message: dict) -> Teleg
     return sub
 
 
+def _sub_lang(db: Session, chat_id: str) -> str:
+    sub = db.query(TelegramSubscriber).filter(TelegramSubscriber.chat_id == chat_id).first()
+    return sub.language if sub and sub.language else tg.DEFAULT_LANGUAGE
+
+
+def _send_confirmation(chat_id: str, sub: TelegramSubscriber) -> None:
+    lang = sub.language or tg.DEFAULT_LANGUAGE
+    pos = (tg.POSITION_LABELS[tg._norm_lang(lang)].get(sub.position_type.value)
+           if sub.position_type else tg.t(lang, "all_positions_label"))
+    ort = sub.location if sub.location else tg.t(lang, "all_locations_label")
+    tg.send_message(chat_id, tg.t(lang, "confirm").format(pos=pos, loc=ort))
+
+
 def _handle_message(db: Session, message: dict) -> None:
     chat = message.get("chat", {}) or {}
     chat_id = str(chat.get("id"))
     chat_type = chat.get("type")
     text = (message.get("text") or "").strip()
 
-    # Kommando von möglichem "@botname"-Suffix befreien
     command = text.split()[0].split("@")[0].lower() if text else ""
 
     # --- Gruppen-/Kanal-Chat: nur /hier_posten zum Registrieren der Ziel-Gruppe ---
@@ -75,46 +73,45 @@ def _handle_message(db: Session, message: dict) -> None:
         if command == "/hier_posten":
             set_setting(db, tg.GROUP_CHAT_SETTING, chat_id)
             db.commit()
-            tg.send_message(chat_id, "✅ Diese Gruppe erhält ab jetzt neue Stellen von JobOn.")
+            group_lang = tg._norm_lang(get_setting(db, tg.GROUP_LANG_SETTING, tg.DEFAULT_LANGUAGE))
+            tg.send_message(chat_id, tg.t(group_lang, "group_registered"))
         return
 
     # --- Privat-Chat: Abo-Dialog ---
     if command in ("/start", "/filter"):
-        sub = _get_or_create_subscriber(db, chat_id, message)
+        sub = _get_or_create_subscriber(db, chat_id, message.get("from", {}))
         sub.is_active = True
-        sub.state = "awaiting_position"
+        sub.state = "awaiting_language"
         db.commit()
-        greeting = WELCOME if command == "/start" else "🔧 Stellenart wählen:"
-        tg.send_message(chat_id, greeting, reply_markup=tg.position_keyboard())
+        greeting = tg.t(sub.language or tg.DEFAULT_LANGUAGE, "welcome" if command == "/start" else "choose_language")
+        tg.send_message(chat_id, greeting, reply_markup=tg.language_keyboard())
         return
 
     if command == "/stop":
         sub = db.query(TelegramSubscriber).filter(TelegramSubscriber.chat_id == chat_id).first()
+        lang = sub.language if sub else tg.DEFAULT_LANGUAGE
         if sub:
             sub.is_active = False
             sub.state = None
             db.commit()
-        tg.send_message(chat_id, "🛑 Abo pausiert. Mit /start bekommst du jederzeit wieder Stellen.")
+        tg.send_message(chat_id, tg.t(lang, "stop"))
         return
 
     if command in ("/hilfe", "/help"):
-        tg.send_message(chat_id, HELP)
+        tg.send_message(chat_id, tg.t(_sub_lang(db, chat_id), "help"))
         return
 
     # Freitext: als Ort-Antwort werten, wenn wir gerade darauf warten
     sub = db.query(TelegramSubscriber).filter(TelegramSubscriber.chat_id == chat_id).first()
     if sub and sub.state == "awaiting_location":
-        if command == "/alle":
-            sub.location = None
-        else:
-            sub.location = text
+        sub.location = None if command == "/alle" else text
         sub.state = None
         sub.is_active = True
         db.commit()
         _send_confirmation(chat_id, sub)
         return
 
-    tg.send_message(chat_id, HELP)
+    tg.send_message(chat_id, tg.t(_sub_lang(db, chat_id), "help"))
 
 
 def _handle_callback(db: Session, callback: dict) -> None:
@@ -124,11 +121,23 @@ def _handle_callback(db: Session, callback: dict) -> None:
     chat = message.get("chat", {}) or {}
     chat_id = str(chat.get("id"))
 
+    sub = db.query(TelegramSubscriber).filter(TelegramSubscriber.chat_id == chat_id).first()
+    if not sub:
+        sub = _get_or_create_subscriber(db, chat_id, callback.get("from", {}))
+
+    if data.startswith("lang:"):
+        code = data.split(":", 1)[1]
+        sub.language = tg._norm_lang(code)
+        sub.state = "awaiting_position"
+        sub.is_active = True
+        db.commit()
+        tg.answer_callback_query(callback_id)
+        tg.send_message(chat_id, tg.t(sub.language, "choose_position"),
+                        reply_markup=tg.position_keyboard(sub.language))
+        return
+
     if data.startswith("pos:"):
         value = data.split(":", 1)[1]
-        sub = db.query(TelegramSubscriber).filter(TelegramSubscriber.chat_id == chat_id).first()
-        if not sub:
-            sub = _get_or_create_subscriber(db, chat_id, {"from": callback.get("from", {})})
         if value == "all":
             sub.position_type = None
         else:
@@ -140,24 +149,10 @@ def _handle_callback(db: Session, callback: dict) -> None:
         sub.is_active = True
         db.commit()
         tg.answer_callback_query(callback_id)
-        tg.send_message(
-            chat_id,
-            "📍 In welchem <b>Ort</b> suchst du?\n"
-            "Sende mir einen Ort (z.B. <i>Berlin</i>) – oder tippe /alle für alle Orte.",
-        )
+        tg.send_message(chat_id, tg.t(sub.language or tg.DEFAULT_LANGUAGE, "choose_location"))
         return
 
     tg.answer_callback_query(callback_id)
-
-
-def _send_confirmation(chat_id: str, sub: TelegramSubscriber) -> None:
-    pos = tg.POSITION_LABELS.get(sub.position_type.value, "Alle Stellenarten") if sub.position_type else "Alle Stellenarten"
-    ort = sub.location if sub.location else "Alle Orte"
-    tg.send_message(
-        chat_id,
-        f"✅ <b>Abo aktiv!</b>\n\n🏷️ Stellenart: {pos}\n📍 Ort: {ort}\n\n"
-        "Du bekommst ab jetzt passende neue Stellen. Ändern mit /filter, pausieren mit /stop.",
-    )
 
 
 @router.post("/webhook")
@@ -167,7 +162,6 @@ async def telegram_webhook(
     x_telegram_bot_api_secret_token: str = Header(None),
 ):
     """Empfängt Updates von Telegram. Antwortet immer mit 200, damit Telegram nicht retryt."""
-    # Secret-Header prüfen (falls konfiguriert)
     if tg.TELEGRAM_WEBHOOK_SECRET and x_telegram_bot_api_secret_token != tg.TELEGRAM_WEBHOOK_SECRET:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ungültiges Secret")
 
@@ -197,6 +191,8 @@ def telegram_status(current_user: User = Depends(require_admin), db: Session = D
     return {
         "configured": tg.is_configured(),
         "group_chat_id": get_setting(db, tg.GROUP_CHAT_SETTING, None),
+        "group_language": tg._norm_lang(get_setting(db, tg.GROUP_LANG_SETTING, tg.DEFAULT_LANGUAGE)),
+        "supported_languages": tg.SUPPORTED_LANGUAGES,
         "subscribers_total": total,
         "subscribers_active": active,
         "webhook": tg.get_webhook_info() if tg.is_configured() else None,
@@ -211,6 +207,24 @@ def telegram_set_webhook(current_user: User = Depends(require_admin)):
     if result is None:
         raise HTTPException(status_code=502, detail="Webhook konnte nicht gesetzt werden")
     return {"ok": True, "result": result}
+
+
+class GroupLanguageRequest(BaseModel):
+    language: str
+
+
+@router.post("/group-language")
+def telegram_set_group_language(
+    data: GroupLanguageRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Setzt die Sprache, in der in die Gruppe gepostet wird."""
+    if data.language not in tg.SUPPORTED_LANGUAGES:
+        raise HTTPException(status_code=400, detail="Sprache nicht unterstützt")
+    set_setting(db, tg.GROUP_LANG_SETTING, data.language)
+    db.commit()
+    return {"ok": True, "group_language": data.language}
 
 
 @router.post("/test")

@@ -17,10 +17,19 @@ interface WebhookInfo {
 interface Status {
   configured: boolean;
   group_chat_id: string | null;
+  group_language: string;
+  supported_languages: string[];
   subscribers_total: number;
   subscribers_active: number;
   webhook: WebhookInfo | null;
 }
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  de: "🇩🇪 Deutsch",
+  en: "🇬🇧 English",
+  es: "🇪🇸 Español",
+  ru: "🇷🇺 Русский",
+};
 
 export default function AdminTelegramPage() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -55,6 +64,16 @@ export default function AdminTelegramPage() {
       toast.error(msg || "Webhook konnte nicht gesetzt werden");
     } finally {
       setSettingWebhook(false);
+    }
+  };
+
+  const handleGroupLanguage = async (language: string) => {
+    try {
+      await telegramAPI.setGroupLanguage(language);
+      toast.success("Gruppen-Sprache gespeichert");
+      await loadStatus();
+    } catch {
+      toast.error("Sprache konnte nicht gespeichert werden");
     }
   };
 
@@ -168,6 +187,26 @@ export default function AdminTelegramPage() {
                 Testnachricht an Gruppe
               </button>
             </div>
+          </div>
+
+          {/* Gruppen-Sprache */}
+          <div className="card space-y-3">
+            <h2 className="text-lg font-semibold text-gray-900">Gruppen-Sprache</h2>
+            <p className="text-sm text-gray-600">
+              In welcher Sprache Stellen in die Gruppe gepostet werden. Abonnenten wählen ihre
+              Sprache selbst beim Bot.
+            </p>
+            <select
+              value={status.group_language}
+              onChange={(e) => handleGroupLanguage(e.target.value)}
+              className="border rounded-lg px-3 py-2 text-sm w-full max-w-xs"
+            >
+              {(status.supported_languages || ["de"]).map((code) => (
+                <option key={code} value={code}>
+                  {LANGUAGE_NAMES[code] || code}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Anleitung */}

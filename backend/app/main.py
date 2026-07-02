@@ -727,6 +727,30 @@ ensure_facebook_job_posts_table()
 ensure_facebook_schema()
 
 
+def ensure_telegram_schema():
+    """Fügt fehlende Spalten zur telegram_subscribers-Tabelle hinzu (Schema-Drift-Fix)."""
+    from sqlalchemy import text
+    cols = ['language VARCHAR DEFAULT \'de\'']
+    db = SessionLocal()
+    try:
+        for col_def in cols:
+            col_name = col_def.split()[0]
+            try:
+                db.execute(text(f'ALTER TABLE telegram_subscribers ADD COLUMN IF NOT EXISTS {col_def}'))
+            except Exception as ce:
+                logger.debug(f"telegram_subscribers.{col_name}: {ce}")
+        db.commit()
+        logger.info("telegram_subscribers Spalten sichergestellt")
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"ensure_telegram_schema: {e}")
+    finally:
+        db.close()
+
+
+ensure_telegram_schema()
+
+
 def ensure_job_promotions_table():
     """Erstellt die job_promotions Tabelle und last_boosted_at auf job_postings."""
     from sqlalchemy import text
