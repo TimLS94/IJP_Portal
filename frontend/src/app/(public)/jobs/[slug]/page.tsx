@@ -3,6 +3,17 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import JobDetailClient from "./JobDetailClient";
 import { jsonLdHtml } from "@/lib/jsonLd";
+import { hrefForPositionType } from "../../stellenangebote/filters";
+
+// Stellenart -> Label für Kategorie-Links (interne Verlinkung/SEO)
+const CATEGORY_LABELS: Record<string, string> = {
+  saisonjob: "Saisonjobs",
+  studentenferienjob: "Studentenjobs",
+  fachkraft: "Fachkräfte-Jobs",
+  ausbildung: "Ausbildungsplätze",
+  workandholiday: "Work & Holiday Jobs",
+  general: "Stellenangebote",
+};
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
 
@@ -432,6 +443,26 @@ export default async function JobDetailPage({
 
       {/* Client Component für interaktive Elemente */}
       <JobDetailClient initialJob={job} slug={slug} />
+
+      {/* Kategorie-Verlinkung (Job -> Kategorieseite, SEO-Hub-Struktur) */}
+      <nav aria-label="Stellen-Kategorien" className="max-w-4xl mx-auto px-4 pt-6">
+        <div className="flex flex-wrap gap-2">
+          {job.position_type && CATEGORY_LABELS[job.position_type] && (
+            <Link
+              href={hrefForPositionType(job.position_type)}
+              className="inline-flex items-center px-3 py-1.5 rounded-full bg-primary-50 text-primary-700 text-sm font-medium hover:bg-primary-100"
+            >
+              Alle {CATEGORY_LABELS[job.position_type]} ansehen →
+            </Link>
+          )}
+          <Link
+            href="/jobs"
+            className="inline-flex items-center px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200"
+          >
+            Alle Stellenangebote →
+          </Link>
+        </div>
+      </nav>
 
       {/* Ähnliche Stellen – interne Verlinkung (serverseitig für Crawler) */}
       {relatedJobs.length > 0 && (
