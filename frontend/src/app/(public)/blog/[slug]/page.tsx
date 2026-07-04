@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import BlogDetailClient from "./BlogDetailClient";
+import BlogJobsCta from "@/components/BlogJobsCta";
 import { jsonLdHtml } from "@/lib/jsonLd";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
@@ -160,6 +161,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
         dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       <BlogDetailClient post={post} relatedPosts={relatedPosts} />
+      <BlogJobsCta lang="de" />
     </>
   );
 }
