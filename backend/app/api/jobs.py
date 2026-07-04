@@ -104,13 +104,15 @@ async def list_public_jobs(
 @router.get("/sitemap/urls")
 async def get_sitemap_urls(db: Session = Depends(get_db)):
     """
-    Gibt alle aktiven Job-URLs für die Sitemap zurück.
+    Gibt alle aktiven, EIGENEN Job-URLs für die Sitemap zurück.
+    Externe (BA-)Stellen sind Duplicate Content -> nicht in die Sitemap.
     Format: [{url: "/jobs/slug-id", lastmod: "2026-01-15", title: "..."}]
     """
     jobs = db.query(JobPosting).filter(
         JobPosting.is_active == True,
         JobPosting.is_archived == False,
-        JobPosting.is_draft == False  # Entwürfe ausblenden
+        JobPosting.is_draft == False,  # Entwürfe ausblenden
+        JobPosting.is_external.isnot(True)  # externe Stellen nicht indexieren
     ).all()
     
     urls = []
@@ -140,9 +142,10 @@ async def get_sitemap_xml(db: Session = Depends(get_db)):
     jobs = db.query(JobPosting).filter(
         JobPosting.is_active == True,
         JobPosting.is_archived == False,
-        JobPosting.is_draft == False  # Entwürfe ausblenden
+        JobPosting.is_draft == False,  # Entwürfe ausblenden
+        JobPosting.is_external.isnot(True)  # externe (BA-)Stellen: Duplicate Content
     ).all()
-    
+
     base_url = "https://www.jobon.work"
     
     # XML Header
@@ -292,8 +295,15 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
             detail="Stellenangebot nicht gefunden"
         )
 
-    # Inaktive Jobs sind öffentlich nicht zugänglich
+    # Inaktive Jobs sind öffentlich nicht zugänglich.
+    # Archivierte (früher öffentliche) Stellen: 410 Gone -> Google entfernt sie sauber
+    # ohne "Soft 404". Nie-veröffentlichte (Entwürfe): 404.
     if not job.is_active:
+        if getattr(job, "is_archived", False):
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail="Stellenangebot ist abgelaufen"
+            )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Stellenangebot nicht gefunden"

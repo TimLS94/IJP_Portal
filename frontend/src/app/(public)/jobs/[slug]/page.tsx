@@ -150,23 +150,24 @@ function transformJob(apiJob: JobFromAPI): Job {
 
 // Server-side Daten laden
 async function getJob(slug: string): Promise<Job | null> {
-  try {
-    // Endpoint: /jobs/by-slug/{slug-with-id} z.B. /jobs/by-slug/test-3
-    const res = await fetch(`${API_URL}/jobs/by-slug/${slug}`, {
-      next: { revalidate: 60 }, // Cache für 1 Minute
-    });
-    
-    if (!res.ok) {
-      console.error(`Job fetch failed: ${res.status} for slug: ${slug}`);
-      return null;
-    }
-    
-    const apiJob: JobFromAPI = await res.json();
-    return transformJob(apiJob);
-  } catch (error) {
-    console.error("Error fetching job:", error);
+  // Endpoint: /jobs/by-slug/{slug-with-id} z.B. /jobs/by-slug/test-3
+  const res = await fetch(`${API_URL}/jobs/by-slug/${slug}`, {
+    next: { revalidate: 60 }, // Cache für 1 Minute
+  });
+
+  // Stelle existiert nicht mehr (404) oder ist abgelaufen (410) -> sauberes notFound()
+  if (res.status === 404 || res.status === 410) {
     return null;
   }
+
+  // Andere Fehler (Backend down / Cold-Start / 5xx): NICHT als "nicht gefunden" cachen,
+  // sondern werfen -> Seite liefert 500 (von Google später erneut versucht) statt Soft-404.
+  if (!res.ok) {
+    throw new Error(`Job fetch failed: ${res.status} for slug: ${slug}`);
+  }
+
+  const apiJob: JobFromAPI = await res.json();
+  return transformJob(apiJob);
 }
 
 // Alle Job-Slugs für statische Generierung abrufen
@@ -225,7 +226,9 @@ export async function generateMetadata({
       canonical: pageUrl,
     },
     robots: {
-      index: true,
+      // Externe (BA-)Stellen sind Duplicate Content -> nicht indexieren,
+      // damit Google das Crawl-Budget auf eigene Stellen konzentriert.
+      index: !job.is_external,
       follow: true,
       "max-image-preview": "large",
       "max-snippet": -1,
