@@ -2113,6 +2113,16 @@
       "error": "Fehler beim Speichern der Einstellungen"
     }
   },
+  "telegram": {
+    "settingsTitle": "Job-Alerts per Telegram",
+    "settingsDesc": "Erhalte neue passende Stellen sofort per Telegram – gefiltert nach Stellenart & Ort. Abbestellen jederzeit im Bot mit /stop.",
+    "settingsButton": "Telegram-Bot öffnen",
+    "unavailable": "Zurzeit nicht verfügbar",
+    "bannerTitle": "Neue Jobs sofort per Telegram",
+    "bannerText": "Aktiviere Job-Alerts per Telegram und verpasse keine passende Stelle mehr.",
+    "bannerButton": "Jetzt aktivieren",
+    "bannerDismiss": "Später"
+  },
   "companyDashboard": {
     "jobOffers": "Stellenangebote",
     "activeJobs": "Aktive Stellen",

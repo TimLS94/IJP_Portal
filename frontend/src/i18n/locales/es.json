@@ -2030,6 +2030,16 @@
       "error": "Error al guardar la configuración"
     }
   },
+  "telegram": {
+    "settingsTitle": "Alertas de empleo por Telegram",
+    "settingsDesc": "Recibe nuevas ofertas que coincidan al instante por Telegram – filtradas por tipo y lugar. Cancela cuando quieras en el bot con /stop.",
+    "settingsButton": "Abrir el bot de Telegram",
+    "unavailable": "No disponible por ahora",
+    "bannerTitle": "Nuevas ofertas al instante por Telegram",
+    "bannerText": "Activa las alertas de empleo por Telegram y no te pierdas ninguna oferta.",
+    "bannerButton": "Activar ahora",
+    "bannerDismiss": "Más tarde"
+  },
   "companyDashboard": {
     "jobOffers": "Ofertas de trabajo",
     "activeJobs": "Empleos activos",

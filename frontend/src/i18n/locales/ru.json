@@ -2030,6 +2030,16 @@
       "error": "Ошибка сохранения настроек"
     }
   },
+  "telegram": {
+    "settingsTitle": "Уведомления о вакансиях в Telegram",
+    "settingsDesc": "Получайте новые подходящие вакансии сразу в Telegram – с фильтром по типу и городу. Отписаться можно в боте командой /stop.",
+    "settingsButton": "Открыть Telegram-бот",
+    "unavailable": "Сейчас недоступно",
+    "bannerTitle": "Новые вакансии сразу в Telegram",
+    "bannerText": "Включите уведомления о вакансиях в Telegram и не пропускайте подходящие места.",
+    "bannerButton": "Включить",
+    "bannerDismiss": "Позже"
+  },
   "companyDashboard": {
     "jobOffers": "Вакансии",
     "activeJobs": "Активные вакансии",

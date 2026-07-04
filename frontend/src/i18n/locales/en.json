@@ -2113,6 +2113,16 @@
       "error": "Error saving settings"
     }
   },
+  "telegram": {
+    "settingsTitle": "Job alerts via Telegram",
+    "settingsDesc": "Get matching new jobs instantly on Telegram – filtered by job type & location. Unsubscribe anytime in the bot with /stop.",
+    "settingsButton": "Open Telegram bot",
+    "unavailable": "Currently unavailable",
+    "bannerTitle": "New jobs instantly on Telegram",
+    "bannerText": "Enable job alerts via Telegram and never miss a matching position.",
+    "bannerButton": "Enable now",
+    "bannerDismiss": "Later"
+  },
   "companyDashboard": {
     "jobOffers": "Job offers",
     "activeJobs": "Active jobs",

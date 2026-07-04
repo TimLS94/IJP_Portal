@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { accountAPI, authAPI } from "@/lib/api";
+import { accountAPI, authAPI, telegramAPI } from "@/lib/api";
 import toast from "react-hot-toast";
-import { 
-  Settings as SettingsIcon, Lock, Mail, Trash2, Eye, EyeOff, 
-  Loader2, AlertTriangle, CheckCircle, User, Shield, Bell, X
+import {
+  Settings as SettingsIcon, Lock, Mail, Trash2, Eye, EyeOff,
+  Loader2, AlertTriangle, CheckCircle, User, Shield, Bell, X, Send
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -25,6 +25,12 @@ export default function ApplicantSettingsPage() {
     email_notifications: true
   });
   const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
+
+  // Telegram-Bot-Link (öffentlich)
+  const [telegramLink, setTelegramLink] = useState<string | null>(null);
+  useEffect(() => {
+    telegramAPI.getInfo().then((res) => setTelegramLink(res.data?.link || null)).catch(() => {});
+  }, []);
   
   // Modal States
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -320,6 +326,30 @@ export default function ApplicantSettingsPage() {
               <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
             </div>
           </label>
+
+          {/* Telegram Job-Alerts */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-sky-50 rounded-xl">
+            <div className="flex items-center gap-3">
+              <Send className="h-5 w-5 text-sky-600" />
+              <div>
+                <p className="font-medium text-gray-900">{t('telegram.settingsTitle')}</p>
+                <p className="text-sm text-gray-500">{t('telegram.settingsDesc')}</p>
+              </div>
+            </div>
+            {telegramLink ? (
+              <a
+                href={telegramLink}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary flex items-center justify-center gap-2 shrink-0 whitespace-nowrap"
+              >
+                <Send className="h-4 w-4" />
+                {t('telegram.settingsButton')}
+              </a>
+            ) : (
+              <span className="text-sm text-gray-400 shrink-0">{t('telegram.unavailable')}</span>
+            )}
+          </div>
         </div>
       </div>
 
