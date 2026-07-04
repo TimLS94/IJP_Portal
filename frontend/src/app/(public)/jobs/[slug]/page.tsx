@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import JobDetailClient from "./JobDetailClient";
 import { jsonLdHtml } from "@/lib/jsonLd";
 
@@ -168,6 +169,28 @@ async function getJob(slug: string): Promise<Job | null> {
 
   const apiJob: JobFromAPI = await res.json();
   return transformJob(apiJob);
+}
+
+interface RelatedJob {
+  id: number;
+  title: string;
+  location?: string;
+  position_type?: string;
+  url: string;
+}
+
+// Ähnliche Stellen für interne Verlinkung (SEO)
+async function getRelatedJobs(jobId: number): Promise<RelatedJob[]> {
+  try {
+    const res = await fetch(`${API_URL}/jobs/related/${jobId}`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.jobs || [];
+  } catch {
+    return [];
+  }
 }
 
 // Alle Job-Slugs für statische Generierung abrufen
@@ -382,7 +405,18 @@ export default async function JobDetailPage({
     notFound();
   }
 
+  const relatedJobs = await getRelatedJobs(job.id);
+
   const jsonLd = generateJobPostingSchema(job);
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Startseite", item: "https://www.jobon.work" },
+      { "@type": "ListItem", position: 2, name: "Stellenangebote", item: "https://www.jobon.work/jobs" },
+      { "@type": "ListItem", position: 3, name: job.title, item: `https://www.jobon.work/jobs/${slug}` },
+    ],
+  };
 
   return (
     <>
@@ -391,9 +425,35 @@ export default async function JobDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
-      
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }}
+      />
+
       {/* Client Component für interaktive Elemente */}
       <JobDetailClient initialJob={job} slug={slug} />
+
+      {/* Ähnliche Stellen – interne Verlinkung (serverseitig für Crawler) */}
+      {relatedJobs.length > 0 && (
+        <nav aria-label="Ähnliche Stellen" className="max-w-4xl mx-auto px-4 py-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Ähnliche Stellenangebote</h2>
+          <ul className="grid sm:grid-cols-2 gap-3">
+            {relatedJobs.map((rj) => (
+              <li key={rj.id}>
+                <Link
+                  href={rj.url}
+                  className="block p-4 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-medium text-gray-900">{rj.title}</span>
+                  {rj.location && (
+                    <span className="block text-sm text-gray-600 mt-1">📍 {rj.location}</span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
     </>
   );
 }

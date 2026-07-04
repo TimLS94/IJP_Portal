@@ -388,6 +388,65 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
     return job_data
 
 
+@router.get("/related/{job_id}")
+async def get_related_jobs(job_id: int, limit: int = Query(6, ge=1, le=12), db: Session = Depends(get_db)):
+    """Ähnliche aktive Stellen für die interne Verlinkung (SEO).
+
+    Priorisiert gleiche Stellenart bzw. gleichen Ort; füllt mit weiteren aktuellen
+    Stellen auf. Externe (BA-)Stellen werden ausgeschlossen (Duplicate Content).
+    """
+    from sqlalchemy import or_, case
+
+    base = db.query(JobPosting).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_archived == False,
+        JobPosting.is_draft == False,
+        JobPosting.is_external.isnot(True),
+        JobPosting.id != job_id,
+    )
+
+    current = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+
+    results: list = []
+    seen: set = set()
+
+    if current is not None:
+        # 1) Gleiche Stellenart oder gleicher Ort zuerst
+        preferred = base.filter(
+            or_(
+                JobPosting.position_type == current.position_type,
+                JobPosting.location == current.location,
+            )
+        ).order_by(JobPosting.created_at.desc()).limit(limit).all()
+        for j in preferred:
+            if j.id not in seen:
+                seen.add(j.id)
+                results.append(j)
+
+    # 2) Mit weiteren aktuellen Stellen auffüllen
+    if len(results) < limit:
+        fill = base.order_by(JobPosting.created_at.desc()).limit(limit * 2).all()
+        for j in fill:
+            if j.id not in seen:
+                seen.add(j.id)
+                results.append(j)
+            if len(results) >= limit:
+                break
+
+    return {
+        "jobs": [
+            {
+                "id": j.id,
+                "title": j.title,
+                "location": j.location,
+                "position_type": j.position_type.value if j.position_type else None,
+                "url": f"/jobs/{get_job_url_slug(j)}",
+            }
+            for j in results[:limit]
+        ]
+    }
+
+
 # ========== JOB TEMPLATES (muss vor /{job_id} stehen!) ==========
 
 @router.get("/templates")
