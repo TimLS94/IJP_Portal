@@ -6,19 +6,35 @@ import { trackLogin, trackOAuthLogin, trackRegister, trackLogout, identifyUser, 
 
 const AuthContext = createContext(null);
 
+// Safari wirft bei blockiertem Speicher (ITP / Private Mode / nach Cross-Tab-OAuth)
+// einen SecurityError bei localStorage-Zugriff. Immer defensiv kapseln, sonst
+// stürzt die App ab (weiße Seite, v.a. nach Google-Login auf Safari).
+const safeGet = (k) => {
+  try { return typeof window !== 'undefined' ? window.localStorage.getItem(k) : null; } catch { return null; }
+};
+const safeSet = (k, v) => {
+  try { if (typeof window !== 'undefined') window.localStorage.setItem(k, v); } catch { /* ignore */ }
+};
+const safeRemove = (k) => {
+  try { if (typeof window !== 'undefined') window.localStorage.removeItem(k); } catch { /* ignore */ }
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Beim Start prüfen ob Token vorhanden
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    
-    if (token && savedUser) {
-      const parsed = JSON.parse(savedUser);
-      setUser(parsed);
-      try { identifyUser(parsed.id, parsed.role); } catch {}
+    // Beim Start prüfen ob Token vorhanden (Safari-sicher)
+    try {
+      const token = safeGet('token');
+      const savedUser = safeGet('user');
+      if (token && savedUser) {
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
+        try { identifyUser(parsed.id, parsed.role); } catch {}
+      }
+    } catch {
+      // Defekter/blockierter Speicher -> als nicht eingeloggt behandeln, nicht abstürzen
     }
     setLoading(false);
   }, []);
@@ -27,8 +43,8 @@ export function AuthProvider({ children }) {
     const response = await authAPI.login(email, password);
     const { access_token, user } = response.data;
 
-    localStorage.setItem('token', access_token);
-    localStorage.setItem('user', JSON.stringify(user));
+    safeSet('token', access_token);
+    safeSet('user', JSON.stringify(user));
     setUser(user);
     try { identifyUser(user.id, user.role); trackLogin(user.role); } catch {}
 
@@ -44,8 +60,8 @@ export function AuthProvider({ children }) {
     );
     const { access_token, user } = response.data;
 
-    localStorage.setItem('token', access_token);
-    localStorage.setItem('user', JSON.stringify(user));
+    safeSet('token', access_token);
+    safeSet('user', JSON.stringify(user));
     setUser(user);
     try { identifyUser(user.id, user.role); trackRegister('applicant'); } catch {}
 
@@ -59,8 +75,8 @@ export function AuthProvider({ children }) {
     );
     const { access_token, user } = response.data;
 
-    localStorage.setItem('token', access_token);
-    localStorage.setItem('user', JSON.stringify(user));
+    safeSet('token', access_token);
+    safeSet('user', JSON.stringify(user));
     setUser(user);
     try { identifyUser(user.id, user.role); trackRegister('company'); } catch {}
 
@@ -69,15 +85,15 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     try { trackLogout(); clearUser(); } catch {}
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    safeRemove('token');
+    safeRemove('user');
     setUser(null);
   };
 
   // Direkter Login mit Token und User (für OAuth)
   const setAuth = (token, userData) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    safeSet('token', token);
+    safeSet('user', JSON.stringify(userData));
     setUser(userData);
     try { identifyUser(userData.id, userData.role); trackOAuthLogin(userData.role); } catch {}
   };
