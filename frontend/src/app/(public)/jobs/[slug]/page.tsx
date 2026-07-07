@@ -77,6 +77,7 @@ interface JobFromAPI {
   published_at?: string;
   updated_at?: string;
   deadline?: string;
+  valid_through?: string;
   company_id?: number;
   company_name?: string;
   company_logo?: string;
@@ -145,7 +146,7 @@ function transformJob(apiJob: JobFromAPI): Job {
     german_level: apiJob.german_required,
     english_level: apiJob.english_required,
     other_languages: apiJob.other_languages_required,
-    valid_until: apiJob.deadline,
+    valid_until: apiJob.valid_through || apiJob.deadline,
     translations: apiJob.translations,
     available_languages: apiJob.available_languages,
     company: {

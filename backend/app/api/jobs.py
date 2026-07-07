@@ -323,7 +323,20 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
     
     # Prüfen ob Redirect nötig (falscher Slug)
     needs_redirect = slug_with_id != canonical_slug
-    
+
+    # validThrough für Google JobPosting: Bewerbungsschluss, sonst Fallback auf
+    # Veröffentlichung + Max-Deadline (Standard 90 Tage). Liegt der Fallback in der
+    # Vergangenheit (alte Dauer-Stelle ohne Deadline), auf heute + Max-Deadline setzen,
+    # damit die aktive Stelle nie fälschlich als "abgelaufen" gilt.
+    if job.deadline:
+        valid_through = job.deadline
+    else:
+        max_days = get_max_deadline_days(db)
+        base_dt = job.published_at or job.created_at or datetime.utcnow()
+        fallback = base_dt.date() + timedelta(days=max_days)
+        today = date.today()
+        valid_through = fallback if fallback >= today else today + timedelta(days=max_days)
+
     # Job-Daten als Dict für erweiterte Response
     job_data = {
         "id": job.id,
@@ -359,6 +372,7 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
         "published_at": job.published_at,
         "updated_at": job.updated_at,
         "deadline": job.deadline,
+        "valid_through": valid_through,  # für Google validThrough (inkl. Fallback)
         "translations": job.translations,
         "available_languages": job.available_languages,
         "admin_translated": job.admin_translated or False,
