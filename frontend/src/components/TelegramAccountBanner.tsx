@@ -7,6 +7,23 @@ import { useTranslation } from "react-i18next";
 
 const STORAGE_KEY = "telegram_banner_seen";
 
+// Safari wirft bei blockiertem Speicher (ITP / Private Mode / nach Cross-Tab-OAuth)
+// einen SecurityError bei localStorage-Zugriff. Immer defensiv kapseln.
+function safeGet(key: string): string | null {
+  try {
+    return typeof window !== "undefined" ? window.localStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+}
+function safeSet(key: string, value: string): void {
+  try {
+    if (typeof window !== "undefined") window.localStorage.setItem(key, value);
+  } catch {
+    /* Speicher nicht verfügbar (Safari) – Banner wird dann ggf. erneut angezeigt, kein Absturz */
+  }
+}
+
 // Einmaliger, schließbarer Banner im Bewerber-Bereich.
 // Wird nur einmal angezeigt (danach dauerhaft in den E-Mail-Einstellungen erreichbar).
 export default function TelegramAccountBanner() {
@@ -15,8 +32,7 @@ export default function TelegramAccountBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (localStorage.getItem(STORAGE_KEY)) return; // schon gesehen -> nie wieder
+    if (safeGet(STORAGE_KEY)) return; // schon gesehen -> nie wieder
     let active = true;
     telegramAPI
       .getInfo()
@@ -33,7 +49,7 @@ export default function TelegramAccountBanner() {
   }, []);
 
   const dismiss = () => {
-    if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY, "1");
+    safeSet(STORAGE_KEY, "1");
     setVisible(false);
   };
 

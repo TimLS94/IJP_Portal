@@ -238,12 +238,23 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
 
   return (
     <div className="w-full flex flex-col items-center gap-3">
-      {processing ? (
+      {/* GSI-Button IMMER gemountet lassen – nur ausblenden. Sonst wird auf Safari das
+          GSI-iframe mitten im Credential-Rückfluss zerstört -> weiße Seite (siehe f687cb0). */}
+      <div
+        key="gsi-button"
+        ref={buttonRef}
+        className="w-full max-w-[400px] justify-center"
+        style={{ minHeight: "44px", display: processing || needsConsent ? "none" : "flex" }}
+      />
+
+      {processing && (
         <div key="gsi-processing" className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg bg-gray-50 w-full max-w-[400px]">
           <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
           <span className="text-gray-600">{t("auth.signingIn")}</span>
         </div>
-      ) : needsConsent ? (
+      )}
+
+      {needsConsent && (
         /* Neuer Nutzer erkannt -> jetzt Datenschutz-Zustimmung einblenden */
         <div key="gsi-consent" className="w-full max-w-[400px] flex flex-col gap-4 p-5 rounded-xl border border-primary-200 bg-primary-50/60 shadow-sm">
           <div className="flex items-center gap-3">
@@ -291,8 +302,6 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
             {t("auth.cancel")}
           </button>
         </div>
-      ) : (
-        <div key="gsi-button" ref={buttonRef} className="w-full max-w-[400px] flex justify-center" style={{ minHeight: "44px" }} />
       )}
     </div>
   );
