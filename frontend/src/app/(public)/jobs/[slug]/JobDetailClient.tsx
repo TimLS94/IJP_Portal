@@ -203,9 +203,13 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
   const jobUi = (key: string) =>
     JOB_UI_TEXT[displayLanguage]?.[key] ?? JOB_UI_TEXT.de[key];
 
-  // NOTE: Job display language is now INDEPENDENT from global UI language.
-  // Users can switch job content language separately from the UI language.
-  // Removed automatic sync: useEffect that listened to i18n.languageChanged
+  // Job-Sprache und UI-Sprache (Navbar) sind gekoppelt: Ändert sich die globale
+  // Sprache (z.B. über die Navbar), folgt die angezeigte Job-Sprache – und umgekehrt
+  // ruft der Job-Umschalter i18n.changeLanguage auf.
+  useEffect(() => {
+    setDisplayLanguage(resolveDisplayLang(i18n.language || "de"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i18n.language]);
 
   useEffect(() => {
     if (isAuthenticated && isApplicant) {
@@ -350,7 +354,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                         return (
                           <button
                             key={langCode}
-                            onClick={() => setDisplayLanguage(langCode)}
+                            onClick={() => { setDisplayLanguage(langCode); i18n.changeLanguage(langCode); }}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                               displayLanguage === langCode
                                 ? "bg-white text-gray-900 shadow-sm"

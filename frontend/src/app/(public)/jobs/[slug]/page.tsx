@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { MapPin, ArrowRight } from "lucide-react";
 import JobDetailClient from "./JobDetailClient";
 import { jsonLdHtml } from "@/lib/jsonLd";
 import { hrefForPositionType } from "../../stellenangebote/filters";
@@ -444,47 +445,58 @@ export default async function JobDetailPage({
       {/* Client Component für interaktive Elemente */}
       <JobDetailClient initialJob={job} slug={slug} />
 
-      {/* Kategorie-Verlinkung (Job -> Kategorieseite, SEO-Hub-Struktur) */}
-      <nav aria-label="Stellen-Kategorien" className="max-w-4xl mx-auto px-4 pt-6">
-        <div className="flex flex-wrap gap-2">
-          {job.position_type && CATEGORY_LABELS[job.position_type] && (
+      {/* Weitere Stellen: Kategorie-Verlinkung + "Ähnliche Stellen" (serverseitig für Crawler) */}
+      <section className="border-t border-gray-100 bg-gray-50/60 mt-8">
+        <div className="max-w-4xl mx-auto px-4 py-10">
+          {/* Kategorie-Chips */}
+          <div className="flex flex-wrap gap-2 mb-8">
+            {job.position_type && CATEGORY_LABELS[job.position_type] && (
+              <Link
+                href={hrefForPositionType(job.position_type)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors"
+              >
+                Alle {CATEGORY_LABELS[job.position_type]}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
             <Link
-              href={hrefForPositionType(job.position_type)}
-              className="inline-flex items-center px-3 py-1.5 rounded-full bg-primary-50 text-primary-700 text-sm font-medium hover:bg-primary-100"
+              href="/jobs"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors"
             >
-              Alle {CATEGORY_LABELS[job.position_type]} ansehen →
+              Alle Stellenangebote
+              <ArrowRight className="h-4 w-4" />
             </Link>
-          )}
-          <Link
-            href="/jobs"
-            className="inline-flex items-center px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200"
-          >
-            Alle Stellenangebote →
-          </Link>
-        </div>
-      </nav>
+          </div>
 
-      {/* Ähnliche Stellen – interne Verlinkung (serverseitig für Crawler) */}
-      {relatedJobs.length > 0 && (
-        <nav aria-label="Ähnliche Stellen" className="max-w-4xl mx-auto px-4 py-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Ähnliche Stellenangebote</h2>
-          <ul className="grid sm:grid-cols-2 gap-3">
-            {relatedJobs.map((rj) => (
-              <li key={rj.id}>
-                <Link
-                  href={rj.url}
-                  className="block p-4 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-medium text-gray-900">{rj.title}</span>
-                  {rj.location && (
-                    <span className="block text-sm text-gray-600 mt-1">📍 {rj.location}</span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
+          {relatedJobs.length > 0 && (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900 mb-5">Ähnliche Stellenangebote</h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {relatedJobs.map((rj) => (
+                  <Link
+                    key={rj.id}
+                    href={rj.url}
+                    className="group flex items-start justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-primary-300 hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 leading-snug line-clamp-2 group-hover:text-primary-700 transition-colors">
+                        {rj.title}
+                      </p>
+                      {rj.location && (
+                        <p className="mt-2 flex items-center gap-1.5 text-sm text-gray-500">
+                          <MapPin className="h-4 w-4 text-primary-500 shrink-0" />
+                          <span className="truncate">{rj.location}</span>
+                        </p>
+                      )}
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-gray-300 shrink-0 mt-0.5 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all" />
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
     </>
   );
 }
