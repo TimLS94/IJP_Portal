@@ -1,0 +1,59 @@
+name: Live-Monitor (Playwright)
+
+# Prüft regelmäßig die echte Seite (Chromium + WebKit/Safari) auf weiße Seiten /
+# Abstürze und den Safari-localStorage-Regressionsfall. Schlägt einer der Tests
+# fehl, markiert GitHub den Lauf als "failed" und schickt dir eine E-Mail.
+
+on:
+  schedule:
+    - cron: "0 */3 * * *" # alle 3 Stunden
+  workflow_dispatch: # manuell startbar über den Actions-Tab
+    inputs:
+      base_url:
+        description: "Ziel-URL (Standard: Live-Seite)"
+        required: false
+        default: "https://www.jobon.work"
+
+concurrency:
+  group: live-monitor
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://www.jobon.work' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Playwright-Browser cachen -> schnelle Läufe (spart Actions-Minuten)
+      - name: Playwright-Browser-Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package.json') }}
+
+      - name: Abhängigkeiten installieren
+        run: npm install
+
+      - name: Playwright-Browser installieren
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Monitor ausführen
+        run: npm run test:e2e
+
+      - name: Report hochladen (bei Fehler)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14
