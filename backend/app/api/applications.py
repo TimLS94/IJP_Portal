@@ -218,7 +218,8 @@ async def create_application(
             match_score = match_result.get("total_score", 0)
             
             # Score-Filter prüfen: Ist der Score unter dem Schwellenwert?
-            if company and company.auto_reject_enabled:
+            # Nur für Premium-Firmen – Nicht-Premium bekommt keine Aufteilung.
+            if company and getattr(company, "is_premium", False) and company.auto_reject_enabled:
                 threshold = company.auto_reject_threshold or 50
                 if match_score < threshold:
                     is_filtered = True
@@ -382,12 +383,17 @@ async def get_company_applications(
         JobPosting.company_id == company.id
     )
     
-    # Gefilterte vs. normale Bewerbungen
+    # Score-Filter (Aufteilung Haupt-Tab / "Weitere Bewerbungen") ist NUR für Premium.
+    # Nicht-Premium sehen ALLE Bewerbungen im Haupt-Tab; der gefilterte Tab bleibt leer.
+    is_premium = bool(getattr(company, "is_premium", False))
     if include_filtered:
+        if not is_premium:
+            return []  # Nicht-Premium hat keinen gefilterten Tab
         query = query.filter(Application.is_filtered == True)
-    else:
+    elif is_premium:
         query = query.filter((Application.is_filtered == False) | (Application.is_filtered == None))
-    
+    # Nicht-Premium + Haupt-Tab: kein is_filtered-Filter -> alle Bewerbungen sichtbar
+
     applications = query.order_by(Application.applied_at.desc()).all()
 
     # Hochgeladene Dokumenttypen je Bewerber laden (für "erhalten"-Status, ohne N+1)

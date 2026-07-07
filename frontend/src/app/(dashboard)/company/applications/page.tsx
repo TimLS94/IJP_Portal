@@ -674,6 +674,8 @@ export default function CompanyApplicationsPage() {
                 </span>
               </div>
             </button>
+            {/* "Weitere Bewerbungen"-Tab (Score-Filter) nur für Premium */}
+            {isPremium && (
             <button
               onClick={() => setActiveTab("filtered")}
               className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
@@ -694,6 +696,7 @@ export default function CompanyApplicationsPage() {
                 )}
               </div>
             </button>
+            )}
           </nav>
         </div>
 
