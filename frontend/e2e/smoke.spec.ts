@@ -89,6 +89,65 @@ test.describe("Backend & Inhalt", () => {
   });
 });
 
+test.describe("SEO & Job-Detailseite", () => {
+  test("Eine echte Job-Detailseite lädt mit Inhalt + JobPosting-Strukturdaten", async ({
+    page,
+    request,
+  }) => {
+    // Eine echte Job-URL aus der Sitemap-API holen
+    const res = await request.get(`${API_URL}/jobs/sitemap/urls`);
+    expect(res.ok(), `sitemap/urls Status ${res.status()}`).toBeTruthy();
+    const data = await res.json();
+    const urls: { url: string }[] = data.urls || [];
+    test.skip(urls.length === 0, "keine Job-URLs vorhanden");
+
+    const jobPath = urls[0].url; // Format: /jobs/slug-id
+    await page.goto(jobPath, { waitUntil: "domcontentloaded" });
+    await assertPageHealthy(page, jobPath);
+    await expect(page.locator("h1").first()).toBeVisible();
+
+    // JobPosting-JSON-LD vorhanden + Pflichtfelder gesetzt (Google-Jobs-Tauglichkeit)
+    const scripts = await page.locator('script[type="application/ld+json"]').allTextContents();
+    const jobPosting = scripts
+      .map((s) => {
+        try {
+          return JSON.parse(s);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .find((o) => o["@type"] === "JobPosting");
+
+    expect(jobPosting, `kein JobPosting-JSON-LD auf ${jobPath}`).toBeTruthy();
+    for (const field of ["title", "description", "datePosted", "hiringOrganization", "jobLocation"]) {
+      expect(jobPosting[field], `JobPosting-Pflichtfeld "${field}" fehlt`).toBeTruthy();
+    }
+  });
+
+  test("sitemap.xml ist erreichbar und enthält Einträge", async ({ request }) => {
+    const res = await request.get("/sitemap.xml");
+    expect(res.ok(), `sitemap.xml Status ${res.status()}`).toBeTruthy();
+    const body = await res.text();
+    expect(body).toContain("<urlset");
+    expect(body).toContain("<loc>");
+  });
+
+  test("robots.txt ist erreichbar und verweist auf die Sitemap", async ({ request }) => {
+    const res = await request.get("/robots.txt");
+    expect(res.ok(), `robots.txt Status ${res.status()}`).toBeTruthy();
+    const body = (await res.text()).toLowerCase();
+    expect(body).toContain("sitemap");
+  });
+
+  test("Telegram-Info-Endpoint antwortet", async ({ request }) => {
+    const res = await request.get(`${API_URL}/telegram/info`);
+    expect(res.ok(), `/telegram/info Status ${res.status()}`).toBeTruthy();
+    const body = await res.json();
+    expect(body).toHaveProperty("configured");
+  });
+});
+
 // ── Regressionstest für den wiederkehrenden Safari-Bug ──────────────────────
 // Safari wirft bei blockiertem Speicher (ITP nach Cross-Tab-OAuth / Private Mode)
 // SecurityError bei localStorage-Zugriff. Das hat die App mehrfach abstürzen lassen
