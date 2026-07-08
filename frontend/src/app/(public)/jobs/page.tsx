@@ -50,7 +50,9 @@ async function getJobs(): Promise<Job[]> {
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return data.jobs || [];
+    // /jobs/public liefert ein Array; ältere Annahme war {jobs:[...]} -> beides abfangen,
+    // sonst bleiben die SSR-/Crawler-Links auf /jobs leer (schlecht für SEO).
+    return Array.isArray(data) ? data : data.jobs || [];
   } catch {
     return [];
   }

@@ -27,6 +27,7 @@ jobs:
         working-directory: frontend
     env:
       E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://www.jobon.work' }}
+      E2E_API_URL: "https://ijp-portal.onrender.com/api/v1"
     steps:
       - uses: actions/checkout@v4
 

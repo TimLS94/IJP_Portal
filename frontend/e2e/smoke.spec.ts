@@ -4,6 +4,9 @@ import { test, expect, Page } from "@playwright/test";
 // Taucht dieser auf, ist die App abgestürzt (bislang: weiße Seite).
 const ERROR_BOUNDARY_TEXT = "schiefgelaufen";
 
+// Backend-API (für Health-/Daten-Checks). Standard: Produktions-Backend.
+const API_URL = process.env.E2E_API_URL || "https://ijp-portal.onrender.com/api/v1";
+
 async function assertPageHealthy(page: Page, path: string) {
   // 1) Error-Boundary darf NICHT sichtbar sein (= kein Absturz)
   await expect(
@@ -44,6 +47,48 @@ test.describe("Smoke: kritische Seiten laden ohne Absturz", () => {
   });
 });
 
+test.describe("Backend & Inhalt", () => {
+  test("Backend /health ist erreichbar", async ({ request }) => {
+    // /health liegt im Root, nicht unter /api/v1
+    const origin = API_URL.replace(/\/api\/v1\/?$/, "");
+    const res = await request.get(`${origin}/health`);
+    expect(res.ok(), `/health antwortete mit Status ${res.status()}`).toBeTruthy();
+    const body = await res.json();
+    expect(body.status).toBe("healthy");
+  });
+
+  test("Öffentliche Stellen-API liefert Stellen", async ({ request }) => {
+    const res = await request.get(`${API_URL}/jobs/public`);
+    expect(res.ok(), `/jobs/public antwortete mit Status ${res.status()}`).toBeTruthy();
+    const data = await res.json();
+    const jobs = Array.isArray(data) ? data : data.jobs || [];
+    expect(jobs.length, "API liefert keine öffentlichen Stellen").toBeGreaterThan(0);
+  });
+
+  test("Stellenübersicht zeigt tatsächlich Stellen an", async ({ page }) => {
+    await page.goto("/jobs", { waitUntil: "domcontentloaded" });
+    await assertPageHealthy(page, "/jobs");
+    // Mindestens ein Stellen-Link muss im DOM sein (SSR-Crawler-Links oder Client-Karten)
+    await expect(
+      page.locator('a[href^="/jobs/"]').first(),
+      "keine Stellen-Links auf /jobs gefunden"
+    ).toBeAttached({ timeout: 15_000 });
+  });
+
+  test("Google-Login ist auf /login eingebunden", async ({ page }) => {
+    // Hinweis: Eine ECHTE Google-Anmeldung lässt sich nicht automatisieren
+    // (Google blockiert Bots/Automation). Wir prüfen daher, dass die Google-
+    // Integration geladen wird und /login nicht abstürzt. Der eigentliche
+    // Fehlerfall (Safari-localStorage-Crash) ist separat abgedeckt.
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    await assertPageHealthy(page, "/login");
+    await expect(
+      page.locator("#google-gsi-script"),
+      "Google-Sign-In-Script nicht eingebunden"
+    ).toHaveCount(1, { timeout: 10_000 });
+  });
+});
+
 // ── Regressionstest für den wiederkehrenden Safari-Bug ──────────────────────
 // Safari wirft bei blockiertem Speicher (ITP nach Cross-Tab-OAuth / Private Mode)
 // SecurityError bei localStorage-Zugriff. Das hat die App mehrfach abstürzen lassen
@@ -56,15 +101,14 @@ test.describe("Regression: App überlebt blockierten localStorage (Safari/ITP)",
         throw new DOMException("The operation is insecure.", "SecurityError");
       };
       try {
+        // Realistisch wie Safari: Methoden werfen SecurityError, length bleibt 0
         const blocked = {
           getItem: boom,
           setItem: boom,
           removeItem: boom,
           clear: boom,
           key: boom,
-          get length() {
-            return boom();
-          },
+          length: 0,
         } as unknown as Storage;
         Object.defineProperty(window, "localStorage", {
           configurable: true,
