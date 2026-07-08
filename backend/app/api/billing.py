@@ -337,15 +337,21 @@ async def create_checkout_session(
 
     # Sicherheitsnetz gegen Doppel-Abos: prüfen, ob beim Kunden schon ein
     # aktives/Trial-Abo existiert (best effort – falls Leserecht fehlt, greift
-    # weiterhin der is_premium-Guard oben).
+    # weiterhin der is_premium-Guard oben). Gleichzeitig ermitteln, ob der Kunde
+    # bereits einmal einen Trial hatte -> dann keinen neuen Trial mehr gewähren
+    # (verhindert "kündigen -> neu abschließen -> wieder 7 Tage gratis").
+    trial_already_used = False
     try:
-        existing = stripe.Subscription.list(customer=customer_id, status="all", limit=20)
+        existing = stripe.Subscription.list(customer=customer_id, status="all", limit=100)
         for sub in existing.data:
             if _g(sub, "status") in ACTIVE_STATUSES:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Es besteht bereits ein aktives Abo. Verwalte es über \"Abo verwalten\".",
                 )
+            # Früheres Abo mit Testphase? -> Trial gilt als verbraucht
+            if _g(sub, "trial_start") or _g(sub, "trial_end"):
+                trial_already_used = True
     except HTTPException:
         raise
     except Exception:
@@ -355,7 +361,7 @@ async def create_checkout_session(
     base = _frontend_url()
 
     subscription_data = {"metadata": {"company_id": str(company.id)}}
-    if settings.PREMIUM_TRIAL_DAYS and settings.PREMIUM_TRIAL_DAYS > 0:
+    if settings.PREMIUM_TRIAL_DAYS and settings.PREMIUM_TRIAL_DAYS > 0 and not trial_already_used:
         subscription_data["trial_period_days"] = settings.PREMIUM_TRIAL_DAYS
 
     try:
@@ -419,6 +425,20 @@ async def create_portal_session(
     return {"url": session.url}
 
 
+def _customer_had_trial(customer_id: str) -> bool:
+    """True, wenn der Stripe-Kunde bereits einmal eine Testphase hatte."""
+    if not customer_id:
+        return False
+    try:
+        subs = stripe.Subscription.list(customer=customer_id, status="all", limit=100)
+        for sub in subs.data:
+            if _g(sub, "trial_start") or _g(sub, "trial_end"):
+                return True
+    except Exception:
+        return False
+    return False
+
+
 @router.get("/status")
 async def get_billing_status(
     current_user: User = Depends(get_current_user),
@@ -426,13 +446,21 @@ async def get_billing_status(
 ):
     """Liefert den aktuellen Abo-Status der Firma."""
     company = get_company_or_404(current_user, db)
+
+    # Trial nur anbieten, wenn der Kunde noch keinen hatte (verhindert wiederholte
+    # Gratis-Testphasen durch Kündigen + neu Abschließen).
+    trial_days = settings.PREMIUM_TRIAL_DAYS or 0
+    if trial_days and settings.STRIPE_SECRET_KEY and company.stripe_customer_id:
+        if _customer_had_trial(company.stripe_customer_id):
+            trial_days = 0
+
     return {
         "is_premium": bool(company.is_premium),
         "has_subscription": bool(company.stripe_subscription_id),
         "premium_until": company.premium_until.isoformat() if company.premium_until else None,
         "cancel_at_period_end": bool(company.premium_cancel_at_period_end),
         "price_eur": settings.PREMIUM_PRICE_CENTS / 100,
-        "trial_days": settings.PREMIUM_TRIAL_DAYS,
+        "trial_days": trial_days,
         "stripe_configured": bool(settings.STRIPE_SECRET_KEY),
     }
 
