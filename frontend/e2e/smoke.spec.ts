@@ -158,7 +158,8 @@ test.describe("Eingeloggt: Dashboard lädt", () => {
     request: import("@playwright/test").APIRequestContext,
     email: string,
     password: string,
-    path: string
+    path: string,
+    area: string
   ) {
     const res = await request.post(`${API_URL}/auth/login`, {
       form: { username: email, password },
@@ -179,25 +180,29 @@ test.describe("Eingeloggt: Dashboard lädt", () => {
       [data.access_token as string, JSON.stringify(data.user)]
     );
     await page.goto(path, { waitUntil: "domcontentloaded" });
-    // Erst warten bis das Dashboard tatsächlich gerendert ist (Navbar sichtbar =
-    // AuthContext aufgelöst, kein Lade-Spinner mehr). Sonst prüfen wir zu früh die
-    // (noch fast leere) Spinner-Phase. Bleibt die Navbar aus -> echtes Problem.
+
+    // Robuste Signale statt Body-Textlänge (Dashboards sind App-Shells mit wenig
+    // sichtbarem Text während Daten laden):
+    // 1) Navbar erscheint -> AuthContext aufgelöst, kein Hänger.
     await expect(page.locator("nav").first()).toBeVisible({ timeout: 20_000 });
-    await assertPageHealthy(page, path);
+    // 2) Kein Absturz (Error-Boundary).
+    await expect(page.getByText(ERROR_BOUNDARY_TEXT, { exact: false })).toHaveCount(0);
+    // 3) Nicht zur Login-Seite umgeleitet -> Session gilt (sonst wäre Login/Auth kaputt).
+    expect(page.url(), `auf Login umgeleitet -> nicht eingeloggt (${path})`).toContain(area);
   }
 
   test("Bewerber-Dashboard lädt nach Login", async ({ page, request }) => {
     const email = process.env.TEST_APPLICANT_EMAIL;
     const password = process.env.TEST_APPLICANT_PASSWORD;
     test.skip(!email || !password, "TEST_APPLICANT_* Secrets nicht gesetzt");
-    await loginAndOpen(page, request, email!, password!, "/applicant/profile");
+    await loginAndOpen(page, request, email!, password!, "/applicant/profile", "/applicant");
   });
 
   test("Firmen-Dashboard lädt nach Login", async ({ page, request }) => {
     const email = process.env.TEST_COMPANY_EMAIL;
     const password = process.env.TEST_COMPANY_PASSWORD;
     test.skip(!email || !password, "TEST_COMPANY_* Secrets nicht gesetzt");
-    await loginAndOpen(page, request, email!, password!, "/company/dashboard");
+    await loginAndOpen(page, request, email!, password!, "/company/dashboard", "/company");
   });
 });
 
