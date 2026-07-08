@@ -179,8 +179,11 @@ test.describe("Eingeloggt: Dashboard lädt", () => {
       [data.access_token as string, JSON.stringify(data.user)]
     );
     await page.goto(path, { waitUntil: "domcontentloaded" });
+    // Erst warten bis das Dashboard tatsächlich gerendert ist (Navbar sichtbar =
+    // AuthContext aufgelöst, kein Lade-Spinner mehr). Sonst prüfen wir zu früh die
+    // (noch fast leere) Spinner-Phase. Bleibt die Navbar aus -> echtes Problem.
+    await expect(page.locator("nav").first()).toBeVisible({ timeout: 20_000 });
     await assertPageHealthy(page, path);
-    await expect(page.locator("nav").first()).toBeVisible();
   }
 
   test("Bewerber-Dashboard lädt nach Login", async ({ page, request }) => {
