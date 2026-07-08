@@ -148,6 +148,56 @@ test.describe("SEO & Job-Detailseite", () => {
   });
 });
 
+// ── Eingeloggt: Dashboard lädt (nur wenn Test-Zugangsdaten als Secrets da sind) ──
+// Wichtig: Es wird KEIN echter Google-Login automatisiert (Google blockiert Bots).
+// Der Login läuft per API mit einem E-Mail-/Passwort-Test-Account; der Absturz-nach-
+// Login-Fall (AuthContext/Dashboard-Rendering) ist für Google- und E-Mail-Nutzer gleich.
+test.describe("Eingeloggt: Dashboard lädt", () => {
+  async function loginAndOpen(
+    page: Page,
+    request: import("@playwright/test").APIRequestContext,
+    email: string,
+    password: string,
+    path: string
+  ) {
+    const res = await request.post(`${API_URL}/auth/login`, {
+      form: { username: email, password },
+    });
+    expect(res.ok(), `Login fehlgeschlagen (Status ${res.status()})`).toBeTruthy();
+    const data = await res.json();
+    expect(data.access_token, "kein access_token erhalten").toBeTruthy();
+    // Session wie die App setzen (AuthContext liest 'token' + 'user' aus localStorage)
+    await page.addInitScript(
+      ([t, u]) => {
+        try {
+          localStorage.setItem("token", t);
+          localStorage.setItem("user", u);
+        } catch {
+          /* ignore */
+        }
+      },
+      [data.access_token as string, JSON.stringify(data.user)]
+    );
+    await page.goto(path, { waitUntil: "domcontentloaded" });
+    await assertPageHealthy(page, path);
+    await expect(page.locator("nav").first()).toBeVisible();
+  }
+
+  test("Bewerber-Dashboard lädt nach Login", async ({ page, request }) => {
+    const email = process.env.TEST_APPLICANT_EMAIL;
+    const password = process.env.TEST_APPLICANT_PASSWORD;
+    test.skip(!email || !password, "TEST_APPLICANT_* Secrets nicht gesetzt");
+    await loginAndOpen(page, request, email!, password!, "/applicant/profile");
+  });
+
+  test("Firmen-Dashboard lädt nach Login", async ({ page, request }) => {
+    const email = process.env.TEST_COMPANY_EMAIL;
+    const password = process.env.TEST_COMPANY_PASSWORD;
+    test.skip(!email || !password, "TEST_COMPANY_* Secrets nicht gesetzt");
+    await loginAndOpen(page, request, email!, password!, "/company/dashboard");
+  });
+});
+
 // ── Regressionstest für den wiederkehrenden Safari-Bug ──────────────────────
 // Safari wirft bei blockiertem Speicher (ITP nach Cross-Tab-OAuth / Private Mode)
 // SecurityError bei localStorage-Zugriff. Das hat die App mehrfach abstürzen lassen

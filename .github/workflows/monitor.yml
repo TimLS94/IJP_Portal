@@ -28,6 +28,11 @@ jobs:
     env:
       E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://www.jobon.work' }}
       E2E_API_URL: "https://ijp-portal.onrender.com/api/v1"
+      # Eingeloggter Dashboard-Check – nur aktiv, wenn diese Secrets gesetzt sind
+      TEST_APPLICANT_EMAIL: ${{ secrets.TEST_APPLICANT_EMAIL }}
+      TEST_APPLICANT_PASSWORD: ${{ secrets.TEST_APPLICANT_PASSWORD }}
+      TEST_COMPANY_EMAIL: ${{ secrets.TEST_COMPANY_EMAIL }}
+      TEST_COMPANY_PASSWORD: ${{ secrets.TEST_COMPANY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
