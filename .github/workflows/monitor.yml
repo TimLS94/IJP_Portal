@@ -16,12 +16,14 @@ on:
 
 concurrency:
   group: live-monitor
-  cancel-in-progress: true
+  # Läufe NICHT abbrechen, sondern nacheinander abarbeiten. Ein Abbruch mitten in
+  # der Browser-Installation verhindert sonst das Speichern des Browser-Caches.
+  cancel-in-progress: false
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: frontend
