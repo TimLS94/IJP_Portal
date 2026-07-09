@@ -432,9 +432,13 @@ export default function Navbar() {
                                 key={notif.id}
                                 onClick={async () => {
                                   if (!notif.is_read) await handleMarkAsRead(notif.id);
+                                  setNotifMenuOpen(false);
                                   if (notif.reference_type === "job" && notif.reference_id) {
-                                    setNotifMenuOpen(false);
                                     router.push(`/jobs/${notif.reference_id}`);
+                                  } else {
+                                    // Interview-/Bewerbungs-Benachrichtigungen -> Bewerbungen,
+                                    // dort kann der Bewerber Termine bestätigen / reagieren.
+                                    router.push("/applicant/applications");
                                   }
                                 }}
                                 className={`px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors ${
