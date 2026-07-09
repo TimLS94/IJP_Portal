@@ -505,6 +505,7 @@ export const telegramAPI = {
   setGroupLanguage: (language) => api.post('/telegram/group-language', { language }),
   setPromoSettings: (enabled, hour, days) => api.post('/telegram/promo-settings', { enabled, hour, days }),
   promoNow: () => api.post('/telegram/promo-now'),
+  boostJob: (jobId) => api.post(`/telegram/boost/${jobId}`),
 };
 
 // BA-Scraper API (Admin)

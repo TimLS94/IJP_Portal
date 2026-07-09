@@ -280,3 +280,30 @@ def telegram_promo_now(current_user: User = Depends(require_admin), db: Session 
     if not tg.send_group_promo(db):
         raise HTTPException(status_code=400, detail="Keine Gruppe gesetzt oder Senden fehlgeschlagen")
     return {"ok": True}
+
+
+@router.post("/boost/{job_id}")
+def telegram_boost_job(
+    job_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Telegram-Boost: postet eine Stelle (erneut) in die Gruppe UND an passende
+    Abonnenten – analog zum E-Mail-Boost an passende Bewerber."""
+    from app.models.job_posting import JobPosting
+
+    if not tg.is_configured():
+        raise HTTPException(status_code=400, detail="TELEGRAM_BOT_TOKEN nicht gesetzt")
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
+    if not job.is_active or getattr(job, "is_draft", False):
+        raise HTTPException(status_code=400, detail="Stelle ist inaktiv oder Entwurf")
+
+    result = tg.broadcast_new_job(job, db)
+    if not result.get("sent_group") and not result.get("sent_subscribers"):
+        raise HTTPException(
+            status_code=400,
+            detail="Nichts gesendet – ist eine Gruppe verbunden (/hier_posten) bzw. gibt es passende Abonnenten?",
+        )
+    return {"ok": True, **result}

@@ -5,7 +5,7 @@ import {
   Mail, Loader2, ArrowLeft, Building2, MapPin, ExternalLink, CheckCircle2, Send, Search, X
 } from "lucide-react";
 import Link from "next/link";
-import { adminAPI } from "@/lib/api";
+import { adminAPI, telegramAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 
 interface BoostedJob {
@@ -27,6 +27,7 @@ export default function BoostEmailsPage() {
   const [loadingBoosted, setLoadingBoosted] = useState(true);
   const [loadingOther, setLoadingOther] = useState(false);
   const [sending, setSending] = useState<number | null>(null);
+  const [sendingTg, setSendingTg] = useState<number | null>(null);
   const [search, setSearch] = useState("");
 
   const loadBoosted = async () => {
@@ -77,6 +78,21 @@ export default function BoostEmailsPage() {
     }
   };
 
+  const sendTelegram = async (jobId: number) => {
+    if (!confirm("Diese Stelle jetzt in die Telegram-Gruppe und an passende Abonnenten posten?")) return;
+    setSendingTg(jobId);
+    try {
+      const r = await telegramAPI.boostJob(jobId);
+      const grp = r.data?.sent_group ? "Gruppe ✓" : "Gruppe –";
+      toast.success(`Telegram: ${grp} · ${r.data?.sent_subscribers ?? 0} Abonnenten`);
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail || "Telegram-Versand fehlgeschlagen");
+    } finally {
+      setSendingTg(null);
+    }
+  };
+
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
@@ -93,14 +109,24 @@ export default function BoostEmailsPage() {
             </a>
           </div>
         </div>
-        <button
-          onClick={() => sendEmails(job.job_id, isOther)}
-          disabled={sending === job.job_id}
-          className="btn-primary inline-flex items-center gap-2 text-sm"
-        >
-          {sending === job.job_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {job.boost_emails_sent_at ? "Erneut senden" : "Boost-E-Mails senden"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => sendEmails(job.job_id, isOther)}
+            disabled={sending === job.job_id}
+            className="btn-primary inline-flex items-center gap-2 text-sm"
+          >
+            {sending === job.job_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            {job.boost_emails_sent_at ? "E-Mails erneut senden" : "Boost-E-Mails senden"}
+          </button>
+          <button
+            onClick={() => sendTelegram(job.job_id)}
+            disabled={sendingTg === job.job_id}
+            className="btn-secondary inline-flex items-center gap-2 text-sm"
+          >
+            {sendingTg === job.job_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            An Telegram senden
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 text-sm">
