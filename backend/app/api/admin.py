@@ -914,6 +914,56 @@ async def list_all_jobs(
     return {"total": total, "jobs": result}
 
 
+@router.get("/archived-jobs")
+async def list_archived_jobs(
+    reason: Optional[str] = None,
+    limit: int = Query(200, ge=1, le=500),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Detail-Liste archivierter Stellen inkl. Grund (z.B. 'über JobOn besetzt').
+
+    Optionaler Filter nach deletion_reason. Neueste zuerst.
+    """
+    from app.models.job_posting import JobDeletionReason, DELETION_REASON_LABELS
+
+    query = db.query(JobPosting).filter(JobPosting.deletion_reason.isnot(None))
+    if reason:
+        try:
+            query = query.filter(JobPosting.deletion_reason == JobDeletionReason(reason))
+        except ValueError:
+            pass
+
+    jobs = query.order_by(
+        func.coalesce(JobPosting.deleted_at, JobPosting.archived_at).desc()
+    ).limit(limit).all()
+
+    result = []
+    for job in jobs:
+        company = db.query(Company).filter(Company.id == job.company_id).first()
+        app_count = db.query(Application).filter(
+            Application.job_posting_id == job.id
+        ).count()
+        result.append({
+            "id": job.id,
+            "title": job.title,
+            "location": job.location,
+            "company_name": (
+                company.company_name if company
+                else (job.external_employer_name or "Unbekannt")
+            ),
+            "is_external": job.is_external or False,
+            "deletion_reason": job.deletion_reason.value if job.deletion_reason else None,
+            "deletion_reason_label": DELETION_REASON_LABELS.get(job.deletion_reason)
+            if job.deletion_reason else None,
+            "deletion_reason_note": job.deletion_reason_note,
+            "deleted_at": job.deleted_at or job.archived_at,
+            "application_count": app_count,
+        })
+
+    return {"jobs": result, "total": len(result)}
+
+
 @router.get("/jobs/{job_id}")
 async def admin_get_job(
     job_id: int,

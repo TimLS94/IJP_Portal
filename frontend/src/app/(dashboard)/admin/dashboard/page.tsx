@@ -10,7 +10,8 @@ import {
   Shield, Users, Briefcase, FileText, TrendingUp,
   UserCheck, Building2, Clock, BookOpen, ClipboardList,
   Archive, CheckCircle, AlertTriangle, FileX, Mail, Send,
-  Calendar, LogIn, UserPlus, BarChart3, Flag, Trash2, ExternalLink, Loader2, Activity, Sparkles, Rocket
+  Calendar, LogIn, UserPlus, BarChart3, Flag, Trash2, ExternalLink, Loader2, Activity, Sparkles, Rocket,
+  ChevronDown, ChevronUp
 } from "lucide-react";
 
 // Dynamic import for recharts (client-side only)
@@ -148,6 +149,11 @@ export default function AdminDashboardPage() {
   const [dismissingReport, setDismissingReport] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // Archivierte Stellen (Detail-Liste unter der Erfolgs-Kachel)
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedJobs, setArchivedJobs] = useState<{ id: number; title: string; location: string | null; company_name: string; is_external: boolean; deletion_reason: string | null; deletion_reason_label: string | null; deletion_reason_note: string | null; deleted_at: string | null; application_count: number }[]>([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [archivedFilter, setArchivedFilter] = useState<string | null>(null);
   const [periodDays, setPeriodDays] = useState(30);
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
   const [showCustomRange, setShowCustomRange] = useState(false);
@@ -222,6 +228,29 @@ export default function AdminDashboardPage() {
     } finally {
       setReportsLoading(false);
     }
+  };
+
+  const loadArchivedJobs = async (reason: string | null) => {
+    setArchivedLoading(true);
+    try {
+      const response = await adminAPI.getArchivedJobs(reason);
+      setArchivedJobs(response.data.jobs || []);
+    } catch {
+      console.error("Fehler beim Laden der archivierten Stellen");
+    } finally {
+      setArchivedLoading(false);
+    }
+  };
+
+  const toggleArchived = () => {
+    const next = !showArchived;
+    setShowArchived(next);
+    if (next && archivedJobs.length === 0) loadArchivedJobs(archivedFilter);
+  };
+
+  const applyArchivedFilter = (reason: string | null) => {
+    setArchivedFilter(reason);
+    loadArchivedJobs(reason);
   };
 
   const handleDismissReport = async (reportId: number) => {
@@ -755,6 +784,104 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           )}
+
+          {/* Aufklappbare Detail-Liste: welche Stellen & warum archiviert */}
+          <div className="mt-4 border-t border-green-100 pt-4">
+            <button
+              onClick={toggleArchived}
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              {showArchived ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              Details: welche Stellen &amp; warum archiviert
+            </button>
+
+            {showArchived && (
+              <div className="mt-3">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {[
+                    { key: null, label: "Alle" },
+                    { key: "filled_via_jobon", label: "✅ Über JobOn" },
+                    { key: "filled_via_other", label: "Andere Plattform" },
+                    { key: "expired", label: "⏰ Abgelaufen" },
+                    { key: "position_cancelled", label: "Nicht besetzt" },
+                  ].map((f) => (
+                    <button
+                      key={f.key ?? "all"}
+                      onClick={() => applyArchivedFilter(f.key)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        archivedFilter === f.key
+                          ? "bg-primary-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                {archivedLoading ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                  </div>
+                ) : archivedJobs.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-4">
+                    Keine archivierten Stellen für diesen Filter.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs text-gray-500 border-b">
+                          <th className="py-2 pr-3">Stelle</th>
+                          <th className="py-2 pr-3">Firma</th>
+                          <th className="py-2 pr-3">Grund</th>
+                          <th className="py-2 pr-3">Bew.</th>
+                          <th className="py-2">Datum</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {archivedJobs.map((j) => (
+                          <tr key={j.id} className="border-b border-gray-50">
+                            <td className="py-2 pr-3">
+                              <span className="font-medium text-gray-900">{j.title}</span>
+                              {j.location && (
+                                <span className="block text-xs text-gray-500">📍 {j.location}</span>
+                              )}
+                            </td>
+                            <td className="py-2 pr-3 text-gray-700">{j.company_name}</td>
+                            <td className="py-2 pr-3">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded-full text-xs ${
+                                  j.deletion_reason === "filled_via_jobon"
+                                    ? "bg-green-100 text-green-800"
+                                    : j.deletion_reason === "expired"
+                                    ? "bg-amber-100 text-amber-800"
+                                    : "bg-gray-100 text-gray-700"
+                                }`}
+                              >
+                                {j.deletion_reason_label || j.deletion_reason || "—"}
+                              </span>
+                              {j.deletion_reason_note && (
+                                <span className="block text-xs text-gray-500 mt-0.5">
+                                  {j.deletion_reason_note}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2 pr-3 text-gray-700">{j.application_count}</td>
+                            <td className="py-2 text-gray-500 text-xs">
+                              {j.deleted_at
+                                ? new Date(j.deleted_at).toLocaleDateString("de-DE")
+                                : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

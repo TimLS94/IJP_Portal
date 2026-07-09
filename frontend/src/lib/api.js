@@ -363,6 +363,7 @@ export const adminAPI = {
   getEmailStats: (days = 30) => api.get('/admin/email-stats', { params: { days } }),
   getColdOutreachStats: (days = 30) => api.get('/admin/cold-outreach-stats', { params: { days } }),
   getTimeline: (days = 30) => api.get('/admin/timeline', { params: { days } }),
+  getArchivedJobs: (reason = null) => api.get('/admin/archived-jobs', { params: reason ? { reason } : {} }),
   // Feature Flags & Einstellungen
   getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
   setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),
