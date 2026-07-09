@@ -22,6 +22,7 @@ interface Status {
   supported_languages: string[];
   promo_enabled: boolean;
   promo_hour: number;
+  promo_days: number[];
   subscribers_total: number;
   subscribers_active: number;
   webhook: WebhookInfo | null;
@@ -72,10 +73,10 @@ export default function AdminTelegramPage() {
 
   const [promoSaving, setPromoSaving] = useState(false);
 
-  const savePromo = async (enabled: boolean, hour: number) => {
+  const savePromo = async (enabled: boolean, hour: number, days: number[]) => {
     setPromoSaving(true);
     try {
-      await telegramAPI.setPromoSettings(enabled, hour);
+      await telegramAPI.setPromoSettings(enabled, hour, days);
       toast.success("Werbe-Einstellungen gespeichert");
       await loadStatus();
     } catch {
@@ -83,6 +84,18 @@ export default function AdminTelegramPage() {
     } finally {
       setPromoSaving(false);
     }
+  };
+
+  // Wochentage: Montag=0 … Sonntag=6 (Python-Konvention, passend zum Backend)
+  const WEEKDAYS = [
+    { d: 0, label: "Mo" }, { d: 1, label: "Di" }, { d: 2, label: "Mi" },
+    { d: 3, label: "Do" }, { d: 4, label: "Fr" }, { d: 5, label: "Sa" }, { d: 6, label: "So" },
+  ];
+  const toggleDay = (enabled: boolean, hour: number, current: number[], day: number) => {
+    const set = new Set(current);
+    if (set.has(day)) set.delete(day);
+    else set.add(day);
+    savePromo(enabled, hour, [...set].sort((a, b) => a - b));
   };
 
   const handlePromoNow = async () => {
@@ -256,32 +269,56 @@ export default function AdminTelegramPage() {
             </select>
           </div>
 
-          {/* Tägliche Abo-Werbung */}
+          {/* Abo-Werbung */}
           <div className="card space-y-3">
             <div className="flex items-center gap-2">
               <Megaphone className="h-5 w-5 text-sky-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Tägliche Abo-Werbung</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Abo-Werbung</h2>
             </div>
             <p className="text-sm text-gray-600">
-              Der Bot postet einmal täglich eine kurze Werbung in die Gruppe („Abonniere den Bot…“) –
-              in der Gruppen-Sprache, mit Link zum Bot.
+              Der Bot postet an ausgewählten Wochentagen eine kurze Werbung in die Gruppe
+              („Abonniere den Bot…“) – in der Gruppen-Sprache, mit Link zum Bot.
             </p>
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={status.promo_enabled}
                 disabled={promoSaving}
-                onChange={(e) => savePromo(e.target.checked, status.promo_hour)}
+                onChange={(e) => savePromo(e.target.checked, status.promo_hour, status.promo_days)}
                 className="h-4 w-4"
               />
-              <span className="text-sm text-gray-800">Tägliche Werbung aktiv</span>
+              <span className="text-sm text-gray-800">Werbung aktiv</span>
             </label>
+
+            {/* Wochentage */}
+            <div>
+              <span className="text-sm text-gray-700 block mb-1.5">Wochentage:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {WEEKDAYS.map((w) => {
+                  const active = (status.promo_days || []).includes(w.d);
+                  return (
+                    <button
+                      key={w.d}
+                      disabled={promoSaving}
+                      onClick={() => toggleDay(status.promo_enabled, status.promo_hour, status.promo_days || [], w.d)}
+                      className={`w-10 h-9 rounded-lg text-sm font-medium ${
+                        active ? "bg-sky-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {w.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Tipp: 1–2 Tage reichen (z.B. Mo &amp; Do).</p>
+            </div>
+
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-700">Uhrzeit:</span>
               <select
                 value={status.promo_hour}
                 disabled={promoSaving}
-                onChange={(e) => savePromo(status.promo_enabled, parseInt(e.target.value))}
+                onChange={(e) => savePromo(status.promo_enabled, parseInt(e.target.value), status.promo_days)}
                 className="border rounded-lg px-3 py-2 text-sm"
               >
                 {Array.from({ length: 24 }, (_, h) => (

@@ -206,6 +206,7 @@ def telegram_status(current_user: User = Depends(require_admin), db: Session = D
         "supported_languages": tg.SUPPORTED_LANGUAGES,
         "promo_enabled": bool(get_setting(db, "telegram_promo_enabled", True)),
         "promo_hour": int(get_setting(db, "telegram_promo_hour", 10)),
+        "promo_days": get_setting(db, "telegram_promo_days", [0, 3]),
         "subscribers_total": total,
         "subscribers_active": active,
         "webhook": tg.get_webhook_info() if tg.is_configured() else None,
@@ -253,6 +254,7 @@ def telegram_test(current_user: User = Depends(require_admin), db: Session = Dep
 class PromoSettingsRequest(BaseModel):
     enabled: bool
     hour: int
+    days: list[int] | None = None  # Wochentage: Montag=0 … Sonntag=6
 
 
 @router.post("/promo-settings")
@@ -261,13 +263,15 @@ def telegram_promo_settings(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Aktiviert/deaktiviert den täglichen Promo-Post und setzt die Uhrzeit (UTC)."""
+    """Aktiviert/deaktiviert die Abo-Werbung und setzt Uhrzeit (UTC) + Wochentage."""
     if not (0 <= data.hour <= 23):
         raise HTTPException(status_code=400, detail="Stunde muss zwischen 0 und 23 liegen")
+    days = sorted({d for d in (data.days or []) if 0 <= d <= 6})
     set_setting(db, "telegram_promo_enabled", data.enabled)
     set_setting(db, "telegram_promo_hour", data.hour)
+    set_setting(db, "telegram_promo_days", days)
     db.commit()
-    return {"ok": True, "enabled": data.enabled, "hour": data.hour}
+    return {"ok": True, "enabled": data.enabled, "hour": data.hour, "days": days}
 
 
 @router.post("/promo-now")

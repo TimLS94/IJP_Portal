@@ -363,6 +363,7 @@ export const adminAPI = {
   getEmailStats: (days = 30) => api.get('/admin/email-stats', { params: { days } }),
   getColdOutreachStats: (days = 30) => api.get('/admin/cold-outreach-stats', { params: { days } }),
   getTimeline: (days = 30) => api.get('/admin/timeline', { params: { days } }),
+  /** @param {string | null} [reason] */
   getArchivedJobs: (reason = null) => api.get('/admin/archived-jobs', { params: reason ? { reason } : {} }),
   // Feature Flags & Einstellungen
   getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
@@ -502,7 +503,7 @@ export const telegramAPI = {
   setWebhook: () => api.post('/telegram/set-webhook'),
   test: () => api.post('/telegram/test'),
   setGroupLanguage: (language) => api.post('/telegram/group-language', { language }),
-  setPromoSettings: (enabled, hour) => api.post('/telegram/promo-settings', { enabled, hour }),
+  setPromoSettings: (enabled, hour, days) => api.post('/telegram/promo-settings', { enabled, hour, days }),
   promoNow: () => api.post('/telegram/promo-now'),
 };
 

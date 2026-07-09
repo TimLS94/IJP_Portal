@@ -940,7 +940,10 @@ async def periodic_cleanup(interval_hours: int = 6):
 
 
 async def telegram_daily_promo():
-    """Background-Task: postet täglich eine Abo-Werbung in die Telegram-Gruppe."""
+    """Background-Task: postet an ausgewählten Wochentagen eine Abo-Werbung in die Gruppe.
+
+    Wochentage: Python-Konvention (Montag=0 … Sonntag=6). Default: Mo & Do (2×/Woche).
+    """
     from datetime import datetime, timedelta
     from app.core.database import SessionLocal
     from app.services.settings_service import get_setting
@@ -951,22 +954,29 @@ async def telegram_daily_promo():
         try:
             enabled = get_setting(db, "telegram_promo_enabled", True)
             hour = int(get_setting(db, "telegram_promo_hour", 10))
+            days = get_setting(db, "telegram_promo_days", [0, 3])  # Mo & Do
         finally:
             db.close()
 
-        if not enabled or not tg.is_configured():
-            await asyncio.sleep(3600)  # deaktiviert: in 1h erneut prüfen
+        if not enabled or not tg.is_configured() or not days:
+            await asyncio.sleep(3600)  # deaktiviert/keine Tage: in 1h erneut prüfen
             continue
 
+        # Nächsten Zeitpunkt zur Uhrzeit an einem ausgewählten Wochentag finden
         now = datetime.utcnow()
-        next_run = now.replace(hour=hour, minute=0, second=0, microsecond=0)
-        if next_run <= now:
-            next_run += timedelta(days=1)
-        await asyncio.sleep((next_run - now).total_seconds())
+        candidate = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if candidate <= now:
+            candidate += timedelta(days=1)
+        for _ in range(8):
+            if candidate.weekday() in days:
+                break
+            candidate += timedelta(days=1)
+        await asyncio.sleep((candidate - now).total_seconds())
 
         db = SessionLocal()
         try:
-            if get_setting(db, "telegram_promo_enabled", True):
+            days_now = get_setting(db, "telegram_promo_days", [0, 3])
+            if get_setting(db, "telegram_promo_enabled", True) and datetime.utcnow().weekday() in days_now:
                 tg.send_group_promo(db)
                 logger.info("Telegram-Promo in Gruppe gepostet")
         except Exception as e:
