@@ -101,7 +101,23 @@ export default function CompanyCalendarPage() {
     setDetailsLoading(true);
     try {
       const response = await applicationsAPI.getApplicantDetails(event.application_id);
-      setApplicantDetails(response.data);
+      // Backend liefert Bewerberfelder verschachtelt (applicant.*, applicant.address.*)
+      // und Dokumente auf oberster Ebene → hier auf die flache Struktur mappen.
+      const data = response.data;
+      const a = data.applicant || {};
+      setApplicantDetails({
+        first_name: a.first_name,
+        last_name: a.last_name,
+        email: a.email,
+        phone: a.phone,
+        city: a.address?.city,
+        country: a.address?.country,
+        nationality: a.nationality,
+        date_of_birth: a.date_of_birth,
+        german_level: a.german_level,
+        english_level: a.english_level,
+        documents: data.documents,
+      });
     } catch {
       toast.error("Fehler beim Laden der Details");
     } finally {
