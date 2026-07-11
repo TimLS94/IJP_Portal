@@ -51,9 +51,10 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
-  registerApplicant: (data, firstName, lastName, sourceToken = null) => {
+  registerApplicant: (data, firstName, lastName, sourceToken = null, portal = null) => {
     let url = `/auth/register/applicant?first_name=${firstName}&last_name=${lastName}`;
     if (sourceToken) url += `&source_token=${encodeURIComponent(sourceToken)}`;
+    if (portal) url += `&portal=${encodeURIComponent(portal)}`;
     return api.post(url, data);
   },
   registerCompany: (userData, companyData, inviteToken = null) => 
@@ -333,7 +334,8 @@ export const interviewAPI = {
   // Firma: Termine vorschlagen (send_email=false um keine separate Email zu senden)
   propose: (data, sendEmail = true) => api.post('/interviews/propose', { ...data, send_email: sendEmail }),
   // Bewerber: Termin bestätigen
-  confirm: (interviewId, selectedDate) => api.post(`/interviews/${interviewId}/confirm`, { selected_date: selectedDate }),
+  /** @param {string | null} [message] */
+  confirm: (interviewId, selectedDate, message = null) => api.post(`/interviews/${interviewId}/confirm`, { selected_date: selectedDate, message }),
   // Bewerber: Termine ablehnen (neue Termine anfordern)
   decline: (interviewId, reason) => api.post(`/interviews/${interviewId}/decline`, { reason }),
   // Termin absagen (für Firma UND Bewerber)

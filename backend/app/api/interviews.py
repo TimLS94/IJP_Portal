@@ -58,6 +58,7 @@ class InterviewPropose(BaseModel):
 class InterviewConfirm(BaseModel):
     """Bewerber bestätigt einen Termin"""
     selected_date: datetime  # Der gewählte Termin (muss einer der vorgeschlagenen sein)
+    message: Optional[str] = None  # Optionale Nachricht an die Firma
 
 
 class InterviewDecline(BaseModel):
@@ -283,8 +284,10 @@ async def confirm_interview(
     # Bestätige Termin
     interview.status = InterviewStatus.CONFIRMED
     interview.confirmed_date = selected
+    if data.message and data.message.strip():
+        interview.notes_applicant = data.message.strip()
     interview.updated_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(interview)
     
@@ -303,6 +306,7 @@ async def confirm_interview(
                 confirmed_date=selected.strftime("%d.%m.%Y um %H:%M Uhr"),
                 location=interview.location,
                 meeting_link=interview.meeting_link,
+                applicant_message=interview.notes_applicant,
             )
     
     return {

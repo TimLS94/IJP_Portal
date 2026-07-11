@@ -600,20 +600,28 @@ class EmailService:
         job_title: str,
         confirmed_date: str,
         location: str = None,
-        meeting_link: str = None
+        meeting_link: str = None,
+        applicant_message: str = None
     ) -> bool:
         """Benachrichtigt die Firma über die Terminbestätigung"""
+        import html as _html
         try:
             from app.core.config import settings
             frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
         except:
             frontend_url = 'https://www.jobon.work'
-        
+
         location_info = ""
         if location:
             location_info += f"<p><strong>📍 Ort:</strong> {location}</p>"
         if meeting_link:
             location_info += f'<p><strong>🔗 Meeting:</strong> <a href="{meeting_link}">Link zum Meeting</a></p>'
+        if applicant_message and applicant_message.strip():
+            location_info += (
+                '<div style="background:#eff6ff;padding:14px;border-radius:8px;margin-top:12px;border-left:4px solid #3b82f6;">'
+                '<p style="margin:0;color:#1e40af;"><strong>💬 Nachricht des Bewerbers:</strong></p>'
+                f'<p style="margin:6px 0 0 0;color:#1e3a8a;">{_html.escape(applicant_message.strip())}</p></div>'
+            )
         
         subject = f"✅ Termin bestätigt: {applicant_name} - {job_title}"
         html_content = f"""

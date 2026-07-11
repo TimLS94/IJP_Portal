@@ -91,6 +91,7 @@ export default function ApplicantApplicationsPage() {
   const [declineReason, setDeclineReason] = useState("");
   const [showCancelModal, setShowCancelModal] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [confirmMessages, setConfirmMessages] = useState<Record<number, string>>({});
 
   useEffect(() => {
     loadApplications();
@@ -126,7 +127,7 @@ export default function ApplicantApplicationsPage() {
   const confirmInterview = async (interviewId: number, selectedDate: string) => {
     setProcessingInterview(interviewId);
     try {
-      await interviewAPI.confirm(interviewId, selectedDate);
+      await interviewAPI.confirm(interviewId, selectedDate, confirmMessages[interviewId] || null);
       toast.success(t("applicantApplications.appointmentConfirmed"));
       loadApplications();
     } catch (error: unknown) {
@@ -547,6 +548,18 @@ export default function ApplicantApplicationsPage() {
                                   <strong>{t("common.note")}:</strong> {interview.notes_company}
                                 </p>
                               )}
+
+                              {/* Optionale Nachricht an die Firma (wird beim Bestätigen mitgeschickt) */}
+                              <label className="block text-xs text-gray-500 mb-1">
+                                {t("applicantApplications.confirmMessageLabel", "Nachricht an die Firma (optional)")}
+                              </label>
+                              <textarea
+                                value={confirmMessages[interview.id] || ""}
+                                onChange={(e) => setConfirmMessages((prev) => ({ ...prev, [interview.id]: e.target.value }))}
+                                placeholder={t("applicantApplications.confirmMessagePlaceholder", "z.B. Ich freue mich auf das Gespräch!")}
+                                rows={2}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
+                              />
 
                               <div className="grid sm:grid-cols-2 gap-3 mb-4">
                                 {/* Option 1 */}
