@@ -606,7 +606,8 @@ def get_top_matches_for_job(db: Session, job_id: int, limit: int = 20) -> list:
     if not job:
         return []
     
-    applicants = db.query(Applicant).all()
+    # IJP-Bewerber gehören nicht ins JobOn-Matching für Firmenstellen
+    applicants = db.query(Applicant).filter(Applicant.portal != "ijp").all()
     matches = []
     
     for applicant in applicants:

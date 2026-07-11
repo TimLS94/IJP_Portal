@@ -295,7 +295,11 @@ async def get_dashboard_stats(
         "period_days": days,
         "users": {
             "total": db.query(User).count(),
-            "applicants": db.query(User).filter(User.role == UserRole.APPLICANT).count(),
+            # IJP-Studenten nicht als JobOn-Bewerber zählen
+            "applicants": db.query(User).filter(
+                User.role == UserRole.APPLICANT,
+                ~User.id.in_(db.query(Applicant.user_id).filter(Applicant.portal == "ijp"))
+            ).count(),
             "companies": db.query(User).filter(User.role == UserRole.COMPANY).count(),
             "active": db.query(User).filter(User.is_active == True).count(),
             "inactive": db.query(User).filter(User.is_active == False).count(),
@@ -1231,7 +1235,9 @@ async def list_all_applications(
 ):
     """Listet alle Bewerbungen für Admin mit erweiterten Filtern"""
     query = db.query(Application).join(Applicant).join(JobPosting)
-    
+    # IJP-Bewerber sind nicht Teil des normalen JobOn-Bewerbungsflusses
+    query = query.filter(Applicant.portal != "ijp")
+
     if status_filter:
         query = query.filter(Application.status == status_filter)
     
@@ -1432,7 +1438,9 @@ async def export_applications_csv(
     import io
     
     query = db.query(Application).join(Applicant).join(JobPosting)
-    
+    # IJP-Bewerber sind nicht Teil des normalen JobOn-Bewerbungsflusses
+    query = query.filter(Applicant.portal != "ijp")
+
     if status_filter:
         query = query.filter(Application.status == status_filter)
     if position_type:
@@ -1577,27 +1585,33 @@ async def list_all_applicants(
     position_type: Optional[PositionType] = None,
     search: Optional[str] = None,
     invite_source: Optional[str] = None,  # Filter nach Einladungsquelle
+    portal: str = "jobon",  # "jobon" (Default), "ijp" = IJP-Sektion, "all" = beides
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Listet alle Bewerber mit Filtern"""
+    """Listet alle Bewerber mit Filtern. Default zeigt nur JobOn-Bewerber (IJP separat)."""
     query = db.query(Applicant)
-    
+
+    if portal == "ijp":
+        query = query.filter(Applicant.portal == "ijp")
+    elif portal != "all":
+        query = query.filter(Applicant.portal != "ijp")
+
     if position_type:
         query = query.filter(Applicant.position_type == position_type)
-    
+
     if search:
         search_term = f"%{search}%"
         query = query.filter(
             (Applicant.first_name.ilike(search_term)) |
             (Applicant.last_name.ilike(search_term))
         )
-    
+
     if invite_source:
         query = query.filter(Applicant.invite_source.ilike(f"%{invite_source}%"))
-    
+
     total = query.count()
     applicants = query.order_by(Applicant.id.desc()).offset(skip).limit(limit).all()
     
@@ -1671,10 +1685,12 @@ async def export_applicants_csv(
     import io
     
     query = db.query(Applicant).join(User, Applicant.user_id == User.id)
-    
+    # IJP-Bewerber nicht in den JobOn-Bewerber-Export aufnehmen
+    query = query.filter(Applicant.portal != "ijp")
+
     if invite_source:
         query = query.filter(Applicant.invite_source.ilike(f"%{invite_source}%"))
-    
+
     applicants = query.order_by(Applicant.id.desc()).all()
     
     # CSV erstellen
@@ -2918,6 +2934,13 @@ class ApplicantInviteCreate(BaseModel):
     description: Optional[str] = None
     expires_in_days: Optional[int] = None  # None = unbegrenzt
     max_uses: Optional[int] = None  # None = unbegrenzt
+    portal_type: Optional[str] = "jobon"  # "jobon" | "ijp"
+
+
+def _invite_registration_url(token: str, portal_type: str) -> str:
+    """Registrierungs-URL für einen Einladungs-Token – IJP-Links führen ins IJP-Unterportal."""
+    base = "/register/ijp" if portal_type == "ijp" else "/register"
+    return f"{base}?source={token}"
 
 
 @router.get("/applicant-invites")
@@ -2948,10 +2971,11 @@ async def list_applicant_invites(
             "max_uses": t.max_uses,
             "current_uses": t.current_uses,
             "registered_applicants": registered_count,
+            "portal_type": getattr(t, "portal_type", "jobon"),
             "created_at": t.created_at.isoformat() if t.created_at else None,
             "last_used_at": t.last_used_at.isoformat() if t.last_used_at else None,
             "created_by_email": t.created_by.email if t.created_by else None,
-            "registration_url": f"/register?source={t.token}",
+            "registration_url": _invite_registration_url(t.token, getattr(t, "portal_type", "jobon")),
         })
     
     return {
@@ -2976,6 +3000,8 @@ async def create_applicant_invite(
     if data.expires_in_days:
         expires_at = datetime.utcnow() + timedelta(days=data.expires_in_days)
     
+    portal_type = "ijp" if (data.portal_type or "jobon") == "ijp" else "jobon"
+
     token = ApplicantInviteToken(
         token=ApplicantInviteToken.generate_token(data.source_name.strip()),
         created_by_id=current_user.id,
@@ -2983,7 +3009,8 @@ async def create_applicant_invite(
         source_country=data.source_country.strip() if data.source_country else None,
         description=data.description,
         expires_at=expires_at,
-        max_uses=data.max_uses
+        max_uses=data.max_uses,
+        portal_type=portal_type
     )
     
     db.add(token)
@@ -3002,10 +3029,11 @@ async def create_applicant_invite(
         "max_uses": token.max_uses,
         "current_uses": 0,
         "registered_applicants": 0,
+        "portal_type": token.portal_type,
         "created_at": token.created_at.isoformat() if token.created_at else None,
         "last_used_at": None,
         "created_by_email": current_user.email,
-        "registration_url": f"/register?source={token.token}"
+        "registration_url": _invite_registration_url(token.token, token.portal_type)
     }
 
 

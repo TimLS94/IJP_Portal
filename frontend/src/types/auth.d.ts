@@ -3,6 +3,7 @@ declare module "@/context/AuthContext" {
     id: number;
     email: string;
     role: "applicant" | "company" | "admin";
+    portal?: "jobon" | "ijp" | null;
   }
 
   interface AuthContextType {
@@ -15,7 +16,8 @@ declare module "@/context/AuthContext" {
       password: string,
       firstName: string,
       lastName: string,
-      sourceToken?: string | null
+      sourceToken?: string | null,
+      portal?: "jobon" | "ijp" | null
     ) => Promise<User>;
     registerCompany: (
       email: string,

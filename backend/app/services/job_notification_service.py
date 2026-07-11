@@ -35,11 +35,12 @@ def get_matching_applicants(job: JobPosting, db: Session, threshold: int = 85) -
 
     job_type = job.position_type.value if job.position_type else None
 
-    # Get all active applicants
+    # Get all active applicants (IJP-Unterportal ausgeschlossen – die bekommen keine JobOn-Alerts)
     applicants = db.query(Applicant).join(
         User, Applicant.user_id == User.id
     ).filter(
-        User.is_active == True
+        User.is_active == True,
+        Applicant.portal != "ijp"
     ).all()
 
     for applicant in applicants:
@@ -303,12 +304,13 @@ def send_weekly_job_digest(db: Session) -> int:
     threshold = get_setting(db, "job_notifications_threshold", 85)
     logger.info(f"Using threshold: {threshold}%")
     
-    # Get all active applicants
+    # Get all active applicants (IJP-Unterportal ausgeschlossen)
     try:
         applicants = db.query(Applicant).join(
             User, Applicant.user_id == User.id
         ).filter(
-            User.is_active == True
+            User.is_active == True,
+            Applicant.portal != "ijp"
         ).all()
         logger.info(f"Found {len(applicants)} active applicants")
     except Exception as e:

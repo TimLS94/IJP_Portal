@@ -28,7 +28,11 @@ class ApplicantInviteToken(Base):
     source_name = Column(String(255), nullable=False)  # Pflichtfeld!
     source_country = Column(String(100), nullable=True)  # Optional: Land
     description = Column(Text, nullable=True)  # Zusätzliche Notizen
-    
+
+    # In welches Portal registrieren sich Bewerber über diesen Link?
+    # "jobon" = normales Portal, "ijp" = IJP-Studenten-Unterportal.
+    portal_type = Column(String(20), default="jobon", server_default="jobon", nullable=False)
+
     # Gültigkeit
     expires_at = Column(DateTime(timezone=True), nullable=True)  # None = unbegrenzt
     

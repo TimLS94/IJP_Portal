@@ -11,7 +11,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -24,6 +24,16 @@ export default function DashboardLayout({
       router.push(`/login${redirectParam}`);
     }
   }, [isAuthenticated, loading, router, pathname]);
+
+  useEffect(() => {
+    // IJP-Bewerber haben nur Profil/Dokumente/IJP-Auftrag – JobOn-Seiten sind gesperrt.
+    if (!loading && isAuthenticated && user?.portal === "ijp") {
+      const blocked = ["/applicant/applications", "/applicant/liked-jobs"];
+      if (blocked.some((p) => pathname?.startsWith(p))) {
+        router.replace("/applicant/ijp-auftrag");
+      }
+    }
+  }, [isAuthenticated, loading, user, pathname, router]);
 
   if (loading) {
     return (

@@ -200,6 +200,16 @@ export default function Navbar() {
 
   const getMenuItems = (): MenuItem[] => {
     if (isApplicant) {
+      // IJP-Unterportal: abgespeckte Ansicht (nur Profil, Dokumente, IJP beauftragen).
+      if (user?.portal === "ijp") {
+        return [
+          { to: "/applicant/profile", icon: User, label: t("nav.profile") },
+          { to: "/applicant/documents", icon: FolderOpen, label: t("nav.documents") },
+          { to: "/applicant/ijp-auftrag", icon: ClipboardList, label: t("nav.ijpRequest") },
+          { divider: true },
+          { to: "/applicant/settings", icon: Settings, label: t("nav.settings") },
+        ];
+      }
       return [
         { to: "/applicant/profile", icon: User, label: t("nav.profile") },
         { to: "/applicant/applications", icon: FileText, label: t("nav.applications") },

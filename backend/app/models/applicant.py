@@ -133,6 +133,11 @@ class Applicant(Base):
     invite_source = Column(String(255), nullable=True)  # z.B. "Sprachschule Taschkent"
     invite_source_country = Column(String(100), nullable=True)  # z.B. "Usbekistan"
     invite_token_id = Column(Integer, ForeignKey("applicant_invite_tokens.id"), nullable=True)
+
+    # ========== PORTAL-SEGMENTIERUNG ==========
+    # "jobon" = normales öffentliches Portal, "ijp" = abgeschottetes IJP-Studenten-Unterportal.
+    # IJP-Bewerber werden JobOn-weit (Admin-Listen, Job-Alerts, Firmen-Sicht) ausgeschlossen.
+    portal = Column(String(20), default="jobon", server_default="jobon", nullable=False)
     
     # Relationships
     user = relationship("User", back_populates="applicant", foreign_keys=[user_id])

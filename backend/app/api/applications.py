@@ -170,7 +170,14 @@ async def create_application(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Bitte erstellen Sie zuerst Ihr Bewerber-Profil"
         )
-    
+
+    # IJP-Studenten bewerben sich nicht direkt auf JobOn-Stellen (sie beauftragen IJP)
+    if getattr(applicant, "portal", "jobon") == "ijp":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="IJP-Bewerber beauftragen IJP mit der Vermittlung und bewerben sich nicht direkt auf Stellen."
+        )
+
     # Job prüfen
     job = db.query(JobPosting).filter(
         JobPosting.id == application_data.job_posting_id,
@@ -379,10 +386,13 @@ async def get_company_applications(
         joinedload(Application.applicant).joinedload(Applicant.user),  # User für E-Mail
         joinedload(Application.job_posting),
         selectinload(Application.interviews)  # selectinload für Collections
-    ).join(JobPosting).filter(
-        JobPosting.company_id == company.id
+    ).join(JobPosting).join(
+        Applicant, Application.applicant_id == Applicant.id
+    ).filter(
+        JobPosting.company_id == company.id,
+        Applicant.portal != "ijp"  # Safety: IJP-Bewerber tauchen nie in Firmen-Sicht auf
     )
-    
+
     # Score-Filter (Aufteilung Haupt-Tab / "Weitere Bewerbungen") ist NUR für Premium.
     # Nicht-Premium sehen ALLE Bewerbungen im Haupt-Tab; der gefilterte Tab bleibt leer.
     is_premium = bool(getattr(company, "is_premium", False))

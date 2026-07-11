@@ -126,6 +126,7 @@ async def register_applicant(
     first_name: str,
     last_name: str,
     source_token: Optional[str] = None,  # Einladungs-Token für Quellen-Tracking
+    portal: str = "jobon",  # "jobon" = normales Portal, "ijp" = IJP-Studenten-Unterportal
     db: Session = Depends(get_db)
 ):
     """Registriert einen neuen Bewerber"""
@@ -143,22 +144,28 @@ async def register_applicant(
             detail="E-Mail-Adresse bereits registriert"
         )
     
+    # Portal bestimmen: nur "jobon" oder "ijp" zulassen (Default jobon)
+    portal = "ijp" if portal == "ijp" else "jobon"
+
     # Einladungs-Token prüfen (optional)
     invite_source = None
     invite_source_country = None
     invite_token_id = None
-    
+
     if source_token:
         from app.models.applicant_invite import ApplicantInviteToken
         invite = db.query(ApplicantInviteToken).filter(
             ApplicantInviteToken.token == source_token
         ).first()
-        
+
         if invite and invite.is_valid():
             invite_source = invite.source_name
             invite_source_country = invite.source_country
             invite_token_id = invite.id
             invite.use()  # Nutzungszähler erhöhen
+            # IJP-Einladungslinks taggen den Account automatisch als IJP
+            if getattr(invite, "portal_type", "jobon") == "ijp":
+                portal = "ijp"
     
     # Benutzer erstellen
     user = User(
@@ -178,7 +185,8 @@ async def register_applicant(
         last_name=last_name,
         invite_source=invite_source,
         invite_source_country=invite_source_country,
-        invite_token_id=invite_token_id
+        invite_token_id=invite_token_id,
+        portal=portal
     )
     db.add(applicant)
     db.commit()

@@ -35,3 +35,8 @@ class User(Base):
     applicant = relationship("Applicant", back_populates="user", uselist=False, primaryjoin="User.id==Applicant.user_id")
     company = relationship("Company", back_populates="user", uselist=False)
     company_memberships = relationship("CompanyMember", foreign_keys="CompanyMember.user_id", back_populates="user")
+
+    @property
+    def portal(self):
+        """Portal-Zugehörigkeit des Bewerbers ("jobon"/"ijp"); None für Firmen/Admins."""
+        return self.applicant.portal if self.applicant else None

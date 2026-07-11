@@ -28,7 +28,8 @@ class UserResponse(UserBase):
     role: UserRole
     is_active: bool
     created_at: datetime
-    
+    portal: Optional[str] = None  # "jobon" | "ijp" (nur für Bewerber, sonst None)
+
     class Config:
         from_attributes = True
 

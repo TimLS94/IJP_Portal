@@ -16,6 +16,7 @@ interface ApplicantInvite {
   max_uses?: number;
   current_uses: number;
   registered_applicants: number;
+  portal_type?: string;
   created_at: string;
   expires_at?: string;
   last_used_at?: string;
@@ -35,12 +36,13 @@ export default function AdminApplicantInvitesPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [showApplicants, setShowApplicants] = useState<{ invite: ApplicantInvite; applicants: InvitedApplicant[] } | null>(null);
-  const [newInvite, setNewInvite] = useState({ 
-    source_name: "", 
+  const [newInvite, setNewInvite] = useState({
+    source_name: "",
     source_country: "",
     description: "",
     max_uses: "",
-    expires_days: ""
+    expires_days: "",
+    portal_type: "jobon"
   });
   const [creating, setCreating] = useState(false);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
@@ -72,6 +74,7 @@ export default function AdminApplicantInvitesPage() {
         source_name: newInvite.source_name.trim(),
         source_country: newInvite.source_country.trim() || undefined,
         description: newInvite.description.trim() || undefined,
+        portal_type: newInvite.portal_type,
       };
       if (newInvite.max_uses) {
         data.max_uses = parseInt(newInvite.max_uses);
@@ -81,7 +84,7 @@ export default function AdminApplicantInvitesPage() {
       }
       await adminAPI.createApplicantInvite(data);
       toast.success("Einladungs-Link erstellt!");
-      setNewInvite({ source_name: "", source_country: "", description: "", max_uses: "", expires_days: "" });
+      setNewInvite({ source_name: "", source_country: "", description: "", max_uses: "", expires_days: "", portal_type: "jobon" });
       setShowCreate(false);
       loadInvites();
     } catch (error: unknown) {
@@ -256,6 +259,23 @@ export default function AdminApplicantInvitesPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Portal
+                </label>
+                <select
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  value={newInvite.portal_type}
+                  onChange={(e) => setNewInvite({ ...newInvite, portal_type: e.target.value })}
+                >
+                  <option value="jobon">JobOn (normale Bewerber)</option>
+                  <option value="ijp">IJP (Studenten-Unterportal)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  IJP-Links registrieren im abgeschotteten Studenten-Unterportal (nicht in JobOn sichtbar).
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Beschreibung (optional)
                 </label>
                 <textarea
@@ -413,11 +433,16 @@ export default function AdminApplicantInvitesPage() {
                     )}
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       invite.is_active && invite.is_valid
-                        ? "bg-green-100 text-green-700" 
+                        ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-600"
                     }`}>
                       {invite.is_active && invite.is_valid ? "Aktiv" : invite.is_active ? "Abgelaufen" : "Inaktiv"}
                     </span>
+                    {invite.portal_type === "ijp" && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
+                        IJP
+                      </span>
+                    )}
                   </div>
 
                   {invite.description && (
