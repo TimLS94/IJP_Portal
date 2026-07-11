@@ -24,6 +24,7 @@ interface UserData {
   created_at: string;
   last_login_at?: string;
   is_premium?: boolean;
+  portal?: string; // "jobon" | "ijp"
 }
 
 interface GdprDocument {
@@ -39,6 +40,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [portalFilter, setPortalFilter] = useState(""); // "" = alle, "jobon", "ijp"
   const [page, setPage] = useState(0);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -59,7 +61,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     loadUsers();
-  }, [roleFilter, page, sortBy, sortDir]);
+  }, [roleFilter, portalFilter, page, sortBy, sortDir]);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -70,6 +72,7 @@ export default function AdminUsersPage() {
         sort_by: sortBy,
         sort_dir: sortDir,
         ...(roleFilter && { role: roleFilter }),
+        ...(portalFilter && { portal: portalFilter }),
         ...(search && { search })
       };
       const response = await adminAPI.listUsers(params);
@@ -315,6 +318,20 @@ export default function AdminUsersPage() {
               <option value="admin">Admin</option>
             </select>
           </div>
+          <div>
+            <select
+              className="input-styled"
+              value={portalFilter}
+              onChange={(e) => {
+                setPortalFilter(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="">Alle Portale</option>
+              <option value="jobon">JobOn</option>
+              <option value="ijp">IJP</option>
+            </select>
+          </div>
           <button type="submit" className="btn-primary">
             <Filter className="h-4 w-4 inline mr-2" />
             Filtern
@@ -379,6 +396,11 @@ export default function AdminUsersPage() {
                               <RoleIcon className="h-5 w-5 text-gray-600" />
                             </div>
                             <span className="font-medium">{user.name || "-"}</span>
+                            {user.portal === "ijp" && (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-700">
+                                IJP
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-600">{user.email}</td>

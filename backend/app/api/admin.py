@@ -289,33 +289,41 @@ async def get_dashboard_stats(
     period_start_utc = period_start_berlin.astimezone(timezone.utc).replace(tzinfo=None)
     
     now = datetime.utcnow()
-    
+
+    # IJP-Studenten (Unterportal) komplett aus den JobOn-Benutzerzahlen ausschließen –
+    # sie erscheinen ausschließlich im separaten stats["ijp"]-Block.
+    ijp_user_ids = db.query(Applicant.user_id).filter(Applicant.portal == "ijp")
+    not_ijp = ~User.id.in_(ijp_user_ids)
+
     # Basis-Statistiken
     stats = {
         "period_days": days,
         "users": {
-            "total": db.query(User).count(),
-            # IJP-Studenten nicht als JobOn-Bewerber zählen
+            "total": db.query(User).filter(not_ijp).count(),
             "applicants": db.query(User).filter(
                 User.role == UserRole.APPLICANT,
-                ~User.id.in_(db.query(Applicant.user_id).filter(Applicant.portal == "ijp"))
+                not_ijp
             ).count(),
             "companies": db.query(User).filter(User.role == UserRole.COMPANY).count(),
-            "active": db.query(User).filter(User.is_active == True).count(),
-            "inactive": db.query(User).filter(User.is_active == False).count(),
-            "new_in_period": db.query(User).filter(User.created_at >= period_start_utc).count(),
+            "active": db.query(User).filter(User.is_active == True, not_ijp).count(),
+            "inactive": db.query(User).filter(User.is_active == False, not_ijp).count(),
+            "new_in_period": db.query(User).filter(User.created_at >= period_start_utc, not_ijp).count(),
             "logins_in_period": db.query(User).filter(
                 User.last_login_at >= period_start_utc,
-                User.last_login_at != None
+                User.last_login_at != None,
+                not_ijp
             ).count(),
             "logins_today": db.query(User).filter(
-                User.last_login_at >= today_start_utc
+                User.last_login_at >= today_start_utc,
+                not_ijp
             ).count(),
             "logins_this_week": db.query(User).filter(
-                User.last_login_at >= week_start_utc
+                User.last_login_at >= week_start_utc,
+                not_ijp
             ).count(),
             "logins_this_month": db.query(User).filter(
-                User.last_login_at >= month_start_utc
+                User.last_login_at >= month_start_utc,
+                not_ijp
             ).count()
         },
         "jobs": {
@@ -760,6 +768,7 @@ async def send_cold_outreach_email(
 async def list_users(
     role: Optional[UserRole] = None,
     search: Optional[str] = None,
+    portal: Optional[str] = None,  # "jobon" | "ijp" – filtert nach Portal-Zugehörigkeit
     sort_by: Optional[str] = Query("created_at", description="Sortierfeld: email, role, created_at, last_login_at, is_active"),
     sort_dir: Optional[str] = Query("desc", description="Sortierrichtung: asc oder desc"),
     skip: int = Query(0, ge=0),
@@ -769,13 +778,20 @@ async def list_users(
 ):
     """Listet alle Benutzer mit serverseitiger Sortierung"""
     query = db.query(User)
-    
+
     if role:
         query = query.filter(User.role == role)
-    
+
     if search:
         query = query.filter(User.email.ilike(f"%{search}%"))
-    
+
+    # Portal-Filter: IJP-Studenten vs. normales JobOn
+    ijp_user_ids = db.query(Applicant.user_id).filter(Applicant.portal == "ijp")
+    if portal == "ijp":
+        query = query.filter(User.id.in_(ijp_user_ids))
+    elif portal == "jobon":
+        query = query.filter(~User.id.in_(ijp_user_ids))
+
     total = query.count()
     
     # Serverseitige Sortierung mit korrekter NULL-Behandlung
@@ -797,15 +813,17 @@ async def list_users(
             "role": user.role,
             "is_active": user.is_active,
             "created_at": user.created_at,
-            "last_login_at": user.last_login_at
+            "last_login_at": user.last_login_at,
+            "portal": "jobon"  # Default; für IJP-Studenten unten überschrieben
         }
-        
+
         # Zusätzliche Daten je nach Rolle
         if user.role == UserRole.APPLICANT:
             applicant = db.query(Applicant).filter(Applicant.user_id == user.id).first()
             if applicant:
                 user_data["name"] = f"{applicant.first_name} {applicant.last_name}"
                 user_data["position_type"] = applicant.position_type
+                user_data["portal"] = getattr(applicant, "portal", "jobon") or "jobon"
         elif user.role == UserRole.COMPANY:
             company = db.query(Company).filter(Company.user_id == user.id).first()
             if company:
