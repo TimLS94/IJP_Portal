@@ -308,9 +308,9 @@ export default function Navbar() {
           {/* Logo */}
           <Link href={isIjpApplicant ? "/applicant/profile" : "/"} className="flex items-center">
             <img
-              src={isIjpApplicant ? "/logo-ijp.svg" : "/logo.png"}
+              src={isIjpApplicant ? "/logo-ijp-mark.svg" : "/logo.png"}
               alt={isIjpApplicant ? "IJP - International Job Placement" : "JobOn - Internationale Jobvermittlung"}
-              className="h-16 w-auto"
+              className={isIjpApplicant ? "h-10 w-auto" : "h-16 w-auto"}
             />
           </Link>
 

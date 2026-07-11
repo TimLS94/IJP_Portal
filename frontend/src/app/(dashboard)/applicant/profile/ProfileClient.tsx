@@ -803,15 +803,17 @@ export default function ProfileClient() {
           <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2 px-6 py-3">
             {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}{t("applicant.saveProfile")}
           </button>
-          <button 
-            type="button" 
-            onClick={() => router.push("/jobs")} 
-            className="btn-secondary flex items-center gap-2 px-6 py-3"
-          >
-            <Briefcase className="h-5 w-5" />{t("profile.browseJobs")}
-          </button>
-          <button 
-            type="button" 
+          {!isIjp && (
+            <button
+              type="button"
+              onClick={() => router.push("/jobs")}
+              className="btn-secondary flex items-center gap-2 px-6 py-3"
+            >
+              <Briefcase className="h-5 w-5" />{t("profile.browseJobs")}
+            </button>
+          )}
+          <button
+            type="button"
             onClick={() => router.push("/applicant/ijp-auftrag")}
             className="btn-secondary flex items-center gap-2 px-6 py-3 border-primary-300 text-primary-700 hover:bg-primary-50"
           >
@@ -842,16 +844,18 @@ export default function ProfileClient() {
                 </span>
                 <span className="font-medium text-gray-800">{t("profile.hireIJP")}</span>
               </button>
-              <button
-                type="button"
-                onClick={() => { setFabOpen(false); router.push("/jobs"); }}
-                className="flex items-center gap-3 bg-white pl-4 pr-5 py-3 rounded-full shadow-lg border whitespace-nowrap"
-              >
-                <span className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Briefcase className="h-5 w-5 text-blue-600" />
-                </span>
-                <span className="font-medium text-gray-800">{t("profile.browseJobs")}</span>
-              </button>
+              {!isIjp && (
+                <button
+                  type="button"
+                  onClick={() => { setFabOpen(false); router.push("/jobs"); }}
+                  className="flex items-center gap-3 bg-white pl-4 pr-5 py-3 rounded-full shadow-lg border whitespace-nowrap"
+                >
+                  <span className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Briefcase className="h-5 w-5 text-blue-600" />
+                  </span>
+                  <span className="font-medium text-gray-800">{t("profile.browseJobs")}</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -878,13 +882,15 @@ export default function ProfileClient() {
                 >
                   <Sparkles className="h-5 w-5" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => router.push("/jobs")}
-                  className="w-12 h-12 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"
-                >
-                  <Briefcase className="h-5 w-5" />
-                </button>
+                {!isIjp && (
+                  <button
+                    type="button"
+                    onClick={() => router.push("/jobs")}
+                    className="w-12 h-12 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"
+                  >
+                    <Briefcase className="h-5 w-5" />
+                  </button>
+                )}
               </>
             )}
 
