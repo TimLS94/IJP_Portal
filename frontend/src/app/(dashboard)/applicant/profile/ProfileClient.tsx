@@ -59,13 +59,19 @@ export default function ProfileClient() {
   const router = useRouter();
   const { t } = useTranslation();
   
-  const positionTypes = [
+  // IJP-Unterportal: nur Studentenferienjob (fest), keine freie Stellenart-Auswahl.
+  const isIjp = user?.portal === "ijp";
+
+  const allPositionTypes = [
     { value: "studentenferienjob", label: t("positionTypes.studentenferienjob"), icon: "🎓" },
     { value: "saisonjob", label: t("positionTypes.saisonjob"), icon: "🌾" },
     { value: "workandholiday", label: t("positionTypes.workandholiday"), icon: "✈️" },
     { value: "fachkraft", label: t("positionTypes.fachkraft"), icon: "👔" },
     { value: "ausbildung", label: t("positionTypes.ausbildung"), icon: "📚" }
   ];
+  const positionTypes = isIjp
+    ? allPositionTypes.filter(pt => pt.value === "studentenferienjob")
+    : allPositionTypes;
 
   const languageLevels = [
     { value: "none", label: t("languageLevels.none") },
@@ -117,6 +123,11 @@ export default function ProfileClient() {
       const [profileRes, docsRes] = await Promise.all([applicantAPI.getProfile(), documentsAPI.list()]);
       const data = profileRes.data;
       if (!data.position_types) data.position_types = data.position_type ? [data.position_type] : [];
+      // IJP-Unterportal: Stellenart ist fest Studentenferienjob
+      if (isIjp) {
+        data.position_types = ["studentenferienjob"];
+        data.position_type = "studentenferienjob";
+      }
       reset(data);
       setDocuments(docsRes.data || []);
       if (data.other_languages) setOtherLanguages(data.other_languages);
@@ -130,6 +141,11 @@ export default function ProfileClient() {
   };
 
   const onSubmit = async (data: any) => {
+    // IJP-Unterportal: Stellenart bleibt fest Studentenferienjob
+    if (isIjp) {
+      data.position_types = ["studentenferienjob"];
+      data.position_type = "studentenferienjob";
+    }
     // Bei Studentenferienjob sind die Semesterferien Pflicht
     if ((data.position_types || []).includes("studentenferienjob")) {
       if (!data.semester_break_start || !data.semester_break_end) {

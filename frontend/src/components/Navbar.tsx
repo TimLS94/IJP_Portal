@@ -54,6 +54,9 @@ interface MenuItem {
 
 export default function Navbar() {
   const { user, isAuthenticated, isApplicant, isCompany, isAdmin, logout } = useAuth();
+  // IJP-Studenten-Unterportal: keine öffentlichen JobOn-Links (Jobs/Stellenarten),
+  // Logo führt ins Dashboard statt auf die öffentliche Stellen-Startseite.
+  const isIjpApplicant = isApplicant && user?.portal === "ijp";
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
@@ -303,51 +306,57 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <img 
-              src="/logo.png" 
-              alt="JobOn - Internationale Jobvermittlung" 
+          <Link href={isIjpApplicant ? "/applicant/profile" : "/"} className="flex items-center">
+            <img
+              src={isIjpApplicant ? "/logo-ijp.svg" : "/logo.png"}
+              alt={isIjpApplicant ? "IJP - International Job Placement" : "JobOn - Internationale Jobvermittlung"}
               className="h-16 w-auto"
             />
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href="/jobs"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
-                pathname === "/jobs"
-                  ? "text-primary-600 bg-primary-50"
-                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
-              }`}
-            >
-              <Briefcase className="h-4 w-4" />
-              <span>{t("nav.jobs")}</span>
-            </Link>
+            {!isIjpApplicant && (
+              <Link
+                href="/jobs"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
+                  pathname === "/jobs"
+                    ? "text-primary-600 bg-primary-50"
+                    : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
+                }`}
+              >
+                <Briefcase className="h-4 w-4" />
+                <span>{t("nav.jobs")}</span>
+              </Link>
+            )}
 
-            <Link
-              href="/stellenarten"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
-                pathname === "/stellenarten"
-                  ? "text-primary-600 bg-primary-50"
-                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
-              }`}
-            >
-              <Info className="h-4 w-4" />
-              <span>{t("nav.jobTypes")}</span>
-            </Link>
+            {!isIjpApplicant && (
+              <Link
+                href="/stellenarten"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
+                  pathname === "/stellenarten"
+                    ? "text-primary-600 bg-primary-50"
+                    : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
+                }`}
+              >
+                <Info className="h-4 w-4" />
+                <span>{t("nav.jobTypes")}</span>
+              </Link>
+            )}
 
-            <Link
-              href="/blog"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
-                pathname.startsWith("/blog")
-                  ? "text-primary-600 bg-primary-50"
-                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
-              }`}
-            >
-              <BookOpen className="h-4 w-4" />
-              <span>{t("nav.blog")}</span>
-            </Link>
+            {!isIjpApplicant && (
+              <Link
+                href="/blog"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
+                  pathname.startsWith("/blog")
+                    ? "text-primary-600 bg-primary-50"
+                    : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+                <span>{t("nav.blog")}</span>
+              </Link>
+            )}
 
             {/* Language Switcher */}
             <div className="relative" ref={langMenuRef}>
@@ -704,30 +713,36 @@ export default function Navbar() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-100 max-h-[calc(100vh-4rem)] overflow-y-auto">
             <div className="space-y-1 mb-4">
-              <Link
-                href="/jobs"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Briefcase className="h-5 w-5 text-gray-400" />
-                <span>{t("nav.jobs")}</span>
-              </Link>
-              <Link
-                href="/stellenarten"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Info className="h-5 w-5 text-gray-400" />
-                <span>{t("nav.jobTypes")}</span>
-              </Link>
-              <Link
-                href="/blog"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <BookOpen className="h-5 w-5 text-gray-400" />
-                <span>{t("nav.blog")}</span>
-              </Link>
+              {!isIjpApplicant && (
+                <Link
+                  href="/jobs"
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Briefcase className="h-5 w-5 text-gray-400" />
+                  <span>{t("nav.jobs")}</span>
+                </Link>
+              )}
+              {!isIjpApplicant && (
+                <Link
+                  href="/stellenarten"
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Info className="h-5 w-5 text-gray-400" />
+                  <span>{t("nav.jobTypes")}</span>
+                </Link>
+              )}
+              {!isIjpApplicant && (
+                <Link
+                  href="/blog"
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <BookOpen className="h-5 w-5 text-gray-400" />
+                  <span>{t("nav.blog")}</span>
+                </Link>
+              )}
             </div>
 
             {!isAuthenticated ? (

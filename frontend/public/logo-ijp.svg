@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="IJP – International Job Placement">
+  <rect x="12" y="12" width="376" height="376" fill="#ffffff" stroke="#000000" stroke-width="12"/>
+  <!-- Netzwerk-/Vermittlungs-Icon -->
+  <g stroke="#000000" stroke-width="9" fill="#000000">
+    <line x1="176" y1="118" x2="228" y2="163"/>
+    <line x1="150" y1="205" x2="228" y2="163"/>
+    <circle cx="176" cy="112" r="22"/>
+    <circle cx="232" cy="165" r="30"/>
+    <circle cx="150" cy="205" r="18" fill="#ffffff"/>
+  </g>
+  <!-- Wortmarke -->
+  <text x="200" y="300" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-weight="300" font-size="118" fill="#000000" letter-spacing="2">IJP</text>
+  <text x="200" y="342" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-weight="400" font-size="21" fill="#000000">International Job Placement</text>
+</svg>

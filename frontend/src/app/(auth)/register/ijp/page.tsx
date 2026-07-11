@@ -69,8 +69,8 @@ function IjpRegisterPageInner() {
     <div className="max-w-md mx-auto">
       <div className="card">
         <div className="text-center mb-6">
-          <Link href="/" className="inline-block mb-4">
-            <img src="/logo.png" alt="IJP" className="h-16 w-auto mx-auto" />
+          <Link href="/register/ijp" className="inline-block mb-4">
+            <img src="/logo-ijp.svg" alt="IJP - International Job Placement" className="h-24 w-auto mx-auto" />
           </Link>
           <div className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-3 py-1 text-sm font-medium text-primary-700 mb-3">
             <GraduationCap className="h-4 w-4" />
