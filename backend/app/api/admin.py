@@ -454,7 +454,44 @@ async def get_dashboard_stats(
         "jobs_filled_via_jobon": deletion_stats["filled_via_jobon"],
         "jobs_filled_in_period": deletion_stats["in_period"]["filled_via_jobon"]
     }
-    
+
+    # ==================== IJP-UNTERPORTAL (getrennt von JobOn) ====================
+    # Eigener Block, damit IJP-Studenten & -Vermittlungen im Dashboard klar getrennt
+    # von den JobOn-Zahlen erscheinen (und später leicht herauslösbar sind).
+    from app.models.job_request import JobRequest, JobRequestStatus
+
+    ijp_applicants_q = db.query(Applicant).filter(Applicant.portal == "ijp")
+    ijp_new_registrations = db.query(Applicant).join(
+        User, Applicant.user_id == User.id
+    ).filter(
+        Applicant.portal == "ijp",
+        User.created_at >= period_start_utc
+    ).count()
+
+    # Vermittlungs-Aufträge (Job-Requests) von IJP-Studenten
+    ijp_requests_q = db.query(JobRequest).join(
+        Applicant, JobRequest.applicant_id == Applicant.id
+    ).filter(Applicant.portal == "ijp")
+
+    placed_statuses = [JobRequestStatus.PLACED, JobRequestStatus.COMPLETED]
+    closed_statuses = placed_statuses + [
+        JobRequestStatus.REJECTED, JobRequestStatus.IJP_REJECTED,
+        JobRequestStatus.CANCELLED, JobRequestStatus.WITHDRAWN
+    ]
+
+    stats["ijp"] = {
+        "registrations_total": ijp_applicants_q.count(),
+        "registrations_in_period": ijp_new_registrations,
+        "requests_total": ijp_requests_q.count(),
+        "requests_in_period": ijp_requests_q.filter(JobRequest.created_at >= period_start_utc).count(),
+        "requests_active": ijp_requests_q.filter(~JobRequest.status.in_(closed_statuses)).count(),
+        "placements_total": ijp_requests_q.filter(JobRequest.status.in_(placed_statuses)).count(),
+        "placements_in_period": ijp_requests_q.filter(
+            JobRequest.status.in_(placed_statuses),
+            JobRequest.updated_at >= period_start_utc
+        ).count(),
+    }
+
     return stats
 
 

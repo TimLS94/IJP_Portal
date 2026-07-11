@@ -63,6 +63,15 @@ interface Stats {
     new_this_week?: number;
   };
   position_types: Record<string, number>;
+  ijp?: {
+    registrations_total: number;
+    registrations_in_period: number;
+    requests_total: number;
+    requests_in_period: number;
+    requests_active: number;
+    placements_total: number;
+    placements_in_period: number;
+  };
   success_rate?: {
     total_successes: number;
     successes_in_period: number;
@@ -314,8 +323,8 @@ export default function AdminDashboardPage() {
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="h-5 w-5 text-gray-500" />
-          <h2 className="text-lg font-semibold text-gray-700">Gesamtübersicht</h2>
-          <span className="text-sm text-gray-400">(alle Zeiten)</span>
+          <h2 className="text-lg font-semibold text-gray-700">Gesamtübersicht JobOn</h2>
+          <span className="text-sm text-gray-400">(alle Zeiten, ohne IJP)</span>
         </div>
       </div>
 
@@ -375,6 +384,65 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ==================== IJP-UNTERPORTAL (getrennt von JobOn) ==================== */}
+      {stats.ijp && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <img src="/logo-ijp.svg" alt="IJP" className="h-6 w-6" />
+            <h2 className="text-lg font-semibold text-gray-700">IJP – International Job Placement</h2>
+            <span className="text-sm text-gray-400">(Studentenvermittlung, getrennt)</span>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="card border-2 border-primary-200 bg-primary-50/40">
+              <div className="flex items-center gap-4">
+                <div className="bg-primary-100 p-3 rounded-lg">
+                  <UserPlus className="h-6 w-6 text-primary-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">IJP-Registrierungen</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.ijp.registrations_total}</p>
+                  <p className="text-xs text-primary-600">+{stats.ijp.registrations_in_period} im Zeitraum</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card border-2 border-primary-200 bg-primary-50/40">
+              <div className="flex items-center gap-4">
+                <div className="bg-primary-100 p-3 rounded-lg">
+                  <ClipboardList className="h-6 w-6 text-primary-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Vermittlungs-Aufträge</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.ijp.requests_total}</p>
+                  <p className="text-xs text-primary-600">{stats.ijp.requests_active} aktiv · +{stats.ijp.requests_in_period} im Zeitraum</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card border-2 border-primary-200 bg-primary-50/40">
+              <div className="flex items-center gap-4">
+                <div className="bg-green-100 p-3 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">IJP-Vermittlungen</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.ijp.placements_total}</p>
+                  <p className="text-xs text-green-600">+{stats.ijp.placements_in_period} im Zeitraum</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-4 text-sm">
+            <Link href="/admin/job-requests" className="text-primary-600 hover:underline flex items-center gap-1">
+              <ClipboardList className="h-4 w-4" /> IJP-Aufträge verwalten
+            </Link>
+            <Link href="/admin/applicant-invites" className="text-primary-600 hover:underline flex items-center gap-1">
+              <UserPlus className="h-4 w-4" /> IJP-Einladungslinks
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* KI-Nutzung (Stellengenerator) */}
       {aiUsage && (
