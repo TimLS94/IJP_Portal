@@ -2899,13 +2899,18 @@ async def get_timeline_stats(
     start_date = (now_berlin - timedelta(days=days-1)).replace(hour=0, minute=0, second=0, microsecond=0)
     start_utc = start_date.astimezone(timezone.utc).replace(tzinfo=None)
     
+    # IJP-Studenten (Unterportal) nicht in die JobOn-Timeline zählen
+    ijp_user_ids = db.query(Applicant.user_id).filter(Applicant.portal == "ijp")
+    not_ijp = ~User.id.in_(ijp_user_ids)
+
     # SQLite-kompatible Datums-Extraktion mit func.date()
     # Tägliche Registrierungen
     daily_users = db.query(
         func.date(User.created_at).label("date"),
         func.count(User.id).label("count")
     ).filter(
-        User.created_at >= start_utc
+        User.created_at >= start_utc,
+        not_ijp
     ).group_by(func.date(User.created_at)).all()
     
     # Tägliche Bewerbungen
@@ -2929,7 +2934,8 @@ async def get_timeline_stats(
         func.date(User.last_login_at).label("date"),
         func.count(User.id).label("count")
     ).filter(
-        User.last_login_at >= start_utc
+        User.last_login_at >= start_utc,
+        not_ijp
     ).group_by(func.date(User.last_login_at)).all()
     
     # Daten in ein Dictionary umwandeln für einfachen Zugriff
