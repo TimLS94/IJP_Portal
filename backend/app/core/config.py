@@ -57,7 +57,18 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""  # SendGrid API Key
     FROM_EMAIL: str = "noreply@internationaljobplacement.com"
     FROM_NAME: str = "International Job Placement"
-    
+
+    # Optionaler separater SMTP-Versand NUR für Kaltakquise/Vertrieb (z.B. Gmail).
+    # Wenn OUTREACH_SMTP_USER + OUTREACH_SMTP_PASSWORD gesetzt sind, laufen Cold-
+    # Outreach-Mails über dieses Konto (SMTP) statt über SendGrid. Transaktionsmails
+    # bleiben unverändert auf SendGrid. Erst aktiv, sobald die Zugangsdaten gesetzt sind.
+    OUTREACH_SMTP_HOST: str = "smtp.gmail.com"
+    OUTREACH_SMTP_PORT: int = 587
+    OUTREACH_SMTP_USER: str = ""      # z.B. anakova.uz@gmail.com
+    OUTREACH_SMTP_PASSWORD: str = ""  # Google App-Passwort (16-stellig, NICHT das normale Passwort)
+    OUTREACH_FROM_EMAIL: str = ""     # Standard: = OUTREACH_SMTP_USER
+    OUTREACH_FROM_NAME: str = "IJP International Job Placement"
+
     # Google OAuth (nur für Bewerber)
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""

@@ -70,16 +70,29 @@ class EmailService:
             self.from_name = getattr(settings, 'FROM_NAME', 'International Job Placement')
             self.debug = getattr(settings, 'DEBUG', False)
             self.enabled = bool(self.api_key and self.api_key.startswith('SG.'))
-            
+
+            # Optionaler separater SMTP-Weg für Kaltakquise (z.B. Gmail)
+            self.outreach_smtp_host = getattr(settings, 'OUTREACH_SMTP_HOST', 'smtp.gmail.com')
+            self.outreach_smtp_port = int(getattr(settings, 'OUTREACH_SMTP_PORT', 587) or 587)
+            self.outreach_smtp_user = getattr(settings, 'OUTREACH_SMTP_USER', '') or ''
+            self.outreach_smtp_password = getattr(settings, 'OUTREACH_SMTP_PASSWORD', '') or ''
+            self.outreach_from_email = getattr(settings, 'OUTREACH_FROM_EMAIL', '') or self.outreach_smtp_user
+            self.outreach_from_name = getattr(settings, 'OUTREACH_FROM_NAME', '') or 'IJP International Job Placement'
+            # Aktiv, sobald Benutzer + Passwort (App-Passwort) hinterlegt sind
+            self.outreach_smtp_enabled = bool(self.outreach_smtp_user and self.outreach_smtp_password)
+
             if self.enabled:
                 logger.info(f"E-Mail-Service AKTIVIERT (SendGrid API) - From: {self.from_email}")
             else:
                 logger.info("E-Mail-Service DEAKTIVIERT (Kein gültiger SendGrid API Key)")
+            if self.outreach_smtp_enabled:
+                logger.info(f"Kaltakquise-Versand über SMTP AKTIV ({self.outreach_smtp_host}) - From: {self.outreach_from_email}")
         except Exception as e:
             logger.error(f"E-Mail-Service Init-Fehler: {e}")
             self.enabled = False
             self.debug = False
             self.api_key = ''
+            self.outreach_smtp_enabled = False
     
     @_safe_email_call
     def send_email(
@@ -161,6 +174,100 @@ class EmailService:
                 logger.warning(f"E-Mail-Log fehlgeschlagen: {e}")
             return False
     
+    def _send_via_smtp(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        attachments: Optional[List[dict]] = None,
+        email_type: str = "cold_outreach",
+    ) -> bool:
+        """Versendet eine E-Mail über ein separates SMTP-Konto (z.B. Gmail) inkl.
+        Anhängen (PDF etc.). Absender ist zwingend das SMTP-Konto/verifizierter Alias
+        (Gmail überschreibt fremde Absender). Fehler werden abgefangen -> False."""
+        import base64
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.mime.application import MIMEApplication
+        from email.utils import formataddr
+
+        sender_email = self.outreach_from_email or self.outreach_smtp_user
+
+        # Debug-Modus: nur loggen, nicht senden
+        if self.debug:
+            att_info = f" + {len(attachments)} Anhänge" if attachments else ""
+            logger.info(f"[DEBUG-SMTP] Von: {sender_email} | An: {to_email} | Betreff: {subject}{att_info}")
+            log_email(email_type, to_email, subject, True)
+            return True
+
+        msg = MIMEMultipart()
+        msg["From"] = formataddr((self.outreach_from_name, sender_email))
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(html_content, "html", "utf-8"))
+
+        for att in attachments or []:
+            try:
+                raw = base64.b64decode(att["content"])
+                subtype = (att.get("type") or "application/octet-stream").split("/")[-1]
+                part = MIMEApplication(raw, _subtype=subtype)
+                part.add_header("Content-Disposition", "attachment", filename=att["filename"])
+                msg.attach(part)
+            except Exception as e:
+                logger.error(f"SMTP-Anhang '{att.get('filename')}' fehlgeschlagen: {e}")
+
+        try:
+            if self.outreach_smtp_port == 465:
+                server = smtplib.SMTP_SSL(self.outreach_smtp_host, self.outreach_smtp_port, timeout=30)
+            else:
+                server = smtplib.SMTP(self.outreach_smtp_host, self.outreach_smtp_port, timeout=30)
+                server.starttls()
+            try:
+                server.login(self.outreach_smtp_user, self.outreach_smtp_password)
+                server.sendmail(sender_email, [to_email], msg.as_string())
+            finally:
+                server.quit()
+            logger.info(f"✅ E-Mail via SMTP gesendet an {to_email}")
+            log_email(email_type, to_email, subject, True)
+            return True
+        except Exception as e:
+            logger.error(f"❌ SMTP-Versand fehlgeschlagen an {to_email}: {type(e).__name__}: {e}")
+            log_email(email_type, to_email, subject, False)
+            return False
+
+    def send_outreach(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        attachments: Optional[List[dict]] = None,
+        from_email: Optional[str] = None,
+        from_name: Optional[str] = None,
+        email_type: str = "cold_outreach",
+    ) -> bool:
+        """Kaltakquise-/Vertriebsversand. Nutzt das separate SMTP-Konto (Gmail),
+        falls konfiguriert – sonst den bisherigen SendGrid-Weg (Fallback). Beide
+        unterstützen Anhänge (PDF)."""
+        if self.outreach_smtp_enabled:
+            return self._send_via_smtp(
+                to_email=to_email,
+                subject=subject,
+                html_content=html_content,
+                attachments=attachments,
+                email_type=email_type,
+            )
+        # Fallback: bisheriger Weg über SendGrid (unverändert)
+        return self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            email_type=email_type,
+            from_email=from_email,
+            from_name=from_name,
+            attachments=attachments,
+        )
+
     @_safe_email_call
     def send_welcome_email(self, to_email: str, name: str, role: str) -> bool:
         """Sendet eine Willkommens-E-Mail nach der Registrierung"""

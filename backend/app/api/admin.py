@@ -724,14 +724,16 @@ async def send_cold_outreach_email(
                 for att in request.attachments
             ]
         
-        success = email_service.send_email(
+        # Nutzt Gmail-SMTP falls konfiguriert (send_outreach), sonst SendGrid.
+        # Anhänge (PDF) funktionieren in beiden Wegen.
+        success = email_service.send_outreach(
             to_email=request.to,
             subject=request.subject,
             html_content=html_content,
-            email_type="cold_outreach",
+            attachments=attachments_data,
             from_email=request.from_email or "business@jobon.work",
             from_name=request.from_name or "JobOn",
-            attachments=attachments_data
+            email_type="cold_outreach",
         )
         
         # Log erstellen
