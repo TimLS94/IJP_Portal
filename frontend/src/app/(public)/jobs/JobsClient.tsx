@@ -88,6 +88,16 @@ const formatDate = (dateString: string): string => {
   });
 };
 
+// Aktuell hervorgehoben ("Anzeige")? is_featured allein reicht nicht – der
+// Hervorhebungs-Zeitraum (featured_until) kann abgelaufen sein. featured_until
+// == null bedeutet dauerhaft (z.B. Admin-Hervorhebung). Gleiche Regel wie die
+// Backend-Sortierung (is_currently_featured).
+const isFeaturedNow = (job: { is_featured?: boolean; featured_until?: string }): boolean => {
+  if (!job.is_featured) return false;
+  if (!job.featured_until) return true;
+  return new Date(job.featured_until).getTime() > Date.now();
+};
+
 interface JobsClientProps {
   initialJobs?: Job[];
   initialPositionType?: string;
@@ -428,8 +438,8 @@ export default function JobsClient({
               target="_blank"
               rel="noopener noreferrer"
               className={`card block hover:shadow-xl transition-all group ${
-                job.is_featured 
-                  ? "border-2 border-amber-300 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 ring-1 ring-amber-200" 
+                isFeaturedNow(job)
+                  ? "border-2 border-amber-300 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 ring-1 ring-amber-200"
                   : "border-2 border-transparent hover:border-primary-200"
               }`}
             >
@@ -437,7 +447,7 @@ export default function JobsClient({
                 {/* Title row + like button */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap flex-1">
-                    {job.is_featured && (
+                    {isFeaturedNow(job) && (
                       <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-400 to-yellow-400 text-white shadow-sm" title="Bezahlte Anzeige">
                         Anzeige
                       </span>
