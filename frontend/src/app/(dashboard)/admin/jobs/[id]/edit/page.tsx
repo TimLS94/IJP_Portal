@@ -381,7 +381,7 @@ export default function AdminEditJobPage() {
           <div className="grid sm:grid-cols-3 gap-4">
             <div>
               <label className={labelCls}>Land</label>
-              <select className={inputCls} value={country} onChange={e => setCountry(e.target.value)}>
+              <select className="select-styled" value={country} onChange={e => setCountry(e.target.value)}>
                 <option value="DE">🇩🇪 Deutschland</option>
                 <option value="AT">🇦🇹 Österreich</option>
                 <option value="CH">🇨🇭 Schweiz</option>
