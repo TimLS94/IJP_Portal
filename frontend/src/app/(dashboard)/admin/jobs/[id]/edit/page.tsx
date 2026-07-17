@@ -73,6 +73,7 @@ export default function AdminEditJobPage() {
 
   // Standort
   const [location, setLocation] = useState("");
+  const [country, setCountry] = useState("DE");
   const [address, setAddress] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [remotePossible, setRemotePossible] = useState(false);
@@ -94,6 +95,8 @@ export default function AdminEditJobPage() {
 
   // Übersetzungen
   const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({});
+  // Aktivierte Sprachen (steuert die Sprach-Tabs); Admin kann hier Sprachen ergänzen
+  const [enabledLanguages, setEnabledLanguages] = useState<string[]>(["de"]);
 
   useEffect(() => { loadJob(); }, [jobId]);
 
@@ -123,6 +126,7 @@ export default function AdminEditJobPage() {
       setExternalUrl(data.external_url || "");
 
       setLocation(data.location || "");
+      setCountry(data.country || "DE");
       setAddress(data.address || "");
       setPostalCode(data.postal_code || "");
       setRemotePossible(data.remote_possible ?? false);
@@ -137,6 +141,8 @@ export default function AdminEditJobPage() {
       setDeadline(data.deadline || "");
 
       if (data.translations) setTranslations(data.translations as Record<string, Record<string, string>>);
+      const langs = (data.available_languages as string[]) || ["de"];
+      setEnabledLanguages(langs.includes("de") ? langs : ["de", ...langs]);
 
       setGermanRequired(data.german_required || "none");
       setEnglishRequired(data.english_required || "none");
@@ -179,6 +185,8 @@ export default function AdminEditJobPage() {
         external_employer_name: externalEmployerName || null,
         external_url: externalUrl || null,
         location: location || null,
+        country: country || "DE",
+        available_languages: enabledLanguages,
         address: address || null,
         postal_code: postalCode || null,
         remote_possible: remotePossible,
@@ -223,8 +231,16 @@ export default function AdminEditJobPage() {
   };
 
   const content = getContent();
-  const availableLanguages = (job?.available_languages as string[]) || ["de"];
+  const availableLanguages = enabledLanguages;
   const isExternal = job?.external_source === "bundesagentur";
+
+  const toggleLanguage = (code: string) => {
+    if (code === "de") return; // Deutsch ist Pflicht/Basis
+    setEnabledLanguages(prev =>
+      prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
+    );
+    if (activeLanguage === code) setActiveLanguage("de");
+  };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-12 w-12 animate-spin text-primary-600" /></div>;
   if (!job) return <div className="text-center py-12"><AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" /><p>Stelle nicht gefunden</p></div>;
@@ -363,7 +379,15 @@ export default function AdminEditJobPage() {
         <div className="card">
           <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2"><MapPin className="h-4 w-4 text-primary-500" />Standort</h2>
           <div className="grid sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2">
+            <div>
+              <label className={labelCls}>Land</label>
+              <select className={inputCls} value={country} onChange={e => setCountry(e.target.value)}>
+                <option value="DE">🇩🇪 Deutschland</option>
+                <option value="AT">🇦🇹 Österreich</option>
+                <option value="CH">🇨🇭 Schweiz</option>
+              </select>
+            </div>
+            <div>
               <label className={labelCls}>Ort / Stadt</label>
               <input className={inputCls} value={location} onChange={e => setLocation(e.target.value)} placeholder="Berlin, Hamburg..." />
             </div>
@@ -470,7 +494,28 @@ export default function AdminEditJobPage() {
           </div>
         </div>
 
-        {/* ── Sprachen-Tabs ── */}
+        {/* ── Sprachen aktivieren ── */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <Languages className="h-5 w-5 text-primary-600" />
+            <span className="font-medium">Sprachen</span>
+            <span className="text-sm text-gray-400">(aktivieren, dann unten je Sprache bearbeiten)</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {LANGUAGES.map(lang => {
+              const on = enabledLanguages.includes(lang.code);
+              return (
+                <button key={lang.code} type="button" onClick={() => toggleLanguage(lang.code)}
+                  disabled={lang.code === "de"}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border-2 transition-all ${on ? "border-primary-500 bg-primary-50 text-primary-700" : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"} ${lang.code === "de" ? "opacity-70 cursor-default" : ""}`}>
+                  {lang.flag} {lang.name} {on && <Check className="h-4 w-4" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Sprache bearbeiten (Tabs) ── */}
         {availableLanguages.length > 1 && (
           <div className="card">
             <div className="flex items-center gap-2 mb-3">
@@ -479,7 +524,7 @@ export default function AdminEditJobPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {LANGUAGES.filter(l => availableLanguages.includes(l.code)).map(lang => (
-                <button key={lang.code} onClick={() => setActiveLanguage(lang.code)}
+                <button key={lang.code} type="button" onClick={() => setActiveLanguage(lang.code)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${activeLanguage === lang.code ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
                   {lang.flag} {lang.name} {activeLanguage === lang.code && <Check className="h-4 w-4" />}
                 </button>

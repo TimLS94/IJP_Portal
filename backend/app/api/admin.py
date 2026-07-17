@@ -1066,6 +1066,7 @@ async def admin_get_job(
         "is_active": job.is_active,
         "is_draft": job.is_draft,
         "company_name": company.company_name if company else None,
+        "country": job.country or "DE",
         "translations": job.translations or {},
         "available_languages": job.available_languages or ["de"],
     }
@@ -1108,6 +1109,8 @@ class AdminUpdateJobRequest(BaseModel):
     location: Optional[str] = None
     address: Optional[str] = None
     postal_code: Optional[str] = None
+    country: Optional[str] = None  # DE | AT | CH
+    available_languages: Optional[list] = None
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
@@ -1146,9 +1149,9 @@ async def admin_update_job(
 
     # Einfache Textfelder
     for field in ("title", "description", "tasks", "requirements", "benefits",
-                  "location", "address", "postal_code", "contact_person",
+                  "location", "address", "postal_code", "country", "contact_person",
                   "contact_phone", "contact_email", "external_employer_name",
-                  "external_url", "translations"):
+                  "external_url", "translations", "available_languages"):
         val = getattr(request, field, None)
         if val is not None:
             setattr(job, field, val)
