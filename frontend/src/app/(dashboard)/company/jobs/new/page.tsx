@@ -323,7 +323,14 @@ export default function CreateJobPage() {
         {/* Ort & Zeitraum */}
         <div className="card">
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2"><MapPin className="h-5 w-5 text-primary-600" />Ort & Zeitraum</h2>
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div className="grid md:grid-cols-3 gap-4 mb-4">
+            <div><label className="label">Land</label>
+              <select className="input-styled" {...register("country")} defaultValue="DE">
+                <option value="DE">🇩🇪 Deutschland</option>
+                <option value="AT">🇦🇹 Österreich</option>
+                <option value="CH">🇨🇭 Schweiz</option>
+              </select>
+            </div>
             <div><label className="label">Ort / Stadt</label><input type="text" className="input-styled" placeholder="z.B. München" {...register("location")} /></div>
             <div><label className="label">PLZ</label><input type="text" className="input-styled" placeholder="z.B. 80331" {...register("postal_code")} /></div>
           </div>

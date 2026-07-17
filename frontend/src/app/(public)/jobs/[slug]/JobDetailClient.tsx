@@ -68,6 +68,7 @@ interface Job {
   location: string;
   address?: string;
   postal_code?: string;
+  country?: string;
   salary_min?: number;
   salary_max?: number;
   salary_type?: string;
@@ -141,6 +142,9 @@ const languageLevelColors: Record<string, string> = {
   good: "bg-blue-100 text-blue-800",
   fluent: "bg-green-100 text-green-800",
 };
+
+const countryFlag = (c?: string): string =>
+  ({ DE: "🇩🇪", AT: "🇦🇹", CH: "🇨🇭" }[(c || "DE").toUpperCase()] || "🇩🇪");
 
 const positionTypeColors: Record<string, string> = {
   general: "bg-gray-100 text-gray-800 border-gray-200",
@@ -401,7 +405,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                 {job.location && (
                   <span className="flex items-center gap-1.5">
                     <MapPin className="h-5 w-5 text-gray-400" />
-                    {job.location}
+                    {countryFlag(job.country)} {job.location}
                     {job.postal_code && ` (${job.postal_code})`}
                   </span>
                 )}

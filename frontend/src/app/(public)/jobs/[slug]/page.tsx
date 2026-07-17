@@ -58,6 +58,7 @@ interface JobFromAPI {
   location: string;
   address?: string;
   postal_code?: string;
+  country?: string;
   salary_min?: number;
   salary_max?: number;
   salary_type?: string;
@@ -114,6 +115,7 @@ interface Job {
   location: string;
   address?: string;
   postal_code?: string;
+  country?: string;
   salary_min?: number;
   salary_max?: number;
   salary_type?: string;
@@ -351,16 +353,18 @@ function generateJobPostingSchema(job: Job) {
   // Remote-Arbeit
   const jobLocationType = job.remote_possible ? "TELECOMMUTE" : undefined;
 
-  // Adresse mit mehr Details
+  // Adresse mit mehr Details. Ländercode aus job.country (DE/AT/CH), Fallback DE.
+  // addressRegion-Lookup gilt nur für DE (deutsche Bundesländer).
+  const countryCode = (job.country || "DE").toUpperCase();
   const jobLocation = {
     "@type": "Place",
     address: {
       "@type": "PostalAddress",
       streetAddress: job.address || undefined,
       addressLocality: job.location,
-      addressRegion: getAddressRegion(job.location),
+      addressRegion: countryCode === "DE" ? getAddressRegion(job.location) : undefined,
       postalCode: job.postal_code || undefined,
-      addressCountry: "DE",
+      addressCountry: countryCode,
     },
   };
 

@@ -63,7 +63,7 @@ export default function EditJobPage() {
       // Other Languages
       if (job.other_languages_required?.length) setOtherLanguages(job.other_languages_required);
       // Form Values
-      ["location", "address", "postal_code", "employment_type", "salary_min", "salary_max", "salary_type", "german_required", "english_required", "contact_person", "contact_email", "contact_phone", "contact_whatsapp", "preferred_contact_method", "start_date", "end_date", "deadline", "remote_possible", "accommodation_provided"].forEach(k => {
+      ["location", "address", "postal_code", "country", "employment_type", "salary_min", "salary_max", "salary_type", "german_required", "english_required", "contact_person", "contact_email", "contact_phone", "contact_whatsapp", "preferred_contact_method", "start_date", "end_date", "deadline", "remote_possible", "accommodation_provided"].forEach(k => {
         if (job[k] !== undefined && job[k] !== null) setValue(k, job[k]);
       });
       // Start Immediate Check
@@ -245,7 +245,14 @@ export default function EditJobPage() {
         {/* Ort & Zeitraum */}
         <div className="card">
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2"><MapPin className="h-5 w-5 text-primary-600" />Ort & Zeitraum</h2>
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div className="grid md:grid-cols-3 gap-4 mb-4">
+            <div><label className="label">Land</label>
+              <select className="input-styled" {...register("country")} defaultValue="DE">
+                <option value="DE">🇩🇪 Deutschland</option>
+                <option value="AT">🇦🇹 Österreich</option>
+                <option value="CH">🇨🇭 Schweiz</option>
+              </select>
+            </div>
             <div><label className="label">Ort / Stadt</label><input type="text" className="input-styled" placeholder="z.B. München" {...register("location")} /></div>
             <div><label className="label">PLZ</label><input type="text" className="input-styled" placeholder="z.B. 80331" {...register("postal_code")} /></div>
           </div>

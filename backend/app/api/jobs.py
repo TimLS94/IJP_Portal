@@ -62,6 +62,7 @@ async def get_public_job_settings(db: Session = Depends(get_db)):
 async def list_public_jobs(
     position_type: Optional[PositionType] = None,
     location: Optional[str] = None,
+    country: Optional[str] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db)
@@ -80,6 +81,14 @@ async def list_public_jobs(
 
     if location:
         query = query.filter(JobPosting.location.ilike(f"%{location}%"))
+
+    if country:
+        from sqlalchemy import or_ as _or
+        # Bestand ohne gesetztes Land gilt als DE
+        if country.upper() == "DE":
+            query = query.filter(_or(JobPosting.country == "DE", JobPosting.country == None))
+        else:
+            query = query.filter(JobPosting.country == country.upper())
 
     # Hervorgehobene Jobs zuerst, dann nach Erstellungsdatum
     from sqlalchemy import case, and_, or_
@@ -352,6 +361,7 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
         "location": job.location,
         "address": job.address,
         "postal_code": job.postal_code,
+        "country": job.country or "DE",
         "remote_possible": job.remote_possible,
         "accommodation_provided": job.accommodation_provided,
         "start_date": job.start_date,

@@ -104,6 +104,7 @@ class JobPosting(Base):
     location = Column(String(255))
     address = Column(String(255))  # NEU: Straße
     postal_code = Column(String(20))  # NEU: PLZ
+    country = Column(String(2), default="DE", server_default="DE")  # Ländercode: DE, AT, CH
     remote_possible = Column(Boolean, default=False)
     accommodation_provided = Column(Boolean, default=False)  # Unterkunft vorhanden
     start_date = Column(Date)

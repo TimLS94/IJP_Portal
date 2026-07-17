@@ -27,6 +27,7 @@ interface Job {
   title: string;
   description?: string;
   location?: string;
+  country?: string;
   salary_min?: number;
   salary_max?: number;
   salary_type?: string;
@@ -73,10 +74,34 @@ const languageLevelColors: Record<string, string> = {
 };
 
 // HTML-Tags entfernen für Plain-Text
+// Wandelt Rich-Text/HTML in einheitlichen Klartext für die Listen-Vorschau:
+// Tags entfernen + gängige HTML-Entities (v.a. &nbsp;) dekodieren, damit keine
+// rohe Formatierung/Entities in der Vorschau erscheinen.
+const decodeEntities = (s: string): string =>
+  s
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&(?:apos|#0*39);/gi, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)));
+
 const stripHtml = (text: string): string => {
   if (!text) return "";
-  return text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return decodeEntities(text.replace(/<[^>]*>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
 };
+
+// Länder (JobOn: DE + neu AT/CH). Bestand ohne Land = DE.
+const COUNTRY_META: Record<string, { flag: string; label: string }> = {
+  DE: { flag: "🇩🇪", label: "Deutschland" },
+  AT: { flag: "🇦🇹", label: "Österreich" },
+  CH: { flag: "🇨🇭", label: "Schweiz" },
+};
+const countryMeta = (c?: string) => COUNTRY_META[(c || "DE").toUpperCase()] || COUNTRY_META.DE;
 
 // Datum formatieren
 const formatDate = (dateString: string): string => {
@@ -159,6 +184,7 @@ export default function JobsClient({
   const [search, setSearch] = useState("");
   const [positionType, setPositionType] = useState(initialPositionType);
   const [location, setLocation] = useState("");
+  const [country, setCountry] = useState("");
   const [germanLevel, setGermanLevel] = useState("");
   const [accommodationOnly, setAccommodationOnly] = useState(initialAccommodation);
   const [showFilters, setShowFilters] = useState(false);
@@ -167,7 +193,7 @@ export default function JobsClient({
 
   useEffect(() => {
     loadJobs();
-  }, [positionType, location, germanLevel, accommodationOnly]);
+  }, [positionType, location, country, germanLevel, accommodationOnly]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -227,6 +253,7 @@ export default function JobsClient({
       const params: Record<string, string> = { limit: "200" };
       if (positionType) params.position_type = positionType;
       if (location) params.location = location;
+      if (country) params.country = country;
       if (search) params.search = search;
 
       const response = await jobsAPI.list(params);
@@ -264,12 +291,13 @@ export default function JobsClient({
     setSearch("");
     setPositionType("");
     setLocation("");
+    setCountry("");
     setGermanLevel("");
     setAccommodationOnly(false);
   };
 
-  const hasFilters = search || positionType || location || germanLevel || accommodationOnly;
-  const activeFilterCount = [positionType, location, germanLevel, accommodationOnly].filter(Boolean).length;
+  const hasFilters = search || positionType || location || country || germanLevel || accommodationOnly;
+  const activeFilterCount = [positionType, location, country, germanLevel, accommodationOnly].filter(Boolean).length;
 
   return (
     <div className={`container mx-auto px-4 ${hideHeader ? "pt-2 pb-8" : "py-8"}`}>
@@ -334,6 +362,23 @@ export default function JobsClient({
                     ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Land */}
+              <div>
+                <label className="label">{t("jobs.country", "Land")}</label>
+                <div className="relative">
+                  <select
+                    className="input-styled appearance-none pr-10"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                  >
+                    <option value="">{t("jobs.allCountries", "Alle Länder")}</option>
+                    <option value="DE">🇩🇪 Deutschland</option>
+                    <option value="AT">🇦🇹 Österreich</option>
+                    <option value="CH">🇨🇭 Schweiz</option>
+                  </select>
                 </div>
               </div>
 
@@ -510,9 +555,9 @@ export default function JobsClient({
                     </span>
                   </span>
                   {job.location && (
-                    <span className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1.5" title={countryMeta(job.country).label}>
                       <MapPin className="h-4 w-4 text-gray-400" />
-                      {job.location}
+                      <span>{countryMeta(job.country).flag} {job.location}</span>
                     </span>
                   )}
                   {job.start_date && (
