@@ -284,14 +284,14 @@ export default function AdminEditJobPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Positionstyp</label>
-              <select className={inputCls} value={positionType} onChange={e => setPositionType(e.target.value)}>
+              <select className={`${inputCls} select-chevron`} value={positionType} onChange={e => setPositionType(e.target.value)}>
                 <option value="">— wählen —</option>
                 {POSITION_TYPES.map(pt => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>Beschäftigungsart</label>
-              <select className={inputCls} value={employmentType} onChange={e => setEmploymentType(e.target.value)}>
+              <select className={`${inputCls} select-chevron`} value={employmentType} onChange={e => setEmploymentType(e.target.value)}>
                 <option value="">— wählen —</option>
                 {EMPLOYMENT_TYPES.map(et => <option key={et.value} value={et.value}>{et.label}</option>)}
               </select>
@@ -381,7 +381,7 @@ export default function AdminEditJobPage() {
           <div className="grid sm:grid-cols-3 gap-4">
             <div>
               <label className={labelCls}>Land</label>
-              <select className="select-styled" value={country} onChange={e => setCountry(e.target.value)}>
+              <select className={`${inputCls} select-chevron`} value={country} onChange={e => setCountry(e.target.value)}>
                 <option value="DE">🇩🇪 Deutschland</option>
                 <option value="AT">🇦🇹 Österreich</option>
                 <option value="CH">🇨🇭 Schweiz</option>
@@ -427,7 +427,7 @@ export default function AdminEditJobPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-gray-500 mb-1">🇩🇪 Deutschkenntnisse</label>
-              <select className={inputCls} value={germanRequired} onChange={e => setGermanRequired(e.target.value)}>
+              <select className={`${inputCls} select-chevron`} value={germanRequired} onChange={e => setGermanRequired(e.target.value)}>
                 <option value="none">Nicht erforderlich</option>
                 <option value="a1">A1 – Grundkenntnisse</option>
                 <option value="a2">A2 – Grundlegende Kenntnisse</option>
@@ -439,7 +439,7 @@ export default function AdminEditJobPage() {
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">🇬🇧 Englischkenntnisse</label>
-              <select className={inputCls} value={englishRequired} onChange={e => setEnglishRequired(e.target.value)}>
+              <select className={`${inputCls} select-chevron`} value={englishRequired} onChange={e => setEnglishRequired(e.target.value)}>
                 <option value="none">Nicht erforderlich</option>
                 <option value="a1">A1 – Grundkenntnisse</option>
                 <option value="a2">A2 – Grundlegende Kenntnisse</option>
@@ -466,7 +466,7 @@ export default function AdminEditJobPage() {
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Typ</label>
-              <select className={inputCls} value={salaryType} onChange={e => setSalaryType(e.target.value)}>
+              <select className={`${inputCls} select-chevron`} value={salaryType} onChange={e => setSalaryType(e.target.value)}>
                 <option value="hourly">Stundenlohn</option>
                 <option value="monthly">Monatslohn</option>
                 <option value="yearly">Jahreslohn</option>

@@ -92,7 +92,19 @@ h1, h2, h3, h4, h5, h6 {
   .input-styled:hover {
     @apply border-gray-300;
   }
-  
+
+  /* Einheitlicher Chevron für <select> (statt nativer OS-Pfeile).
+     select.input-styled greift app-weit automatisch; .select-chevron kann
+     zusätzlich auf Selects mit eigenem Styling angewandt werden. */
+  select.input-styled,
+  .select-chevron {
+    @apply appearance-none pr-10 cursor-pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25em 1.25em;
+  }
+
   /* Custom Select Styling */
   .select-styled {
     @apply appearance-none w-full px-4 py-3 pr-10 bg-white border-2 border-gray-200 rounded-xl 

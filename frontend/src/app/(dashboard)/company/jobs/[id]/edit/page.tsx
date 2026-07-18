@@ -247,7 +247,7 @@ export default function EditJobPage() {
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2"><MapPin className="h-5 w-5 text-primary-600" />Ort & Zeitraum</h2>
           <div className="grid md:grid-cols-3 gap-4 mb-4">
             <div><label className="label">Land</label>
-              <select className="select-styled" {...register("country")} defaultValue="DE">
+              <select className="input-styled" {...register("country")} defaultValue="DE">
                 <option value="DE">🇩🇪 Deutschland</option>
                 <option value="AT">🇦🇹 Österreich</option>
                 <option value="CH">🇨🇭 Schweiz</option>
