@@ -1342,6 +1342,130 @@ class EmailService:
 
 
     @_safe_email_call
+    def send_company_weekly_report(
+        self,
+        to_email: str,
+        company_name: str,
+        open_count: int,
+        jobs_stats: List[dict],
+    ) -> bool:
+        """Wöchentlicher Stellen-Report an eine Firma (immer Deutsch).
+        jobs_stats: Liste von {title, clicks, applications, likes}."""
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+        total_clicks = sum(int(j.get('clicks', 0) or 0) for j in jobs_stats)
+        total_apps = sum(int(j.get('applications', 0) or 0) for j in jobs_stats)
+        total_likes = sum(int(j.get('likes', 0) or 0) for j in jobs_stats)
+
+        rows = ""
+        for j in jobs_stats:
+            rows += f"""
+            <tr>
+                <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;"><strong>{j.get('title','-')}</strong></td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">{int(j.get('clicks',0) or 0)}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">{int(j.get('applications',0) or 0)}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">{int(j.get('likes',0) or 0)}</td>
+            </tr>
+            """
+        if not rows:
+            rows = '<tr><td colspan="4" style="padding:16px;text-align:center;color:#6b7280;">Aktuell keine aktiven Stellen.</td></tr>'
+
+        subject = f"📊 Wochen-Report: {open_count} offene Stelle(n) – {company_name}"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; background:#f9fafb;">
+            <div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;padding:26px;border-radius:12px 12px 0 0;">
+                <h1 style="margin:0;font-size:22px;">Ihr Wochen-Report</h1>
+                <p style="margin:6px 0 0 0;opacity:.9;">{company_name}</p>
+            </div>
+            <div style="padding:24px;background:#fff;">
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+                    <div style="flex:1;min-width:120px;background:#eff6ff;border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:24px;font-weight:bold;color:#1d4ed8;">{open_count}</div>
+                        <div style="font-size:12px;color:#3b82f6;">offene Stellen</div>
+                    </div>
+                    <div style="flex:1;min-width:120px;background:#f0fdf4;border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:24px;font-weight:bold;color:#16a34a;">{total_apps}</div>
+                        <div style="font-size:12px;color:#22c55e;">Bewerbungen</div>
+                    </div>
+                    <div style="flex:1;min-width:120px;background:#fef9c3;border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:24px;font-weight:bold;color:#ca8a04;">{total_clicks}</div>
+                        <div style="font-size:12px;color:#eab308;">Aufrufe</div>
+                    </div>
+                    <div style="flex:1;min-width:120px;background:#fdf2f8;border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:24px;font-weight:bold;color:#db2777;">{total_likes}</div>
+                        <div style="font-size:12px;color:#ec4899;">Merkungen</div>
+                    </div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    <thead>
+                        <tr style="background:#f3f4f6;text-align:left;">
+                            <th style="padding:10px 12px;">Stelle</th>
+                            <th style="padding:10px 12px;text-align:center;">Aufrufe</th>
+                            <th style="padding:10px 12px;text-align:center;">Bewerbungen</th>
+                            <th style="padding:10px 12px;text-align:center;">Merkungen</th>
+                        </tr>
+                    </thead>
+                    <tbody>{rows}</tbody>
+                </table>
+                <div style="text-align:center;margin-top:24px;">
+                    <a href="{frontend_url}/company/dashboard" style="background:#2563eb;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;">Zum Dashboard</a>
+                </div>
+                <p style="color:#9ca3af;font-size:12px;margin-top:20px;">Sie erhalten diese Wochen-Übersicht, weil sie in Ihren Einstellungen aktiviert ist. Sie können sie jederzeit unter „Einstellungen" deaktivieren.</p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content, email_type="company_weekly_report")
+
+    @_safe_email_call
+    def send_company_expiry_reminder(
+        self,
+        to_email: str,
+        company_name: str,
+        jobs: List[dict],
+    ) -> bool:
+        """Erinnerung, dass Stellen bald ablaufen (immer Deutsch).
+        jobs: Liste von {title, deadline, days_left, job_id}."""
+        if not jobs:
+            return True
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+        rows = ""
+        for j in jobs:
+            rows += f"""
+            <tr>
+                <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;"><strong>{j.get('title','-')}</strong></td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">{j.get('deadline','-')}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;color:#dc2626;font-weight:bold;">in {j.get('days_left','?')} Tag(en)</td>
+            </tr>
+            """
+        plural = "Stellen laufen" if len(jobs) > 1 else "Stelle läuft"
+        subject = f"⏰ {len(jobs)} {plural} bald ab – {company_name}"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; background:#f9fafb;">
+            <div style="background:#f59e0b;color:#fff;padding:26px;border-radius:12px 12px 0 0;">
+                <h1 style="margin:0;font-size:22px;">⏰ Stellen laufen bald ab</h1>
+                <p style="margin:6px 0 0 0;opacity:.95;">{company_name}</p>
+            </div>
+            <div style="padding:24px;background:#fff;">
+                <p>folgende Stelle(n) erreichen bald ihren Bewerbungsschluss. Bitte verlängern Sie die Frist, falls Sie weiter Bewerbungen erhalten möchten:</p>
+                <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:12px;">
+                    <thead>
+                        <tr style="background:#f3f4f6;text-align:left;">
+                            <th style="padding:10px 12px;">Stelle</th>
+                            <th style="padding:10px 12px;text-align:center;">Bewerbungsschluss</th>
+                            <th style="padding:10px 12px;text-align:center;">Läuft ab</th>
+                        </tr>
+                    </thead>
+                    <tbody>{rows}</tbody>
+                </table>
+                <div style="text-align:center;margin-top:24px;">
+                    <a href="{frontend_url}/company/jobs" style="background:#f59e0b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;">Stellen verwalten</a>
+                </div>
+                <p style="color:#9ca3af;font-size:12px;margin-top:20px;">Sie erhalten diese Erinnerung, weil sie in Ihren Einstellungen aktiviert ist. Sie können sie jederzeit unter „Einstellungen" deaktivieren.</p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content, email_type="company_expiry_reminder")
+
+    @_safe_email_call
     def send_company_applicant_digest(
         self,
         to_email: str,

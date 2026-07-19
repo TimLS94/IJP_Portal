@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Settings, Bell, Mail, Lock, Users, Calendar, Loader2, Save, Clock, FileText, ChevronRight, User, Shield, CheckCircle, AlertTriangle, Eye, EyeOff, Trash2, Building2, Filter } from "lucide-react";
-import { accountAPI, authAPI } from "@/lib/api";
+import { accountAPI, authAPI, companyAPI } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
@@ -32,6 +32,8 @@ export default function CompanySettingsPage() {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationSettings>({ email_notifications: true, email_job_alerts: true, email_newsletter: true });
   const [savingNotif, setSavingNotif] = useState(false);
+  const [reportSettings, setReportSettings] = useState({ weekly_report_enabled: true, expiry_reminder_enabled: true });
+  const [savingReport, setSavingReport] = useState(false);
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -49,12 +51,14 @@ export default function CompanySettingsPage() {
 
   const loadData = async () => {
     try {
-      const [accountRes, notifRes] = await Promise.all([
+      const [accountRes, notifRes, reportRes] = await Promise.all([
         accountAPI.getAccountInfo(),
         authAPI.getEmailPreferences().catch(() => ({ data: { email_notifications: true, email_job_alerts: true, email_newsletter: true } })),
+        companyAPI.getNotificationSettings().catch(() => ({ data: { weekly_report_enabled: true, expiry_reminder_enabled: true } })),
       ]);
       setAccountInfo(accountRes.data);
       setNotifications(notifRes.data);
+      setReportSettings(reportRes.data);
     } catch { toast.error("Fehler beim Laden"); }
     finally { setLoading(false); }
   };
@@ -66,6 +70,16 @@ export default function CompanySettingsPage() {
     try { await authAPI.updateEmailPreferences(newNotif); toast.success("Gespeichert"); }
     catch { setNotifications(notifications); toast.error("Fehler"); }
     finally { setSavingNotif(false); }
+  };
+
+  const handleReportChange = async (key: "weekly_report_enabled" | "expiry_reminder_enabled", value: boolean) => {
+    const prev = reportSettings;
+    const next = { ...reportSettings, [key]: value };
+    setReportSettings(next);
+    setSavingReport(true);
+    try { await companyAPI.updateNotificationSettings({ [key]: value }); toast.success("Gespeichert"); }
+    catch { setReportSettings(prev); toast.error("Fehler"); }
+    finally { setSavingReport(false); }
   };
 
   const handleChangePassword = async (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
@@ -142,6 +156,22 @@ export default function CompanySettingsPage() {
               <label key={item.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                 <div className="flex items-center gap-3"><Mail className="h-5 w-5 text-gray-500" /><div><p className="font-medium text-gray-900">{item.title}</p><p className="text-sm text-gray-500">{item.desc}</p></div></div>
                 <div className="relative"><input type="checkbox" checked={notifications[item.key]} onChange={(e) => handleNotifChange(item.key, e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-300 peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div></div>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Automatische Reports */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4"><Calendar className="h-6 w-6 text-primary-600" /><h2 className="text-xl font-bold text-gray-900">Automatische Reports</h2>{savingReport && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}</div>
+          <div className="space-y-3">
+            {[
+              { key: "weekly_report_enabled" as const, title: "Wöchentlicher Report", desc: "1×/Woche: offene Stellen, Aufrufe, Bewerbungen und Merkungen je Stelle" },
+              { key: "expiry_reminder_enabled" as const, title: "Ablauf-Erinnerung", desc: "Erinnerung 3 Tage bevor eine Stelle ausläuft" },
+            ].map((item) => (
+              <label key={item.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3"><Clock className="h-5 w-5 text-gray-500" /><div><p className="font-medium text-gray-900">{item.title}</p><p className="text-sm text-gray-500">{item.desc}</p></div></div>
+                <div className="relative"><input type="checkbox" checked={reportSettings[item.key]} onChange={(e) => handleReportChange(item.key, e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-300 peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div></div>
               </label>
             ))}
           </div>

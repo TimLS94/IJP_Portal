@@ -132,7 +132,10 @@ def ensure_external_job_columns():
             ("job_postings", "external_employer_name", "VARCHAR(255)"),
             ("job_postings", "enrichment_source", "VARCHAR(50)"),
             ("job_postings", "country", "VARCHAR(2) DEFAULT 'DE'"),
+            ("job_postings", "expiry_reminder_sent_at", "DATE"),
             ("companies", "is_scraped", "BOOLEAN DEFAULT FALSE"),
+            ("companies", "weekly_report_enabled", "BOOLEAN DEFAULT TRUE"),
+            ("companies", "expiry_reminder_enabled", "BOOLEAN DEFAULT TRUE"),
         ]
         allowed_tables = {t for t, _, _ in new_columns}
         allowed_cols = {c for _, c, _ in new_columns}
@@ -1145,6 +1148,132 @@ async def company_applicant_digest():
         await asyncio.sleep(3600)
 
 
+async def company_weekly_report():
+    """Wöchentlicher Stellen-Report an Firmen (Montag 08:00 UTC):
+    offene Stellen, Aufrufe, Bewerbungen, Merkungen. Nur wenn aktiviert."""
+    from datetime import datetime
+    from app.core.database import SessionLocal
+    from app.models.company import Company
+    from app.models.job_posting import JobPosting
+    from app.models.application import Application
+    from app.models.job_interaction import JobInteraction, InteractionType
+    from app.services.email_service import email_service
+    from sqlalchemy import func
+
+    REPORT_WEEKDAY = 0  # Montag
+    REPORT_HOUR = 8     # UTC
+
+    while True:
+        now = datetime.utcnow()
+        if now.weekday() == REPORT_WEEKDAY and now.hour == REPORT_HOUR:
+            db = SessionLocal()
+            try:
+                companies = db.query(Company).filter(
+                    Company.weekly_report_enabled == True,
+                    Company.is_scraped == False,
+                ).all()
+                for company in companies:
+                    jobs = db.query(JobPosting).filter(
+                        JobPosting.company_id == company.id,
+                        JobPosting.is_active == True,
+                        JobPosting.is_draft == False,
+                        JobPosting.is_archived == False,
+                    ).all()
+                    if not jobs:
+                        continue
+                    stats = []
+                    for job in jobs:
+                        apps = db.query(func.count(Application.id)).filter(
+                            Application.job_posting_id == job.id
+                        ).scalar() or 0
+                        likes = db.query(func.count(JobInteraction.id)).filter(
+                            JobInteraction.job_posting_id == job.id,
+                            JobInteraction.interaction_type == InteractionType.LIKE,
+                        ).scalar() or 0
+                        stats.append({
+                            "title": job.title,
+                            "clicks": job.view_count or 0,
+                            "applications": apps,
+                            "likes": likes,
+                        })
+                    if company.user and company.user.email:
+                        email_service.send_company_weekly_report(
+                            to_email=company.user.email,
+                            company_name=company.company_name,
+                            open_count=len(jobs),
+                            jobs_stats=stats,
+                        )
+                        logger.info(f"Wochen-Report an {company.company_name} gesendet ({len(jobs)} Stellen)")
+            except Exception as e:
+                logger.error(f"Fehler beim Company Weekly Report: {e}")
+            finally:
+                db.close()
+            await asyncio.sleep(3700)  # >1h: verhindert Doppelversand in derselben Stunde
+        else:
+            await asyncio.sleep(1800)  # alle 30 min prüfen
+
+
+async def company_expiry_reminder():
+    """Täglich (09:00 UTC): erinnert Firmen an Stellen, die in <=3 Tagen ablaufen.
+    Einmalig pro Stelle (Dedup über expiry_reminder_sent_at). Nur wenn aktiviert."""
+    from datetime import datetime, timedelta
+    from app.core.database import SessionLocal
+    from app.models.job_posting import JobPosting
+    from app.services.email_service import email_service
+
+    CHECK_HOUR = 9  # UTC
+
+    while True:
+        now = datetime.utcnow()
+        if now.hour == CHECK_HOUR:
+            db = SessionLocal()
+            try:
+                today = now.date()
+                window_end = today + timedelta(days=3)
+                jobs = db.query(JobPosting).filter(
+                    JobPosting.is_active == True,
+                    JobPosting.is_draft == False,
+                    JobPosting.is_archived == False,
+                    JobPosting.deadline != None,
+                    JobPosting.deadline >= today,
+                    JobPosting.deadline <= window_end,
+                    JobPosting.expiry_reminder_sent_at == None,
+                ).all()
+
+                by_company = {}
+                for job in jobs:
+                    company = job.company
+                    if not company or not company.expiry_reminder_enabled or company.is_scraped:
+                        continue
+                    entry = by_company.setdefault(company.id, {"company": company, "jobs": []})
+                    entry["jobs"].append({
+                        "title": job.title,
+                        "deadline": job.deadline.strftime("%d.%m.%Y"),
+                        "days_left": (job.deadline - today).days,
+                        "job_id": job.id,
+                    })
+                    job.expiry_reminder_sent_at = today
+
+                for entry in by_company.values():
+                    company = entry["company"]
+                    if company.user and company.user.email:
+                        email_service.send_company_expiry_reminder(
+                            to_email=company.user.email,
+                            company_name=company.company_name,
+                            jobs=entry["jobs"],
+                        )
+                        logger.info(f"Ablauf-Erinnerung an {company.company_name} gesendet ({len(entry['jobs'])} Stellen)")
+                db.commit()  # sent_at-Flags persistieren
+            except Exception as e:
+                logger.error(f"Fehler bei der Ablauf-Erinnerung: {e}")
+                db.rollback()
+            finally:
+                db.close()
+            await asyncio.sleep(3700)  # >1h: einmal pro Tag
+        else:
+            await asyncio.sleep(1800)
+
+
 async def weekly_blog_writer():
     """Background-Task: Generiert automatisch Blog-Posts mit Claude (Intervall und Modus konfigurierbar).
     Restart-sicher: speichert Datum des letzten Laufs in der DB, damit ein Neustart nach dem
@@ -1255,6 +1384,10 @@ async def lifespan(app: FastAPI):
     # Starte Firmen-Bewerber-Digest Task
     company_digest_task = asyncio.create_task(company_applicant_digest())
 
+    # Starte Firmen-Wochen-Report + Ablauf-Erinnerung
+    company_weekly_report_task = asyncio.create_task(company_weekly_report())
+    company_expiry_reminder_task = asyncio.create_task(company_expiry_reminder())
+
     # Starte wöchentlichen Blog-Writer (jeden Montag 08:00 UTC)
     blog_writer_task = asyncio.create_task(weekly_blog_writer())
 
@@ -1267,12 +1400,16 @@ async def lifespan(app: FastAPI):
     cleanup_task.cancel()
     digest_task.cancel()
     company_digest_task.cancel()
+    company_weekly_report_task.cancel()
+    company_expiry_reminder_task.cancel()
     blog_writer_task.cancel()
     telegram_promo_task.cancel()
     try:
         await cleanup_task
         await digest_task
         await company_digest_task
+        await company_weekly_report_task
+        await company_expiry_reminder_task
         await blog_writer_task
         await telegram_promo_task
     except asyncio.CancelledError:

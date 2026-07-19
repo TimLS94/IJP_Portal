@@ -70,6 +70,11 @@ class Company(Base):
     applicant_digest_enabled = Column(Boolean, default=True)  # Digest aktiviert?
     applicant_digest_days = Column(String(20), default="1,2,3,4,5")  # Wochentage (0=So, 1=Mo, ..., 6=Sa)
     applicant_digest_hour = Column(Integer, default=8)  # Uhrzeit (0-23, UTC)
+
+    # Wöchentlicher Stellen-Report (offene Stellen, Klicks, Bewerbungen, Merkungen)
+    weekly_report_enabled = Column(Boolean, default=True, server_default="1")
+    # Erinnerung 3 Tage vor Ablauf einer Stelle
+    expiry_reminder_enabled = Column(Boolean, default=True, server_default="1")
     
     # Score-Filter Einstellungen (Bewerbungen mit niedrigem Score werden gefiltert/ausgeblendet)
     # HINWEIS: Felder heißen noch "auto_reject_*" für DB-Kompatibilität, Funktion ist jetzt Filter

@@ -324,6 +324,57 @@ async def update_digest_settings(
     }
 
 
+# ============ Benachrichtigungs-Einstellungen (Wochen-Report, Ablauf-Erinnerung) ============
+
+class NotificationSettingsUpdate(BaseModel):
+    weekly_report_enabled: Optional[bool] = None
+    expiry_reminder_enabled: Optional[bool] = None
+
+
+@router.get("/me/notification-settings")
+async def get_notification_settings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Gibt die Firmen-Benachrichtigungseinstellungen zurück (Wochen-Report, Ablauf-Erinnerung)"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+
+    company = get_company_or_404(current_user, db)
+
+    return {
+        "weekly_report_enabled": company.weekly_report_enabled if company.weekly_report_enabled is not None else True,
+        "expiry_reminder_enabled": company.expiry_reminder_enabled if company.expiry_reminder_enabled is not None else True,
+    }
+
+
+@router.put("/me/notification-settings")
+async def update_notification_settings(
+    settings: NotificationSettingsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert die Firmen-Benachrichtigungseinstellungen"""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+
+    company = get_company_or_404(current_user, db)
+
+    if settings.weekly_report_enabled is not None:
+        company.weekly_report_enabled = settings.weekly_report_enabled
+    if settings.expiry_reminder_enabled is not None:
+        company.expiry_reminder_enabled = settings.expiry_reminder_enabled
+
+    db.commit()
+    db.refresh(company)
+
+    return {
+        "message": "Einstellungen gespeichert",
+        "weekly_report_enabled": company.weekly_report_enabled,
+        "expiry_reminder_enabled": company.expiry_reminder_enabled,
+    }
+
+
 # ============ Score-Filter Einstellungen ============
 # Bewerbungen unter dem Schwellenwert werden gefiltert (in separatem Tab angezeigt)
 # und keine E-Mail-Benachrichtigung an die Firma gesendet

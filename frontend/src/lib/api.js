@@ -122,6 +122,9 @@ export const companyAPI = {
   // Bewerber-Digest Einstellungen
   getDigestSettings: () => api.get('/companies/me/digest-settings'),
   updateDigestSettings: (data) => api.put('/companies/me/digest-settings', data),
+
+  getNotificationSettings: () => api.get('/companies/me/notification-settings'),
+  updateNotificationSettings: (data) => api.put('/companies/me/notification-settings', data),
   // Score-Filter Einstellungen (ersetzt Auto-Ablehnung)
   getScoreFilterSettings: () => api.get('/companies/me/score-filter-settings'),
   updateScoreFilterSettings: (data) => api.put('/companies/me/score-filter-settings', data),

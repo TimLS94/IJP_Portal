@@ -141,6 +141,7 @@ class JobPosting(Base):
 
     # Deadline (dynamisch aus Admin-Settings)
     deadline = Column(Date)  # Bewerbungsschluss
+    expiry_reminder_sent_at = Column(Date)  # Datum der versendeten Ablauf-Erinnerung (Dedup)
     archived_at = Column(DateTime)  # Wann archiviert
     
     # Löschgrund (für Statistiken)
