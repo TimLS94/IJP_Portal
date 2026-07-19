@@ -271,7 +271,8 @@ async def create_application(
             to_email=user.email,
             applicant_name=f"{applicant.first_name} {applicant.last_name}",
             job_title=job.title,
-            company_name=company.company_name if company else "Unbekannt"
+            company_name=company.company_name if company else "Unbekannt",
+            lang=(user.preferred_language or "de")
         )
     except Exception as e:
         logger.error(f"Fehler beim Senden der Bewerber-E-Mail: {e}")
@@ -550,7 +551,8 @@ async def update_application(
                     applicant_name=applicant_name,
                     job_title=job_posting.title,
                     company_name=company.company_name,
-                    new_status=new_status_value
+                    new_status=new_status_value,
+                    lang=(applicant_user.preferred_language or "de")
                 )
     
     return application

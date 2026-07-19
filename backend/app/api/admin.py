@@ -1475,7 +1475,8 @@ async def update_application_status(
                 applicant_name=f"{applicant.first_name} {applicant.last_name}",
                 job_title=job.title,
                 company_name="IJP Portal",
-                new_status=APPLICATION_STATUS_LABELS.get(data.status, data.status.value)
+                new_status=data.status.value,
+                lang=(applicant_user.preferred_language or "de")
             )
     
     return {

@@ -269,19 +269,22 @@ class EmailService:
         )
 
     @_safe_email_call
-    def send_welcome_email(self, to_email: str, name: str, role: str) -> bool:
-        """Sendet eine Willkommens-E-Mail nach der Registrierung"""
-        subject = "Willkommen beim IJP Portal!"
+    def send_welcome_email(self, to_email: str, name: str, role: str, lang: str = "de") -> bool:
+        """Sendet eine Willkommens-E-Mail nach der Registrierung.
+        Bewerber: in bevorzugter Sprache (lang). Firmen: immer Deutsch."""
+        from app.services.email_i18n import et
+        l = "de" if role == "company" else lang
+        subject = et(l, "welcome_subject")
         html_content = f"""
         <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1>Willkommen beim IJP Portal!</h1>
+                <h1>{et(l, "welcome_h1")}</h1>
             </div>
             <div style="padding: 30px; background: #f9fafb;">
-                <p>Hallo {name},</p>
-                <p>vielen Dank für Ihre Registrierung bei <strong>International Job Placement</strong>!</p>
-                <p>Wir freuen uns, Sie bei der Suche nach Ihrem Traumjob zu unterstützen.</p>
-                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
+                <p>{et(l, "greeting", name=name)}</p>
+                <p>{et(l, "welcome_p1")}</p>
+                <p>{et(l, "welcome_p2")}</p>
+                <p>{et(l, "regards")}</p>
             </div>
         </body></html>
         """
@@ -289,20 +292,21 @@ class EmailService:
     
     @_safe_email_call
     def send_application_received(
-        self, to_email: str, applicant_name: str, job_title: str, company_name: str
+        self, to_email: str, applicant_name: str, job_title: str, company_name: str, lang: str = "de"
     ) -> bool:
-        """Benachrichtigt den Bewerber über den Eingang der Bewerbung"""
-        subject = f"Bewerbung eingegangen: {job_title}"
+        """Benachrichtigt den Bewerber über den Eingang der Bewerbung (in bevorzugter Sprache)"""
+        from app.services.email_i18n import et
+        subject = et(lang, "received_subject", job=job_title)
         html_content = f"""
         <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #22c55e; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1>✅ Bewerbung erfolgreich!</h1>
+                <h1>{et(lang, "received_h1")}</h1>
             </div>
             <div style="padding: 30px; background: #f9fafb;">
-                <p>Hallo {applicant_name},</p>
-                <p>Ihre Bewerbung für <strong>{job_title}</strong> bei <strong>{company_name}</strong> wurde erfolgreich eingereicht.</p>
-                <p>Wir drücken Ihnen die Daumen!</p>
-                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
+                <p>{et(lang, "greeting", name=applicant_name)}</p>
+                <p>{et(lang, "received_p1", job=job_title, company=company_name)}</p>
+                <p>{et(lang, "received_p2")}</p>
+                <p>{et(lang, "regards")}</p>
             </div>
         </body></html>
         """
@@ -481,35 +485,25 @@ class EmailService:
     
     @_safe_email_call
     def send_application_status_update(
-        self, to_email: str, applicant_name: str, job_title: str, company_name: str, new_status: str
+        self, to_email: str, applicant_name: str, job_title: str, company_name: str, new_status: str, lang: str = "de"
     ) -> bool:
-        """Benachrichtigt den Bewerber über Statusänderung"""
-        # Status-Labels für E-Mail
-        status_labels = {
-            "pending": "Eingegangen",
-            "company_review": "In Prüfung beim Unternehmen",
-            "interview_proposed": "Vorstellungsgespräch vorgeschlagen",
-            "interview_scheduled": "Vorstellungsgespräch bestätigt",
-            "interview_completed": "Vorstellungsgespräch abgeschlossen",
-            "accepted": "Angenommen ✅",
-            "rejected": "Leider abgelehnt",
-            "withdrawn": "Zurückgezogen"
-        }
-        display_status = status_labels.get(new_status, new_status)
-        
-        subject = f"Bewerbungsstatus aktualisiert: {job_title}"
+        """Benachrichtigt den Bewerber über Statusänderung (in bevorzugter Sprache)"""
+        from app.services.email_i18n import et, status_label
+        display_status = status_label(lang, new_status)
+
+        subject = et(lang, "status_subject", job=job_title)
         html_content = f"""
         <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1>📋 Status aktualisiert</h1>
+                <h1>{et(lang, "status_h1")}</h1>
             </div>
             <div style="padding: 30px; background: #f9fafb;">
-                <p>Hallo {applicant_name},</p>
-                <p>Der Status Ihrer Bewerbung bei <strong>{company_name}</strong> für <strong>{job_title}</strong> wurde aktualisiert:</p>
+                <p>{et(lang, "greeting", name=applicant_name)}</p>
+                <p>{et(lang, "status_intro", company=company_name, job=job_title)}</p>
                 <p style="text-align: center; font-size: 24px; font-weight: bold; color: #2563eb; padding: 20px; background: white; border-radius: 8px; margin: 20px 0;">
                     {display_status}
                 </p>
-                <p>Mit freundlichen Grüßen,<br>Ihr JobOn Team</p>
+                <p>{et(lang, "regards")}</p>
             </div>
         </body></html>
         """
