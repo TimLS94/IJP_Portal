@@ -180,6 +180,8 @@ class JobPostingResponse(JobPostingBase):
     company: Optional[CompanyResponse] = None
     # Statistiken
     view_count: Optional[int] = 0
+    email_click_count: Optional[int] = 0
+    phone_click_count: Optional[int] = 0
     # Admin-Übersetzung
     admin_translated: Optional[bool] = False
     admin_translated_at: Optional[datetime] = None

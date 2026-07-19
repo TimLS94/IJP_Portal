@@ -181,6 +181,7 @@ export const jobsAPI = {
   getLikedJobs: () => api.get('/jobs/my/liked'),
   getJobInteraction: (id) => api.get(`/jobs/${id}/interaction`),
   trackExternalClick: (id) => api.post(`/jobs/${id}/external-click`),
+  trackContactClick: (id, type) => api.post(`/jobs/${id}/contact-click`, null, { params: { type } }),
   // Google Indexing
   reindexAll: () => api.post('/jobs/admin/reindex-all'),
 };

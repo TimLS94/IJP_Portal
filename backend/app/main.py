@@ -133,6 +133,8 @@ def ensure_external_job_columns():
             ("job_postings", "enrichment_source", "VARCHAR(50)"),
             ("job_postings", "country", "VARCHAR(2) DEFAULT 'DE'"),
             ("job_postings", "expiry_reminder_sent_at", "DATE"),
+            ("job_postings", "email_click_count", "INTEGER DEFAULT 0"),
+            ("job_postings", "phone_click_count", "INTEGER DEFAULT 0"),
             ("companies", "is_scraped", "BOOLEAN DEFAULT FALSE"),
             ("companies", "weekly_report_enabled", "BOOLEAN DEFAULT TRUE"),
             ("companies", "expiry_reminder_enabled", "BOOLEAN DEFAULT TRUE"),

@@ -797,7 +797,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                     <a 
                       href={`tel:${job.contact_phone}`} 
                       className="flex items-center gap-2 text-gray-600 hover:text-primary-600"
-                      onClick={() => trackJobContactClick(job.id, job.title, "phone", job.company?.name)}
+                      onClick={() => { try { jobsAPI.trackContactClick(job.id, "phone"); } catch {} trackJobContactClick(job.id, job.title, "phone", job.company?.name); }}
                     >
                       <Phone className="h-4 w-4" />{job.contact_phone}
                     </a>
@@ -806,7 +806,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                     <a 
                       href={`mailto:${job.contact_email}`} 
                       className="flex items-center gap-2 text-gray-600 hover:text-primary-600"
-                      onClick={() => trackJobContactClick(job.id, job.title, "email", job.company?.name)}
+                      onClick={() => { try { jobsAPI.trackContactClick(job.id, "email"); } catch {} trackJobContactClick(job.id, job.title, "email", job.company?.name); }}
                     >
                       <Mail className="h-4 w-4" />{job.contact_email}
                     </a>

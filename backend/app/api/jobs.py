@@ -1036,6 +1036,8 @@ async def get_my_jobs(
             "view_count": job.view_count or 0,
             "like_count": like_counts.get(job.id, 0),
             "application_count": application_counts.get(job.id, 0),
+            "email_click_count": job.email_click_count or 0,
+            "phone_click_count": job.phone_click_count or 0,
             "is_featured": bool(job.is_featured),
             "featured_by_admin": bool(job.featured_by_admin),
             "featured_until": job.featured_until,
@@ -1564,6 +1566,21 @@ async def track_external_click(job_id: int, db: Session = Depends(get_db)):
     if job and job.is_external:
         job.external_click_count = (job.external_click_count or 0) + 1
         db.commit()
+    return {"tracked": True}
+
+
+@router.post("/{job_id}/contact-click")
+async def track_contact_click(job_id: int, type: str, db: Session = Depends(get_db)):
+    """Trackt einen Klick auf die Kontakt-E-Mail bzw. -Telefonnummer einer Stelle
+    (für Ad-/Performance-Messung). type = 'email' | 'phone'."""
+    job = db.query(JobPosting).filter(JobPosting.id == job_id, JobPosting.is_active == True).first()
+    if job:
+        if type == "email":
+            job.email_click_count = (job.email_click_count or 0) + 1
+            db.commit()
+        elif type == "phone":
+            job.phone_click_count = (job.phone_click_count or 0) + 1
+            db.commit()
     return {"tracked": True}
 
 

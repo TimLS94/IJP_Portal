@@ -152,6 +152,8 @@ class JobPosting(Base):
     # Statistiken
     view_count = Column(Integer, default=0)           # Anzahl der Aufrufe
     external_click_count = Column(Integer, default=0) # Klicks auf externen Link (BA-Stellen)
+    email_click_count = Column(Integer, default=0, server_default="0")  # Klicks auf Kontakt-E-Mail
+    phone_click_count = Column(Integer, default=0, server_default="0")  # Klicks auf Kontakt-Telefon
 
     # ========== PREMIUM: HERVORGEHOBENE ANZEIGEN ==========
     is_featured = Column(Boolean, default=False)      # Anzeige hervorgehoben (erscheint oben)

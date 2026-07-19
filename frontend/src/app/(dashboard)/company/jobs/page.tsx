@@ -24,6 +24,8 @@ interface Job {
   view_count?: number;
   like_count?: number;
   application_count?: number;
+  email_click_count?: number;
+  phone_click_count?: number;
   position_type?: string;
   admin_translated?: boolean;
   keep_archived?: boolean;
@@ -384,7 +386,7 @@ export default function CompanyJobsPage() {
       ) : viewMode === "table" ? (
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="border-b text-left"><th className="pb-3 font-semibold">Titel</th><th className="pb-3 font-semibold">Status</th><th className="pb-3 font-semibold">Ort</th><th className="pb-3 font-semibold">Erstellt</th><th className="pb-3 font-semibold">Deadline</th><th className="pb-3 font-semibold text-center">Aufrufe</th><th className="pb-3 font-semibold text-center">Gemerkt</th><th className="pb-3 font-semibold text-center">Bewerbungen</th><th className="pb-3 font-semibold text-right">Aktionen</th></tr></thead>
+            <thead><tr className="border-b text-left"><th className="pb-3 font-semibold">Titel</th><th className="pb-3 font-semibold">Status</th><th className="pb-3 font-semibold">Ort</th><th className="pb-3 font-semibold">Erstellt</th><th className="pb-3 font-semibold">Deadline</th><th className="pb-3 font-semibold text-center">Aufrufe</th><th className="pb-3 font-semibold text-center">Gemerkt</th><th className="pb-3 font-semibold text-center">Bewerbungen</th><th className="pb-3 font-semibold text-center">Kontakt-Klicks</th><th className="pb-3 font-semibold text-right">Aktionen</th></tr></thead>
             <tbody>
               {getFilteredJobs().map((job) => (
                 <tr key={job.id} className={`border-b last:border-0 hover:bg-gray-50 ${!job.is_active && !job.is_draft ? "opacity-60" : ""}`}>
@@ -396,6 +398,7 @@ export default function CompanyJobsPage() {
                   <td className="py-3 text-center"><span className="inline-flex items-center gap-1 font-medium text-indigo-600"><Eye className="h-3.5 w-3.5" />{job.view_count || 0}</span></td>
                   <td className="py-3 text-center"><span className="inline-flex items-center gap-1 font-medium text-red-500"><Heart className="h-3.5 w-3.5" />{job.like_count || 0}</span></td>
                   <td className="py-3 text-center"><span className="inline-flex items-center gap-1 font-medium text-green-600"><Users className="h-3.5 w-3.5" />{job.application_count || 0}</span></td>
+                  <td className="py-3 text-center"><span className="inline-flex items-center gap-2 text-gray-600 text-xs" title="Kontakt-Klicks: E-Mail · Telefon">✉ {job.email_click_count || 0} · ☎ {job.phone_click_count || 0}</span></td>
                   <td className="py-3 text-right">
                     <div className="flex justify-end gap-0.5">
                       <Link href={`/company/jobs/${job.id}/edit`} className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"><Edit className="h-4 w-4" /></Link>
