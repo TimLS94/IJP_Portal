@@ -12,11 +12,19 @@ import {
 import { useTranslation } from "react-i18next";
 
 export default function ApplicantSettingsPage() {
-  const { t } = useTranslation();
-  const { user, logout } = useAuth();
+  const { t, i18n } = useTranslation();
+  const { user, logout, setLanguage } = useAuth();
   const router = useRouter();
   const [accountInfo, setAccountInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [savingLang, setSavingLang] = useState(false);
+
+  const handleLanguageChange = async (lang: string) => {
+    setSavingLang(true);
+    try { await setLanguage(lang as "de" | "en" | "es" | "ru"); toast.success(t("common.saved", "Gespeichert")); }
+    catch { toast.error(t("common.error", "Fehler")); }
+    finally { setSavingLang(false); }
+  };
   
   // E-Mail-Präferenzen
   const [emailPreferences, setEmailPreferences] = useState({
@@ -171,6 +179,33 @@ export default function ApplicantSettingsPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{t('settings.title')}</h1>
           <p className="text-gray-600">{t('settings.subtitle')}</p>
+        </div>
+      </div>
+
+      {/* Sprache */}
+      <div className="card mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">{t('settings.language', 'Sprache')}</h2>
+        <p className="text-gray-600 mb-4">{t('settings.languageDesc', 'Sprache für Portal, E-Mails und Benachrichtigungen.')}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { code: "de", flag: "🇩🇪", label: "Deutsch" },
+            { code: "en", flag: "🇬🇧", label: "English" },
+            { code: "es", flag: "🇪🇸", label: "Español" },
+            { code: "ru", flag: "🇷🇺", label: "Русский" },
+          ].map((l) => {
+            const active = (user?.preferred_language || i18n.language) === l.code;
+            return (
+              <button
+                key={l.code}
+                type="button"
+                disabled={savingLang}
+                onClick={() => handleLanguageChange(l.code)}
+                className={`flex items-center justify-center gap-2 p-3 border-2 rounded-xl font-medium transition-all disabled:opacity-60 ${active ? "border-primary-500 bg-primary-50 text-primary-700" : "border-gray-200 hover:border-gray-300 text-gray-700"}`}
+              >
+                <span className="text-xl">{l.flag}</span>{l.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

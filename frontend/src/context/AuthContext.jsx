@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../lib/api';
+import i18n from '../i18n';
 import { trackLogin, trackOAuthLogin, trackRegister, trackLogout, identifyUser, clearUser } from '../lib/analytics';
 
 const AuthContext = createContext(null);
@@ -38,6 +39,12 @@ export function AuthProvider({ children }) {
     }
     setLoading(false);
   }, []);
+
+  // Bevorzugte Sprache des Nutzers als UI-Sprache anwenden (sobald bekannt).
+  useEffect(() => {
+    const lng = user?.preferred_language;
+    if (lng) { try { i18n.changeLanguage(lng); } catch { /* ignore */ } }
+  }, [user?.preferred_language]);
 
   const login = async (email, password) => {
     const response = await authAPI.login(email, password);
@@ -99,6 +106,17 @@ export function AuthProvider({ children }) {
     try { identifyUser(userData.id, userData.role); trackOAuthLogin(userData.role); } catch {}
   };
 
+  // Bevorzugte Sprache setzen (persistiert serverseitig + lokal + wechselt UI)
+  const setLanguage = async (language) => {
+    await authAPI.updateLanguage(language);
+    setUser((prev) => {
+      const next = prev ? { ...prev, preferred_language: language } : prev;
+      if (next) safeSet('user', JSON.stringify(next));
+      return next;
+    });
+    try { i18n.changeLanguage(language); } catch { /* ignore */ }
+  };
+
   const value = {
     user,
     loading,
@@ -106,6 +124,7 @@ export function AuthProvider({ children }) {
     setAuth,
     registerApplicant,
     registerCompany,
+    setLanguage,
     logout,
     isAuthenticated: !!user,
     isApplicant: user?.role === 'applicant',

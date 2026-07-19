@@ -57,8 +57,9 @@ export const authAPI = {
     if (portal) url += `&portal=${encodeURIComponent(portal)}`;
     return api.post(url, data);
   },
-  registerCompany: (userData, companyData, inviteToken = null) => 
+  registerCompany: (userData, companyData, inviteToken = null) =>
     api.post('/auth/register/company', { user_data: userData, company_data: companyData, invite_token: inviteToken }),
+  updateLanguage: (language) => api.put('/auth/language', { language }),
   login: (email, password) => {
     const formData = new FormData();
     formData.append('username', email);

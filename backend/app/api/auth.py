@@ -440,3 +440,25 @@ async def update_email_preferences(
         email_job_alerts=current_user.email_job_alerts,
         email_notifications=current_user.email_notifications
     )
+
+
+SUPPORTED_LANGUAGES = {"de", "en", "es", "ru"}
+
+
+class LanguageUpdate(BaseModel):
+    language: str
+
+
+@router.put("/language")
+async def update_preferred_language(
+    data: LanguageUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Setzt die bevorzugte Sprache des Nutzers (de/en/es/ru)."""
+    lang = (data.language or "").lower().strip()
+    if lang not in SUPPORTED_LANGUAGES:
+        raise HTTPException(status_code=400, detail="Nicht unterstützte Sprache")
+    current_user.preferred_language = lang
+    db.commit()
+    return {"preferred_language": lang}

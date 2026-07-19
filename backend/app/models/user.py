@@ -25,6 +25,10 @@ class User(Base):
     # OAuth (Google Login für Bewerber)
     google_id = Column(String(255), unique=True, nullable=True, index=True)
     
+    # Bevorzugte Sprache (de/en/es/ru). NULL = noch nicht gewählt -> beim ersten
+    # Login abfragen. Steuert UI-Default sowie E-Mails/Notifications (Firmen: immer DE).
+    preferred_language = Column(String(5), nullable=True)
+
     # E-Mail-Präferenzen (DSGVO-konform)
     email_newsletter = Column(Boolean, default=True)  # Newsletter/Marketing E-Mails
     email_job_alerts = Column(Boolean, default=True)  # Neue Stellenbenachrichtigungen

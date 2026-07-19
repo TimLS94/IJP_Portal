@@ -4,6 +4,7 @@ declare module "@/context/AuthContext" {
     email: string;
     role: "applicant" | "company" | "admin";
     portal?: "jobon" | "ijp" | null;
+    preferred_language?: "de" | "en" | "es" | "ru" | null;
   }
 
   interface AuthContextType {
@@ -24,6 +25,7 @@ declare module "@/context/AuthContext" {
       password: string,
       companyName: string
     ) => Promise<User>;
+    setLanguage: (language: "de" | "en" | "es" | "ru") => Promise<void>;
     logout: () => void;
     isAuthenticated: boolean;
     isApplicant: boolean;
