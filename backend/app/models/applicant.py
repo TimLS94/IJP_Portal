@@ -77,6 +77,11 @@ class Applicant(Base):
     # Deutschland-Erfahrung
     been_to_germany = Column(Boolean, default=False)
     germany_details = Column(Text)  # Wann, wie lange, warum
+
+    # ========== ARBEITSBERECHTIGUNG (relevant v.a. für Saison/Work&Holiday) ==========
+    work_authorized = Column(Boolean)  # Derzeit berechtigt, in DE zu arbeiten? None=unbeantwortet
+    work_support_needed = Column(JSON, default=[])  # falls nicht berechtigt: ["visum","arbeitserlaubnis","aufenthaltstitel","sonstiges"]
+    needs_employer_support = Column(Boolean)  # Braucht Unterstützung des Arbeitgebers (z.B. Visumsverfahren)?
     
     # ========== POSITIONSTYP ==========
     position_type = Column(Enum(PositionType, values_callable=lambda x: [e.value for e in x]))  # Legacy: Einzelauswahl

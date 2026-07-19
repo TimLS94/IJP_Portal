@@ -649,6 +649,9 @@ async def get_applicant_details_for_company(
             'other_languages': applicant.other_languages,
             'been_to_germany': applicant.been_to_germany,
             'germany_details': applicant.germany_details,
+            'work_authorized': applicant.work_authorized,
+            'work_support_needed': applicant.work_support_needed or [],
+            'needs_employer_support': applicant.needs_employer_support,
             # Positionsspezifische Daten
             'university_name': applicant.university_name,
             'field_of_study': applicant.field_of_study,

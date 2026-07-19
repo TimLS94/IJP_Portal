@@ -238,8 +238,24 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
             "max_score": 25
         }
     
-    # Gesamtscore berechnen (max 100)
-    total_score = min(100, sum(scores.values()))
+    # Arbeitsberechtigung: negativer Faktor, wenn die Stelle eine bestehende
+    # Berechtigung voraussetzt und der Bewerber (noch) nicht berechtigt ist.
+    # Bei Saison/Work&Holiday stärker gewichtet. "support_offered"/"not_relevant" -> kein Abzug.
+    work_req = getattr(job, "work_authorization_requirement", "not_relevant") or "not_relevant"
+    if work_req == "required" and applicant.work_authorized is not True:
+        jt = job.position_type.value if job.position_type else None
+        penalty = 30 if jt in ("saisonjob", "workandholiday") else 15
+        scores["work_authorization"] = -penalty
+        details.append("✗ Arbeitsberechtigung fehlt (Stelle setzt bestehende Berechtigung voraus)")
+        if include_admin_details:
+            admin_details["work_authorization"] = {
+                "requirement": work_req,
+                "applicant_authorized": bool(applicant.work_authorized),
+                "penalty": -penalty,
+            }
+
+    # Gesamtscore berechnen (0-100)
+    total_score = max(0, min(100, sum(scores.values())))
     
     result = {
         "total_score": total_score,

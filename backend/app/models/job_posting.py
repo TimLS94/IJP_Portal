@@ -105,6 +105,9 @@ class JobPosting(Base):
     address = Column(String(255))  # NEU: Straße
     postal_code = Column(String(20))  # NEU: PLZ
     country = Column(String(2), default="DE", server_default="DE")  # Ländercode: DE, AT, CH
+    # Arbeitsberechtigung: "required" = Bewerber muss bereits berechtigt sein,
+    # "support_offered" = AG unterstützt bei Visum/Erlaubnis, "not_relevant" = egal.
+    work_authorization_requirement = Column(String(20), default="not_relevant", server_default="not_relevant")
     remote_possible = Column(Boolean, default=False)
     accommodation_provided = Column(Boolean, default=False)  # Unterkunft vorhanden
     start_date = Column(Date)

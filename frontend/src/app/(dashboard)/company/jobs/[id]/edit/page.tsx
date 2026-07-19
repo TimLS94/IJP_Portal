@@ -63,7 +63,7 @@ export default function EditJobPage() {
       // Other Languages
       if (job.other_languages_required?.length) setOtherLanguages(job.other_languages_required);
       // Form Values
-      ["location", "address", "postal_code", "country", "employment_type", "salary_min", "salary_max", "salary_type", "german_required", "english_required", "contact_person", "contact_email", "contact_phone", "contact_whatsapp", "preferred_contact_method", "start_date", "end_date", "deadline", "remote_possible", "accommodation_provided"].forEach(k => {
+      ["location", "address", "postal_code", "country", "work_authorization_requirement", "employment_type", "salary_min", "salary_max", "salary_type", "german_required", "english_required", "contact_person", "contact_email", "contact_phone", "contact_whatsapp", "preferred_contact_method", "start_date", "end_date", "deadline", "remote_possible", "accommodation_provided"].forEach(k => {
         if (job[k] !== undefined && job[k] !== null) setValue(k, job[k]);
       });
       // Start Immediate Check
@@ -257,6 +257,15 @@ export default function EditJobPage() {
             <div><label className="label">PLZ</label><input type="text" className="input-styled" placeholder="z.B. 80331" {...register("postal_code")} /></div>
           </div>
           <div className="mb-4"><label className="label">Adresse</label><input type="text" className="input-styled" placeholder="z.B. Musterstraße 123" {...register("address")} /></div>
+          <div className="mb-4">
+            <label className="label">Arbeitsberechtigung</label>
+            <select className="input-styled" {...register("work_authorization_requirement")}>
+              <option value="not_relevant">Egal / keine Angabe</option>
+              <option value="required">Bewerber muss bereits arbeitsberechtigt sein</option>
+              <option value="support_offered">Wir unterstützen bei Visum / Arbeitserlaubnis</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Beeinflusst das Matching. Für Saison- & Work-and-Holiday-Stellen meist relevant.</p>
+          </div>
           <div className="flex flex-wrap gap-6 mb-6">
             <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" {...register("remote_possible")} className="w-5 h-5 rounded" /><span>Remote möglich</span></label>
             <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" {...register("accommodation_provided")} className="w-5 h-5 rounded" /><span>Unterkunft vorhanden</span></label>

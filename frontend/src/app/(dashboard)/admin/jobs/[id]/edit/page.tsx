@@ -74,6 +74,7 @@ export default function AdminEditJobPage() {
   // Standort
   const [location, setLocation] = useState("");
   const [country, setCountry] = useState("DE");
+  const [workAuthReq, setWorkAuthReq] = useState("not_relevant");
   const [address, setAddress] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [remotePossible, setRemotePossible] = useState(false);
@@ -127,6 +128,7 @@ export default function AdminEditJobPage() {
 
       setLocation(data.location || "");
       setCountry(data.country || "DE");
+      setWorkAuthReq(data.work_authorization_requirement || "not_relevant");
       setAddress(data.address || "");
       setPostalCode(data.postal_code || "");
       setRemotePossible(data.remote_possible ?? false);
@@ -186,6 +188,7 @@ export default function AdminEditJobPage() {
         external_url: externalUrl || null,
         location: location || null,
         country: country || "DE",
+        work_authorization_requirement: workAuthReq,
         available_languages: enabledLanguages,
         address: address || null,
         postal_code: postalCode || null,
@@ -398,6 +401,15 @@ export default function AdminEditJobPage() {
             <div className="sm:col-span-3">
               <label className={labelCls}>Straße / Adresse</label>
               <input className={inputCls} value={address} onChange={e => setAddress(e.target.value)} placeholder="Musterstraße 1" />
+            </div>
+            <div className="sm:col-span-3">
+              <label className={labelCls}>Arbeitsberechtigung</label>
+              <select className={`${inputCls} select-chevron`} value={workAuthReq} onChange={e => setWorkAuthReq(e.target.value)}>
+                <option value="not_relevant">Egal / keine Angabe</option>
+                <option value="required">Bewerber muss bereits arbeitsberechtigt sein</option>
+                <option value="support_offered">Wir unterstützen bei Visum / Arbeitserlaubnis</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Beeinflusst das Matching (Saison/W&H meist relevant).</p>
             </div>
           </div>
           <div className="flex items-center gap-6 mt-4">

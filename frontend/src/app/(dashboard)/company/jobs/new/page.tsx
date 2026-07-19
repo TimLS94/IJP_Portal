@@ -335,6 +335,15 @@ export default function CreateJobPage() {
             <div><label className="label">PLZ</label><input type="text" className="input-styled" placeholder="z.B. 80331" {...register("postal_code")} /></div>
           </div>
           <div className="mb-4"><label className="label">Adresse</label><input type="text" className="input-styled" placeholder="z.B. Musterstraße 123" {...register("address")} /></div>
+          <div className="mb-4">
+            <label className="label">Arbeitsberechtigung</label>
+            <select className="input-styled" {...register("work_authorization_requirement")} defaultValue="not_relevant">
+              <option value="not_relevant">Egal / keine Angabe</option>
+              <option value="required">Bewerber muss bereits arbeitsberechtigt sein</option>
+              <option value="support_offered">Wir unterstützen bei Visum / Arbeitserlaubnis</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Beeinflusst das Matching. Für Saison- & Work-and-Holiday-Stellen meist relevant.</p>
+          </div>
           <div className="flex flex-wrap gap-6 mb-6">
             <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={!!watch("remote_possible")} onChange={e => setValue("remote_possible", e.target.checked)} className="w-5 h-5 rounded" /><span>Remote möglich</span></label>
             <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={!!watch("accommodation_provided")} onChange={e => setValue("accommodation_provided", e.target.checked)} className="w-5 h-5 rounded" /><span>Unterkunft vorhanden</span></label>

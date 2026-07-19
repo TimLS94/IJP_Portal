@@ -51,7 +51,12 @@ class ApplicantBase(BaseModel):
     # Deutschland-Erfahrung
     been_to_germany: Optional[bool] = False
     germany_details: Optional[str] = None
-    
+
+    # Arbeitsberechtigung
+    work_authorized: Optional[bool] = None
+    work_support_needed: Optional[List[str]] = None
+    needs_employer_support: Optional[bool] = None
+
     # ========== POSITIONSTYP ==========
     position_type: Optional[PositionType] = None  # Legacy: Einzelauswahl
     position_types: Optional[List[PositionType]] = []  # NEU: Mehrfachauswahl
@@ -115,7 +120,10 @@ class ApplicantUpdate(BaseModel):
     other_languages: Optional[List[OtherLanguage]] = None
     been_to_germany: Optional[bool] = None
     germany_details: Optional[str] = None
-    
+    work_authorized: Optional[bool] = None
+    work_support_needed: Optional[List[str]] = None
+    needs_employer_support: Optional[bool] = None
+
     position_type: Optional[PositionType] = None
     position_types: Optional[List[PositionType]] = None
     

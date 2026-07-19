@@ -99,6 +99,8 @@ export default function ProfileClient() {
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
   const selectedPositionTypes = watch("position_types") || [];
   const beenToGermany = watch("been_to_germany");
+  const workAuthorized = watch("work_authorized");
+  const workSupportNeeded: string[] = watch("work_support_needed") || [];
 
   // Detect wenn User ganz unten ist
   useEffect(() => {
@@ -603,6 +605,48 @@ export default function ProfileClient() {
                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
                   <label className="label text-blue-800">{t("applicant.germanyDetails")}</label>
                   <textarea className="input-styled" rows={2} placeholder="Wann, wie lange, zu welchem Zweck?" {...register("germany_details")} />
+                </div>
+              )}
+            </div>
+
+            {/* Arbeitsberechtigung (v.a. für Saison / Work & Holiday relevant) */}
+            <div className="pt-4 border-t">
+              <div className="flex items-center gap-3 mb-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" {...register("work_authorized")} />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  <span className="ml-3 text-gray-700 font-medium">Ich bin derzeit berechtigt, in Deutschland zu arbeiten</span>
+                </label>
+              </div>
+              {!workAuthorized && (
+                <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-3">
+                  <div>
+                    <label className="label text-amber-800">Welche Unterstützung benötigen Sie?</label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { v: "visum", l: "Visum" },
+                        { v: "arbeitserlaubnis", l: "Arbeitserlaubnis" },
+                        { v: "aufenthaltstitel", l: "Aufenthaltstitel" },
+                        { v: "sonstiges", l: "Sonstiges" },
+                      ].map((o) => {
+                        const on = workSupportNeeded.includes(o.v);
+                        return (
+                          <button
+                            key={o.v}
+                            type="button"
+                            onClick={() => setValue("work_support_needed", on ? workSupportNeeded.filter((x) => x !== o.v) : [...workSupportNeeded, o.v])}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium border-2 transition-all ${on ? "border-amber-500 bg-amber-100 text-amber-800" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}
+                          >
+                            {o.l}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" className="w-5 h-5 rounded" {...register("needs_employer_support")} />
+                    <span className="text-gray-700">Ich benötige Unterstützung des Arbeitgebers (z. B. Visumsverfahren)</span>
+                  </label>
                 </div>
               )}
             </div>

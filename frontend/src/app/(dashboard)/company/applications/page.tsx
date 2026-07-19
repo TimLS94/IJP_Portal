@@ -52,6 +52,9 @@ interface Applicant {
   work_experience_years?: number;
   university_name?: string;
   field_of_study?: string;
+  work_authorized?: boolean | null;
+  work_support_needed?: string[];
+  needs_employer_support?: boolean | null;
 }
 
 interface Job {
@@ -1194,6 +1197,16 @@ export default function CompanyApplicationsPage() {
                         <div className="flex justify-between p-2 bg-white rounded">
                           <span className="text-gray-500">{t('common.positionType')}</span>
                           <span className="font-medium">{applicantDetails.applicant.position_type}</span>
+                        </div>
+                      )}
+                      {applicantDetails.applicant.work_authorized != null && (
+                        <div className="flex justify-between p-2 bg-white rounded">
+                          <span className="text-gray-500">Arbeitsberechtigung (DE)</span>
+                          <span className={`font-medium ${applicantDetails.applicant.work_authorized ? "text-green-600" : "text-amber-600"}`}>
+                            {applicantDetails.applicant.work_authorized
+                              ? "Ja"
+                              : `Nein${(applicantDetails.applicant.work_support_needed || []).length ? " (" + (applicantDetails.applicant.work_support_needed || []).join(", ") + ")" : ""}${applicantDetails.applicant.needs_employer_support ? " · AG-Unterstützung nötig" : ""}`}
+                          </span>
                         </div>
                       )}
                       {applicantDetails.applicant.german_level && (
