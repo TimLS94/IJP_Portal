@@ -621,72 +621,75 @@ class EmailService:
     
     @_safe_email_call
     def send_interview_proposed(
-        self, 
-        to_email: str, 
-        applicant_name: str, 
-        job_title: str, 
+        self,
+        to_email: str,
+        applicant_name: str,
+        job_title: str,
         company_name: str,
         date_1: str,
         date_2: str = None,
         location: str = None,
         meeting_link: str = None,
-        notes: str = None
+        notes: str = None,
+        lang: str = "de"
     ) -> bool:
-        """Benachrichtigt den Bewerber über Terminvorschläge"""
+        """Benachrichtigt den Bewerber über Terminvorschläge (in bevorzugter Sprache)"""
+        from app.services.email_i18n import et
         try:
             from app.core.config import settings
             frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
         except:
             frontend_url = 'https://www.jobon.work'
-        
+
+        opt = et(lang, "iv_option")
         date_options = f"""
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #8b5cf6;">
-                <strong>Option 1:</strong> {date_1}
+                <strong>{opt} 1:</strong> {date_1}
             </div>
         """
         if date_2:
             date_options += f"""
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #8b5cf6;">
-                <strong>Option 2:</strong> {date_2}
+                <strong>{opt} 2:</strong> {date_2}
             </div>
             """
-        
+
         location_info = ""
         if location:
-            location_info += f"<p><strong>📍 Ort:</strong> {location}</p>"
+            location_info += f"<p><strong>{et(lang, 'iv_location')}</strong> {location}</p>"
         if meeting_link:
-            location_info += f'<p><strong>🔗 Meeting:</strong> <a href="{meeting_link}">Link zum Meeting</a></p>'
+            location_info += f'<p><strong>{et(lang, "iv_meeting")}</strong> <a href="{meeting_link}">{et(lang, "iv_meeting_link")}</a></p>'
         if notes:
-            location_info += f"<p><strong>📝 Hinweis:</strong> {notes}</p>"
-        
-        subject = f"📅 Terminvorschläge für Ihr Vorstellungsgespräch - {job_title}"
+            location_info += f"<p><strong>{et(lang, 'iv_note')}</strong> {notes}</p>"
+
+        subject = et(lang, "iv_subject", job=job_title)
         html_content = f"""
         <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
             <div style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
-                <h1 style="margin: 0;">📅 Vorstellungsgespräch</h1>
+                <h1 style="margin: 0;">{et(lang, "iv_h1")}</h1>
             </div>
             <div style="padding: 30px; background: #ffffff; border-radius: 0 0 12px 12px;">
-                <p>Hallo {applicant_name},</p>
-                <p><strong>{company_name}</strong> möchte Sie zum Vorstellungsgespräch für die Stelle <strong>{job_title}</strong> einladen!</p>
-                
-                <p style="font-weight: bold; margin-top: 20px;">Terminvorschläge:</p>
+                <p>{et(lang, "greeting", name=applicant_name)}</p>
+                <p>{et(lang, "iv_intro", company=company_name, job=job_title)}</p>
+
+                <p style="font-weight: bold; margin-top: 20px;">{et(lang, "iv_options")}</p>
                 {date_options}
-                
+
                 {location_info if location_info else ''}
-                
+
                 <p style="text-align: center; margin: 30px 0;">
-                    <a href="{frontend_url}/applicant/applications" 
+                    <a href="{frontend_url}/applicant/applications"
                        style="background: #8b5cf6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                        Termin bestätigen oder ablehnen →
+                        {et(lang, "iv_cta")}
                     </a>
                 </p>
-                
+
                 <p style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-                    ⏰ Bitte antworten Sie zeitnah auf diese Einladung!
+                    {et(lang, "iv_urgent")}
                 </p>
-                
+
                 <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
-                <p style="color: #6b7280; font-size: 14px;">Mit freundlichen Grüßen,<br><strong>Ihr JobOn Team</strong></p>
+                <p style="color: #6b7280; font-size: 14px;">{et(lang, "regards")}</p>
             </div>
         </body></html>
         """

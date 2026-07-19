@@ -205,6 +205,7 @@ async def propose_interview(
                 location=data.location,
                 meeting_link=data.meeting_link,
                 notes=data.notes,
+                lang=(applicant.user.preferred_language or "de"),
             )
 
         import json as _json
