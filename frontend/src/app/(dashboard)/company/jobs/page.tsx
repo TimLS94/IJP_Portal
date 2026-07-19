@@ -434,6 +434,7 @@ export default function CompanyJobsPage() {
                     <span className="flex items-center gap-1 text-indigo-600 font-medium"><Eye className="h-4 w-4" />{job.view_count || 0} {t('companyJobs.views')}</span>
                     <span className="flex items-center gap-1 text-red-500 font-medium"><Heart className="h-4 w-4" />{job.like_count || 0} {t('companyJobs.saved')}</span>
                     <span className="flex items-center gap-1 text-green-600 font-medium"><Users className="h-4 w-4" />{job.application_count || 0} {t('companyJobs.applications')}</span>
+                    <span className="flex items-center gap-1 text-gray-500" title="Kontakt-Klicks: E-Mail · Telefon">✉ {job.email_click_count || 0} · ☎ {job.phone_click_count || 0}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">

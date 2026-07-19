@@ -969,6 +969,8 @@ async def list_all_jobs(
             "view_count": job.view_count or 0,
             "like_count": like_count,
             "external_click_count": job.external_click_count or 0,
+            "email_click_count": job.email_click_count or 0,
+            "phone_click_count": job.phone_click_count or 0,
             "available_languages": job.available_languages or ["de"]
         })
     

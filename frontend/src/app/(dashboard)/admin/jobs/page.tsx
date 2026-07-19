@@ -45,6 +45,8 @@ interface Job {
   view_count?: number;
   like_count?: number;
   external_click_count?: number;
+  email_click_count?: number;
+  phone_click_count?: number;
   application_count: number;
   available_languages?: string[];
   admin_translated_languages?: string[];
@@ -262,6 +264,9 @@ export default function AdminJobsPage() {
                         <span className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
                           {job.application_count} Bewerbungen
+                        </span>
+                        <span className="flex items-center gap-1" title="Kontakt-Klicks: E-Mail · Telefon">
+                          ✉ {job.email_click_count || 0} · ☎ {job.phone_click_count || 0}
                         </span>
                         {job.is_external && (
                           <span className="flex items-center gap-1 text-orange-600">
