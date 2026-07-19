@@ -2268,6 +2268,10 @@
     "accept": "Akzeptieren"
   },
   "notifications": {
+    "contractToSign": {
+      "title": "Vertrag unterschreiben",
+      "message": "Ihr Vertrag liegt bereit. Bitte herunterladen, unterschreiben und wieder hochladen."
+    },
     "documentRequest": {
       "title": "Unterlagen angefordert",
       "message": "{{company}} hat Unterlagen für Ihre Bewerbung auf \"{{jobTitle}}\" angefordert: {{documents}}."

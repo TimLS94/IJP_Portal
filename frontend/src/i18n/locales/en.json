@@ -2268,6 +2268,10 @@
     "accept": "Accept"
   },
   "notifications": {
+    "contractToSign": {
+      "title": "Sign your contract",
+      "message": "Your contract is ready. Please download, sign and upload it again."
+    },
     "documentRequest": {
       "title": "Documents Requested",
       "message": "{{company}} has requested documents for your application for \"{{jobTitle}}\": {{documents}}."

@@ -2185,6 +2185,10 @@
     "accept": "Принять"
   },
   "notifications": {
+    "contractToSign": {
+      "title": "Подпишите договор",
+      "message": "Ваш договор готов. Пожалуйста, скачайте, подпишите и загрузите снова."
+    },
     "documentRequest": {
       "title": "Запрошены документы",
       "message": "{{company}} запросила документы для вашей заявки на \"{{jobTitle}}\": {{documents}}."

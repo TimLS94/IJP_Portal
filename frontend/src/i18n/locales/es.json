@@ -2185,6 +2185,10 @@
     "accept": "Aceptar"
   },
   "notifications": {
+    "contractToSign": {
+      "title": "Firmar el contrato",
+      "message": "Su contrato está listo. Descárguelo, fírmelo y vuélvalo a subir."
+    },
     "documentRequest": {
       "title": "Documentos solicitados",
       "message": "{{company}} ha solicitado documentos para su solicitud de \"{{jobTitle}}\": {{documents}}."
