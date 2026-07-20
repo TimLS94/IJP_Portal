@@ -154,6 +154,7 @@ export const jobsAPI = {
   getMyJobs: () => api.get('/jobs/my/jobs'),
   getArchivedJobs: () => api.get('/jobs/my/jobs/archived'), // Archivierte Stellen
   reactivate: (id) => api.post(`/jobs/${id}/reactivate`), // Stelle reaktivieren
+  duplicate: (id) => api.post(`/jobs/${id}/duplicate`), // Stelle als Entwurf duplizieren
   // Matching Score für eine Stelle (für Bewerber)
   getMatchScore: (id) => api.get(`/jobs/${id}/match`),
   // Öffentliche Einstellungen (max_deadline_days etc.)

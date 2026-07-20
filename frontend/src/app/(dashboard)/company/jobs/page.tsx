@@ -265,6 +265,56 @@ export default function CompanyJobsPage() {
     window.location.href = "/company/jobs/new?fromTemplate=true";
   };
 
+  const [busyJobId, setBusyJobId] = useState<number | null>(null);
+
+  // Bestehende Stelle als Entwurf duplizieren -> direkt zum Bearbeiten
+  const duplicateJob = async (job: Job) => {
+    setBusyJobId(job.id);
+    try {
+      const res = await jobsAPI.duplicate(job.id);
+      toast.success("Kopie als Entwurf erstellt");
+      router.push(`/company/jobs/${res.data.id}/edit`);
+    } catch {
+      toast.error(t('common.error'));
+    } finally {
+      setBusyJobId(null);
+    }
+  };
+
+  // Bestehende Stelle als wiederverwendbare Vorlage speichern
+  const saveJobAsTemplate = async (job: Job) => {
+    const name = window.prompt("Name für die Vorlage:", job.title || "Neue Vorlage");
+    if (!name) return;
+    setBusyJobId(job.id);
+    try {
+      const full = (await jobsAPI.get(job.id)).data;
+      await jobsAPI.createTemplate({
+        name,
+        title: full.title, description: full.description, tasks: full.tasks,
+        requirements: full.requirements, benefits: full.benefits,
+        position_type: full.position_type, position_types: full.position_types,
+        location: full.location, address: full.address, postal_code: full.postal_code, country: full.country,
+        employment_type: full.employment_type, remote_possible: full.remote_possible,
+        accommodation_provided: full.accommodation_provided,
+        salary_min: full.salary_min, salary_max: full.salary_max, salary_type: full.salary_type,
+        german_required: full.german_required, english_required: full.english_required,
+        german_importance: full.german_importance, english_importance: full.english_importance,
+        other_languages_required: full.other_languages_required,
+        work_authorization_requirement: full.work_authorization_requirement,
+        contact_person: full.contact_person, contact_email: full.contact_email,
+        contact_phone: full.contact_phone, contact_whatsapp: full.contact_whatsapp,
+        preferred_contact_method: full.preferred_contact_method,
+        translations: full.translations, available_languages: full.available_languages,
+      });
+      toast.success("Als Vorlage gespeichert");
+      loadAll();
+    } catch {
+      toast.error(t('common.error'));
+    } finally {
+      setBusyJobId(null);
+    }
+  };
+
   const getDaysUntilDeletion = (archivedAt: string) => {
     if (!archivedAt) return null;
     const deleteDate = new Date(new Date(archivedAt).getTime() + archiveDeletionDays * 24 * 60 * 60 * 1000);
@@ -401,9 +451,11 @@ export default function CompanyJobsPage() {
                   <td className="py-3 text-center"><span className="inline-flex items-center gap-2 text-gray-600 text-xs" title="Kontakt-Klicks: E-Mail · Telefon">✉ {job.email_click_count || 0} · ☎ {job.phone_click_count || 0}</span></td>
                   <td className="py-3 text-right">
                     <div className="flex justify-end gap-0.5">
-                      <Link href={`/company/jobs/${job.id}/edit`} className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"><Edit className="h-4 w-4" /></Link>
-                      <button onClick={() => toggleActive(job)} className={`p-2 rounded-lg ${job.is_active ? "text-gray-500 hover:text-orange-600 hover:bg-orange-50" : "text-gray-500 hover:text-green-600 hover:bg-green-50"}`}>{job.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-                      <button onClick={() => openDeleteModal(job.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="h-4 w-4" /></button>
+                      <Link href={`/company/jobs/${job.id}/edit`} className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="Bearbeiten"><Edit className="h-4 w-4" /></Link>
+                      <button onClick={() => duplicateJob(job)} disabled={busyJobId === job.id} className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg disabled:opacity-50" title="Kopieren (als Entwurf)">{busyJobId === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}</button>
+                      <button onClick={() => saveJobAsTemplate(job)} disabled={busyJobId === job.id} className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg disabled:opacity-50" title="Als Vorlage speichern"><FileText className="h-4 w-4" /></button>
+                      <button onClick={() => toggleActive(job)} className={`p-2 rounded-lg ${job.is_active ? "text-gray-500 hover:text-orange-600 hover:bg-orange-50" : "text-gray-500 hover:text-green-600 hover:bg-green-50"}`} title={job.is_active ? "Deaktivieren" : "Aktivieren"}>{job.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                      <button onClick={() => openDeleteModal(job.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Löschen"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -480,6 +532,8 @@ export default function CompanyJobsPage() {
                     </>
                   )}
                   <Link href={`/company/jobs/${job.id}/edit`} className="btn-primary text-sm flex items-center gap-1"><Edit className="h-4 w-4" /><span className="hidden sm:inline">{t('common.edit')}</span></Link>
+                  <button onClick={() => duplicateJob(job)} disabled={busyJobId === job.id} className="btn-secondary text-sm flex items-center gap-1 disabled:opacity-50" title="Kopieren (als Entwurf)">{busyJobId === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}<span className="hidden sm:inline">Kopieren</span></button>
+                  <button onClick={() => saveJobAsTemplate(job)} disabled={busyJobId === job.id} className="btn-secondary text-sm flex items-center gap-1 disabled:opacity-50" title="Als Vorlage speichern"><FileText className="h-4 w-4" /><span className="hidden sm:inline">Vorlage</span></button>
                   <button onClick={() => openDeleteModal(job.id)} className="btn-danger text-sm flex items-center gap-1"><Archive className="h-4 w-4" /><span className="hidden sm:inline">{t('companyJobs.archiveBtn')}</span></button>
                 </div>
               </div>
