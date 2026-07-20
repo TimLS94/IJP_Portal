@@ -1070,6 +1070,10 @@ async def admin_get_job(
         "company_name": company.company_name if company else None,
         "country": job.country or "DE",
         "work_authorization_requirement": getattr(job, "work_authorization_requirement", "not_relevant") or "not_relevant",
+        "german_required": job.german_required.value if job.german_required else "none",
+        "english_required": job.english_required.value if job.english_required else "none",
+        "german_importance": getattr(job, "german_importance", "required") or "required",
+        "english_importance": getattr(job, "english_importance", "required") or "required",
         "translations": job.translations or {},
         "available_languages": job.available_languages or ["de"],
     }
@@ -1131,6 +1135,8 @@ class AdminUpdateJobRequest(BaseModel):
     is_draft: Optional[bool] = None
     german_required: Optional[str] = None   # none|a1|a2|b1|b2|c1|c2|native
     english_required: Optional[str] = None  # none|a1|a2|b1|b2|c1|c2|native
+    german_importance: Optional[str] = None   # required|desirable|optional
+    english_importance: Optional[str] = None
 
 
 @router.put("/jobs/{job_id}")
@@ -1192,6 +1198,10 @@ async def admin_update_job(
             job.english_required = RequiredLanguageLevel(request.english_required) if request.english_required != "none" else None
         except ValueError:
             pass
+    if request.german_importance is not None:
+        job.german_importance = request.german_importance
+    if request.english_importance is not None:
+        job.english_importance = request.english_importance
 
     # Aktivierung / Draft
     if request.is_draft is not None:

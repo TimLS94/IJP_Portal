@@ -12,6 +12,7 @@ MINIMUM_WAGE = 13.90
 class OtherLanguageRequirement(BaseModel):
     language: str
     level: RequiredLanguageLevel
+    importance: Optional[str] = "required"  # required | desirable | optional
 
 
 class JobTranslation(BaseModel):
@@ -57,6 +58,8 @@ class JobPostingBase(BaseModel):
     # Sprachanforderungen
     german_required: Optional[RequiredLanguageLevel] = RequiredLanguageLevel.NOT_REQUIRED
     english_required: Optional[RequiredLanguageLevel] = RequiredLanguageLevel.NOT_REQUIRED
+    german_importance: Optional[str] = "required"
+    english_importance: Optional[str] = "required"
     other_languages_required: Optional[List[OtherLanguageRequirement]] = []
     
     additional_requirements: Optional[dict] = {}
@@ -139,6 +142,8 @@ class JobPostingUpdate(BaseModel):
     
     german_required: Optional[RequiredLanguageLevel] = None
     english_required: Optional[RequiredLanguageLevel] = None
+    german_importance: Optional[str] = None
+    english_importance: Optional[str] = None
     other_languages_required: Optional[List[OtherLanguageRequirement]] = None
     
     additional_requirements: Optional[dict] = None

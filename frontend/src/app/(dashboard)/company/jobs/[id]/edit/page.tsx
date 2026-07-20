@@ -19,7 +19,7 @@ const allLanguagesList = ["Afrikaans", "Albanisch", "Arabisch", "Armenisch", "Bu
 const contactMethods = [{ value: "email", label: "E-Mail", icon: Mail, color: "blue" }, { value: "phone", label: "Telefon", icon: Phone, color: "gray" }, { value: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "green" }];
 
 interface Translation { title: string; description: string; tasks: string; requirements: string; benefits: string; }
-interface OtherLang { language: string; level: string; required: boolean; }
+interface OtherLang { language: string; level: string; importance: string; required?: boolean; }
 
 export default function EditJobPage() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function EditJobPage() {
   const [startImmediate, setStartImmediate] = useState(false);
   const [otherLanguages, setOtherLanguages] = useState<OtherLang[]>([]);
 
-  const { register, handleSubmit, watch, setValue } = useForm<Record<string, string | boolean | number | undefined>>({ defaultValues: { german_required: "not_required", english_required: "not_required" } });
+  const { register, handleSubmit, watch, setValue } = useForm<Record<string, string | boolean | number | undefined>>({ defaultValues: { german_required: "not_required", english_required: "not_required", german_importance: "required", english_importance: "required" } });
 
   useEffect(() => {
     loadJob();
@@ -61,9 +61,9 @@ export default function EditJobPage() {
       // Enabled Languages
       if (job.available_languages?.length) setEnabledLanguages(job.available_languages);
       // Other Languages
-      if (job.other_languages_required?.length) setOtherLanguages(job.other_languages_required);
+      if (job.other_languages_required?.length) setOtherLanguages(job.other_languages_required.map((l: OtherLang) => ({ ...l, importance: l.importance || (l.required ? "required" : "desirable") })));
       // Form Values
-      ["location", "address", "postal_code", "country", "work_authorization_requirement", "employment_type", "salary_min", "salary_max", "salary_type", "german_required", "english_required", "contact_person", "contact_email", "contact_phone", "contact_whatsapp", "preferred_contact_method", "start_date", "end_date", "deadline", "remote_possible", "accommodation_provided"].forEach(k => {
+      ["location", "address", "postal_code", "country", "work_authorization_requirement", "employment_type", "salary_min", "salary_max", "salary_type", "german_required", "english_required", "german_importance", "english_importance", "contact_person", "contact_email", "contact_phone", "contact_whatsapp", "preferred_contact_method", "start_date", "end_date", "deadline", "remote_possible", "accommodation_provided"].forEach(k => {
         if (job[k] !== undefined && job[k] !== null) setValue(k, job[k]);
       });
       // Start Immediate Check
@@ -86,7 +86,7 @@ export default function EditJobPage() {
 
   const handleStartImmediate = (checked: boolean) => { setStartImmediate(checked); if (checked) setValue("start_date", new Date().toISOString().split("T")[0]); };
 
-  const addOtherLanguage = () => setOtherLanguages([...otherLanguages, { language: "", level: "a2", required: false }]);
+  const addOtherLanguage = () => setOtherLanguages([...otherLanguages, { language: "", level: "a2", importance: "required" }]);
   const removeOtherLanguage = (i: number) => setOtherLanguages(otherLanguages.filter((_, idx) => idx !== i));
   const updateOtherLanguage = (i: number, field: keyof OtherLang, value: string | boolean) => { const n = [...otherLanguages]; n[i] = { ...n[i], [field]: value }; setOtherLanguages(n); };
 
@@ -209,8 +209,26 @@ export default function EditJobPage() {
           <h2 className="text-xl font-semibold mb-2 flex items-center gap-2"><Languages className="h-5 w-5 text-blue-600" />Sprachanforderungen</h2>
           <p className="text-gray-600 mb-6 text-sm">Geben Sie an, welche Sprachkenntnisse für diese Stelle erforderlich sind.</p>
           <div className="grid md:grid-cols-2 gap-4 mb-6">
-            <div><label className="label">🇩🇪 Deutschkenntnisse</label><select className="input-styled" {...register("german_required")}>{languageLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}</select></div>
-            <div><label className="label">🇬🇧 Englischkenntnisse</label><select className="input-styled" {...register("english_required")}>{languageLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}</select></div>
+            <div><label className="label">🇩🇪 Deutschkenntnisse</label>
+              <div className="flex gap-2">
+                <select className="input-styled flex-1" {...register("german_required")}>{languageLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}</select>
+                <select className="input-styled w-auto" {...register("german_importance")}>
+                  <option value="required">⚠️ Erforderlich</option>
+                  <option value="desirable">✨ Wünschenswert</option>
+                  <option value="optional">Optional</option>
+                </select>
+              </div>
+            </div>
+            <div><label className="label">🇬🇧 Englischkenntnisse</label>
+              <div className="flex gap-2">
+                <select className="input-styled flex-1" {...register("english_required")}>{languageLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}</select>
+                <select className="input-styled w-auto" {...register("english_importance")}>
+                  <option value="required">⚠️ Erforderlich</option>
+                  <option value="desirable">✨ Wünschenswert</option>
+                  <option value="optional">Optional</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div className="border-t pt-4">
             <div className="flex items-center justify-between mb-4">
@@ -230,9 +248,10 @@ export default function EditJobPage() {
                     <select className="input-styled flex-1" value={lang.level} onChange={e => updateOtherLanguage(i, "level", e.target.value)}>
                       {languageLevels.filter(l => l.value !== "not_required").map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                     </select>
-                    <select className={`input-styled w-auto ${lang.required ? "bg-red-50 border-red-300 text-red-700" : "bg-green-50 border-green-300 text-green-700"}`} value={lang.required ? "required" : "optional"} onChange={e => updateOtherLanguage(i, "required", e.target.value === "required")}>
-                      <option value="optional">✨ Wünschenswert</option>
-                      <option value="required">⚠️ Voraussetzung</option>
+                    <select className="input-styled w-auto" value={lang.importance || "required"} onChange={e => updateOtherLanguage(i, "importance", e.target.value)}>
+                      <option value="required">⚠️ Erforderlich</option>
+                      <option value="desirable">✨ Wünschenswert</option>
+                      <option value="optional">Optional</option>
                     </select>
                     <button type="button" onClick={() => removeOtherLanguage(i)} className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"><Minus className="h-5 w-5" /></button>
                   </div>
@@ -411,7 +430,7 @@ export default function EditJobPage() {
                 <div className="flex flex-wrap gap-3">
                   <span className="px-3 py-1.5 bg-white rounded-lg border text-sm">🇩🇪 Deutsch: {languageLevels.find(l => l.value === germanReq)?.label || "Nicht erforderlich"}</span>
                   <span className="px-3 py-1.5 bg-white rounded-lg border text-sm">🇬🇧 Englisch: {languageLevels.find(l => l.value === englishReq)?.label || "Nicht erforderlich"}</span>
-                  {otherLanguages.filter(l => l.language).map((l, i) => <span key={i} className={`px-3 py-1.5 rounded-lg border text-sm ${l.required ? "bg-red-50 border-red-200 text-red-700" : "bg-green-50 border-green-200 text-green-700"}`}>{l.language}: {languageLevels.find(x => x.value === l.level)?.label} {l.required ? "(Voraussetzung)" : "(Wünschenswert)"}</span>)}
+                  {otherLanguages.filter(l => l.language).map((l, i) => { const impLabel = l.importance === "required" ? "(Erforderlich)" : l.importance === "optional" ? "(Optional)" : "(Wünschenswert)"; const impCls = l.importance === "required" ? "bg-red-50 border-red-200 text-red-700" : l.importance === "optional" ? "bg-gray-50 border-gray-200 text-gray-600" : "bg-green-50 border-green-200 text-green-700"; return <span key={i} className={`px-3 py-1.5 rounded-lg border text-sm ${impCls}`}>{l.language}: {languageLevels.find(x => x.value === l.level)?.label} {impLabel}</span>; })}
                 </div>
               </div>
 

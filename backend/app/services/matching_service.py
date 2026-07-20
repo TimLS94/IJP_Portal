@@ -149,48 +149,61 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
     # CV-Fallback für Erfahrung (wenn Profil leer oder immer analysieren aktiv)
     cv_fallback = cv_data if cv_used else None
     
-    # 2. Deutschkenntnisse (25 Punkte)
+    # 2. Deutschkenntnisse (25 Punkte, importance-aware)
     applicant_german = applicant.german_level.value if applicant.german_level else "keine"
     job_german = job.german_required.value if job.german_required else "not_required"
-    german_match = _check_language_match(applicant_german, job_german)
+    german_imp = getattr(job, "german_importance", "required") or "required"
+    german_match = _language_contribution(applicant_german, job_german, german_imp, 25)
     scores["german_level"] = german_match["score"]
-    if german_match["exceeds"]:
-        details.append(f"✓ Deutschkenntnisse übertreffen Anforderungen")
-    elif german_match["meets"]:
-        details.append(f"✓ Deutschkenntnisse erfüllen Anforderungen")
-    else:
+    if german_match["meets"]:
+        details.append("✓ Deutschkenntnisse erfüllen Anforderungen")
+    elif german_imp == "required" and job_german not in ("keine", "none", "not_required"):
         details.append(f"✗ Deutschkenntnisse unter Anforderungen ({german_match['gap']} Stufen)")
-    
+
     if include_admin_details:
         admin_details["german"] = {
-            "applicant_level": applicant_german,
-            "required_level": job_german,
-            "score": german_match["score"],
-            "max_score": 25,
-            "meets": german_match["meets"],
-            "gap": german_match["gap"]
+            "applicant_level": applicant_german, "required_level": job_german,
+            "importance": german_imp, "score": german_match["score"], "max_score": 25,
+            "meets": german_match["meets"], "gap": german_match["gap"],
         }
-    
-    # 3. Englischkenntnisse (15 Punkte)
+
+    # 3. Englischkenntnisse (15 Punkte, importance-aware)
     applicant_english = applicant.english_level.value if applicant.english_level else "keine"
     job_english = job.english_required.value if job.english_required else "not_required"
-    english_match = _check_language_match(applicant_english, job_english, max_score=15)
+    english_imp = getattr(job, "english_importance", "required") or "required"
+    english_match = _language_contribution(applicant_english, job_english, english_imp, 15)
     scores["english_level"] = english_match["score"]
-    if english_match["meets"] or english_match["exceeds"]:
-        details.append(f"✓ Englischkenntnisse erfüllen Anforderungen")
-    elif job.english_required and job.english_required.value != "not_required":
-        details.append(f"✗ Englischkenntnisse unter Anforderungen")
-    
+    if english_match["meets"]:
+        details.append("✓ Englischkenntnisse erfüllen Anforderungen")
+    elif english_imp == "required" and job_english not in ("keine", "none", "not_required"):
+        details.append("✗ Englischkenntnisse unter Anforderungen")
+
     if include_admin_details:
         admin_details["english"] = {
-            "applicant_level": applicant_english,
-            "required_level": job_english,
-            "score": english_match["score"],
-            "max_score": 15,
-            "meets": english_match["meets"],
-            "gap": english_match["gap"]
+            "applicant_level": applicant_english, "required_level": job_english,
+            "importance": english_imp, "score": english_match["score"], "max_score": 15,
+            "meets": english_match["meets"], "gap": english_match["gap"],
         }
-    
+
+    # 3b. Weitere Sprachen (importance-aware, je Sprache bis 10, gesamt max 20).
+    # Nur additiv (Bonus) – verschlechtert bestehende Scores nie.
+    other_reqs = job.other_languages_required or []
+    if other_reqs:
+        appl_other = _applicant_other_lang_map(applicant)
+        other_total = 0
+        for req in other_reqs:
+            if not isinstance(req, dict) or not req.get("language"):
+                continue
+            name = str(req["language"]).strip().lower()
+            lvl = req.get("level") or "not_required"
+            # Legacy: importance aus altem required-Flag ableiten, falls nicht gesetzt
+            imp = req.get("importance") or ("required" if req.get("required") else "optional")
+            c = _language_contribution(appl_other.get(name, "keine"), lvl, imp, 10)
+            other_total += c["score"]
+        other_total = min(20, other_total)
+        if other_total:
+            scores["other_languages"] = other_total
+
     # 4. Berufserfahrung (20 Punkte) — mit CV-Fallback oder CV-Daten
     # Wenn CV immer analysiert wird, nutze CV-Daten zusätzlich zum Profil
     exp_cv_data = cv_data if cv_data and not cv_used else cv_fallback
@@ -327,6 +340,33 @@ def _check_language_match(applicant_level: str, required_level: str, max_score: 
         penalty_per_level = max_score / required_score  # Dynamische Strafe
         score = max(0, int(max_score - (gap * penalty_per_level * 1.5)))
         return {"meets": False, "exceeds": False, "gap": gap, "score": score}
+
+
+def _language_contribution(applicant_level: str, required_level: str, importance: str, weight: int) -> dict:
+    """Punkte für eine Sprache je nach Wichtigkeit.
+    - required: Level-basiert (voll wenn erfüllt, 0/anteilig wenn nicht) – hohe Gewichtung.
+    - desirable (wünschenswert): Bonus NUR wenn erfüllt, sonst 0 – verschlechtert nie.
+    - optional: minimaler Bonus wenn vorhanden & erfüllt, sonst 0.
+    """
+    m = _check_language_match(applicant_level, required_level, weight)
+    imp = (importance or "required").lower()
+    if imp == "desirable":
+        score = int(round(weight * 0.4)) if m["meets"] else 0
+    elif imp == "optional":
+        has = LANGUAGE_LEVEL_ORDER.get(applicant_level, 0) > 0
+        score = int(round(weight * 0.15)) if (m["meets"] and has) else 0
+    else:  # required
+        score = m["score"]
+    return {"score": score, "meets": m["meets"], "exceeds": m["exceeds"], "gap": m["gap"], "importance": imp}
+
+
+def _applicant_other_lang_map(applicant: Applicant) -> dict:
+    """Map: Sprachname (lower) -> Level aus applicant.other_languages."""
+    result = {}
+    for e in (applicant.other_languages or []):
+        if isinstance(e, dict) and e.get("language"):
+            result[str(e["language"]).strip().lower()] = e.get("level") or "keine"
+    return result
 
 
 def _check_experience_match(applicant: Applicant, job: JobPosting, cv_fallback: Optional[dict] = None) -> dict:

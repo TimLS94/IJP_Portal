@@ -136,6 +136,8 @@ def ensure_external_job_columns():
             ("job_postings", "email_click_count", "INTEGER DEFAULT 0"),
             ("job_postings", "phone_click_count", "INTEGER DEFAULT 0"),
             ("job_postings", "work_authorization_requirement", "VARCHAR(20) DEFAULT 'not_relevant'"),
+            ("job_postings", "german_importance", "VARCHAR(12) DEFAULT 'required'"),
+            ("job_postings", "english_importance", "VARCHAR(12) DEFAULT 'required'"),
             ("applicants", "work_authorized", "BOOLEAN"),
             ("applicants", "work_support_needed", "JSON"),
             ("applicants", "needs_employer_support", "BOOLEAN"),

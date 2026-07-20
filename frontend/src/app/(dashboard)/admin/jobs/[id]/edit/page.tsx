@@ -93,6 +93,8 @@ export default function AdminEditJobPage() {
   // Sprachanforderungen
   const [germanRequired, setGermanRequired] = useState("none");
   const [englishRequired, setEnglishRequired] = useState("none");
+  const [germanImportance, setGermanImportance] = useState("required");
+  const [englishImportance, setEnglishImportance] = useState("required");
 
   // Übersetzungen
   const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({});
@@ -148,6 +150,8 @@ export default function AdminEditJobPage() {
 
       setGermanRequired(data.german_required || "none");
       setEnglishRequired(data.english_required || "none");
+      setGermanImportance(data.german_importance || "required");
+      setEnglishImportance(data.english_importance || "required");
     } catch {
       toast.error("Fehler beim Laden der Stelle");
       router.push("/admin/jobs");
@@ -204,6 +208,8 @@ export default function AdminEditJobPage() {
         is_draft: isDraft,
         german_required: germanRequired !== "none" ? germanRequired : null,
         english_required: englishRequired !== "none" ? englishRequired : null,
+        german_importance: germanImportance,
+        english_importance: englishImportance,
       });
       toast.success("Stelle gespeichert");
       router.push("/admin/jobs");
@@ -448,6 +454,11 @@ export default function AdminEditJobPage() {
                 <option value="c1">C1 – Fließend</option>
                 <option value="c2">C2 – Muttersprache</option>
               </select>
+              <select className={`${inputCls} select-chevron mt-2`} value={germanImportance} onChange={e => setGermanImportance(e.target.value)}>
+                <option value="required">⚠️ Erforderlich</option>
+                <option value="desirable">✨ Wünschenswert</option>
+                <option value="optional">Optional</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">🇬🇧 Englischkenntnisse</label>
@@ -459,6 +470,11 @@ export default function AdminEditJobPage() {
                 <option value="b2">B2 – Gute Kenntnisse</option>
                 <option value="c1">C1 – Fließend</option>
                 <option value="c2">C2 – Muttersprache</option>
+              </select>
+              <select className={`${inputCls} select-chevron mt-2`} value={englishImportance} onChange={e => setEnglishImportance(e.target.value)}>
+                <option value="required">⚠️ Erforderlich</option>
+                <option value="desirable">✨ Wünschenswert</option>
+                <option value="optional">Optional</option>
               </select>
             </div>
           </div>

@@ -128,7 +128,11 @@ class JobPosting(Base):
     # ========== SPRACHANFORDERUNGEN ==========
     german_required = Column(Enum(RequiredLanguageLevel, values_callable=lambda x: [e.value for e in x]), default=RequiredLanguageLevel.NOT_REQUIRED)
     english_required = Column(Enum(RequiredLanguageLevel, values_callable=lambda x: [e.value for e in x]), default=RequiredLanguageLevel.NOT_REQUIRED)
-    other_languages_required = Column(JSON, default=[])  # [{language: "Russisch", level: "basic"}, ...]
+    # Wichtigkeit der Sprache im Matching: "required" | "desirable" | "optional".
+    # Default "required" => bisheriges Verhalten (abwärtskompatibel).
+    german_importance = Column(String(12), default="required", server_default="required")
+    english_importance = Column(String(12), default="required", server_default="required")
+    other_languages_required = Column(JSON, default=[])  # [{language, level, importance}, ...]
     
     # Zusätzliche Anforderungen (JSON für Flexibilität)
     additional_requirements = Column(JSON, default={})
