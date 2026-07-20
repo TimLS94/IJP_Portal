@@ -213,8 +213,8 @@ export default function EditJobPage() {
               <div className="flex gap-2">
                 <select className="input-styled flex-1" {...register("german_required")}>{languageLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}</select>
                 <select className="input-styled w-auto" {...register("german_importance")}>
-                  <option value="required">⚠️ Erforderlich</option>
-                  <option value="desirable">✨ Wünschenswert</option>
+                  <option value="required">Erforderlich</option>
+                  <option value="desirable">Wünschenswert</option>
                   <option value="optional">Optional</option>
                 </select>
               </div>
@@ -223,8 +223,8 @@ export default function EditJobPage() {
               <div className="flex gap-2">
                 <select className="input-styled flex-1" {...register("english_required")}>{languageLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}</select>
                 <select className="input-styled w-auto" {...register("english_importance")}>
-                  <option value="required">⚠️ Erforderlich</option>
-                  <option value="desirable">✨ Wünschenswert</option>
+                  <option value="required">Erforderlich</option>
+                  <option value="desirable">Wünschenswert</option>
                   <option value="optional">Optional</option>
                 </select>
               </div>
@@ -249,8 +249,8 @@ export default function EditJobPage() {
                       {languageLevels.filter(l => l.value !== "not_required").map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                     </select>
                     <select className="input-styled w-auto" value={lang.importance || "required"} onChange={e => updateOtherLanguage(i, "importance", e.target.value)}>
-                      <option value="required">⚠️ Erforderlich</option>
-                      <option value="desirable">✨ Wünschenswert</option>
+                      <option value="required">Erforderlich</option>
+                      <option value="desirable">Wünschenswert</option>
                       <option value="optional">Optional</option>
                     </select>
                     <button type="button" onClick={() => removeOtherLanguage(i)} className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"><Minus className="h-5 w-5" /></button>

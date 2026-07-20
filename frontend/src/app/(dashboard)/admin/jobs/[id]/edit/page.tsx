@@ -455,8 +455,8 @@ export default function AdminEditJobPage() {
                 <option value="c2">C2 – Muttersprache</option>
               </select>
               <select className={`${inputCls} select-chevron mt-2`} value={germanImportance} onChange={e => setGermanImportance(e.target.value)}>
-                <option value="required">⚠️ Erforderlich</option>
-                <option value="desirable">✨ Wünschenswert</option>
+                <option value="required">Erforderlich</option>
+                <option value="desirable">Wünschenswert</option>
                 <option value="optional">Optional</option>
               </select>
             </div>
@@ -472,8 +472,8 @@ export default function AdminEditJobPage() {
                 <option value="c2">C2 – Muttersprache</option>
               </select>
               <select className={`${inputCls} select-chevron mt-2`} value={englishImportance} onChange={e => setEnglishImportance(e.target.value)}>
-                <option value="required">⚠️ Erforderlich</option>
-                <option value="desirable">✨ Wünschenswert</option>
+                <option value="required">Erforderlich</option>
+                <option value="desirable">Wünschenswert</option>
                 <option value="optional">Optional</option>
               </select>
             </div>

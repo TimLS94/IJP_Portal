@@ -267,16 +267,23 @@ export default function CompanyJobsPage() {
 
   const [busyJobId, setBusyJobId] = useState<number | null>(null);
 
-  // Bestehende Stelle als Entwurf duplizieren -> direkt zum Bearbeiten
+  // Bestehende Stelle kopieren -> öffnet das Anlege-Formular vorbefüllt (wie eine neue
+  // Stelle, direkt veröffentlichbar). Nutzt denselben Prefill-Mechanismus wie Vorlagen.
   const duplicateJob = async (job: Job) => {
     setBusyJobId(job.id);
     try {
-      const res = await jobsAPI.duplicate(job.id);
-      toast.success("Kopie als Entwurf erstellt");
-      router.push(`/company/jobs/${res.data.id}/edit`);
+      const full = (await jobsAPI.get(job.id)).data;
+      const translations = full.translations ? { ...full.translations } : undefined;
+      if (translations) delete translations.de;  // de kommt aus title/description
+      sessionStorage.setItem("jobTemplate", JSON.stringify({
+        ...full, translations,
+        name: `${full.title} (Kopie)`,
+        title: `${full.title} (Kopie)`,
+        __copy: true,
+      }));
+      window.location.href = "/company/jobs/new?fromTemplate=true";
     } catch {
       toast.error(t('common.error'));
-    } finally {
       setBusyJobId(null);
     }
   };
@@ -532,8 +539,8 @@ export default function CompanyJobsPage() {
                     </>
                   )}
                   <Link href={`/company/jobs/${job.id}/edit`} className="btn-primary text-sm flex items-center gap-1"><Edit className="h-4 w-4" /><span className="hidden sm:inline">{t('common.edit')}</span></Link>
-                  <button onClick={() => duplicateJob(job)} disabled={busyJobId === job.id} className="btn-secondary text-sm flex items-center gap-1 disabled:opacity-50" title="Kopieren (als Entwurf)">{busyJobId === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}<span className="hidden sm:inline">Kopieren</span></button>
-                  <button onClick={() => saveJobAsTemplate(job)} disabled={busyJobId === job.id} className="btn-secondary text-sm flex items-center gap-1 disabled:opacity-50" title="Als Vorlage speichern"><FileText className="h-4 w-4" /><span className="hidden sm:inline">Vorlage</span></button>
+                  <button onClick={() => duplicateJob(job)} disabled={busyJobId === job.id} className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:text-primary-600 hover:bg-primary-50 disabled:opacity-50" title="Kopieren (als neue Stelle)">{busyJobId === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}</button>
+                  <button onClick={() => saveJobAsTemplate(job)} disabled={busyJobId === job.id} className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:text-primary-600 hover:bg-primary-50 disabled:opacity-50" title="Als Vorlage speichern"><FileText className="h-4 w-4" /></button>
                   <button onClick={() => openDeleteModal(job.id)} className="btn-danger text-sm flex items-center gap-1"><Archive className="h-4 w-4" /><span className="hidden sm:inline">{t('companyJobs.archiveBtn')}</span></button>
                 </div>
               </div>

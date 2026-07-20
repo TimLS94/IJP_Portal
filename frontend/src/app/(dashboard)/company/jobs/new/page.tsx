@@ -47,7 +47,7 @@ export default function CreateJobPage() {
 
   useEffect(() => {
     jobsAPI.getPublicSettings().then(r => { setJobSettings(r.data); setValue("deadline", new Date(Date.now() + (r.data.max_job_deadline_days || 90) * 86400000).toISOString().split("T")[0]); }).catch(() => setValue("deadline", new Date(Date.now() + 90 * 86400000).toISOString().split("T")[0]));
-    const t = sessionStorage.getItem("jobTemplate"); if (t) { try { const d = JSON.parse(t); if (d.title) setTranslations(p => ({ ...p, de: { ...p.de, title: d.title } })); if (d.description) setTranslations(p => ({ ...p, de: { ...p.de, description: d.description } })); if (d.tasks) setTranslations(p => ({ ...p, de: { ...p.de, tasks: d.tasks } })); if (d.requirements) setTranslations(p => ({ ...p, de: { ...p.de, requirements: d.requirements } })); if (d.benefits) setTranslations(p => ({ ...p, de: { ...p.de, benefits: d.benefits } })); if (d.position_types) setSelectedPositionTypes(d.position_types); ["location", "address", "postal_code", "employment_type", "salary_min", "salary_max", "salary_type", "german_required", "english_required", "contact_person", "contact_email", "contact_phone", "contact_whatsapp", "preferred_contact_method"].forEach(k => d[k] && setValue(k, d[k])); if (d.translations) setTranslations(p => ({ ...p, ...d.translations })); if (d.available_languages) setEnabledLanguages(d.available_languages); toast.success(`Vorlage "${d.name}" geladen`); sessionStorage.removeItem("jobTemplate"); } catch {} }
+    const t = sessionStorage.getItem("jobTemplate"); if (t) { try { const d = JSON.parse(t); if (d.title) setTranslations(p => ({ ...p, de: { ...p.de, title: d.title } })); if (d.description) setTranslations(p => ({ ...p, de: { ...p.de, description: d.description } })); if (d.tasks) setTranslations(p => ({ ...p, de: { ...p.de, tasks: d.tasks } })); if (d.requirements) setTranslations(p => ({ ...p, de: { ...p.de, requirements: d.requirements } })); if (d.benefits) setTranslations(p => ({ ...p, de: { ...p.de, benefits: d.benefits } })); if (d.position_types) setSelectedPositionTypes(d.position_types); ["location", "address", "postal_code", "country", "work_authorization_requirement", "employment_type", "salary_min", "salary_max", "salary_type", "german_required", "english_required", "german_importance", "english_importance", "contact_person", "contact_email", "contact_phone", "contact_whatsapp", "preferred_contact_method"].forEach(k => d[k] && setValue(k, d[k])); if (Array.isArray(d.other_languages_required)) setOtherLanguages(d.other_languages_required.map((l: OtherLang & { required?: boolean }) => ({ ...l, importance: l.importance || (l.required ? "required" : "desirable") }))); if (d.translations) setTranslations(p => ({ ...p, ...d.translations })); if (d.available_languages) setEnabledLanguages(d.available_languages); toast.success(d.__copy ? "Kopie geladen – anpassen & veröffentlichen" : `Vorlage "${d.name}" geladen`); sessionStorage.removeItem("jobTemplate"); } catch {} }
   }, [setValue]);
 
   const toggleLanguage = (c: string) => { if (c === "de") return; enabledLanguages.includes(c) ? (setEnabledLanguages(enabledLanguages.filter(l => l !== c)), activeLanguage === c && setActiveLanguage("de")) : setEnabledLanguages([...enabledLanguages, c]); };
@@ -291,8 +291,8 @@ export default function CreateJobPage() {
               <div className="flex gap-2">
                 <select className="input-styled flex-1" {...register("german_required")}>{languageLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}</select>
                 <select className="input-styled w-auto" {...register("german_importance")}>
-                  <option value="required">⚠️ Erforderlich</option>
-                  <option value="desirable">✨ Wünschenswert</option>
+                  <option value="required">Erforderlich</option>
+                  <option value="desirable">Wünschenswert</option>
                   <option value="optional">Optional</option>
                 </select>
               </div>
@@ -301,8 +301,8 @@ export default function CreateJobPage() {
               <div className="flex gap-2">
                 <select className="input-styled flex-1" {...register("english_required")}>{languageLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}</select>
                 <select className="input-styled w-auto" {...register("english_importance")}>
-                  <option value="required">⚠️ Erforderlich</option>
-                  <option value="desirable">✨ Wünschenswert</option>
+                  <option value="required">Erforderlich</option>
+                  <option value="desirable">Wünschenswert</option>
                   <option value="optional">Optional</option>
                 </select>
               </div>
@@ -327,8 +327,8 @@ export default function CreateJobPage() {
                       {languageLevels.filter(l => l.value !== "not_required").map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                     </select>
                     <select className="input-styled w-auto" value={lang.importance || "required"} onChange={e => updateOtherLanguage(i, "importance", e.target.value)}>
-                      <option value="required">⚠️ Erforderlich</option>
-                      <option value="desirable">✨ Wünschenswert</option>
+                      <option value="required">Erforderlich</option>
+                      <option value="desirable">Wünschenswert</option>
                       <option value="optional">Optional</option>
                     </select>
                     <button type="button" onClick={() => removeOtherLanguage(i)} className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"><Minus className="h-5 w-5" /></button>

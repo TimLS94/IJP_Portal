@@ -883,55 +883,6 @@ async def delete_job(
         }
 
 
-@router.post("/{job_id}/duplicate", response_model=JobPostingResponse)
-async def duplicate_job(
-    job_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Dupliziert eine bestehende Stelle als neuen ENTWURF (nur eigene Stellen).
-    Kopiert alle Inhalts-/Anforderungsfelder; Statistiken/Status/Slug/Deadline werden zurückgesetzt."""
-    if current_user.role != UserRole.COMPANY:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nur Firmen")
-
-    company = get_company_for_user(current_user, db)
-    if not company:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firmen-Profil nicht gefunden")
-
-    src = db.query(JobPosting).filter(
-        JobPosting.id == job_id, JobPosting.company_id == company.id
-    ).first()
-    if not src:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stellenangebot nicht gefunden")
-
-    from sqlalchemy import inspect as sa_inspect
-    # Felder, die NICHT kopiert werden (Identität, Status, Statistiken, Zeitstempel)
-    exclude = {
-        "id", "created_at", "updated_at", "published_at", "archived_at", "deleted_at",
-        "deletion_reason", "keep_archived", "slug", "is_active", "is_draft",
-        "is_featured", "featured_until", "featured_by_admin", "featured_requested_at",
-        "last_boosted_at", "expiry_reminder_sent_at", "deadline",
-        "view_count", "external_click_count", "email_click_count", "phone_click_count",
-    }
-    data = {
-        c.key: getattr(src, c.key)
-        for c in sa_inspect(JobPosting).mapper.column_attrs
-        if c.key not in exclude
-    }
-    data["company_id"] = company.id
-    data["title"] = f"{src.title} (Kopie)"
-    data["is_draft"] = True
-    data["is_active"] = False
-
-    new_job = JobPosting(**data)
-    db.add(new_job)
-    db.commit()
-    db.refresh(new_job)
-    update_job_slug(new_job, db)
-    db.refresh(new_job)
-    return new_job
-
-
 @router.post("/{job_id}/reactivate", response_model=JobPostingResponse)
 async def reactivate_job(
     job_id: int,
