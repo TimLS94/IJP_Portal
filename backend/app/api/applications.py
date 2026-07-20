@@ -234,12 +234,19 @@ async def create_application(
         except Exception as e:
             logger.error(f"Fehler beim Berechnen des Match-Scores: {e}")
     
+    # Arbeitsberechtigung fürs Stellen-Land (nur bei AT/CH beim Bewerben abgefragt)
+    job_country = (getattr(job, "country", None) or "DE").upper()
+    appl_work_authorized = application_data.work_authorized if job_country in ("AT", "CH") else None
+    appl_needs_support = application_data.needs_employer_support if job_country in ("AT", "CH") else None
+
     application = Application(
         applicant_id=applicant.id,
         job_posting_id=job.id,
         applicant_message=application_data.applicant_message,
         match_score=match_score,
-        is_filtered=is_filtered
+        is_filtered=is_filtered,
+        work_authorized=appl_work_authorized,
+        needs_employer_support=appl_needs_support,
     )
     db.add(application)
     db.commit()
@@ -458,6 +465,10 @@ async def get_company_applications(
             "interview_status_label": interview_status_label,
             "match_score": match_score,
             "is_filtered": app.is_filtered or False,
+            # Arbeitsberechtigung fürs Stellen-Land (nur AT/CH abgefragt)
+            "job_country": (app.job_posting.country if app.job_posting else None) or "DE",
+            "work_authorized": app.work_authorized,
+            "needs_employer_support": app.needs_employer_support,
             # Angeforderte Dokumente inkl. "erhalten"-Status (fulfilled)
             "requested_documents": [
                 {**req, "fulfilled": req.get("type") in uploaded_by_applicant.get(app.applicant_id, set())}

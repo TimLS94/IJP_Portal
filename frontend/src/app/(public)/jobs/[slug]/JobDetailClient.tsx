@@ -173,6 +173,8 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
   const [reported, setReported] = useState(false);
   const [myDocuments, setMyDocuments] = useState<{ id: number; file_name: string; original_name?: string; document_type: string; type_label?: string }[]>([]);
   const [selectedDocIds, setSelectedDocIds] = useState<number[]>([]);
+  const [applyWorkAuthorized, setApplyWorkAuthorized] = useState<boolean | null>(null);
+  const [applyNeedsSupport, setApplyNeedsSupport] = useState(false);
   const job = initialJob;
 
   const parsedTranslations: Record<string, Record<string, string>> | undefined = (() => {
@@ -251,11 +253,22 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
       return;
     }
 
+    const jc = (job.country || "DE").toUpperCase();
+    const needsWorkAuthQ = jc === "AT" || jc === "CH";
+    if (needsWorkAuthQ && applyWorkAuthorized === null) {
+      toast.error("Bitte die Frage zur Arbeitserlaubnis beantworten.");
+      return;
+    }
+
     setApplying(true);
     try {
       const response = await applicationsAPI.create({
         job_posting_id: job.id,
         applicant_message: message || undefined,
+        ...(needsWorkAuthQ ? {
+          work_authorized: applyWorkAuthorized,
+          needs_employer_support: applyWorkAuthorized === false ? applyNeedsSupport : false,
+        } : {}),
       });
       const newApp = response.data;
       if (selectedDocIds.length > 0 && newApp?.id) {
@@ -616,6 +629,23 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                               </label>
                             ))}
                           </div>
+                        </div>
+                      )}
+                      {((job.country || "DE").toUpperCase() === "AT" || (job.country || "DE").toUpperCase() === "CH") && (
+                        <div className="border border-amber-200 bg-amber-50 rounded-lg p-3">
+                          <p className="text-sm font-medium text-gray-800 mb-2">
+                            Sind Sie berechtigt, in {(job.country || "DE").toUpperCase() === "AT" ? "Österreich" : "der Schweiz"} zu arbeiten?
+                          </p>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => setApplyWorkAuthorized(true)} className={`px-4 py-1.5 rounded-lg border-2 text-sm font-medium ${applyWorkAuthorized === true ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 bg-white text-gray-600"}`}>Ja</button>
+                            <button type="button" onClick={() => setApplyWorkAuthorized(false)} className={`px-4 py-1.5 rounded-lg border-2 text-sm font-medium ${applyWorkAuthorized === false ? "border-amber-500 bg-amber-100 text-amber-800" : "border-gray-200 bg-white text-gray-600"}`}>Nein</button>
+                          </div>
+                          {applyWorkAuthorized === false && (
+                            <label className="flex items-center gap-2 mt-3 cursor-pointer text-sm text-gray-700">
+                              <input type="checkbox" checked={applyNeedsSupport} onChange={(e) => setApplyNeedsSupport(e.target.checked)} className="accent-primary-600" />
+                              Ich benötige Unterstützung des Arbeitgebers (z. B. Visum/Arbeitserlaubnis)
+                            </label>
+                          )}
                         </div>
                       )}
                       <button

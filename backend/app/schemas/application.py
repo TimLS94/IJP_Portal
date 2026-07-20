@@ -11,6 +11,8 @@ class ApplicationBase(BaseModel):
 class ApplicationCreate(ApplicationBase):
     job_posting_id: int
     document_ids: Optional[List[int]] = None  # IDs der freigegebenen Dokumente
+    work_authorized: Optional[bool] = None          # nur bei AT/CH-Stellen abgefragt
+    needs_employer_support: Optional[bool] = None
 
 
 class ApplicationUpdate(BaseModel):

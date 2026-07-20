@@ -27,6 +27,9 @@ interface Application {
   match_score?: number;
   requested_documents?: { type: string }[];
   interview_status?: string;
+  job_country?: string;
+  work_authorized?: boolean | null;
+  needs_employer_support?: boolean | null;
 }
 
 interface ApplicantAddress {
@@ -1048,6 +1051,11 @@ export default function CompanyApplicationsPage() {
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
                       {statusInfo.label}
                     </span>
+                    {(app.job_country === "AT" || app.job_country === "CH") && app.work_authorized != null && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${app.work_authorized ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`} title={`Arbeitserlaubnis ${app.job_country}`}>
+                        {app.job_country === "AT" ? "🇦🇹" : "🇨🇭"} Arbeitserlaubnis: {app.work_authorized ? "Ja" : `Nein${app.needs_employer_support ? " · AG-Unterstützung nötig" : ""}`}
+                      </span>
+                    )}
                     {app.requested_documents && app.requested_documents.some((d: any) => !d.fulfilled) && (
                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">Dok.⏳</span>
                     )}

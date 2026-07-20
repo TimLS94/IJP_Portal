@@ -141,6 +141,8 @@ def ensure_external_job_columns():
             ("applicants", "work_authorized", "BOOLEAN"),
             ("applicants", "work_support_needed", "JSON"),
             ("applicants", "needs_employer_support", "BOOLEAN"),
+            ("applications", "work_authorized", "BOOLEAN"),
+            ("applications", "needs_employer_support", "BOOLEAN"),
             ("companies", "is_scraped", "BOOLEAN DEFAULT FALSE"),
             ("companies", "weekly_report_enabled", "BOOLEAN DEFAULT TRUE"),
             ("companies", "expiry_reminder_enabled", "BOOLEAN DEFAULT TRUE"),

@@ -83,6 +83,11 @@ class Application(Base):
     applicant_message = Column(Text)  # Nachricht vom Bewerber
     company_notes = Column(Text)      # Notizen der Firma (nur für Firmenmitglieder sichtbar)
     admin_notes = Column(Text)        # Interne Notizen von IJP Admin
+
+    # Arbeitsberechtigung für das Land der Stelle (AT/CH), beim Bewerben abgefragt.
+    # Für DE-Stellen deckt das Profil ab -> hier meist None.
+    work_authorized = Column(Boolean, nullable=True)          # Berechtigt im Stellen-Land zu arbeiten?
+    needs_employer_support = Column(Boolean, nullable=True)   # Braucht AG-Unterstützung (Visum etc.)?
     
     # Angeforderte Dokumente von Firma/Admin
     # Format: [{"type": "cv", "requested_by": "company", "requested_at": "...", "message": "..."}]
