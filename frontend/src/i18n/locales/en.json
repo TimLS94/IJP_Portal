@@ -1009,6 +1009,8 @@
     "onlyVisibleToTeam": "Only visible to your team",
     "pendingDates": "Dates pending",
     "proposal": "Date proposal",
+    "proposal1": "Proposal 1",
+    "proposal2": "Proposal 2",
     "proposeDates": "Propose dates",
     "proposeHint": "Suggest 1–2 dates. The applicant will choose one.",
     "requestDocuments": "Request documents",
@@ -1560,6 +1562,12 @@
     }
   },
   "jobDetail": {
+    "shareDocuments": "Share documents (optional)",
+    "workAuthQuestion": "Are you authorized to work in {{country}}?",
+    "countryAT": "Austria",
+    "countryCH": "Switzerland",
+    "needEmployerSupport": "I need support from the employer (e.g. visa/work permit)",
+    "answerWorkAuth": "Please answer the work authorization question.",
     "description": "Description",
     "tasks": "Tasks",
     "requirements": "Requirements",

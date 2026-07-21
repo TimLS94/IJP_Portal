@@ -256,7 +256,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
     const jc = (job.country || "DE").toUpperCase();
     const needsWorkAuthQ = jc === "AT" || jc === "CH";
     if (needsWorkAuthQ && applyWorkAuthorized === null) {
-      toast.error("Bitte die Frage zur Arbeitserlaubnis beantworten.");
+      toast.error(t("jobDetail.answerWorkAuth"));
       return;
     }
 
@@ -609,7 +609,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                       />
                       {myDocuments.length > 0 && (
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-2">Dokumente freigeben (optional)</p>
+                          <p className="text-sm font-medium text-gray-700 mb-2">{t("jobDetail.shareDocuments")}</p>
                           <div className="space-y-1 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
                             {myDocuments.map((doc) => (
                               <label key={doc.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded p-1">
@@ -634,16 +634,16 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                       {((job.country || "DE").toUpperCase() === "AT" || (job.country || "DE").toUpperCase() === "CH") && (
                         <div className="border border-amber-200 bg-amber-50 rounded-lg p-3">
                           <p className="text-sm font-medium text-gray-800 mb-2">
-                            Sind Sie berechtigt, in {(job.country || "DE").toUpperCase() === "AT" ? "Österreich" : "der Schweiz"} zu arbeiten?
+                            {t("jobDetail.workAuthQuestion", { country: (job.country || "DE").toUpperCase() === "AT" ? t("jobDetail.countryAT") : t("jobDetail.countryCH") })}
                           </p>
                           <div className="flex gap-2">
-                            <button type="button" onClick={() => setApplyWorkAuthorized(true)} className={`px-4 py-1.5 rounded-lg border-2 text-sm font-medium ${applyWorkAuthorized === true ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 bg-white text-gray-600"}`}>Ja</button>
-                            <button type="button" onClick={() => setApplyWorkAuthorized(false)} className={`px-4 py-1.5 rounded-lg border-2 text-sm font-medium ${applyWorkAuthorized === false ? "border-amber-500 bg-amber-100 text-amber-800" : "border-gray-200 bg-white text-gray-600"}`}>Nein</button>
+                            <button type="button" onClick={() => setApplyWorkAuthorized(true)} className={`px-4 py-1.5 rounded-lg border-2 text-sm font-medium ${applyWorkAuthorized === true ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 bg-white text-gray-600"}`}>{t("common.yes")}</button>
+                            <button type="button" onClick={() => setApplyWorkAuthorized(false)} className={`px-4 py-1.5 rounded-lg border-2 text-sm font-medium ${applyWorkAuthorized === false ? "border-amber-500 bg-amber-100 text-amber-800" : "border-gray-200 bg-white text-gray-600"}`}>{t("common.no")}</button>
                           </div>
                           {applyWorkAuthorized === false && (
                             <label className="flex items-center gap-2 mt-3 cursor-pointer text-sm text-gray-700">
                               <input type="checkbox" checked={applyNeedsSupport} onChange={(e) => setApplyNeedsSupport(e.target.checked)} className="accent-primary-600" />
-                              Ich benötige Unterstützung des Arbeitgebers (z. B. Visum/Arbeitserlaubnis)
+                              {t("jobDetail.needEmployerSupport")}
                             </label>
                           )}
                         </div>

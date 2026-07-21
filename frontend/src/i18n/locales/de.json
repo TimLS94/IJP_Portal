@@ -1009,6 +1009,8 @@
     "onlyVisibleToTeam": "Nur für Ihr Team sichtbar",
     "pendingDates": "Termine ausstehend",
     "proposal": "Terminvorschlag",
+    "proposal1": "Vorschlag 1",
+    "proposal2": "Vorschlag 2",
     "proposeDates": "Termine vorschlagen",
     "proposeHint": "Schlagen Sie 1–2 Termine vor. Der Bewerber wählt einen aus.",
     "requestDocuments": "Dokumente anfordern",
@@ -1560,6 +1562,12 @@
     }
   },
   "jobDetail": {
+    "shareDocuments": "Dokumente freigeben (optional)",
+    "workAuthQuestion": "Sind Sie berechtigt, in {{country}} zu arbeiten?",
+    "countryAT": "Österreich",
+    "countryCH": "der Schweiz",
+    "needEmployerSupport": "Ich benötige Unterstützung des Arbeitgebers (z. B. Visum/Arbeitserlaubnis)",
+    "answerWorkAuth": "Bitte die Frage zur Arbeitserlaubnis beantworten.",
     "description": "Beschreibung",
     "tasks": "Aufgaben",
     "requirements": "Anforderungen",

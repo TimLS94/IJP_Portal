@@ -2,6 +2,7 @@
 Translation Service für DeepL API
 """
 import os
+import html
 import httpx
 from typing import Optional, Dict, Any
 
@@ -17,15 +18,18 @@ def get_deepl_status() -> Dict[str, Any]:
     }
 
 
-async def translate_text(text: str, target_lang: str, source_lang: str = "DE") -> Optional[str]:
+async def translate_text(text: str, target_lang: str, source_lang: str = "DE", is_html: bool = True) -> Optional[str]:
     """
     Übersetzt einen Text mit DeepL API.
-    
+
     Args:
         text: Der zu übersetzende Text
         target_lang: Zielsprache (EN, ES, RU, etc.)
         source_lang: Quellsprache (default: DE)
-    
+        is_html: Ob der Text HTML enthält (default: True). Bei Klartext-Feldern
+                 wie dem Titel auf False setzen, damit DeepL keine HTML-Entities
+                 (z.B. &#x27; für ') in die Ausgabe schreibt.
+
     Returns:
         Übersetzter Text oder None bei Fehler
     """
@@ -57,17 +61,23 @@ async def translate_text(text: str, target_lang: str, source_lang: str = "DE") -
                 "text": [text],
                 "target_lang": target,
                 "source_lang": source,
-                "tag_handling": "html",
+                # tag_handling nur bei echtem HTML: sonst escaped DeepL Sonderzeichen
+                # (z.B. Apostroph -> &#x27;), was in Klartext-Feldern sichtbar bliebe.
+                **({"tag_handling": "html"} if is_html else {}),
                 "preserve_formatting": True
             },
             timeout=30.0
         )
-        
+
         if response.status_code == 200:
             result = response.json()
             translations = result.get("translations", [])
             if translations:
-                return translations[0].get("text")
+                translated = translations[0].get("text")
+                # Klartext-Felder: eventuelle HTML-Entities wieder auflösen
+                if translated and not is_html:
+                    translated = html.unescape(translated)
+                return translated
         else:
             raise Exception(f"DeepL API Error: {response.status_code} - {response.text}")
     
@@ -91,9 +101,9 @@ async def translate_job_fields(
     """
     result = {}
     
-    # Titel übersetzen
+    # Titel übersetzen (Klartext, kein HTML)
     if title:
-        result["title"] = await translate_text(title, target_lang, source_lang)
+        result["title"] = await translate_text(title, target_lang, source_lang, is_html=False)
     
     # Beschreibung übersetzen
     if description:

@@ -1004,6 +1004,8 @@
     "onlyVisibleToTeam": "Solo visible para su equipo",
     "pendingDates": "Fechas pendientes",
     "proposal": "Propuesta de fecha",
+    "proposal1": "Propuesta 1",
+    "proposal2": "Propuesta 2",
     "proposeDates": "Proponer fechas",
     "proposeHint": "Sugiera 1–2 fechas. El candidato elegirá una.",
     "requestDocuments": "Solicitar documentos",
@@ -1517,6 +1519,12 @@
     }
   },
   "jobDetail": {
+    "shareDocuments": "Compartir documentos (opcional)",
+    "workAuthQuestion": "¿Tiene permiso para trabajar en {{country}}?",
+    "countryAT": "Austria",
+    "countryCH": "Suiza",
+    "needEmployerSupport": "Necesito apoyo del empleador (p. ej. visado/permiso de trabajo)",
+    "answerWorkAuth": "Por favor, responda a la pregunta sobre el permiso de trabajo.",
     "description": "Descripción",
     "tasks": "Tareas",
     "requirements": "Requisitos",
