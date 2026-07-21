@@ -1111,7 +1111,7 @@ export default function CompanyApplicationsPage() {
       {/* Detail Modal */}
       {selectedAppId && (
         <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-4 sm:my-8 relative">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-4 sm:my-8 relative min-w-0 overflow-hidden">
             {/* Schließen-Button immer sichtbar */}
             <button 
               onClick={closeDetails}
@@ -1184,32 +1184,32 @@ export default function CompanyApplicationsPage() {
                     </h3>
                     <div className="space-y-2 text-sm">
                       {applicantDetails.applicant.gender && (
-                        <div className="flex justify-between p-2 bg-white rounded">
-                          <span className="text-gray-500">Geschlecht</span>
+                        <div className="flex justify-between gap-3 p-2 bg-white rounded">
+                          <span className="text-gray-500 shrink-0">Geschlecht</span>
                           <span className="font-medium">{({ male: "Männlich", female: "Weiblich", diverse: "Divers" } as Record<string, string>)[applicantDetails.applicant.gender] || applicantDetails.applicant.gender}</span>
                         </div>
                       )}
                       {applicantDetails.applicant.date_of_birth && (
-                        <div className="flex justify-between p-2 bg-white rounded">
-                          <span className="text-gray-500">{t('applicant.dateOfBirth')}</span>
+                        <div className="flex justify-between gap-3 p-2 bg-white rounded">
+                          <span className="text-gray-500 shrink-0">{t('applicant.dateOfBirth')}</span>
                           <span className="font-medium">{new Date(applicantDetails.applicant.date_of_birth).toLocaleDateString("de-DE")}</span>
                         </div>
                       )}
                       {applicantDetails.applicant.nationality && (
-                        <div className="flex justify-between p-2 bg-white rounded">
-                          <span className="text-gray-500">{t('applicant.nationality')}</span>
+                        <div className="flex justify-between gap-3 p-2 bg-white rounded">
+                          <span className="text-gray-500 shrink-0">{t('applicant.nationality')}</span>
                           <span className="font-medium">{getNationalityLabel(applicantDetails.applicant.nationality, 'de')}</span>
                         </div>
                       )}
                       {applicantDetails.applicant.position_type && (
-                        <div className="flex justify-between p-2 bg-white rounded">
-                          <span className="text-gray-500">{t('common.positionType')}</span>
+                        <div className="flex justify-between gap-3 p-2 bg-white rounded">
+                          <span className="text-gray-500 shrink-0">{t('common.positionType')}</span>
                           <span className="font-medium">{applicantDetails.applicant.position_type}</span>
                         </div>
                       )}
                       {applicantDetails.applicant.work_authorized != null && (
-                        <div className="flex justify-between p-2 bg-white rounded">
-                          <span className="text-gray-500">Arbeitsberechtigung (DE)</span>
+                        <div className="flex justify-between gap-3 p-2 bg-white rounded">
+                          <span className="text-gray-500 shrink-0">Arbeitsberechtigung (DE)</span>
                           <span className={`font-medium ${applicantDetails.applicant.work_authorized ? "text-green-600" : "text-amber-600"}`}>
                             {applicantDetails.applicant.work_authorized
                               ? "Ja"
@@ -1218,32 +1218,32 @@ export default function CompanyApplicationsPage() {
                         </div>
                       )}
                       {applicantDetails.applicant.german_level && (
-                        <div className="flex justify-between p-2 bg-white rounded">
-                          <span className="text-gray-500">{t('common.german')}</span>
+                        <div className="flex justify-between gap-3 p-2 bg-white rounded">
+                          <span className="text-gray-500 shrink-0">{t('common.german')}</span>
                           <span className="font-medium">{applicantDetails.applicant.german_level}</span>
                         </div>
                       )}
                       {applicantDetails.applicant.english_level && (
-                        <div className="flex justify-between p-2 bg-white rounded">
-                          <span className="text-gray-500">{t('common.english')}</span>
+                        <div className="flex justify-between gap-3 p-2 bg-white rounded">
+                          <span className="text-gray-500 shrink-0">{t('common.english')}</span>
                           <span className="font-medium">{applicantDetails.applicant.english_level}</span>
                         </div>
                       )}
                       {applicantDetails.applicant.work_experience_years !== undefined && (
-                        <div className="flex justify-between p-2 bg-white rounded">
-                          <span className="text-gray-500">{t('applicant.workExperience')}</span>
+                        <div className="flex justify-between gap-3 p-2 bg-white rounded">
+                          <span className="text-gray-500 shrink-0">{t('applicant.workExperience')}</span>
                           <span className="font-medium">{applicantDetails.applicant.work_experience_years} {t('common.years')}</span>
                         </div>
                       )}
                       {applicantDetails.applicant.university_name && (
-                        <div className="flex justify-between p-2 bg-white rounded">
-                          <span className="text-gray-500">{t('applicant.university')}</span>
+                        <div className="flex justify-between gap-3 p-2 bg-white rounded">
+                          <span className="text-gray-500 shrink-0">{t('applicant.university')}</span>
                           <span className="font-medium">{applicantDetails.applicant.university_name}</span>
                         </div>
                       )}
                       {applicantDetails.applicant.field_of_study && (
-                        <div className="flex justify-between p-2 bg-white rounded">
-                          <span className="text-gray-500">{t('applicant.fieldOfStudy')}</span>
+                        <div className="flex justify-between gap-3 p-2 bg-white rounded">
+                          <span className="text-gray-500 shrink-0">{t('applicant.fieldOfStudy')}</span>
                           <span className="font-medium">{applicantDetails.applicant.field_of_study}</span>
                         </div>
                       )}
@@ -1253,7 +1253,7 @@ export default function CompanyApplicationsPage() {
                   {/* Match-Score Details (Premium) */}
                   {isPremium && selectedApp?.match_score !== undefined && (
                     <div className="md:col-span-2 bg-gradient-to-r from-primary-50 to-blue-50 rounded-xl p-5 border border-primary-100">
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                         <h3 className="font-bold text-gray-900 flex items-center gap-2">
                           <Sparkles className="h-5 w-5 text-primary-600" />
                           Matching-Score Analyse
@@ -1418,7 +1418,7 @@ export default function CompanyApplicationsPage() {
 
                   {/* Dokumente */}
                   <div className="md:col-span-2 bg-gray-50 rounded-xl p-5">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                       <h3 className="font-bold text-gray-900 flex items-center gap-2">
                         <FileText className="h-5 w-5 text-primary-600" />
                         {t('common.documents')} ({applicantDetails.documents?.length || 0})
@@ -1494,7 +1494,7 @@ export default function CompanyApplicationsPage() {
 
                   {/* Vorstellungsgespräch */}
                   <div className="md:col-span-2 bg-purple-50 rounded-xl p-5 border border-purple-200">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                       <h3 className="font-bold text-gray-900 flex items-center gap-2">
                         <CalendarPlus className="h-5 w-5 text-purple-600" />
                         {t('companyApplications.interview')}
