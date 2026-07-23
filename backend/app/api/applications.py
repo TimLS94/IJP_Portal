@@ -332,11 +332,32 @@ async def get_my_applications(
         Application.applicant_id == applicant.id
     ).order_by(Application.applied_at.desc()).all()
 
-    # Bereits hochgeladene Dokumenttypen (für "erledigt"-Status der Anforderungen)
+    # Bereits hochgeladene Dokumenttypen (Fallback für alte Bewerbungen ohne Freigabe)
     uploaded_types = {
         (d.document_type.value if hasattr(d.document_type, "value") else str(d.document_type))
         for d in db.query(Document.document_type).filter(Document.applicant_id == applicant.id).all()
     }
+
+    # Freigegebene Dokumenttypen JE BEWERBUNG: "erledigt" nur, wenn das Dokument auch
+    # wirklich für diese Bewerbung freigegeben wurde – sonst wähnt sich der Bewerber
+    # fertig und gibt nie frei, und die Firma erhält das Dokument nie.
+    from collections import defaultdict
+    my_app_ids = {app.id for app in applications}
+    shared_types_by_app = defaultdict(set)
+    apps_with_shares = set()
+    if my_app_ids:
+        for app_id, dtype in db.query(
+            ApplicationDocument.application_id, Document.document_type
+        ).join(Document, ApplicationDocument.document_id == Document.id).filter(
+            ApplicationDocument.application_id.in_(my_app_ids)
+        ).all():
+            apps_with_shares.add(app_id)
+            shared_types_by_app[app_id].add(dtype.value if hasattr(dtype, "value") else str(dtype))
+
+    def _my_doc_fulfilled(app, req_type):
+        if app.id in apps_with_shares:
+            return req_type in shared_types_by_app[app.id]
+        return req_type in uploaded_types
 
     result = []
     for app in applications:
@@ -353,7 +374,7 @@ async def get_my_applications(
             "company_name": app.job_posting.company.company_name if app.job_posting and app.job_posting.company else None,
             "job_translations": app.job_posting.translations if app.job_posting else None,
             "requested_documents": [
-                {**req, "fulfilled": req.get("type") in uploaded_types}
+                {**req, "fulfilled": _my_doc_fulfilled(app, req.get("type"))}
                 for req in (app.requested_documents or [])
             ],
         }
@@ -414,7 +435,7 @@ async def get_company_applications(
 
     applications = query.order_by(Application.applied_at.desc()).all()
 
-    # Hochgeladene Dokumenttypen je Bewerber laden (für "erhalten"-Status, ohne N+1)
+    # Hochgeladene Dokumenttypen je Bewerber laden (Fallback für alte Bewerbungen)
     from collections import defaultdict
     applicant_ids = {app.applicant_id for app in applications if app.applicant_id}
     uploaded_by_applicant = defaultdict(set)
@@ -423,6 +444,28 @@ async def get_company_applications(
             Document.applicant_id.in_(applicant_ids)
         ).all():
             uploaded_by_applicant[aid].add(dtype.value if hasattr(dtype, "value") else str(dtype))
+
+    # Freigegebene Dokumenttypen JE BEWERBUNG. "Eingereicht" darf nur erscheinen, wenn
+    # das Dokument wirklich für DIESE Bewerbung freigegeben wurde (konsistent mit dem,
+    # was im Detail-Modal an Dokumenten angezeigt wird).
+    app_ids = {app.id for app in applications}
+    shared_types_by_app = defaultdict(set)
+    apps_with_shares = set()
+    if app_ids:
+        for app_id, dtype in db.query(
+            ApplicationDocument.application_id, Document.document_type
+        ).join(Document, ApplicationDocument.document_id == Document.id).filter(
+            ApplicationDocument.application_id.in_(app_ids)
+        ).all():
+            apps_with_shares.add(app_id)
+            shared_types_by_app[app_id].add(dtype.value if hasattr(dtype, "value") else str(dtype))
+
+    def _doc_fulfilled(app, req_type):
+        # Neue Bewerbungen: erfüllt nur, wenn Typ für diese Bewerbung freigegeben ist.
+        if app.id in apps_with_shares:
+            return req_type in shared_types_by_app[app.id]
+        # Fallback (alte Bewerbungen ohne explizite Freigabe): globale Bewerber-Doks.
+        return req_type in uploaded_by_applicant.get(app.applicant_id, set())
 
     # Status-Labels einmal definieren
     status_labels = {
@@ -471,7 +514,7 @@ async def get_company_applications(
             "needs_employer_support": app.needs_employer_support,
             # Angeforderte Dokumente inkl. "erhalten"-Status (fulfilled)
             "requested_documents": [
-                {**req, "fulfilled": req.get("type") in uploaded_by_applicant.get(app.applicant_id, set())}
+                {**req, "fulfilled": _doc_fulfilled(app, req.get("type"))}
                 for req in (app.requested_documents or [])
             ],
         }
