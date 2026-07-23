@@ -124,10 +124,14 @@ interface TimelineData {
   date: string;
   label: string;
   users: number;
+  applicants: number;
+  companies: number;
   applications: number;
   jobs: number;
   logins: number;
   cumulative_users?: number;
+  cumulative_applicants?: number;
+  cumulative_companies?: number;
   cumulative_applications?: number;
   cumulative_jobs?: number;
 }
@@ -137,6 +141,8 @@ interface TimelineStats {
   timeline: TimelineData[];
   totals: {
     users: number;
+    applicants: number;
+    companies: number;
     applications: number;
     jobs: number;
   };
@@ -628,6 +634,14 @@ export default function AdminDashboardPage() {
                       <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3}/>
                       <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
                     </linearGradient>
+                    <linearGradient id="colorApplicants" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorCompanies" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#EC4899" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#EC4899" stopOpacity={0}/>
+                    </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                   <XAxis 
@@ -651,18 +665,36 @@ export default function AdminDashboardPage() {
                     labelFormatter={(label) => `Datum: ${label}`}
                   />
                   <Legend />
-                  <Area 
-                    type="monotone" 
-                    dataKey="users" 
+                  <Area
+                    type="monotone"
+                    dataKey="users"
                     name="Neue Benutzer"
-                    stroke="#3B82F6" 
+                    stroke="#3B82F6"
                     fillOpacity={1}
                     fill="url(#colorUsers)"
                     strokeWidth={2}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="applications" 
+                  <Area
+                    type="monotone"
+                    dataKey="applicants"
+                    name="Neue Bewerber"
+                    stroke="#06B6D4"
+                    fillOpacity={1}
+                    fill="url(#colorApplicants)"
+                    strokeWidth={2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="companies"
+                    name="Neue Firmen"
+                    stroke="#EC4899"
+                    fillOpacity={1}
+                    fill="url(#colorCompanies)"
+                    strokeWidth={2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="applications"
                     name="Bewerbungen"
                     stroke="#8B5CF6" 
                     fillOpacity={1}
@@ -712,17 +744,33 @@ export default function AdminDashboardPage() {
                     labelFormatter={(label) => `Datum: ${label}`}
                   />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="cumulative_users" 
+                  <Line
+                    type="monotone"
+                    dataKey="cumulative_users"
                     name="Benutzer (kumulativ)"
-                    stroke="#3B82F6" 
+                    stroke="#3B82F6"
                     strokeWidth={2}
                     dot={false}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="cumulative_applications" 
+                  <Line
+                    type="monotone"
+                    dataKey="cumulative_applicants"
+                    name="Bewerber (kumulativ)"
+                    stroke="#06B6D4"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="cumulative_companies"
+                    name="Firmen (kumulativ)"
+                    stroke="#EC4899"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="cumulative_applications"
                     name="Bewerbungen (kumulativ)"
                     stroke="#8B5CF6" 
                     strokeWidth={2}
@@ -742,10 +790,18 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Summary below chart */}
-          <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-6 pt-6 border-t">
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">{timelineStats.totals.users}</p>
               <p className="text-sm text-gray-600">Neue Benutzer</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-cyan-600">{timelineStats.totals.applicants}</p>
+              <p className="text-sm text-gray-600">Neue Bewerber</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-pink-600">{timelineStats.totals.companies}</p>
+              <p className="text-sm text-gray-600">Neue Firmen</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-purple-600">{timelineStats.totals.applications}</p>

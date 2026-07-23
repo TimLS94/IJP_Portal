@@ -2933,7 +2933,25 @@ async def get_timeline_stats(
         User.created_at >= start_utc,
         not_ijp
     ).group_by(func.date(User.created_at)).all()
-    
+
+    # Tägliche Registrierungen aufgeteilt nach Rolle (Bewerber vs. Firmen)
+    daily_applicants = db.query(
+        func.date(User.created_at).label("date"),
+        func.count(User.id).label("count")
+    ).filter(
+        User.created_at >= start_utc,
+        User.role == UserRole.APPLICANT,
+        not_ijp
+    ).group_by(func.date(User.created_at)).all()
+
+    daily_companies = db.query(
+        func.date(User.created_at).label("date"),
+        func.count(User.id).label("count")
+    ).filter(
+        User.created_at >= start_utc,
+        User.role == UserRole.COMPANY
+    ).group_by(func.date(User.created_at)).all()
+
     # Tägliche Bewerbungen
     daily_applications = db.query(
         func.date(Application.applied_at).label("date"),
@@ -2961,6 +2979,8 @@ async def get_timeline_stats(
     
     # Daten in ein Dictionary umwandeln für einfachen Zugriff
     users_dict = {str(d) if d else "": c for d, c in daily_users if d}
+    applicants_dict = {str(d) if d else "": c for d, c in daily_applicants if d}
+    companies_dict = {str(d) if d else "": c for d, c in daily_companies if d}
     apps_dict = {str(d) if d else "": c for d, c in daily_applications if d}
     jobs_dict = {str(d) if d else "": c for d, c in daily_jobs if d}
     logins_dict = {str(d) if d else "": c for d, c in daily_logins if d}
@@ -2976,32 +2996,42 @@ async def get_timeline_stats(
             "date": date_str,
             "label": current_date.strftime("%d.%m."),
             "users": users_dict.get(date_str, 0),
+            "applicants": applicants_dict.get(date_str, 0),
+            "companies": companies_dict.get(date_str, 0),
             "applications": apps_dict.get(date_str, 0),
             "jobs": jobs_dict.get(date_str, 0),
             "logins": logins_dict.get(date_str, 0)
         })
         current_date += timedelta(days=1)
-    
+
     # Kumulative Summen berechnen
     cumulative = {
         "users": 0,
+        "applicants": 0,
+        "companies": 0,
         "applications": 0,
         "jobs": 0
     }
-    
+
     for day in timeline:
         cumulative["users"] += day["users"]
+        cumulative["applicants"] += day["applicants"]
+        cumulative["companies"] += day["companies"]
         cumulative["applications"] += day["applications"]
         cumulative["jobs"] += day["jobs"]
         day["cumulative_users"] = cumulative["users"]
+        day["cumulative_applicants"] = cumulative["applicants"]
+        day["cumulative_companies"] = cumulative["companies"]
         day["cumulative_applications"] = cumulative["applications"]
         day["cumulative_jobs"] = cumulative["jobs"]
-    
+
     return {
         "period_days": days,
         "timeline": timeline,
         "totals": {
             "users": cumulative["users"],
+            "applicants": cumulative["applicants"],
+            "companies": cumulative["companies"],
             "applications": cumulative["applications"],
             "jobs": cumulative["jobs"]
         }
