@@ -442,6 +442,71 @@ export default function AdminSettingsPage() {
         </button>
       </div>
 
+      {/* Mindest-Matching-Score (immer sichtbar, unabhängig von Benachrichtigungs-Schaltern) */}
+      <div className="card mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-purple-100 rounded-lg">
+            <Bell className="h-5 w-5 text-purple-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Mindest-Matching-Score</h2>
+            <p className="text-sm text-gray-600">
+              Ab welchem Match Bewerber Mails bekommen – gilt für neue Stellen, E-Mail-Boost und Digest
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min="50"
+                max="100"
+                value={emailThreshold}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 85;
+                  setEmailThreshold(Math.min(100, Math.max(50, value)));
+                }}
+                className="input-styled w-32"
+              />
+              <span className="text-gray-600">%</span>
+              {emailThreshold !== (flags.job_notifications_threshold || 85) && (
+                <button
+                  onClick={saveEmailThreshold}
+                  disabled={saving === "job_notifications_threshold"}
+                  className="btn-primary text-sm flex items-center gap-1"
+                >
+                  {saving === "job_notifications_threshold" ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Save className="h-3 w-3" />
+                  )}
+                  Speichern
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Bewerber erhalten nur E-Mails wenn ihr Match ≥ {emailThreshold}% ist (niedriger = mehr Empfänger)
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {[70, 80, 85, 90].map(val => (
+              <button
+                key={val}
+                onClick={() => setEmailThreshold(val)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  emailThreshold === val
+                    ? "bg-purple-100 text-purple-700 border-2 border-purple-300"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {val}%
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Feature Toggles */}
       <div className="card mb-8">
         <div className="flex items-center gap-3 mb-6">
