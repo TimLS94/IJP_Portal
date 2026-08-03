@@ -76,6 +76,8 @@ interface Job {
   position_type?: string;
   german_level?: string;
   english_level?: string;
+  german_importance?: string;
+  english_importance?: string;
   other_languages?: OtherLanguage[];
   remote_possible?: boolean;
   accommodation_provided?: boolean;
@@ -496,12 +498,13 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                     {getLabel("languages")}
                   </h3>
                   <div className="space-y-4">
-                    {/* Erforderliche Sprachen */}
-                    {((job.german_level && job.german_level !== "not_required") || (job.english_level && job.english_level !== "not_required")) && (
+                    {/* Erforderliche Sprachen (Wichtigkeit = required) */}
+                    {((job.german_level && job.german_level !== "not_required" && (job.german_importance || "required") === "required") ||
+                      (job.english_level && job.english_level !== "not_required" && (job.english_importance || "required") === "required")) && (
                       <div>
                         <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2">{t("jobDetail.required")}</p>
                         <div className="flex flex-wrap gap-2">
-                          {job.german_level && job.german_level !== "not_required" && (
+                          {job.german_level && job.german_level !== "not_required" && (job.german_importance || "required") === "required" && (
                             <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg border border-red-100">
                               <span className="font-medium text-gray-700">🇩🇪 {t("jobDetail.german")}</span>
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${languageLevelColors[job.german_level] || "bg-gray-100"}`}>
@@ -509,7 +512,7 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                               </span>
                             </div>
                           )}
-                          {job.english_level && job.english_level !== "not_required" && (
+                          {job.english_level && job.english_level !== "not_required" && (job.english_importance || "required") === "required" && (
                             <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg border border-red-100">
                               <span className="font-medium text-gray-700">🇬🇧 {t("jobDetail.english")}</span>
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${languageLevelColors[job.english_level] || "bg-gray-100"}`}>
@@ -520,12 +523,30 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                         </div>
                       </div>
                     )}
-                    {/* Wünschenswerte Sprachen */}
-                    {job.other_languages && job.other_languages.length > 0 && (
+                    {/* Wünschenswerte Sprachen (Deutsch/Englisch mit desirable/optional + weitere Sprachen) */}
+                    {((job.german_level && job.german_level !== "not_required" && (job.german_importance || "required") !== "required") ||
+                      (job.english_level && job.english_level !== "not_required" && (job.english_importance || "required") !== "required") ||
+                      (job.other_languages && job.other_languages.length > 0)) && (
                       <div>
                         <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">{t("jobDetail.desirable")}</p>
                         <div className="flex flex-wrap gap-2">
-                          {job.other_languages.map((lang, idx) => (
+                          {job.german_level && job.german_level !== "not_required" && (job.german_importance || "required") !== "required" && (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-lg border border-amber-100">
+                              <span className="font-medium text-gray-700">🇩🇪 {t("jobDetail.german")}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${languageLevelColors[job.german_level] || "bg-gray-100"}`}>
+                                {langLevelLabel(job.german_level)}
+                              </span>
+                            </div>
+                          )}
+                          {job.english_level && job.english_level !== "not_required" && (job.english_importance || "required") !== "required" && (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-lg border border-amber-100">
+                              <span className="font-medium text-gray-700">🇬🇧 {t("jobDetail.english")}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${languageLevelColors[job.english_level] || "bg-gray-100"}`}>
+                                {langLevelLabel(job.english_level)}
+                              </span>
+                            </div>
+                          )}
+                          {job.other_languages && job.other_languages.map((lang, idx) => (
                             <div key={idx} className="flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-lg border border-amber-100">
                               <span className="font-medium text-gray-700">🌐 {lang.language}</span>
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${languageLevelColors[lang.level] || "bg-gray-100"}`}>

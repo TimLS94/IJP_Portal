@@ -66,6 +66,8 @@ interface JobFromAPI {
   position_type?: string;
   german_required?: string;
   english_required?: string;
+  german_importance?: string;
+  english_importance?: string;
   other_languages_required?: OtherLanguage[];
   remote_possible?: boolean;
   accommodation_provided?: boolean;
@@ -123,6 +125,8 @@ interface Job {
   position_type?: string;
   german_level?: string;
   english_level?: string;
+  german_importance?: string;
+  english_importance?: string;
   other_languages?: OtherLanguage[];
   remote_possible?: boolean;
   accommodation_provided?: boolean;
@@ -147,6 +151,8 @@ function transformJob(apiJob: JobFromAPI): Job {
     ...apiJob,
     german_level: apiJob.german_required,
     english_level: apiJob.english_required,
+    german_importance: apiJob.german_importance,
+    english_importance: apiJob.english_importance,
     other_languages: apiJob.other_languages_required,
     valid_until: apiJob.valid_through || apiJob.deadline,
     translations: apiJob.translations,

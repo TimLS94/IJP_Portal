@@ -374,6 +374,8 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
         "salary_type": job.salary_type,
         "german_required": job.german_required.value if job.german_required else None,
         "english_required": job.english_required.value if job.english_required else None,
+        "german_importance": getattr(job, "german_importance", "required") or "required",
+        "english_importance": getattr(job, "english_importance", "required") or "required",
         "other_languages_required": job.other_languages_required,
         "additional_requirements": job.additional_requirements,
         "is_active": job.is_active,
