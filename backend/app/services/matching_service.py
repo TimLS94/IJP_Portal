@@ -252,10 +252,13 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
         }
     
     # Arbeitsberechtigung: negativer Faktor, wenn die Stelle eine bestehende
-    # Berechtigung voraussetzt und der Bewerber (noch) nicht berechtigt ist.
+    # Berechtigung voraussetzt und der Bewerber sie EXPLIZIT verneint hat.
+    # Wichtig (Abwärtskompatibilität): nur ein ausdrückliches "Nein" (False) zählt.
+    # Bewerber, die die (neue) Frage nie gesehen haben (work_authorized = None),
+    # werden NICHT abgestraft und bleiben in Alerts/Boost enthalten.
     # Bei Saison/Work&Holiday stärker gewichtet. "support_offered"/"not_relevant" -> kein Abzug.
     work_req = getattr(job, "work_authorization_requirement", "not_relevant") or "not_relevant"
-    if work_req == "required" and applicant.work_authorized is not True:
+    if work_req == "required" and applicant.work_authorized is False:
         jt = job.position_type.value if job.position_type else None
         penalty = 30 if jt in ("saisonjob", "workandholiday") else 15
         scores["work_authorization"] = -penalty
