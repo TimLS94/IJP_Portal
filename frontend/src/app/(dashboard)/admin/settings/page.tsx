@@ -449,9 +449,9 @@ export default function AdminSettingsPage() {
             <Bell className="h-5 w-5 text-purple-600" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Mindest-Matching-Score</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Mindest-Matching-Score (Booster-E-Mail)</h2>
             <p className="text-sm text-gray-600">
-              Ab welchem Match Bewerber Mails bekommen – gilt für neue Stellen, E-Mail-Boost und Digest
+              Bestimmt, wer die <strong>Booster-E-Mail</strong> bekommt (auch neue-Stelle-Alerts &amp; Digest): nur Bewerber mit Match ≥ diesem Wert
             </p>
           </div>
         </div>
