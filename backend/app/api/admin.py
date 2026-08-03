@@ -689,6 +689,9 @@ class ColdOutreachEmailRequest(BaseModel):
     from_email: Optional[str] = "business@jobon.work"
     from_name: Optional[str] = "JobOn"
     attachments: Optional[List[EmailAttachment]] = []
+    # None = bisheriges Verhalten (Gmail falls konfiguriert), True = Gmail erzwingen,
+    # False = immer über SendGrid mit dem gewählten Absender senden.
+    use_gmail: Optional[bool] = None
 
 
 @router.post("/cold-outreach/send")
@@ -734,6 +737,7 @@ async def send_cold_outreach_email(
             from_email=request.from_email or "business@jobon.work",
             from_name=request.from_name or "JobOn",
             email_type="cold_outreach",
+            use_gmail=request.use_gmail,
         )
         
         # Log erstellen
@@ -764,6 +768,20 @@ async def send_cold_outreach_email(
         db.add(log)
         db.commit()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/cold-outreach/config")
+async def get_cold_outreach_config(
+    current_user: User = Depends(require_admin),
+):
+    """Meldet, ob der Gmail-SMTP-Versand konfiguriert ist (für den UI-Umschalter)."""
+    from app.services.email_service import EmailService
+    svc = EmailService()
+    return {
+        "gmail_enabled": bool(getattr(svc, "outreach_smtp_enabled", False)),
+        "gmail_from": getattr(svc, "outreach_from_email", "") or getattr(svc, "outreach_smtp_user", "") or "",
+        "gmail_from_name": getattr(svc, "outreach_from_name", "") or "",
+    }
 
 
 @router.get("/users")

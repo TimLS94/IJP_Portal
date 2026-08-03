@@ -245,11 +245,15 @@ class EmailService:
         from_email: Optional[str] = None,
         from_name: Optional[str] = None,
         email_type: str = "cold_outreach",
+        use_gmail: Optional[bool] = None,
     ) -> bool:
-        """Kaltakquise-/Vertriebsversand. Nutzt das separate SMTP-Konto (Gmail),
-        falls konfiguriert – sonst den bisherigen SendGrid-Weg (Fallback). Beide
-        unterstützen Anhänge (PDF)."""
-        if self.outreach_smtp_enabled:
+        """Kaltakquise-/Vertriebsversand. Wahl des Versandwegs:
+        - use_gmail None  -> bisheriges Verhalten (Gmail, falls konfiguriert; sonst SendGrid)
+        - use_gmail True  -> über das Gmail-SMTP-Konto (falls konfiguriert; sonst SendGrid-Fallback)
+        - use_gmail False -> immer über SendGrid mit dem gewählten Absender (from_email)
+        Beide Wege unterstützen Anhänge (PDF)."""
+        want_gmail = self.outreach_smtp_enabled if use_gmail is None else bool(use_gmail)
+        if want_gmail and self.outreach_smtp_enabled:
             return self._send_via_smtp(
                 to_email=to_email,
                 subject=subject,
@@ -257,7 +261,8 @@ class EmailService:
                 attachments=attachments,
                 email_type=email_type,
             )
-        # Fallback: bisheriger Weg über SendGrid (unverändert)
+        # SendGrid-Weg (gewählter Absender). Auch Fallback, wenn Gmail gewünscht,
+        # aber nicht konfiguriert ist.
         return self.send_email(
             to_email=to_email,
             subject=subject,

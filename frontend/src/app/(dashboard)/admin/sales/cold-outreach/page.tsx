@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { 
   Mail, ArrowLeft, Loader2, Upload, Eye, Send, FileText, 
   X, Check, AlertCircle, Trash2, Paperclip, Settings
@@ -47,8 +47,21 @@ Mit freundlichen Grüßen`);
   const [senderName, setSenderName] = useState("JobOn Business");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [gmailConfig, setGmailConfig] = useState<{ enabled: boolean; from: string; name: string }>({ enabled: false, from: "", name: "" });
+  const [useGmail, setUseGmail] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+
+  // Gmail-Versand-Status laden; wenn konfiguriert, standardmäßig aktiv
+  useEffect(() => {
+    adminAPI.getColdOutreachConfig()
+      .then((r) => {
+        const enabled = !!r.data?.gmail_enabled;
+        setGmailConfig({ enabled, from: r.data?.gmail_from || "", name: r.data?.gmail_from_name || "" });
+        setUseGmail(enabled);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -142,6 +155,7 @@ Mit freundlichen Grüßen`);
         is_html: isHtml,
         from_email: senderEmail,
         from_name: senderName,
+        use_gmail: useGmail,
         attachments: attachments.map(a => ({
           filename: a.name,
           content: a.base64,
@@ -182,6 +196,7 @@ Mit freundlichen Grüßen`);
           is_html: isHtml,
           from_email: senderEmail,
           from_name: senderName,
+          use_gmail: useGmail,
           attachments: attachments.map(a => ({
             filename: a.name,
             content: a.base64,
@@ -240,14 +255,45 @@ Mit freundlichen Grüßen`);
       {showSettings && (
         <div className="card mb-6">
           <h3 className="font-semibold text-gray-900 mb-4">Absender & Anhänge</h3>
-          
+
+          {/* Versandweg: Gmail vs. SendGrid-Absender */}
+          <div className="mb-4 p-3 rounded-lg border border-gray-200 bg-gray-50">
+            {gmailConfig.enabled ? (
+              <>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useGmail}
+                    onChange={(e) => setUseGmail(e.target.checked)}
+                    className="mt-0.5 accent-orange-500 h-4 w-4"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium text-gray-900">Über Gmail senden</span>
+                    <span className="text-gray-600"> ({gmailConfig.from})</span>
+                    <span className="block text-xs text-gray-500 mt-0.5">
+                      {useGmail
+                        ? "Aktiv: Alle Mails gehen von dieser Gmail-Adresse raus – die Absender-Auswahl unten wird ignoriert."
+                        : "Aus: Es wird der unten gewählte Absender (über SendGrid) verwendet."}
+                    </span>
+                  </span>
+                </label>
+              </>
+            ) : (
+              <p className="text-xs text-gray-500">
+                Gmail-Versand nicht konfiguriert. Zum Aktivieren <code>OUTREACH_SMTP_USER</code> und{" "}
+                <code>OUTREACH_SMTP_PASSWORD</code> in Render setzen. Es wird der unten gewählte Absender (SendGrid) verwendet.
+              </p>
+            )}
+          </div>
+
           {/* Sender Selection */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">Absender E-Mail</label>
             <select
               value={senderEmail}
               onChange={(e) => handleSenderChange(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              disabled={useGmail}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {SENDER_OPTIONS.map(opt => (
                 <option key={opt.email} value={opt.email}>
@@ -255,6 +301,9 @@ Mit freundlichen Grüßen`);
                 </option>
               ))}
             </select>
+            {useGmail && (
+              <p className="text-xs text-gray-500 mt-1">Wird bei Gmail-Versand ignoriert.</p>
+            )}
           </div>
 
           {/* Custom Sender Name */}
@@ -265,7 +314,8 @@ Mit freundlichen Grüßen`);
               value={senderName}
               onChange={(e) => setSenderName(e.target.value)}
               placeholder="z.B. Tim Schäfer"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              disabled={useGmail}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -442,7 +492,9 @@ Mit freundlichen Grüßen`);
           <div className="text-sm text-gray-600">
             <span className="font-semibold">Bereit zum Versenden?</span>
             <span className="ml-2">
-              {emails.length} Empfänger · {senderName} ({senderEmail})
+              {emails.length} Empfänger · {useGmail && gmailConfig.enabled
+                ? `${gmailConfig.name || "Gmail"} (${gmailConfig.from})`
+                : `${senderName} (${senderEmail})`}
               {attachments.length > 0 && ` · ${attachments.length} Anhänge`}
             </span>
           </div>

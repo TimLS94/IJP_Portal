@@ -467,6 +467,7 @@ export const adminAPI = {
   
   // Cold Outreach E-Mails
   sendColdOutreachEmail: (data) => api.post('/admin/cold-outreach/send', data),
+  getColdOutreachConfig: () => api.get('/admin/cold-outreach/config'),
 
   // Facebook Gruppen & Posts
   getFacebookGroups: (cluster) => api.get('/facebook/groups', { params: cluster ? { cluster } : {} }),
