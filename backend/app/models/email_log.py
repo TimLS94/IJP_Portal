@@ -35,4 +35,5 @@ class EmailLog(Base):
     subject = Column(String(500))
     success = Column(Integer, default=1)  # 1 = erfolgreich, 0 = fehlgeschlagen
     sent_by_user_id = Column(Integer, nullable=True, index=True)  # Wer hat gesendet (für Kaltakquise-Tracking)
+    sender_email = Column(String(255), nullable=True, index=True)  # Tatsächliche Absenderadresse (z.B. Gmail bei Kaltakquise)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)

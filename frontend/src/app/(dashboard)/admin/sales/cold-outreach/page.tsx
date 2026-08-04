@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { 
-  Mail, ArrowLeft, Loader2, Upload, Eye, Send, FileText, 
-  X, Check, AlertCircle, Trash2, Paperclip, Settings
+  Mail, ArrowLeft, Loader2, Upload, Eye, Send, FileText,
+  X, Check, AlertCircle, Trash2, Paperclip, Settings,
+  Search, ChevronDown, ChevronUp, History
 } from "lucide-react";
 import Link from "next/link";
 import { adminAPI } from "@/lib/api";
@@ -14,6 +15,30 @@ interface Attachment {
   size: number;
   base64: string;
   type: string;
+}
+
+interface AlreadyContacted {
+  email: string;
+  last_sent_at: string;
+  times: number;
+  last_sender?: string | null;
+}
+
+interface CheckResult {
+  input_count: number;
+  unique_valid: number;
+  invalid: number;
+  duplicates_in_list: number;
+  new: string[];
+  already_contacted: AlreadyContacted[];
+}
+
+interface ContactRow {
+  email: string;
+  last_sent_at: string;
+  times: number;
+  successful: number;
+  last_sender?: string | null;
 }
 
 const SENDER_OPTIONS = [
@@ -49,6 +74,21 @@ Mit freundlichen Grüßen`);
   const [showSettings, setShowSettings] = useState(false);
   const [gmailConfig, setGmailConfig] = useState<{ enabled: boolean; from: string; name: string }>({ enabled: false, from: "", name: "" });
   const [useGmail, setUseGmail] = useState(false);
+  // Dubletten-Check gegen die Kaltakquise-Historie
+  const [checkResult, setCheckResult] = useState<CheckResult | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [includeContacted, setIncludeContacted] = useState(false);
+  const [showContactedList, setShowContactedList] = useState(false);
+  // Durchsuchbare Kontakt-Historie
+  const [contactSearch, setContactSearch] = useState("");
+  const [contactResults, setContactResults] = useState<ContactRow[]>([]);
+  const [searchingContacts, setSearchingContacts] = useState(false);
+  // Import bereits (extern) gesendeter Adressen
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importSender, setImportSender] = useState("");
+  const [importDate, setImportDate] = useState("");
+  const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,6 +102,31 @@ Mit freundlichen Grüßen`);
       })
       .catch(() => {});
   }, []);
+
+  // Empfängerliste gegen die Kaltakquise-Historie prüfen (neu vs. bereits kontaktiert)
+  useEffect(() => {
+    if (emails.length === 0) { setCheckResult(null); setIncludeContacted(false); return; }
+    let cancelled = false;
+    setChecking(true);
+    adminAPI.checkColdOutreachRecipients(emails)
+      .then((r) => { if (!cancelled) setCheckResult(r.data); })
+      .catch(() => { if (!cancelled) setCheckResult(null); })
+      .finally(() => { if (!cancelled) setChecking(false); });
+    return () => { cancelled = true; };
+  }, [emails]);
+
+  // Durchsuchbare Kontakt-Historie (debounced)
+  useEffect(() => {
+    const term = contactSearch.trim();
+    const t = setTimeout(() => {
+      setSearchingContacts(true);
+      adminAPI.searchColdOutreachContacts(term, 100)
+        .then((r) => setContactResults(r.data?.contacts || []))
+        .catch(() => setContactResults([]))
+        .finally(() => setSearchingContacts(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [contactSearch]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -168,8 +233,38 @@ Mit freundlichen Grüßen`);
     }
   };
 
+  const runImport = async () => {
+    const list = importText.split(/[\r\n,;\s]+/).map(s => s.trim()).filter(s => s.includes("@") && s.includes("."));
+    if (list.length === 0) { toast.error("Keine gültigen Adressen"); return; }
+    if (!importSender.trim() || !importSender.includes("@")) { toast.error("Absender-E-Mail angeben"); return; }
+    setImporting(true);
+    try {
+      const r = await adminAPI.importSentColdOutreach({
+        emails: list,
+        sender_email: importSender.trim(),
+        sent_at: importDate ? new Date(importDate).toISOString() : undefined,
+      });
+      toast.success(`${r.data?.added ?? 0} importiert · ${r.data?.skipped_existing ?? 0} schon vorhanden · ${r.data?.invalid ?? 0} ungültig`);
+      setImportText("");
+      // Historie-Suche & aktuellen Check aktualisieren
+      setContactSearch((s) => s);
+      if (emails.length > 0) {
+        adminAPI.checkColdOutreachRecipients(emails).then((res) => setCheckResult(res.data)).catch(() => {});
+      }
+    } catch {
+      toast.error("Import fehlgeschlagen");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  // Tatsächliche Empfänger: bereits kontaktierte nur, wenn bewusst eingeschlossen
+  const recipients: string[] = checkResult
+    ? (includeContacted ? [...checkResult.new, ...checkResult.already_contacted.map(a => a.email)] : checkResult.new)
+    : emails;
+
   const sendAllEmails = async () => {
-    if (emails.length === 0) {
+    if (recipients.length === 0) {
       toast.error("Keine Empfänger vorhanden");
       return;
     }
@@ -177,20 +272,24 @@ Mit freundlichen Grüßen`);
       toast.error("Betreff und Inhalt erforderlich");
       return;
     }
-    if (!confirm(`${emails.length} E-Mails versenden?`)) {
+    const skipped = checkResult && !includeContacted ? checkResult.already_contacted.length : 0;
+    const confirmMsg = skipped > 0
+      ? `${recipients.length} E-Mails versenden?\n(${skipped} bereits kontaktierte werden übersprungen)`
+      : `${recipients.length} E-Mails versenden?`;
+    if (!confirm(confirmMsg)) {
       return;
     }
 
     setSending(true);
-    setSendProgress({ sent: 0, total: emails.length });
+    setSendProgress({ sent: 0, total: recipients.length });
 
     let successCount = 0;
     let failCount = 0;
 
-    for (let i = 0; i < emails.length; i++) {
+    for (let i = 0; i < recipients.length; i++) {
       try {
         await adminAPI.sendColdOutreachEmail({
-          to: emails[i],
+          to: recipients[i],
           subject,
           content,
           is_html: isHtml,
@@ -207,19 +306,20 @@ Mit freundlichen Grüßen`);
       } catch {
         failCount++;
       }
-      setSendProgress({ sent: i + 1, total: emails.length });
-      
+      setSendProgress({ sent: i + 1, total: recipients.length });
+
       // Kleine Pause zwischen E-Mails
-      if (i < emails.length - 1) {
+      if (i < recipients.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
     setSending(false);
     toast.success(`${successCount} gesendet, ${failCount} fehlgeschlagen`);
-    
+
     if (successCount > 0) {
       setEmails([]);
+      setCheckResult(null);
     }
   };
 
@@ -419,6 +519,40 @@ Mit freundlichen Grüßen`);
                   </p>
                 )}
               </div>
+
+              {/* Dubletten-Check gegen die Historie */}
+              {checking && <p className="text-xs text-gray-400 mt-3">Prüfe gegen Historie…</p>}
+              {checkResult && (
+                <div className="mt-3 border-t pt-3 space-y-2">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                    <span className="text-green-700 font-semibold">{checkResult.new.length} neu</span>
+                    <span className="text-amber-700 font-semibold">{checkResult.already_contacted.length} bereits kontaktiert</span>
+                    {checkResult.duplicates_in_list > 0 && <span className="text-gray-500">{checkResult.duplicates_in_list} Dubletten entfernt</span>}
+                    {checkResult.invalid > 0 && <span className="text-gray-500">{checkResult.invalid} ungültig</span>}
+                  </div>
+                  {checkResult.already_contacted.length > 0 && (
+                    <div className="space-y-1">
+                      <label className="flex items-center gap-2 text-xs cursor-pointer">
+                        <input type="checkbox" checked={includeContacted} onChange={e => setIncludeContacted(e.target.checked)} className="accent-orange-500 h-4 w-4" />
+                        <span>Auch an bereits Kontaktierte senden (<strong>{checkResult.already_contacted.length}</strong>)</span>
+                      </label>
+                      <button type="button" onClick={() => setShowContactedList(v => !v)} className="text-xs text-primary-600 hover:underline">
+                        {showContactedList ? "Liste ausblenden" : "Bereits Kontaktierte anzeigen"}
+                      </button>
+                      {showContactedList && (
+                        <div className="mt-1 max-h-40 overflow-y-auto space-y-1">
+                          {checkResult.already_contacted.map((c) => (
+                            <div key={c.email} className="text-xs bg-amber-50 border border-amber-100 rounded px-2 py-1">
+                              <span className="text-gray-800">{c.email}</span>
+                              <span className="text-gray-500"> · {c.times}× · zuletzt {new Date(c.last_sent_at).toLocaleDateString("de-DE")}{c.last_sender ? ` · von ${c.last_sender}` : ""}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -486,13 +620,96 @@ Mit freundlichen Grüßen`);
         </div>
       </div>
 
+      {/* Kontaktierte Adressen: durchsuchen & bereits gesendete importieren */}
+      <div className="card mb-28">
+        <button type="button" onClick={() => setShowHistoryPanel(v => !v)} className="w-full flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="h-5 w-5 text-gray-500" />
+            <h2 className="font-semibold text-gray-900">Kontaktierte Adressen &amp; Import</h2>
+          </div>
+          {showHistoryPanel ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+        </button>
+
+        {showHistoryPanel && (
+          <div className="mt-4 grid md:grid-cols-2 gap-6">
+            {/* Durchsuchen */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Historie durchsuchen</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  value={contactSearch}
+                  onChange={e => setContactSearch(e.target.value)}
+                  placeholder="E-Mail-Adresse suchen…"
+                  className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
+                />
+              </div>
+              <div className="mt-3 max-h-72 overflow-y-auto space-y-1">
+                {searchingContacts ? (
+                  <p className="text-xs text-gray-400 py-2">Suche…</p>
+                ) : contactResults.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-2">Keine Treffer</p>
+                ) : contactResults.map((c) => (
+                  <div key={c.email} className="text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1.5">
+                    <div className="font-medium text-gray-800 truncate">{c.email}</div>
+                    <div className="text-gray-500">
+                      {c.times}× · zuletzt {new Date(c.last_sent_at).toLocaleDateString("de-DE")}
+                      {c.last_sender ? <> · von <span className="text-gray-700">{c.last_sender}</span></> : ""}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Import bereits gesendeter Adressen */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Bereits gesendete importieren</label>
+              <textarea
+                value={importText}
+                onChange={e => setImportText(e.target.value)}
+                placeholder="Eine E-Mail-Adresse pro Zeile (oder komma-getrennt)…"
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
+              />
+              <input
+                value={importSender}
+                onChange={e => setImportSender(e.target.value)}
+                placeholder="Absender, z. B. momente.ijp@gmail.com"
+                className="w-full mt-2 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
+              />
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="date"
+                  value={importDate}
+                  onChange={e => setImportDate(e.target.value)}
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  title="Datum des Versands (optional)"
+                />
+                <button
+                  type="button"
+                  onClick={runImport}
+                  disabled={importing}
+                  className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 text-sm flex items-center gap-2"
+                >
+                  {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  Als „kontaktiert" importieren
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Trägt die Adressen mit dem angegebenen Absender als „bereits kontaktiert" ein, damit der Dubletten-Check sie erkennt. Bereits vorhandene werden übersprungen.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Footer Actions */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-40">
         <div className="container mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-sm text-gray-600">
             <span className="font-semibold">Bereit zum Versenden?</span>
             <span className="ml-2">
-              {emails.length} Empfänger · {useGmail && gmailConfig.enabled
+              {recipients.length} Empfänger{checkResult && !includeContacted && checkResult.already_contacted.length > 0 ? ` (${checkResult.already_contacted.length} übersprungen)` : ""} · {useGmail && gmailConfig.enabled
                 ? `${gmailConfig.name || "Gmail"} (${gmailConfig.from})`
                 : `${senderName} (${senderEmail})`}
               {attachments.length > 0 && ` · ${attachments.length} Anhänge`}
@@ -509,7 +726,7 @@ Mit freundlichen Grüßen`);
             </button>
             <button
               onClick={sendAllEmails}
-              disabled={sending || emails.length === 0 || !subject || !content}
+              disabled={sending || recipients.length === 0 || !subject || !content}
               className="px-6 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 flex items-center gap-2 font-medium"
             >
               {sending ? (
@@ -520,7 +737,7 @@ Mit freundlichen Grüßen`);
               ) : (
                 <>
                   <Send className="h-4 w-4" />
-                  {emails.length} E-Mails senden
+                  {recipients.length} E-Mails senden
                 </>
               )}
             </button>

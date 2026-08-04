@@ -147,6 +147,7 @@ def ensure_external_job_columns():
             ("companies", "weekly_report_enabled", "BOOLEAN DEFAULT TRUE"),
             ("companies", "expiry_reminder_enabled", "BOOLEAN DEFAULT TRUE"),
             ("users", "preferred_language", "VARCHAR(5)"),
+            ("email_logs", "sender_email", "VARCHAR(255)"),
         ]
         allowed_tables = {t for t, _, _ in new_columns}
         allowed_cols = {c for _, c, _ in new_columns}

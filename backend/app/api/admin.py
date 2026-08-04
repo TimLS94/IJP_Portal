@@ -727,6 +727,14 @@ async def send_cold_outreach_email(
                 for att in request.attachments
             ]
         
+        # Tatsächlichen Absender bestimmen (spiegelt send_outreach): Gmail-SMTP
+        # überschreibt den Absender mit dem Gmail-Konto, sonst gewählte Adresse.
+        want_gmail = email_service.outreach_smtp_enabled if request.use_gmail is None else bool(request.use_gmail)
+        if want_gmail and email_service.outreach_smtp_enabled:
+            effective_sender = email_service.outreach_from_email or email_service.outreach_smtp_user
+        else:
+            effective_sender = request.from_email or "business@jobon.work"
+
         # Nutzt Gmail-SMTP falls konfiguriert (send_outreach), sonst SendGrid.
         # Anhänge (PDF) funktionieren in beiden Wegen.
         success = email_service.send_outreach(
@@ -739,23 +747,24 @@ async def send_cold_outreach_email(
             email_type="cold_outreach",
             use_gmail=request.use_gmail,
         )
-        
+
         # Log erstellen
         log = EmailLog(
             email_type="cold_outreach",
             recipient_email=request.to,
             subject=request.subject,
             success=1 if success else 0,
-            sent_by_user_id=current_user.id
+            sent_by_user_id=current_user.id,
+            sender_email=effective_sender,
         )
         db.add(log)
         db.commit()
-        
+
         if success:
             return {"success": True, "message": "E-Mail gesendet"}
         else:
             raise HTTPException(status_code=500, detail="E-Mail konnte nicht gesendet werden")
-            
+
     except Exception as e:
         # Fehler loggen
         log = EmailLog(
@@ -763,7 +772,8 @@ async def send_cold_outreach_email(
             recipient_email=request.to,
             subject=request.subject,
             success=0,
-            sent_by_user_id=current_user.id
+            sent_by_user_id=current_user.id,
+            sender_email=(request.from_email or "business@jobon.work"),
         )
         db.add(log)
         db.commit()
@@ -782,6 +792,174 @@ async def get_cold_outreach_config(
         "gmail_from": getattr(svc, "outreach_from_email", "") or getattr(svc, "outreach_smtp_user", "") or "",
         "gmail_from_name": getattr(svc, "outreach_from_name", "") or "",
     }
+
+
+class CheckRecipientsRequest(BaseModel):
+    emails: List[str] = []
+
+
+@router.post("/cold-outreach/check-recipients")
+async def check_cold_outreach_recipients(
+    body: CheckRecipientsRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Prüft eine Empfängerliste: normalisiert, entfernt Dubletten/ungültige und
+    trennt in 'neu' vs. 'bereits kontaktiert' (anhand des Kaltakquise-Logs)."""
+    import re as _re
+    from app.models.email_log import EmailLog
+
+    email_re = _re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    seen: set = set()
+    cleaned: List[str] = []
+    invalid = 0
+    dupes = 0
+    for raw in (body.emails or []):
+        e = (raw or "").strip().lower()
+        if not e:
+            continue
+        if not email_re.match(e):
+            invalid += 1
+            continue
+        if e in seen:
+            dupes += 1
+            continue
+        seen.add(e)
+        cleaned.append(e)
+
+    contacted: dict = {}
+    if cleaned:
+        logs = db.query(
+            EmailLog.recipient_email, EmailLog.created_at, EmailLog.sender_email,
+        ).filter(
+            EmailLog.email_type == "cold_outreach",
+            func.lower(EmailLog.recipient_email).in_(cleaned),
+        ).order_by(EmailLog.created_at.desc()).all()
+        for r in logs:
+            key = (r.recipient_email or "").lower()
+            if not key:
+                continue
+            if key not in contacted:
+                # erster Treffer = neuester (desc sortiert) -> letzter Absender/Datum
+                contacted[key] = {"last": r.created_at, "cnt": 0, "sender": r.sender_email}
+            contacted[key]["cnt"] += 1
+
+    new = [e for e in cleaned if e not in contacted]
+    already = [
+        {"email": e, "last_sent_at": contacted[e]["last"], "times": contacted[e]["cnt"], "last_sender": contacted[e]["sender"]}
+        for e in cleaned if e in contacted
+    ]
+    return {
+        "input_count": len(body.emails or []),
+        "unique_valid": len(cleaned),
+        "invalid": invalid,
+        "duplicates_in_list": dupes,
+        "new": new,
+        "already_contacted": already,
+    }
+
+
+@router.get("/cold-outreach/contacts")
+async def search_cold_outreach_contacts(
+    search: str = "",
+    limit: int = Query(100, ge=1, le=500),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Durchsuchbare Übersicht aller je kontaktierten Kaltakquise-Adressen
+    (aggregiert aus dem E-Mail-Log): letzte Kontaktaufnahme + Anzahl."""
+    from app.models.email_log import EmailLog
+
+    q = db.query(
+        EmailLog.recipient_email, EmailLog.created_at, EmailLog.sender_email, EmailLog.success,
+    ).filter(EmailLog.email_type == "cold_outreach")
+    if search and search.strip():
+        q = q.filter(EmailLog.recipient_email.ilike(f"%{search.strip()}%"))
+    rows = q.order_by(EmailLog.created_at.desc()).limit(5000).all()
+
+    agg: dict = {}
+    for r in rows:
+        key = (r.recipient_email or "").lower()
+        if not key:
+            continue
+        if key not in agg:
+            # neuester Eintrag zuerst -> letzter Absender/Datum
+            agg[key] = {"email": key, "last_sent_at": r.created_at, "last_sender": r.sender_email, "times": 0, "successful": 0}
+        agg[key]["times"] += 1
+        if r.success:
+            agg[key]["successful"] += 1
+
+    contacts = list(agg.values())[:limit]
+    return {"contacts": contacts, "count": len(contacts)}
+
+
+class ImportSentRequest(BaseModel):
+    emails: List[str] = []
+    sender_email: str
+    subject: Optional[str] = "(Import: bereits gesendet)"
+    sent_at: Optional[str] = None  # ISO-Datum, optional
+
+
+@router.post("/cold-outreach/import-sent")
+async def import_sent_cold_outreach(
+    body: ImportSentRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Trägt bereits (außerhalb des Tools) versendete Adressen als 'kontaktiert'
+    ins Kaltakquise-Log ein – inkl. tatsächlichem Absender – damit der
+    Dubletten-Check sie kennt."""
+    import re as _re
+    from datetime import datetime as _dt
+    from app.models.email_log import EmailLog
+
+    sender = (body.sender_email or "").strip().lower()
+    if not sender:
+        raise HTTPException(status_code=400, detail="Absender-E-Mail ist erforderlich")
+
+    when = None
+    if body.sent_at:
+        try:
+            when = _dt.fromisoformat(body.sent_at)
+        except Exception:
+            when = None
+
+    email_re = _re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    seen: set = set()
+    added = 0
+    skipped = 0
+    invalid = 0
+    for raw in (body.emails or []):
+        e = (raw or "").strip().lower()
+        if not e:
+            continue
+        if not email_re.match(e):
+            invalid += 1
+            continue
+        if e in seen:
+            continue
+        seen.add(e)
+        exists = db.query(EmailLog.id).filter(
+            EmailLog.email_type == "cold_outreach",
+            func.lower(EmailLog.recipient_email) == e,
+        ).first()
+        if exists:
+            skipped += 1
+            continue
+        kwargs = dict(
+            email_type="cold_outreach",
+            recipient_email=e,
+            subject=(body.subject or "(Import)")[:500],
+            success=1,
+            sent_by_user_id=current_user.id,
+            sender_email=sender,
+        )
+        if when:
+            kwargs["created_at"] = when
+        db.add(EmailLog(**kwargs))
+        added += 1
+    db.commit()
+    return {"added": added, "skipped_existing": skipped, "invalid": invalid}
 
 
 @router.get("/users")
