@@ -177,18 +177,27 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
     return notifications_created
 
 
+def get_boost_threshold(db: Session) -> int:
+    """Schwelle für den Booster-Versand. Eigener Wert, der auf die allgemeine
+    Benachrichtigungs-Schwelle zurückfällt, solange er nicht gesetzt ist –
+    so kann der Booster mehr Bewerber erreichen, ohne das Firmen-Matching/die
+    normalen Alerts zu lockern."""
+    general = get_setting(db, "job_notifications_threshold", 85)
+    return get_setting(db, "boost_notifications_threshold", general)
+
+
 def send_boost_emails_for_job(job: JobPosting, db: Session) -> dict:
     """Versendet die eigenständige Boost-E-Mail (manuell ausgelöst) an passende Bewerber.
 
     Unabhängig von der "Neue Stelle"-Benachrichtigung. Nutzt denselben
-    Stellenart-Gruppen-Filter + Match-Schwelle und respektiert email_job_alerts.
+    Stellenart-Gruppen-Filter + eigene Booster-Schwelle und respektiert email_job_alerts.
     """
     from app.services.email_service import email_service
 
     if not job.is_active or getattr(job, "is_draft", False):
         return {"matched": 0, "sent": 0, "error": "Stelle ist inaktiv/Entwurf"}
 
-    threshold = get_setting(db, "job_notifications_threshold", 85)
+    threshold = get_boost_threshold(db)
     matching = get_matching_applicants(job, db, threshold)
 
     # Echten Arbeitgeber bei externen Stellen verwenden
@@ -233,7 +242,7 @@ def get_boost_recipients_breakdown(job: JobPosting, db: Session, threshold: int 
     Dient der Transparenz ("warum nur X E-Mails?"), sendet nichts.
     """
     if threshold is None:
-        threshold = get_setting(db, "job_notifications_threshold", 85)
+        threshold = get_boost_threshold(db)
 
     job_type = job.position_type.value if job.position_type else None
     applicants = db.query(Applicant).join(

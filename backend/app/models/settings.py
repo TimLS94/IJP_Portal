@@ -55,6 +55,11 @@ DEFAULT_SETTINGS = {
         "value_type": "integer",
         "description": "Mindest-Matching-Score für E-Mail-Benachrichtigungen (0-100)"
     },
+    "boost_notifications_threshold": {
+        "value": "60",
+        "value_type": "integer",
+        "description": "Eigener Mindest-Matching-Score NUR für die Booster-E-Mail (Reichweite). Fällt auf job_notifications_threshold zurück, wenn nicht gesetzt."
+    },
     "instant_job_notifications_enabled": {
         "value": "true",
         "value_type": "boolean",

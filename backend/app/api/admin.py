@@ -2003,6 +2003,7 @@ async def get_feature_flags(
         "max_job_deadline_days": get_setting(db, "max_job_deadline_days", 90),
         "job_notifications_enabled": get_setting(db, "job_notifications_enabled", True),
         "job_notifications_threshold": get_setting(db, "job_notifications_threshold", 85),
+        "boost_notifications_threshold": get_setting(db, "boost_notifications_threshold", get_setting(db, "job_notifications_threshold", 85)),
         "instant_job_notifications_enabled": get_setting(db, "instant_job_notifications_enabled", True),
         "weekly_digest_enabled": get_setting(db, "weekly_digest_enabled", True),
         "weekly_digest_days": get_setting(db, "weekly_digest_days", [1]),

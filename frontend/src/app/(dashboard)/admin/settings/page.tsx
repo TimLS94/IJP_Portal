@@ -19,6 +19,7 @@ interface Flags {
   archive_deletion_days?: number;
   max_job_deadline_days?: number;
   job_notifications_threshold?: number;
+  boost_notifications_threshold?: number;
   weekly_digest_days?: number[];
   weekly_digest_hour?: number;
   [key: string]: boolean | number | number[] | undefined;
@@ -98,6 +99,7 @@ export default function AdminSettingsPage() {
   // E-Mail Benachrichtigungen State
   const [showEmailSection, setShowEmailSection] = useState(false);
   const [emailThreshold, setEmailThreshold] = useState(85);
+  const [boostThreshold, setBoostThreshold] = useState(60);
   const [digestDays, setDigestDays] = useState<number[]>([1]);
   const [digestHour, setDigestHour] = useState(9);
   const [triggeringDigest, setTriggeringDigest] = useState(false);
@@ -190,6 +192,9 @@ export default function AdminSettingsPage() {
       }
       if (response.data.job_notifications_threshold) {
         setEmailThreshold(response.data.job_notifications_threshold);
+      }
+      if (response.data.boost_notifications_threshold) {
+        setBoostThreshold(response.data.boost_notifications_threshold);
       }
       if (response.data.weekly_digest_days) {
         setDigestDays(response.data.weekly_digest_days);
@@ -306,6 +311,22 @@ export default function AdminSettingsPage() {
         job_notifications_threshold: emailThreshold
       }));
       toast.success(`E-Mail Schwellenwert auf ${emailThreshold}% gesetzt`);
+    } catch {
+      toast.error("Fehler beim Speichern");
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const saveBoostThreshold = async () => {
+    setSaving("boost_notifications_threshold");
+    try {
+      await adminAPI.setSetting("boost_notifications_threshold", boostThreshold);
+      setFlags(prev => ({
+        ...prev,
+        boost_notifications_threshold: boostThreshold
+      }));
+      toast.success(`Booster-Schwelle auf ${boostThreshold}% gesetzt`);
     } catch {
       toast.error("Fehler beim Speichern");
     } finally {
@@ -449,9 +470,9 @@ export default function AdminSettingsPage() {
             <Bell className="h-5 w-5 text-purple-600" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Mindest-Matching-Score (Booster-E-Mail)</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Mindest-Matching-Score (Alerts, Firma &amp; Digest)</h2>
             <p className="text-sm text-gray-600">
-              Bestimmt, wer die <strong>Booster-E-Mail</strong> bekommt (auch neue-Stelle-Alerts &amp; Digest): nur Bewerber mit Match ≥ diesem Wert
+              Gilt für neue-Stelle-Alerts, Firmen-Matching &amp; Digest: nur Bewerber mit Match ≥ diesem Wert. <strong>Die Booster-E-Mail hat eine eigene Schwelle (unten).</strong>
             </p>
           </div>
         </div>
@@ -497,6 +518,71 @@ export default function AdminSettingsPage() {
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   emailThreshold === val
                     ? "bg-purple-100 text-purple-700 border-2 border-purple-300"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {val}%
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Booster-Schwelle (eigener Wert nur für die Boost-E-Mail / Reichweite) */}
+      <div className="card mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-orange-100 rounded-lg">
+            <Send className="h-5 w-5 text-orange-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Booster-Schwelle (nur Boost-E-Mail)</h2>
+            <p className="text-sm text-gray-600">
+              Eigene, meist <strong>niedrigere</strong> Schwelle nur für die Booster-E-Mail (Reichweite). Ändert nichts an Alerts/Firma/Digest.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min="30"
+                max="100"
+                value={boostThreshold}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 60;
+                  setBoostThreshold(Math.min(100, Math.max(30, value)));
+                }}
+                className="input-styled w-32"
+              />
+              <span className="text-gray-600">%</span>
+              {boostThreshold !== (flags.boost_notifications_threshold ?? flags.job_notifications_threshold ?? 85) && (
+                <button
+                  onClick={saveBoostThreshold}
+                  disabled={saving === "boost_notifications_threshold"}
+                  className="btn-primary text-sm flex items-center gap-1"
+                >
+                  {saving === "boost_notifications_threshold" ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Save className="h-3 w-3" />
+                  )}
+                  Speichern
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Die Booster-E-Mail geht an Bewerber mit Match ≥ {boostThreshold}% (niedriger = mehr Empfänger)
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {[40, 50, 60, 70].map(val => (
+              <button
+                key={val}
+                onClick={() => setBoostThreshold(val)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  boostThreshold === val
+                    ? "bg-orange-100 text-orange-700 border-2 border-orange-300"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
