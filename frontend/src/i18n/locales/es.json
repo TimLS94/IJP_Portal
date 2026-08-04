@@ -1606,7 +1606,8 @@
     "applySuccess": "¡Candidatura enviada con éxito!",
     "reportSelectReason": "Selecciona un motivo",
     "reportSuccess": "Empleo reportado: ¡gracias por tu comentario!",
-    "reportFailed": "Error al reportar"
+    "reportFailed": "Error al reportar",
+    "optional": "Opcional"
   },
   "matching": {
     "veryGood": "Muy buena coincidencia",

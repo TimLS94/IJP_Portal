@@ -1649,7 +1649,8 @@
     "applySuccess": "Bewerbung erfolgreich eingereicht!",
     "reportSelectReason": "Bitte wähle einen Grund aus",
     "reportSuccess": "Stelle wurde gemeldet — Danke für dein Feedback!",
-    "reportFailed": "Melden fehlgeschlagen"
+    "reportFailed": "Melden fehlgeschlagen",
+    "optional": "Optional"
   },
   "matching": {
     "veryGood": "Sehr gute Übereinstimmung",

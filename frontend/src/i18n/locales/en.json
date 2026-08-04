@@ -1649,7 +1649,8 @@
     "applySuccess": "Application submitted successfully!",
     "reportSelectReason": "Please select a reason",
     "reportSuccess": "Job reported — thank you for your feedback!",
-    "reportFailed": "Reporting failed"
+    "reportFailed": "Reporting failed",
+    "optional": "Optional"
   },
   "matching": {
     "veryGood": "Very good match",

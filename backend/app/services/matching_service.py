@@ -348,16 +348,15 @@ def _check_language_match(applicant_level: str, required_level: str, max_score: 
 def _language_contribution(applicant_level: str, required_level: str, importance: str, weight: int) -> dict:
     """Punkte für eine Sprache je nach Wichtigkeit.
     - required: Level-basiert (voll wenn erfüllt, 0/anteilig wenn nicht) – hohe Gewichtung.
-    - desirable (wünschenswert): Bonus NUR wenn erfüllt, sonst 0 – verschlechtert nie.
-    - optional: minimaler Bonus wenn vorhanden & erfüllt, sonst 0.
+    - desirable (wünschenswert): leichter Bonus NUR wenn erfüllt, sonst 0 – verschlechtert nie.
+    - optional: zählt gar nicht ins Scoring (immer 0), rein informativ.
     """
     m = _check_language_match(applicant_level, required_level, weight)
     imp = (importance or "required").lower()
     if imp == "desirable":
         score = int(round(weight * 0.4)) if m["meets"] else 0
     elif imp == "optional":
-        has = LANGUAGE_LEVEL_ORDER.get(applicant_level, 0) > 0
-        score = int(round(weight * 0.15)) if (m["meets"] and has) else 0
+        score = 0  # optional fließt bewusst nicht in den Score ein
     else:  # required
         score = m["score"]
     return {"score": score, "meets": m["meets"], "exceeds": m["exceeds"], "gap": m["gap"], "importance": imp}
