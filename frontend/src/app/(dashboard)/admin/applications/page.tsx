@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { 
   FileText, User, Calendar, Search, Download,
   ChevronDown, Eye, Phone, Mail, MapPin, FileCheck, X, Loader2,
-  GraduationCap, Globe, Clock, CheckCircle, Filter
+  GraduationCap, Globe, Clock, CheckCircle, Filter, Sparkles
 } from "lucide-react";
 import { adminAPI, applicationsAPI, documentsAPI } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -49,6 +49,20 @@ interface StatusOption {
   value: string;
   label: string;
   color: string;
+}
+
+interface MatchBreakdown {
+  total_score: number;
+  recommendation?: string;
+  breakdown: Record<string, number>;
+  max_scores: Record<string, number>;
+  details?: string[];
+  stored_score?: number;
+  admin_details?: {
+    cv_analyzed?: boolean;
+    profile_has_experience?: boolean;
+    experience?: { cv_available?: boolean; cv_used?: boolean; years?: number };
+  };
 }
 
 interface ApplicationDetails {
@@ -116,6 +130,7 @@ export default function AdminApplicationsPage() {
   const [selectedApplication, setSelectedApplication] = useState<number | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [applicationDetails, setApplicationDetails] = useState<ApplicationDetails | null>(null);
+  const [matchBreakdown, setMatchBreakdown] = useState<MatchBreakdown | null>(null);
   
   // Status ändern
   const [changingStatus, setChangingStatus] = useState(false);
@@ -184,6 +199,11 @@ export default function AdminApplicationsPage() {
       setApplicationDetails(response.data);
       setNewStatus(response.data.application.status);
       setAdminNotes(response.data.application.admin_notes || "");
+      // Score-Aufschlüsselung separat laden (nicht blockierend)
+      setMatchBreakdown(null);
+      adminAPI.getApplicationMatchBreakdown(appId)
+        .then((r) => setMatchBreakdown(r.data))
+        .catch(() => setMatchBreakdown(null));
     } catch {
       toast.error("Fehler beim Laden der Details");
       setSelectedApplication(null);
@@ -690,13 +710,83 @@ export default function AdminApplicationsPage() {
                     </h2>
                     <p className="text-gray-500">{applicationDetails.job.title} - {applicationDetails.job.company_name}</p>
                   </div>
-                  <button 
-                    onClick={() => { setSelectedApplication(null); setApplicationDetails(null); }}
+                  <button
+                    onClick={() => { setSelectedApplication(null); setApplicationDetails(null); setMatchBreakdown(null); }}
                     className="p-2 hover:bg-gray-100 rounded-lg"
                   >
                     <X className="h-6 w-6" />
                   </button>
                 </div>
+
+                {/* Matching-Score Aufschlüsselung (Admin) */}
+                {matchBreakdown && (() => {
+                  const b = matchBreakdown;
+                  const scoreColor = b.total_score >= 70 ? "text-green-600" : b.total_score >= 40 ? "text-yellow-600" : "text-red-600";
+                  const barColor = (pct: number) => pct >= 70 ? "bg-green-500" : pct >= 40 ? "bg-yellow-500" : "bg-red-500";
+                  const comps: [string, string][] = [
+                    ["position_type", "Positionstyp"], ["german_level", "Deutsch"], ["english_level", "Englisch"],
+                    ["experience", "Erfahrung"], ["text_match", "Text-Match"], ["availability", "Verfügbarkeit"], ["other_languages", "Weitere Sprachen"],
+                  ];
+                  const workAuth = b.breakdown?.work_authorization;
+                  const cvAvailable = b.admin_details?.experience?.cv_available;
+                  const cvUsed = b.admin_details?.experience?.cv_used;
+                  return (
+                    <div className="px-6 pt-6">
+                      <div className="bg-gradient-to-r from-primary-50 to-blue-50 rounded-xl p-4 border border-primary-100">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-primary-600" /> Matching-Score – Zusammensetzung
+                          </h3>
+                          <span className={`text-2xl font-bold ${scoreColor}`}>{b.total_score}%</span>
+                        </div>
+                        <div className="space-y-2">
+                          {comps.map(([key, label]) => {
+                            const max = b.max_scores?.[key] || 0;
+                            if (!max) return null;
+                            if (key === "other_languages" && !(b.breakdown?.[key])) return null;
+                            const val = b.breakdown?.[key] ?? 0;
+                            const pct = max ? Math.round((val / max) * 100) : 0;
+                            return (
+                              <div key={key}>
+                                <div className="flex justify-between text-xs mb-0.5">
+                                  <span className="text-gray-700">{label}</span>
+                                  <span className="font-medium text-gray-800 tabular-nums">{val}/{max}</span>
+                                </div>
+                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full ${barColor(pct)}`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {typeof workAuth === "number" && workAuth < 0 && (
+                            <div className="flex justify-between text-xs text-red-600 pt-1">
+                              <span>Arbeitsberechtigung (Abzug)</span>
+                              <span className="font-medium tabular-nums">{workAuth}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-primary-100 text-xs text-gray-600 space-y-1">
+                          <p>
+                            <strong>Lebenslauf-Analyse:</strong>{" "}
+                            {cvAvailable
+                              ? (cvUsed ? "CV vorhanden – Erfahrung daraus ergänzt (Profil war leer)" : "CV vorhanden – wurde mitanalysiert")
+                              : "Kein CV hinterlegt"}
+                          </p>
+                          {typeof b.stored_score === "number" && b.stored_score !== b.total_score && (
+                            <p className="text-gray-400">Gespeicherter Score bei Bewerbung: {b.stored_score}% (Live neu berechnet: {b.total_score}%)</p>
+                          )}
+                        </div>
+                        {b.details && b.details.length > 0 && (
+                          <ul className="mt-2 space-y-0.5 text-xs">
+                            {b.details.map((d, i) => (
+                              <li key={i} className={d.startsWith("✓") ? "text-green-700" : d.startsWith("✗") ? "text-red-700" : "text-gray-500"}>{d}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="p-6 grid md:grid-cols-2 gap-6">
                   {/* Linke Spalte: Bewerber-Info */}

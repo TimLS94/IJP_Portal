@@ -1470,6 +1470,33 @@ async def get_application_details(
     }
 
 
+@router.get("/applications/{application_id}/match-breakdown")
+async def get_application_match_breakdown(
+    application_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Zeigt dem Admin, wie sich der Matching-Score zusammensetzt (inkl. CV-Analyse)."""
+    from app.services.matching_service import calculate_match_score
+
+    app = db.query(Application).filter(Application.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Bewerbung nicht gefunden")
+    applicant = db.query(Applicant).filter(Applicant.id == app.applicant_id).first()
+    job = db.query(JobPosting).filter(JobPosting.id == app.job_posting_id).first()
+    if not applicant or not job:
+        raise HTTPException(status_code=404, detail="Bewerber oder Stelle nicht gefunden")
+
+    result = calculate_match_score(applicant, job, db=db, include_admin_details=True)
+    # Maximalpunkte je Komponente für die Anzeige (Balken)
+    result["max_scores"] = {
+        "position_type": 30, "german_level": 25, "english_level": 15,
+        "experience": 20, "text_match": 25, "availability": 10, "other_languages": 20,
+    }
+    result["stored_score"] = app.match_score
+    return result
+
+
 class UpdateApplicationStatusRequest(BaseModel):
     status: ApplicationStatus
     admin_notes: Optional[str] = None

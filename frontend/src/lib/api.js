@@ -394,6 +394,7 @@ export const adminAPI = {
   // Erweiterte Bewerbungsverwaltung
   listApplications: (params) => api.get('/admin/applications', { params }),
   getApplicationDetails: (id) => api.get(`/admin/applications/${id}`),
+  getApplicationMatchBreakdown: (id) => api.get(`/admin/applications/${id}/match-breakdown`),
   updateApplicationStatus: (id, data) => api.put(`/admin/applications/${id}/status`, data),
   exportApplicationsCSV: (params) => api.get('/admin/applications/export/csv', { params, responseType: 'blob' }),
   getInviteSources: () => api.get('/admin/applications/invite-sources'),
