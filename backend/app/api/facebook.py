@@ -725,3 +725,21 @@ async def send_boost_emails(
 
     result["sent_at"] = cached.boost_emails_sent_at.isoformat()
     return result
+
+
+@router.get("/boosted-jobs/{job_id}/preview-recipients")
+async def preview_boost_recipients(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Empfänger-Trichter für den Boost einer Stelle (sendet nichts)."""
+    require_admin(current_user)
+    from app.models.job_posting import JobPosting
+    from app.services.job_notification_service import get_boost_recipients_breakdown
+
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
+
+    return get_boost_recipients_breakdown(job, db)

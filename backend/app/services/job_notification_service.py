@@ -227,6 +227,54 @@ def send_boost_emails_for_job(job: JobPosting, db: Session) -> dict:
     return {"matched": len(matching), "sent": sent}
 
 
+def get_boost_recipients_breakdown(job: JobPosting, db: Session, threshold: int = None) -> dict:
+    """Zeigt den Empfänger-Trichter für den Boost-Versand einer Stelle:
+    aktive Bewerber -> Stellenart passt -> Score >= Schwelle -> mit E-Mail & Alerts an.
+    Dient der Transparenz ("warum nur X E-Mails?"), sendet nichts.
+    """
+    if threshold is None:
+        threshold = get_setting(db, "job_notifications_threshold", 85)
+
+    job_type = job.position_type.value if job.position_type else None
+    applicants = db.query(Applicant).join(
+        User, Applicant.user_id == User.id
+    ).filter(
+        User.is_active == True,
+        Applicant.portal != "ijp"
+    ).all()
+
+    total_active = len(applicants)
+    position_ok = 0
+    score_ok = 0
+    recipients = 0
+    for applicant in applicants:
+        if not position_compatible(get_applicant_position_types(applicant), job_type):
+            continue
+        position_ok += 1
+        try:
+            res = calculate_match_score(applicant, job, db=db)
+        except Exception:
+            continue
+        if res.get("total_score", 0) >= threshold:
+            score_ok += 1
+            user = applicant.user
+            if user and user.email and user.email_job_alerts is not False:
+                recipients += 1
+
+    return {
+        "job_id": job.id,
+        "threshold": threshold,
+        "total_active": total_active,
+        "position_compatible": position_ok,
+        "score_ok": score_ok,
+        "recipients": recipients,
+        # Wo Bewerber herausfallen (für die Anzeige):
+        "dropped_position": total_active - position_ok,
+        "dropped_score": position_ok - score_ok,
+        "dropped_consent": score_ok - recipients,
+    }
+
+
 def get_matching_jobs_for_applicant(applicant: Applicant, db: Session, threshold: int = 70, days: int = 7) -> List[dict]:
     """
     Finds all active jobs that match an applicant's profile.

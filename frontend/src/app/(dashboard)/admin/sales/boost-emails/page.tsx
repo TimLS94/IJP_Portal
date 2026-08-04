@@ -18,6 +18,17 @@ interface BoostedJob {
   boost_emails_count: number;
 }
 
+interface RecipientBreakdown {
+  threshold: number;
+  total_active: number;
+  position_compatible: number;
+  score_ok: number;
+  recipients: number;
+  dropped_position: number;
+  dropped_score: number;
+  dropped_consent: number;
+}
+
 type TabKey = "boosted" | "other";
 
 export default function BoostEmailsPage() {
@@ -29,6 +40,8 @@ export default function BoostEmailsPage() {
   const [sending, setSending] = useState<number | null>(null);
   const [sendingTg, setSendingTg] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const [previewing, setPreviewing] = useState<number | null>(null);
+  const [previews, setPreviews] = useState<Record<number, RecipientBreakdown>>({});
 
   const loadBoosted = async () => {
     setLoadingBoosted(true);
@@ -93,6 +106,18 @@ export default function BoostEmailsPage() {
     }
   };
 
+  const loadPreview = async (jobId: number) => {
+    setPreviewing(jobId);
+    try {
+      const r = await adminAPI.previewBoostRecipients(jobId);
+      setPreviews((p) => ({ ...p, [jobId]: r.data }));
+    } catch {
+      toast.error("Vorschau konnte nicht geladen werden");
+    } finally {
+      setPreviewing(null);
+    }
+  };
+
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
@@ -126,8 +151,42 @@ export default function BoostEmailsPage() {
             {sendingTg === job.job_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             An Telegram senden
           </button>
+          <button
+            onClick={() => loadPreview(job.job_id)}
+            disabled={previewing === job.job_id}
+            className="btn-secondary inline-flex items-center gap-2 text-sm"
+            title="Zeigt, wie viele Bewerber diese Boost-E-Mail bekämen und warum"
+          >
+            {previewing === job.job_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            Empfänger-Vorschau
+          </button>
         </div>
       </div>
+
+      {previews[job.job_id] && (() => {
+        const p = previews[job.job_id];
+        const Row = ({ label, value, tone }: { label: string; value: number; tone?: "drop" | "final" }) => (
+          <div className={`flex items-center justify-between px-3 py-1.5 rounded ${tone === "final" ? "bg-green-50 text-green-800 font-semibold" : tone === "drop" ? "text-gray-400" : "text-gray-700"}`}>
+            <span>{label}</span><span className="tabular-nums">{value}</span>
+          </div>
+        );
+        return (
+          <div className="mt-3 border border-gray-200 rounded-lg p-3 text-sm bg-gray-50">
+            <p className="font-medium text-gray-900 mb-2">Empfänger-Trichter (Schwelle {p.threshold}%)</p>
+            <div className="space-y-0.5">
+              <Row label="Aktive Bewerber" value={p.total_active} />
+              <Row label={`↳ passen zur Stellenart (${p.dropped_position} raus)`} value={p.position_compatible} tone={p.dropped_position ? "drop" : undefined} />
+              <Row label={`↳ Match ≥ ${p.threshold}% (${p.dropped_score} unter Schwelle)`} value={p.score_ok} tone={p.dropped_score ? "drop" : undefined} />
+              <Row label={`↳ mit E-Mail & aktiven Job-Alerts (${p.dropped_consent} ohne)`} value={p.recipients} tone="final" />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {p.dropped_position >= p.dropped_score
+                ? "Größter Filter: die Stellenart. Der Score-Schwellenwert ändert daran nichts."
+                : "Größter Filter: der Match-Score. Schwelle in der Systemkonfiguration senken bringt mehr Empfänger."}
+            </p>
+          </div>
+        );
+      })()}
 
       <div className="mt-3 text-sm">
         {job.boost_emails_sent_at ? (
