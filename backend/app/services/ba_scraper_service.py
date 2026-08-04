@@ -3,7 +3,7 @@ Bundesagentur für Arbeit – offizielle Jobsuche-API v5 (Liste) + v4 (Details)
 Authentifizierung: X-API-Key Header mit clientId "jobboerse-jobsuche"
 
 Ablauf:
-  1. Liste via /pc/v5/jobs (refnr, Titel, Arbeitgeber, Ort)
+  1. Liste via /pc/v6/jobs (referenznummer, Titel, Arbeitgeber, Ort)
   2. Details via /pc/v4/jobdetails/{base64(refnr)} (vollständige Beschreibung)
   3. Optional: OpenAI-Aufbereitung via OPENAI_API_KEY in .env
 """
@@ -99,7 +99,7 @@ def _detect_language_requirements(text: str) -> dict:
     return result
 
 
-BA_JOBS_URL = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v5/jobs"
+BA_JOBS_URL = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs"
 BA_DETAIL_URL = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobdetails"
 BA_API_KEY = "jobboerse-jobsuche"
 
@@ -579,7 +579,8 @@ def _build_external_url(job_data: dict) -> str:
         if hash_id:
             url = f"https://www.arbeitsagentur.de/jobsuche/jobdetail/{hash_id}"
     if not url:
-        ref_nr = job_data.get("refnr", "").strip()
+        # v6: "referenznummer" (früher "refnr")
+        ref_nr = (job_data.get("referenznummer") or job_data.get("refnr") or "").strip()
         if ref_nr:
             url = f"https://www.arbeitsagentur.de/jobsuche/jobdetail/{ref_nr}"
     return url
@@ -651,7 +652,8 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                 errors += 1
                 break
 
-            jobs_raw = data.get("stellenangebote") or []
+            # v6: Liste unter "ergebnisliste" (früher "stellenangebote")
+            jobs_raw = data.get("ergebnisliste") or data.get("stellenangebote") or []
             if not jobs_raw:
                 break
 
@@ -659,7 +661,8 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                 if imported >= max_jobs:
                     break
 
-                ref_nr: str = job_data.get("refnr", "").strip()
+                # v6: "referenznummer" (früher "refnr")
+                ref_nr: str = (job_data.get("referenznummer") or job_data.get("refnr") or "").strip()
                 if not ref_nr:
                     continue
 
@@ -672,13 +675,17 @@ def scrape_ba_jobs(db: Session, config: dict) -> dict:
                     continue
 
                 try:
-                    title: str = job_data.get("titel", "").strip()
-                    employer_name: str = job_data.get("arbeitgeber", "").strip()
-                    arbeitsort: dict = job_data.get("arbeitsort") or {}
-                    city: str = arbeitsort.get("ort", "").strip()
-                    plz: str = arbeitsort.get("plz", "").strip()
+                    # v6-Feldnamen (mit Fallback auf alte Namen)
+                    title: str = (job_data.get("stellenangebotsTitel") or job_data.get("titel") or "").strip()
+                    employer_name: str = (job_data.get("firma") or job_data.get("arbeitgeber") or "").strip()
+                    # v6: Ort unter stellenlokationen[0].adresse (früher: arbeitsort)
+                    lokationen = job_data.get("stellenlokationen") or []
+                    arbeitsort: dict = (lokationen[0].get("adresse") if lokationen else None) or job_data.get("arbeitsort") or {}
+                    city: str = (arbeitsort.get("ort") or "").strip()
+                    plz: str = (arbeitsort.get("plz") or "").strip()
                     external_url: str = _build_external_url(job_data)
-                    start_date = _parse_date(job_data.get("eintrittsdatum"))
+                    # v6: eintrittszeitraum.von (früher: eintrittsdatum)
+                    start_date = _parse_date((job_data.get("eintrittszeitraum") or {}).get("von") or job_data.get("eintrittsdatum"))
                     position_type = ANGEBOTSART_TO_POSITION.get(angebotsart, PositionType.GENERAL.value)
                     slug = generate_job_slug(title, city)
 
