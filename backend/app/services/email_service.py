@@ -1182,6 +1182,59 @@ class EmailService:
         return self.send_email(to_email, subject, html_content, email_type="job_boost")
 
     @_safe_email_call
+    def send_boost_digest(
+        self,
+        to_email: str,
+        applicant_name: str,
+        matching_jobs: list
+    ) -> bool:
+        """Personalisierter Booster-Digest: nur die geboosteten Stellen, für die
+        DIESER Bewerber kern-geeignet ist. matching_jobs = [{"job":..., "score":int}]."""
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+        except Exception:
+            frontend_url = 'https://www.jobon.work'
+
+        jobs_html = ""
+        for match in matching_jobs:
+            job = match["job"]
+            job_url = f"{frontend_url}/jobs/{job.slug}-{job.id}" if job.slug else f"{frontend_url}/jobs/{job.id}"
+            if getattr(job, "is_external", False) and getattr(job, "external_employer_name", None):
+                company_name = job.external_employer_name
+            else:
+                company_name = job.company.company_name if job.company else "JobOn"
+            jobs_html += f"""
+            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fff7ed; border-radius:8px; margin:10px 0; border-left:4px solid #f97316;">
+                <tr><td style="padding:15px;">
+                    <p style="margin:0 0 4px 0; font-size:16px; font-weight:bold; color:#1f2937;">{job.title}</p>
+                    <p style="margin:0; color:#6b7280; font-size:14px;">{company_name} &bull; {job.location or 'Deutschland'}</p>
+                    <p style="margin:10px 0 0 0;"><a href="{job_url}" style="color:#ea580c; text-decoration:none; font-weight:600;">Jetzt ansehen &rarr;</a></p>
+                </td></tr>
+            </table>
+            """
+
+        subject = f"{len(matching_jobs)} empfohlene Stelle{'n' if len(matching_jobs) != 1 else ''} für dich | JobOn"
+        html_content = f"""
+        <html><body style="font-family:Arial,sans-serif; max-width:600px; margin:0 auto; background:#f3f4f6; padding:20px;">
+            <div style="background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; padding:28px; text-align:center; border-radius:12px 12px 0 0;">
+                <h1 style="margin:0; font-size:22px;">Empfohlene Stellen für dich</h1>
+                <p style="margin:8px 0 0 0; font-size:15px;">{len(matching_jobs)} passende Stelle{'n' if len(matching_jobs) != 1 else ''} – handverlesen</p>
+            </div>
+            <div style="padding:28px; background:#ffffff; border-radius:0 0 12px 12px;">
+                <p style="font-size:16px; color:#374151;">Hallo {applicant_name},</p>
+                <p style="color:#4b5563;">diese aktuell hervorgehobenen Stellen passen zu deinem Profil:</p>
+                {jobs_html}
+                <p style="text-align:center; margin:24px 0 0 0;">
+                    <a href="{frontend_url}/jobs" style="background:#f97316; color:#fff; padding:12px 26px; text-decoration:none; border-radius:8px; font-weight:bold; display:inline-block;">Alle Stellen ansehen</a>
+                </p>
+                <hr style="border:none; border-top:1px solid #e5e7eb; margin:24px 0;">
+                <p style="color:#9ca3af; font-size:12px;">Du erhältst diese E-Mail, weil du Job-Benachrichtigungen aktiviert hast. Abmelden im Profil.</p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content, email_type="job_match")
+
     def send_weekly_job_digest(
         self,
         to_email: str,

@@ -58,6 +58,42 @@ async def get_public_job_settings(db: Session = Depends(get_db)):
     }
 
 
+FEATURED_TOP_SLOTS = 5
+
+
+def select_pinned_featured(featured_ids, slots: int = FEATURED_TOP_SLOTS, seed: int = 0) -> set:
+    """Wählt aus den aktuell hervorgehobenen Job-IDs die 'gepinnten' Top-Slots.
+    - <= slots: alle (Verhalten wie bisher, kein Effekt bei wenigen Featured).
+    - > slots: deterministische, seed-abhängige Rotation, damit nicht immer dieselben
+      oben stehen ('hervorgehoben' entwertet sich bei vielen Premium-Stellen nicht).
+    """
+    ids = sorted(i for i in (featured_ids or []) if i is not None)
+    if len(ids) <= slots:
+        return set(ids)
+    n = len(ids)
+    off = seed % n
+    rotated = ids[off:] + ids[:off]
+    return set(rotated[:slots])
+
+
+def _featured_top_rank(query, now):
+    """Baut den Sortier-Ausdruck für 'gepinnte Featured zuerst' (mit Rotation).
+    Fällt bei Fehlern auf das bisherige 'alle aktiven Featured zuerst' zurück."""
+    from sqlalchemy import case, and_, or_
+    featured_active = and_(
+        JobPosting.is_featured == True,
+        or_(JobPosting.featured_until == None, JobPosting.featured_until > now),
+    )
+    try:
+        featured_ids = [r[0] for r in query.with_entities(JobPosting.id).filter(featured_active).all()]
+        pinned = select_pinned_featured(featured_ids, seed=now.toordinal())
+        if pinned:
+            return case((JobPosting.id.in_(pinned), 1), else_=0)
+    except Exception:
+        pass
+    return case((featured_active, 1), else_=0)
+
+
 @router.get("/public", response_model=List[JobPostingResponse])
 async def list_public_jobs(
     position_type: Optional[PositionType] = None,
@@ -90,21 +126,10 @@ async def list_public_jobs(
         else:
             query = query.filter(JobPosting.country == country.upper())
 
-    # Hervorgehobene Jobs zuerst, dann nach Erstellungsdatum
-    from sqlalchemy import case, and_, or_
-    is_currently_featured = case(
-        (and_(
-            JobPosting.is_featured == True,
-            or_(
-                JobPosting.featured_until == None,
-                JobPosting.featured_until > datetime.utcnow()
-            )
-        ), 1),
-        else_=0
-    )
-    
+    # Hervorgehobene Jobs zuerst (mit Slot-Limit + Rotation), dann nach Erstellungsdatum
+    top_rank = _featured_top_rank(query, datetime.utcnow())
     jobs = query.order_by(
-        is_currently_featured.desc(),
+        top_rank.desc(),
         JobPosting.created_at.desc()
     ).offset(skip).limit(limit).all()
     return jobs
@@ -233,21 +258,10 @@ async def list_jobs(
                 ))
             )
 
-    # Hervorgehobene Jobs zuerst, dann nach Erstellungsdatum
-    from sqlalchemy import case, and_, or_
-    is_currently_featured = case(
-        (and_(
-            JobPosting.is_featured == True,
-            or_(
-                JobPosting.featured_until == None,
-                JobPosting.featured_until > datetime.utcnow()
-            )
-        ), 1),
-        else_=0
-    )
-    
+    # Hervorgehobene Jobs zuerst (mit Slot-Limit + Rotation), dann nach Erstellungsdatum
+    top_rank = _featured_top_rank(query, datetime.utcnow())
     jobs = query.order_by(
-        is_currently_featured.desc(),
+        top_rank.desc(),
         JobPosting.created_at.desc()
     ).offset(skip).limit(limit).all()
     return jobs

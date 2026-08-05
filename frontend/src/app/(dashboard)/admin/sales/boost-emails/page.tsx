@@ -41,6 +41,35 @@ export default function BoostEmailsPage() {
   const [search, setSearch] = useState("");
   const [previewing, setPreviewing] = useState<number | null>(null);
   const [previews, setPreviews] = useState<Record<number, RecipientBreakdown>>({});
+  const [digest, setDigest] = useState<{ boosted_jobs: number; recipients: number; avg_jobs: number } | null>(null);
+  const [sendingDigest, setSendingDigest] = useState(false);
+
+  const loadDigestPreview = useCallback(async () => {
+    try {
+      const r = await adminAPI.boostDigestPreview();
+      setDigest(r.data);
+    } catch {
+      setDigest(null);
+    }
+  }, []);
+
+  useEffect(() => { loadDigestPreview(); }, [loadDigestPreview]);
+
+  const handleSendDigest = async () => {
+    if (!digest || digest.recipients === 0) return;
+    if (!confirm(`Personalisierte Sammel-Mail an ${digest.recipients} Bewerber senden? Jeder bekommt nur die geboosteten Stellen, für die er geeignet ist.`)) return;
+    setSendingDigest(true);
+    try {
+      const r = await adminAPI.sendBoostDigest();
+      toast.success(`${r.data?.sent ?? 0} Sammel-Mails gesendet (${r.data?.boosted_jobs ?? 0} geboostete Stellen)`);
+      loadDigestPreview();
+    } catch (e) {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail || "Versand fehlgeschlagen");
+    } finally {
+      setSendingDigest(false);
+    }
+  };
 
   const loadBoosted = async () => {
     setLoadingBoosted(true);
@@ -214,6 +243,35 @@ export default function BoostEmailsPage() {
         Mit einem Klick geht eine „Passende Stelle für dich"-E-Mail (mit Match-Score und Link) an alle
         passenden Bewerber raus – unabhängig von den Facebook-Posts.
       </p>
+
+      {/* Personalisierter Booster-Sammel-Digest */}
+      <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-semibold text-gray-900 flex items-center gap-2">
+              <Send className="h-4 w-4 text-orange-600" />
+              Booster-Sammel-Mail (personalisiert)
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              Jeder Bewerber bekommt <strong>eine</strong> Mail mit den geboosteten Stellen, für die er <strong>kern-geeignet</strong> ist (max. 8, 1 pro Arbeitgeber). Wer zu keiner passt, bekommt nichts.
+            </p>
+            {digest && (
+              <p className="text-sm text-gray-700 mt-2">
+                {digest.boosted_jobs} geboostete Stelle{digest.boosted_jobs === 1 ? "" : "n"} ·{" "}
+                <strong>{digest.recipients}</strong> Empfänger · ⌀ {digest.avg_jobs} Jobs/Mail
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleSendDigest}
+            disabled={sendingDigest || !digest || digest.recipients === 0}
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {sendingDigest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Sammel-Mail senden
+          </button>
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-gray-200">

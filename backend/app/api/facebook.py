@@ -743,3 +743,26 @@ async def preview_boost_recipients(
         raise HTTPException(status_code=404, detail="Stelle nicht gefunden")
 
     return get_boost_recipients_breakdown(job, db)
+
+
+@router.get("/boost-digest/preview")
+async def boost_digest_preview(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Vorschau des personalisierten Booster-Sammel-Digests (sendet nichts)."""
+    require_admin(current_user)
+    from app.services.job_notification_service import get_boost_digest_preview
+    return get_boost_digest_preview(db)
+
+
+@router.post("/boost-digest/send")
+async def boost_digest_send(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Versendet EINE personalisierte Sammel-Mail pro Bewerber mit den geboosteten
+    Stellen, für die er kern-geeignet ist."""
+    require_admin(current_user)
+    from app.services.job_notification_service import send_boost_digest_to_applicants
+    return send_boost_digest_to_applicants(db)

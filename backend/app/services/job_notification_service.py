@@ -204,6 +204,111 @@ def get_core_fit_applicants(job: JobPosting, db: Session) -> List[dict]:
     return result
 
 
+def _currently_boosted_jobs(db: Session) -> List[JobPosting]:
+    """Aktuell geboostete/hervorgehobene aktive Stellen (wie in der Boost-Übersicht)."""
+    from sqlalchemy import or_ as _or
+    now = datetime.utcnow()
+    boost_cutoff = now - timedelta(days=30)
+    jobs = db.query(JobPosting).filter(
+        JobPosting.is_active == True,
+        JobPosting.is_draft == False,
+        JobPosting.is_archived == False,
+        _or(JobPosting.is_featured == True, JobPosting.last_boosted_at >= boost_cutoff),
+    ).all()
+    result = []
+    for j in jobs:
+        recent_boost = j.last_boosted_at and j.last_boosted_at.replace(tzinfo=None) >= boost_cutoff
+        featured_active = j.is_featured and (not j.featured_until or j.featured_until.replace(tzinfo=None) > now)
+        if recent_boost or featured_active:
+            result.append(j)
+    return result
+
+
+def _digest_jobs_for_applicant(applicant: Applicant, boosted_jobs: List[JobPosting], db: Session, cap: int = 8) -> List[dict]:
+    """Kern-geeignete Booster-Jobs für EINEN Bewerber: nach Score sortiert, max 1 pro
+    Arbeitgeber, auf cap gedeckelt. Leere Liste = keine passende Stelle."""
+    scored = []
+    for job in boosted_jobs:
+        if not is_core_fit(applicant, job, db):
+            continue
+        try:
+            score = calculate_match_score(applicant, job, db=db).get("total_score", 0)
+        except Exception:
+            score = 0
+        scored.append((score, job))
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    seen_employers = set()
+    out = []
+    for score, job in scored:
+        if getattr(job, "is_external", False) and getattr(job, "external_employer_name", None):
+            key = ("ext", job.external_employer_name)
+        else:
+            key = ("co", job.company_id or job.id)
+        if key in seen_employers:
+            continue
+        seen_employers.add(key)
+        out.append({"job": job, "score": score})
+        if len(out) >= cap:
+            break
+    return out
+
+
+def send_boost_digest_to_applicants(db: Session, cap: int = 8) -> dict:
+    """Personalisierter Booster-Digest: jeder aktive Bewerber mit Alerts bekommt EINE
+    Mail mit den geboosteten Stellen, für die er kern-geeignet ist. Wer zu keiner
+    passt, bekommt nichts (kein Spam)."""
+    from app.services.email_service import email_service
+    boosted = _currently_boosted_jobs(db)
+    if not boosted:
+        return {"boosted_jobs": 0, "recipients": 0, "sent": 0}
+
+    applicants = db.query(Applicant).join(User, Applicant.user_id == User.id).filter(
+        User.is_active == True, Applicant.portal != "ijp"
+    ).all()
+
+    sent = 0
+    recipients = 0
+    for applicant in applicants:
+        user = applicant.user
+        if not user or not user.email or user.email_job_alerts is False:
+            continue
+        jobs = _digest_jobs_for_applicant(applicant, boosted, db, cap=cap)
+        if not jobs:
+            continue
+        recipients += 1
+        try:
+            if email_service.send_boost_digest(user.email, f"{applicant.first_name} {applicant.last_name}", jobs):
+                sent += 1
+        except Exception as e:
+            logger.error(f"Boost-Digest an {user.email} fehlgeschlagen: {e}")
+    return {"boosted_jobs": len(boosted), "recipients": recipients, "sent": sent}
+
+
+def get_boost_digest_preview(db: Session, cap: int = 8) -> dict:
+    """Vorschau (sendet nichts): wie viele Bewerber bekämen den Digest und wie viele
+    Jobs im Schnitt."""
+    boosted = _currently_boosted_jobs(db)
+    applicants = db.query(Applicant).join(User, Applicant.user_id == User.id).filter(
+        User.is_active == True, Applicant.portal != "ijp"
+    ).all()
+    recipients = 0
+    total_jobs = 0
+    for applicant in applicants:
+        user = applicant.user
+        if not user or not user.email or user.email_job_alerts is False:
+            continue
+        jobs = _digest_jobs_for_applicant(applicant, boosted, db, cap=cap)
+        if jobs:
+            recipients += 1
+            total_jobs += len(jobs)
+    return {
+        "boosted_jobs": len(boosted),
+        "recipients": recipients,
+        "avg_jobs": round(total_jobs / recipients, 1) if recipients else 0,
+    }
+
+
 def send_boost_emails_for_job(job: JobPosting, db: Session) -> dict:
     """Versendet die eigenständige Boost-E-Mail (manuell ausgelöst) an passende Bewerber.
 
