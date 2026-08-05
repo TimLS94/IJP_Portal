@@ -270,8 +270,42 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
                 "penalty": -penalty,
             }
 
-    # Gesamtscore berechnen (0-100)
-    total_score = max(0, min(100, sum(scores.values())))
+    # Gesamtscore: auf das erreichbare Maximum normalisiert, damit "optional"/nicht
+    # geforderte Kriterien den Score nicht künstlich nach unten ziehen.
+    # Kern-Komponenten zählen immer; Sprachen nach Wichtigkeit:
+    #   required  -> voll im Nenner (nicht erfüllen senkt den Score)
+    #   desirable -> reiner Bonus (nur im Zähler, verschlechtert nie)
+    #   optional  -> zählt gar nicht (weder Zähler noch Nenner)
+    # Der Nenner wird bei 100 gedeckelt: klassische Stellen (alle Sprachen gefordert)
+    # verhalten sich damit identisch zum bisherigen min(100, sum) -> abwärtskompatibel.
+    numerator = (scores["position_type"] + scores["experience"]
+                 + scores["text_match"] + scores["availability"])
+    denominator = 30 + 20 + 25 + 10  # Positionstyp, Erfahrung, Text-Match, Verfügbarkeit
+
+    if german_imp == "optional":
+        pass  # zählt nicht
+    elif german_imp == "desirable":
+        numerator += scores["german_level"]  # Bonus
+    else:  # required (Default)
+        denominator += 25
+        numerator += scores["german_level"]
+
+    if english_imp == "optional":
+        pass
+    elif english_imp == "desirable":
+        numerator += scores["english_level"]
+    else:  # required (Default)
+        denominator += 15
+        numerator += scores["english_level"]
+
+    # Weitere Sprachen sind additive Boni (nicht im Nenner)
+    numerator += scores.get("other_languages", 0)
+
+    denominator = min(100, denominator)
+    normalized = round(numerator / denominator * 100) if denominator > 0 else 0
+    # Arbeitsberechtigung-Strafe (negativ) flach nach der Normalisierung anwenden
+    normalized += scores.get("work_authorization", 0)
+    total_score = max(0, min(100, normalized))
     
     result = {
         "total_score": total_score,
@@ -295,15 +329,18 @@ def _check_position_match(applicant: Applicant, job: JobPosting) -> dict:
     Berücksichtigt symmetrische Gruppen (general↔fachkraft, saisonjob↔workandholiday),
     sodass sich überschneidende Stellenarten ebenfalls als Treffer zählen.
     """
-    from app.services.position_groups import get_applicant_position_types, expand_position_types
+    from app.services.position_groups import get_applicant_position_types, expand_position_types, GENERAL
 
     job_type = job.position_type.value if job.position_type else None
     if not job_type:
         return {"match": False, "score": 0}
 
     applicant_types = get_applicant_position_types(applicant)
-    if not applicant_types:
-        return {"match": False, "score": 0}
+
+    # Wildcard "general": general-Job passt zu jedem, general-Bewerber zu jedem Job.
+    # Keine Präferenz angegeben -> ebenfalls voller Treffer (konsistent zum Filter).
+    if not applicant_types or job_type == GENERAL or GENERAL in applicant_types:
+        return {"match": True, "score": 30}
 
     # Exakter Treffer -> volle Punktzahl
     if job_type in applicant_types:
