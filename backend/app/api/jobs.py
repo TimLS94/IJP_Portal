@@ -781,8 +781,10 @@ async def update_job(
         setattr(job, field, value)
 
     # Wird eine Draft-Stelle aktiviert, Draft-Flag automatisch entfernen
+    published_from_draft = False
     if update_data.get("is_active") is True and job.is_draft:
         job.is_draft = False
+        published_from_draft = True
         if job.published_at is None:
             from datetime import datetime
             job.published_at = datetime.utcnow()
@@ -792,8 +794,20 @@ async def update_job(
     # SEO: Slug aktualisieren wenn relevante Felder geändert wurden
     if slug_fields_changed:
         update_job_slug(job, db)
-    
+
     db.refresh(job)
+
+    # Entwurf -> jetzt veröffentlicht: Broadcast (Telegram-Gruppe/Abonnenten) +
+    # Bewerber-Benachrichtigungen nachholen. Feuert nur beim ERSTEN Live-Gehen
+    # (danach ist is_draft False), also kein Re-Broadcast bei späteren Edits.
+    if published_from_draft and job.is_active and not job.is_draft:
+        try:
+            from app.services.job_notification_service import notify_applicants_about_new_job
+            notify_applicants_about_new_job(job, db)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Job-Benachrichtigung (Entwurf veröffentlicht) fehlgeschlagen: {e}")
+
     return job
 
 
