@@ -408,6 +408,58 @@ def _applicant_other_lang_map(applicant: Applicant) -> dict:
     return result
 
 
+def _language_required_met(applicant_level: str, required_level: str, importance: str) -> bool:
+    """Erfüllt der Bewerber eine PFLICHT-Sprache? Optional/wünschenswert gaten nie."""
+    if (importance or "required").lower() != "required":
+        return True
+    req = required_level or "not_required"
+    if req in ("not_required", "none", "keine", ""):
+        return True
+    appl = applicant_level or "keine"
+    return LANGUAGE_LEVEL_ORDER.get(appl, 0) >= LANGUAGE_LEVEL_ORDER.get(req, 0)
+
+
+def is_core_fit(applicant: Applicant, job: JobPosting, db: Optional[Session] = None) -> bool:
+    """Kern-Eignung für den Booster: Erfüllt der Bewerber die ECHTEN Anforderungen
+    der Stelle? = Stellenart passt + Pflicht-Sprachen erfüllt + Arbeitsberechtigung ok.
+
+    Bewusst NICHT profilabhängig (Erfahrung/Text-Match zählen hier nicht) – der
+    Booster ist Reichweite ("wer kann den Job machen"), kein Qualitäts-Ranking.
+    Optionale/wünschenswerte Sprachen gaten nie; work_authorized=None (nie gefragt)
+    schließt nicht aus (abwärtskompatibel), nur ein explizites "Nein".
+    """
+    from app.services.position_groups import position_compatible, get_applicant_position_types
+
+    job_type = job.position_type.value if job.position_type else None
+    if not position_compatible(get_applicant_position_types(applicant), job_type):
+        return False
+
+    a_de = applicant.german_level.value if applicant.german_level else "keine"
+    a_en = applicant.english_level.value if applicant.english_level else "keine"
+    j_de = job.german_required.value if job.german_required else "not_required"
+    j_en = job.english_required.value if job.english_required else "not_required"
+    if not _language_required_met(a_de, j_de, getattr(job, "german_importance", "required")):
+        return False
+    if not _language_required_met(a_en, j_en, getattr(job, "english_importance", "required")):
+        return False
+
+    other = _applicant_other_lang_map(applicant)
+    for req in (job.other_languages_required or []):
+        if not isinstance(req, dict) or not req.get("language"):
+            continue
+        imp = req.get("importance") or ("required" if req.get("required") else "optional")
+        if imp == "required":
+            name = str(req["language"]).strip().lower()
+            if not _language_required_met(other.get(name, "keine"), req.get("level") or "not_required", "required"):
+                return False
+
+    work_req = getattr(job, "work_authorization_requirement", "not_relevant") or "not_relevant"
+    if work_req == "required" and applicant.work_authorized is False:
+        return False
+
+    return True
+
+
 def _check_experience_match(applicant: Applicant, job: JobPosting, cv_fallback: Optional[dict] = None) -> dict:
     """
     Prüft Berufserfahrung (20 Punkte).

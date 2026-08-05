@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.models.applicant import Applicant
 from app.models.job_posting import JobPosting
 from app.models.user import User
-from app.services.matching_service import calculate_match_score
+from app.services.matching_service import calculate_match_score, is_core_fit
 from app.services.settings_service import get_setting
 from app.services.position_groups import get_applicant_position_types, position_compatible
 
@@ -177,28 +177,46 @@ def notify_applicants_about_new_job(job: JobPosting, db: Session) -> int:
     return notifications_created
 
 
-def get_boost_threshold(db: Session) -> int:
-    """Schwelle für den Booster-Versand. Eigener Wert, der auf die allgemeine
-    Benachrichtigungs-Schwelle zurückfällt, solange er nicht gesetzt ist –
-    so kann der Booster mehr Bewerber erreichen, ohne das Firmen-Matching/die
-    normalen Alerts zu lockern."""
-    general = get_setting(db, "job_notifications_threshold", 85)
-    return get_setting(db, "boost_notifications_threshold", general)
+def get_core_fit_applicants(job: JobPosting, db: Session) -> List[dict]:
+    """Bewerber mit KERN-EIGNUNG für den Booster: erfüllen die echten Anforderungen
+    (Stellenart + Pflicht-Sprachen + Arbeitsberechtigung), unabhängig von Profil-
+    Vollständigkeit (Erfahrung/Text-Match). Der Match-Score wird trotzdem berechnet –
+    nur für die Anzeige in der E-Mail und die Sortierung, NICHT als Filter."""
+    applicants = db.query(Applicant).join(
+        User, Applicant.user_id == User.id
+    ).filter(
+        User.is_active == True,
+        Applicant.portal != "ijp"
+    ).all()
+
+    result = []
+    for applicant in applicants:
+        if not is_core_fit(applicant, job, db):
+            continue
+        score = 0
+        try:
+            score = calculate_match_score(applicant, job, db=db).get("total_score", 0)
+        except Exception:
+            score = 0
+        result.append({"applicant": applicant, "score": score})
+
+    result.sort(key=lambda x: x["score"], reverse=True)
+    return result
 
 
 def send_boost_emails_for_job(job: JobPosting, db: Session) -> dict:
     """Versendet die eigenständige Boost-E-Mail (manuell ausgelöst) an passende Bewerber.
 
-    Unabhängig von der "Neue Stelle"-Benachrichtigung. Nutzt denselben
-    Stellenart-Gruppen-Filter + eigene Booster-Schwelle und respektiert email_job_alerts.
+    Zielt auf KERN-EIGNUNG (Stellenart + Pflicht-Sprachen + Arbeitsberechtigung),
+    NICHT auf den vollen Qualitäts-Score – der Booster ist Reichweite, kein Ranking.
+    Respektiert email_job_alerts.
     """
     from app.services.email_service import email_service
 
     if not job.is_active or getattr(job, "is_draft", False):
         return {"matched": 0, "sent": 0, "error": "Stelle ist inaktiv/Entwurf"}
 
-    threshold = get_boost_threshold(db)
-    matching = get_matching_applicants(job, db, threshold)
+    matching = get_core_fit_applicants(job, db)
 
     # Echten Arbeitgeber bei externen Stellen verwenden
     if getattr(job, "is_external", False) and getattr(job, "external_employer_name", None):
@@ -236,14 +254,12 @@ def send_boost_emails_for_job(job: JobPosting, db: Session) -> dict:
     return {"matched": len(matching), "sent": sent}
 
 
-def get_boost_recipients_breakdown(job: JobPosting, db: Session, threshold: int = None) -> dict:
+def get_boost_recipients_breakdown(job: JobPosting, db: Session) -> dict:
     """Zeigt den Empfänger-Trichter für den Boost-Versand einer Stelle:
-    aktive Bewerber -> Stellenart passt -> Score >= Schwelle -> mit E-Mail & Alerts an.
+    aktive Bewerber -> Stellenart passt -> Kern-Eignung (Pflicht-Sprachen +
+    Arbeitsberechtigung) -> mit E-Mail & Alerts an.
     Dient der Transparenz ("warum nur X E-Mails?"), sendet nichts.
     """
-    if threshold is None:
-        threshold = get_boost_threshold(db)
-
     job_type = job.position_type.value if job.position_type else None
     applicants = db.query(Applicant).join(
         User, Applicant.user_id == User.id
@@ -254,33 +270,29 @@ def get_boost_recipients_breakdown(job: JobPosting, db: Session, threshold: int 
 
     total_active = len(applicants)
     position_ok = 0
-    score_ok = 0
+    core_ok = 0
     recipients = 0
     for applicant in applicants:
         if not position_compatible(get_applicant_position_types(applicant), job_type):
             continue
         position_ok += 1
-        try:
-            res = calculate_match_score(applicant, job, db=db)
-        except Exception:
+        if not is_core_fit(applicant, job, db):
             continue
-        if res.get("total_score", 0) >= threshold:
-            score_ok += 1
-            user = applicant.user
-            if user and user.email and user.email_job_alerts is not False:
-                recipients += 1
+        core_ok += 1
+        user = applicant.user
+        if user and user.email and user.email_job_alerts is not False:
+            recipients += 1
 
     return {
         "job_id": job.id,
-        "threshold": threshold,
         "total_active": total_active,
         "position_compatible": position_ok,
-        "score_ok": score_ok,
+        "core_fit": core_ok,
         "recipients": recipients,
         # Wo Bewerber herausfallen (für die Anzeige):
         "dropped_position": total_active - position_ok,
-        "dropped_score": position_ok - score_ok,
-        "dropped_consent": score_ok - recipients,
+        "dropped_core": position_ok - core_ok,
+        "dropped_consent": core_ok - recipients,
     }
 
 

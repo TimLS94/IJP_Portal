@@ -19,13 +19,12 @@ interface BoostedJob {
 }
 
 interface RecipientBreakdown {
-  threshold: number;
   total_active: number;
   position_compatible: number;
-  score_ok: number;
+  core_fit: number;
   recipients: number;
   dropped_position: number;
-  dropped_score: number;
+  dropped_core: number;
   dropped_consent: number;
 }
 
@@ -172,17 +171,15 @@ export default function BoostEmailsPage() {
         );
         return (
           <div className="mt-3 border border-gray-200 rounded-lg p-3 text-sm bg-gray-50">
-            <p className="font-medium text-gray-900 mb-2">Empfänger-Trichter (Schwelle {p.threshold}%)</p>
+            <p className="font-medium text-gray-900 mb-2">Empfänger-Trichter (Kern-Eignung)</p>
             <div className="space-y-0.5">
               <Row label="Aktive Bewerber" value={p.total_active} />
               <Row label={`↳ passen zur Stellenart (${p.dropped_position} raus)`} value={p.position_compatible} tone={p.dropped_position ? "drop" : undefined} />
-              <Row label={`↳ Match ≥ ${p.threshold}% (${p.dropped_score} unter Schwelle)`} value={p.score_ok} tone={p.dropped_score ? "drop" : undefined} />
+              <Row label={`↳ Kern-Eignung erfüllt (${p.dropped_core} raus)`} value={p.core_fit} tone={p.dropped_core ? "drop" : undefined} />
               <Row label={`↳ mit E-Mail & aktiven Job-Alerts (${p.dropped_consent} ohne)`} value={p.recipients} tone="final" />
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              {p.dropped_position >= p.dropped_score
-                ? "Größter Filter: die Stellenart. Der Score-Schwellenwert ändert daran nichts."
-                : "Größter Filter: der Match-Score. Schwelle in der Systemkonfiguration senken bringt mehr Empfänger."}
+              Der Booster zielt auf Kern-Eignung: Stellenart passt + Pflicht-Sprachen erfüllt + Arbeitsberechtigung. Erfahrung/Text-Match (Profil-Vollständigkeit) filtern hier bewusst NICHT.
             </p>
           </div>
         );
