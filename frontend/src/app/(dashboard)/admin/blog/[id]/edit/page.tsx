@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { FileText, ArrowLeft, Save, Eye, Newspaper, Lightbulb, Briefcase, FileCheck, Home, Trophy, Building2 } from "lucide-react";
+import { FileText, ArrowLeft, Save, Eye, Newspaper, Lightbulb, Briefcase, FileCheck, Home, Trophy, Building2, Upload, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { blogAPI } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -45,7 +45,24 @@ export default function BlogEditorPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPost, setLoadingPost] = useState(!isNew);
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<BlogForm>();
+  const [uploading, setUploading] = useState(false);
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<BlogForm>();
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const r = await blogAPI.uploadImage(file);
+      setValue("featured_image", r.data.url, { shouldDirty: true });
+      toast.success("Bild hochgeladen");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Upload fehlgeschlagen");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
 
   useEffect(() => {
     if (!isNew) {
@@ -221,11 +238,29 @@ export default function BlogEditorPage() {
                 </div>
 
                 <div>
-                  <label className="label">Beitragsbild URL</label>
+                  <label className="label">Beitragsbild</label>
+                  {watch("featured_image") ? (
+                    <div className="mb-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={watch("featured_image")} alt="Vorschau" className="w-full max-h-40 object-cover rounded-lg border border-gray-200" />
+                      <button
+                        type="button"
+                        onClick={() => setValue("featured_image", "", { shouldDirty: true })}
+                        className="text-xs text-red-600 hover:underline mt-1"
+                      >
+                        Bild entfernen
+                      </button>
+                    </div>
+                  ) : null}
+                  <label className="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 text-sm">
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    {uploading ? "Wird hochgeladen…" : "Bild hochladen"}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                  </label>
                   <input
                     type="text"
-                    className="input"
-                    placeholder="https://..."
+                    className="input mt-2"
+                    placeholder="… oder Bild-URL einfügen"
                     {...register("featured_image")}
                   />
                 </div>
