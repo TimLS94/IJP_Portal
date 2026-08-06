@@ -1127,14 +1127,8 @@ class EmailService:
 
         job_url = f"{frontend_url}/jobs/{job_slug}"
 
-        score_badge = ""
-        if match_score and match_score > 0:
-            score_badge = f"""
-                    <div style="background: #d1fae5; padding: 10px 15px; border-radius: 20px; display: inline-block; margin-top: 10px;">
-                        <span style="color: #065f46; font-weight: bold; font-size: 18px;">{match_score}% Match</span>
-                    </div>"""
-
-        subject = f"🚀 A job for you: {job_title}" + (f" ({match_score}% match)" if match_score else "")
+        # Bewusst KEIN Match-Score in der Bewerber-Mail (kann niedrig wirken).
+        subject = f"🚀 A job for you: {job_title}"
         html_content = f"""
         <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f3f4f6; padding: 20px;">
             <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
@@ -1155,7 +1149,7 @@ class EmailService:
                     </p>
                     <p style="margin: 0; color: #047857;">
                         📍 {location}
-                    </p>{score_badge}
+                    </p>
                 </div>
 
                 <p style="text-align: center; margin: 30px 0;">
