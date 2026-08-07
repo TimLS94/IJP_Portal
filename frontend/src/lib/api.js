@@ -439,7 +439,7 @@ export const adminAPI = {
   reloadAnabinDatabase: () => api.post('/anabin/database/reload'),
   
   // Job Translation & Editing
-  translateJob: (jobId, languages) => api.post(`/admin/jobs/${jobId}/translate`, { languages }),
+  translateJob: (jobId, languages, sourceLang = 'de') => api.post(`/admin/jobs/${jobId}/translate`, { languages, source_lang: sourceLang }),
   getJobTranslationStatus: (jobId) => api.get(`/admin/jobs/${jobId}/translation-status`),
   getJob: (jobId) => api.get(`/admin/jobs/${jobId}`),
   updateJob: (jobId, data) => api.put(`/admin/jobs/${jobId}`, data),

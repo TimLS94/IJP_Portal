@@ -2820,7 +2820,8 @@ async def get_applicant_matches(
 # ========== ADMIN JOB TRANSLATION ==========
 
 class AdminTranslateJobRequest(BaseModel):
-    languages: List[str]  # z.B. ["en", "es", "ru"]
+    languages: List[str]  # Zielsprachen, z.B. ["de", "en", "ru"]
+    source_lang: Optional[str] = "de"  # Quellsprache des vorhandenen Inhalts
 
 
 @router.post("/jobs/{job_id}/translate")
@@ -2849,36 +2850,53 @@ async def admin_translate_job(
             detail="Übersetzungsservice nicht verfügbar. Bitte DEEPL_API_KEY konfigurieren."
         )
     
-    # Verfügbare Sprachen
-    valid_languages = ["en", "es", "ru"]
-    languages_to_translate = [lang for lang in request.languages if lang in valid_languages]
-    
+    # Verfügbare Sprachen (DE jetzt auch als Ziel erlaubt, z.B. wenn eine Firma
+    # nur auf Spanisch geschaltet hat und Deutsch nachträglich erzeugt werden soll)
+    valid_languages = ["de", "en", "es", "ru"]
+    source_lang = (request.source_lang or "de").lower()
+    languages_to_translate = [lang for lang in request.languages if lang in valid_languages and lang != source_lang]
+
     if not languages_to_translate:
-        raise HTTPException(status_code=400, detail="Keine gültigen Sprachen angegeben")
-    
+        raise HTTPException(status_code=400, detail="Keine gültigen Zielsprachen angegeben")
+
     # Bestehende Übersetzungen laden oder initialisieren
     translations = job.translations or {}
     available_languages = job.available_languages or ["de"]
     admin_translated_languages = job.admin_translated_languages or []
-    
+
+    _FIELDS = ["title", "description", "tasks", "requirements", "benefits"]
+
+    # Quellinhalt bestimmen: DE = Basisfelder; sonst translations[source] mit Fallback
+    # auf die Basisfelder (Firma hat die Fremdsprache oft in die DE-Felder eingetragen).
+    if source_lang == "de":
+        src = {f: getattr(job, f) for f in _FIELDS}
+    else:
+        tr = translations.get(source_lang) or {}
+        src = {f: (tr.get(f) or getattr(job, f)) for f in _FIELDS}
+
     translated_languages = []
     errors = []
-    
+
     for target_lang in languages_to_translate:
         try:
-            # Übersetzen
             translated = await translate_job_fields(
-                title=job.title,
-                description=job.description,
-                tasks=job.tasks,
-                requirements=job.requirements,
-                benefits=job.benefits,
+                title=src.get("title"),
+                description=src.get("description"),
+                tasks=src.get("tasks"),
+                requirements=src.get("requirements"),
+                benefits=src.get("benefits"),
                 target_lang=target_lang,
-                source_lang='de'
+                source_lang=source_lang,
             )
-            
+
             if translated and translated.get('title'):
-                translations[target_lang] = translated
+                if target_lang == "de":
+                    # Deutsch wird die Basis der Stelle
+                    for f in _FIELDS:
+                        if translated.get(f) is not None:
+                            setattr(job, f, translated[f])
+                else:
+                    translations[target_lang] = translated
                 if target_lang not in available_languages:
                     available_languages.append(target_lang)
                 if target_lang not in admin_translated_languages:
@@ -2886,9 +2904,16 @@ async def admin_translate_job(
                 translated_languages.append(target_lang)
             else:
                 errors.append(f"{target_lang}: Übersetzung fehlgeschlagen")
-                
+
         except Exception as e:
             errors.append(f"{target_lang}: {str(e)}")
+
+    # Original-Quellsprache erhalten, wenn sie nicht Deutsch ist (damit die vom
+    # Betrieb eingegebene Fassung als eigene Sprache auswählbar bleibt).
+    if source_lang != "de" and translated_languages:
+        translations[source_lang] = {f: src.get(f) for f in _FIELDS}
+        if source_lang not in available_languages:
+            available_languages.append(source_lang)
     
     # Job aktualisieren
     if translated_languages:

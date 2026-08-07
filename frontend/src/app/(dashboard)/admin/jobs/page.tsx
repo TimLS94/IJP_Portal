@@ -27,6 +27,7 @@ const positionTypeColors: Record<string, string> = {
 };
 
 const AVAILABLE_LANGUAGES = [
+  { code: "de", name: "Deutsch", flag: "🇩🇪" },
   { code: "en", name: "English", flag: "🇬🇧" },
   { code: "es", name: "Español", flag: "🇪🇸" },
   { code: "ru", name: "Русский", flag: "🇷🇺" },
@@ -65,6 +66,7 @@ export default function AdminJobsPage() {
   // Translation Modal State
   const [translateModal, setTranslateModal] = useState<Job | null>(null);
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [sourceLang, setSourceLang] = useState<string>("de");
   const [translating, setTranslating] = useState(false);
 
   useEffect(() => {
@@ -112,18 +114,19 @@ export default function AdminJobsPage() {
   const openTranslateModal = (job: Job) => {
     const existingLangs = job.available_languages || ["de"];
     const missingLangs = AVAILABLE_LANGUAGES
-      .filter(l => !existingLangs.includes(l.code))
+      .filter(l => l.code !== "de" && !existingLangs.includes(l.code))
       .map(l => l.code);
+    setSourceLang("de");
     setSelectedLanguages(missingLangs);
     setTranslateModal(job);
   };
 
   const handleTranslate = async () => {
     if (!translateModal || selectedLanguages.length === 0) return;
-    
+
     setTranslating(true);
     try {
-      const response = await adminAPI.translateJob(translateModal.id, selectedLanguages);
+      const response = await adminAPI.translateJob(translateModal.id, selectedLanguages, sourceLang);
       if (response.data.success) {
         toast.success(response.data.message);
         loadJobs();
@@ -399,9 +402,29 @@ export default function AdminJobsPage() {
             </p>
 
             <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Sprachen auswählen:</p>
+              <p className="text-sm font-medium text-gray-700 mb-2">Aus welcher Sprache übersetzen?</p>
+              <select
+                value={sourceLang}
+                onChange={(e) => {
+                  const s = e.target.value;
+                  setSourceLang(s);
+                  setSelectedLanguages(prev => prev.filter(l => l !== s));
+                }}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg mb-1"
+              >
+                {AVAILABLE_LANGUAGES.map(lang => (
+                  <option key={lang.code} value={lang.code}>{lang.flag} {lang.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mb-3">
+                Vorhandener Inhalt der Stelle. Bei einer nur auf Spanisch geschalteten Stelle hier <strong>Español</strong> wählen und unten Deutsch als Ziel anhaken.
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-700 mb-2">In welche Sprachen übersetzen?</p>
               <div className="space-y-2">
-                {AVAILABLE_LANGUAGES.map(lang => {
+                {AVAILABLE_LANGUAGES.filter(lang => lang.code !== sourceLang).map(lang => {
                   const isExisting = translateModal.available_languages?.includes(lang.code);
                   const isAdminTranslated = translateModal.admin_translated_languages?.includes(lang.code);
                   
