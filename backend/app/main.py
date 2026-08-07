@@ -278,6 +278,33 @@ def ensure_published_at_column():
 ensure_published_at_column()
 
 
+def ensure_telegram_posted_at_column():
+    """Fügt telegram_posted_at zu job_postings hinzu. Beim ERSTEN Anlegen werden ALLE
+    bestehenden Stellen als 'bereits gepostet' markiert -> kein Telegram-Backlog-Spam;
+    danach werden nur neu veröffentlichte Stellen (mit Verzögerung) gepostet."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'job_postings' AND column_name = 'telegram_posted_at'
+        """))
+        if not result.fetchone():
+            logger.info("Adding 'telegram_posted_at' column to job_postings...")
+            db.execute(text("ALTER TABLE job_postings ADD COLUMN telegram_posted_at TIMESTAMP WITH TIME ZONE"))
+            # Bestand als erledigt markieren, damit der Deferred-Poster nichts nachträglich spammt
+            db.execute(text("UPDATE job_postings SET telegram_posted_at = NOW() WHERE telegram_posted_at IS NULL"))
+            db.commit()
+            logger.info("'telegram_posted_at' added and existing jobs backfilled")
+    except Exception as e:
+        logger.error(f"Error adding telegram_posted_at column: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+ensure_telegram_posted_at_column()
+
+
 def ensure_external_click_count_column():
     """Fügt external_click_count Spalte zu job_postings hinzu"""
     from sqlalchemy import text
@@ -1381,6 +1408,63 @@ async def weekly_blog_writer():
             logger.error(f"Fehler im Blog-Writer: {e}")
 
 
+async def telegram_post_pending_jobs():
+    """Postet neu veröffentlichte Stellen mit ~5 Min Verzögerung in Telegram –
+    und nur, wenn sie ausreichend ausgefüllt sind. Die Verzögerung verhindert Spam
+    bei versehentlichen oder sofort wieder gelöschten Posts."""
+    from datetime import datetime, timedelta
+    from app.core.database import SessionLocal
+    from app.models.job_posting import JobPosting
+    from app.services.settings_service import get_setting
+    from app.services import telegram_service as tg
+
+    while True:
+        try:
+            if tg.is_configured():
+                db = SessionLocal()
+                try:
+                    min_score = int(get_setting(db, "telegram_min_job_score", 60))
+                    delay_min = int(get_setting(db, "telegram_post_delay_minutes", 5))
+                    now = datetime.utcnow()
+                    ready_before = now - timedelta(minutes=delay_min)
+                    window_start = now - timedelta(hours=2)
+
+                    pending = db.query(JobPosting).filter(
+                        JobPosting.is_active == True,
+                        JobPosting.is_draft == False,
+                        JobPosting.is_archived == False,
+                        JobPosting.telegram_posted_at == None,
+                    ).all()
+
+                    for job in pending:
+                        pub = job.published_at or job.created_at
+                        if not pub:
+                            continue
+                        pub_naive = pub.replace(tzinfo=None) if getattr(pub, "tzinfo", None) else pub
+                        # Zu alt (Backlog-Schutz): ausmustern, nie mehr prüfen
+                        if pub_naive < window_start:
+                            job.telegram_posted_at = now
+                            db.commit()
+                            continue
+                        # Verzögerung noch nicht erreicht -> nächste Runde
+                        if pub_naive > ready_before:
+                            continue
+                        # Noch zu leer -> innerhalb des Fensters evtl. später (falls ausgefüllt wird)
+                        if tg.job_completeness_score(job) < min_score:
+                            continue
+                        try:
+                            tg.broadcast_new_job(job, db)
+                        except Exception as e:
+                            logger.warning(f"telegram_post_pending_jobs broadcast {job.id}: {e}")
+                        job.telegram_posted_at = datetime.utcnow()
+                        db.commit()
+                finally:
+                    db.close()
+        except Exception as e:
+            logger.warning(f"telegram_post_pending_jobs: {e}")
+        await asyncio.sleep(90)  # alle 90 Sekunden prüfen
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle-Handler für App-Start und -Stopp"""
@@ -1406,6 +1490,9 @@ async def lifespan(app: FastAPI):
     # Starte täglichen Telegram-Promo-Post
     telegram_promo_task = asyncio.create_task(telegram_daily_promo())
 
+    # Starte verzögerten Telegram-Poster für neue Stellen (5 Min Delay + Vollständigkeits-Gate)
+    telegram_jobs_task = asyncio.create_task(telegram_post_pending_jobs())
+
     yield
 
     # Cleanup bei Shutdown
@@ -1416,6 +1503,7 @@ async def lifespan(app: FastAPI):
     company_expiry_reminder_task.cancel()
     blog_writer_task.cancel()
     telegram_promo_task.cancel()
+    telegram_jobs_task.cancel()
     try:
         await cleanup_task
         await digest_task
@@ -1424,6 +1512,7 @@ async def lifespan(app: FastAPI):
         await company_expiry_reminder_task
         await blog_writer_task
         await telegram_promo_task
+        await telegram_jobs_task
     except asyncio.CancelledError:
         pass
 

@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import exists as sa_exists
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
+import re
 from datetime import datetime, timedelta, date
 
 from app.core.database import get_db
@@ -56,6 +57,20 @@ async def get_public_job_settings(db: Session = Depends(get_db)):
         "max_job_deadline_days": max_days,
         "archive_deletion_days": archive_days
     }
+
+
+def _strip_html_text(s) -> str:
+    return re.sub(r"<[^>]*>", "", s or "").replace("&nbsp;", " ").strip()
+
+
+def _validate_required_job_fields(title, description):
+    """Pflichtfelder für eine veröffentlichte Stelle: Titel + Beschreibung.
+    Die Basisfelder sind der (deutsche) Standardinhalt – so kann keine Stelle nur
+    in einer Fremdsprache / ohne Deutsch geschaltet werden."""
+    if not (title or "").strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Titel ist ein Pflichtfeld (auf Deutsch).")
+    if not _strip_html_text(description):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Beschreibung ist ein Pflichtfeld (auf Deutsch).")
 
 
 FEATURED_TOP_SLOTS = 5
@@ -706,7 +721,12 @@ async def create_job(
         )
     
     job_dict = job_data.model_dump()
-    
+
+    # Pflichtfelder nur bei tatsächlicher Veröffentlichung erzwingen (Entwürfe dürfen leer sein)
+    will_publish = bool(job_dict.get("is_active", True)) and not bool(job_dict.get("is_draft", False))
+    if will_publish:
+        _validate_required_job_fields(job_dict.get("title"), job_dict.get("description"))
+
     # Deadline-Validierung: Max aus Admin-Settings
     max_deadline_days = get_max_deadline_days(db)
     if job_dict.get('deadline'):
@@ -802,6 +822,10 @@ async def update_job(
         if job.published_at is None:
             from datetime import datetime
             job.published_at = datetime.utcnow()
+
+    # Pflichtfelder erzwingen, sobald die Stelle (danach) aktiv/veröffentlicht ist
+    if job.is_active and not job.is_draft:
+        _validate_required_job_fields(job.title, job.description)
 
     db.commit()
 

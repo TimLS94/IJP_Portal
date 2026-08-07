@@ -169,6 +169,7 @@ class JobPosting(Base):
     featured_requested_at = Column(DateTime(timezone=True), nullable=True)  # Wann Firma angefragt hat (für später)
     featured_approved_at = Column(DateTime(timezone=True), nullable=True)   # Wann Admin freigegeben hat
     last_boosted_at = Column(DateTime(timezone=True), nullable=True)        # Letzte Booster-Aktivierung (Firma)
+    telegram_posted_at = Column(DateTime(timezone=True), nullable=True)     # Wann in Telegram gepostet (NULL = noch offen)
 
     # ========== EXTERNE JOBS (z.B. Bundesagentur für Arbeit) ==========
     is_external = Column(Boolean, default=False)           # Extern gescraptes Inserat

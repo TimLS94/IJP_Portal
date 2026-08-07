@@ -339,6 +339,33 @@ def _subscriber_matches(subscriber, job) -> bool:
     return True
 
 
+def job_completeness_score(job) -> int:
+    """Grobe Vollständigkeit einer Stelle (0-100) – entscheidet, ob sie 'voll genug'
+    für einen Telegram-Post ist. So werden sehr leere Stellen nicht gepostet."""
+    import re as _re
+    def _txt(s):
+        return _re.sub(r"<[^>]*>", "", s or "").replace("&nbsp;", " ").strip()
+    score = 0
+    desc = _txt(getattr(job, "description", ""))
+    if len(desc) >= 250:
+        score += 40
+    elif len(desc) >= 120:
+        score += 28
+    elif len(desc) >= 50:
+        score += 12
+    if _txt(getattr(job, "tasks", "")):
+        score += 15
+    if _txt(getattr(job, "requirements", "")):
+        score += 15
+    if _txt(getattr(job, "benefits", "")):
+        score += 10
+    if (getattr(job, "location", "") or "").strip():
+        score += 10
+    if getattr(job, "salary_min", None) or getattr(job, "salary_max", None):
+        score += 10
+    return min(100, score)
+
+
 def broadcast_new_job(job, db: Session) -> dict:
     """Postet eine neue Stelle in die Gruppe (Gruppen-Sprache) und an passende Abonnenten (deren Sprache)."""
     if not is_configured():
