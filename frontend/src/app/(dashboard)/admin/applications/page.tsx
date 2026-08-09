@@ -62,6 +62,8 @@ interface MatchBreakdown {
     cv_analyzed?: boolean;
     profile_has_experience?: boolean;
     experience?: { cv_available?: boolean; cv_used?: boolean; years?: number };
+    german?: { required_level?: string; importance?: string };
+    english?: { required_level?: string; importance?: string };
   };
 }
 
@@ -744,6 +746,15 @@ export default function AdminApplicationsPage() {
                             const max = b.max_scores?.[key] || 0;
                             if (!max) return null;
                             if (key === "other_languages" && !(b.breakdown?.[key])) return null;
+                            // Sprache ausblenden, wenn sie nicht ins Scoring zählt (optional/keine Anforderung)
+                            const langKey = key === "german_level" ? "german" : key === "english_level" ? "english" : null;
+                            if (langKey) {
+                              const d = b.admin_details?.[langKey];
+                              const req = (d?.required_level || "").toString().toLowerCase();
+                              const imp = (d?.importance || "required").toString().toLowerCase();
+                              const noRequirement = !req || ["not_required", "none", "keine"].includes(req);
+                              if (imp === "optional" || noRequirement) return null;
+                            }
                             const val = b.breakdown?.[key] ?? 0;
                             const pct = max ? Math.round((val / max) * 100) : 0;
                             return (

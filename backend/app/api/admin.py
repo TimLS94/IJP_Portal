@@ -1127,9 +1127,9 @@ async def list_all_jobs(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Listet alle Stellenangebote für Admin"""
-    query = db.query(JobPosting)
-    
+    """Listet alle Stellenangebote für Admin (ohne gelöschte – die haben eine eigene Ansicht)"""
+    query = db.query(JobPosting).filter(JobPosting.deletion_reason.is_(None))
+
     if is_active is not None:
         query = query.filter(JobPosting.is_active == is_active)
     
@@ -1207,6 +1207,7 @@ async def list_archived_jobs(
             "id": job.id,
             "title": job.title,
             "location": job.location,
+            "view_count": job.view_count or 0,
             "company_name": (
                 company.company_name if company
                 else (job.external_employer_name or "Unbekannt")

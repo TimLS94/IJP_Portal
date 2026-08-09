@@ -1019,7 +1019,9 @@
     "selectDocuments": "Select documents",
     "sendRequest": "Send request",
     "date1Required": "Date 1 (Required)",
-    "date2Optional": "Date 2 (Optional)"
+    "date2Optional": "Date 2 (Optional)",
+    "date1": "Date 1",
+    "date2": "Date 2"
   },
   "scoreFilter": {
     "title": "Score Filter",

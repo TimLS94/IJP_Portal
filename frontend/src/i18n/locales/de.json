@@ -1019,7 +1019,9 @@
     "selectDocuments": "Dokumente auswählen",
     "sendRequest": "Anfrage senden",
     "date1Required": "Termin 1 (Pflicht)",
-    "date2Optional": "Termin 2 (Optional)"
+    "date2Optional": "Termin 2 (Optional)",
+    "date1": "Termin 1",
+    "date2": "Termin 2"
   },
   "scoreFilter": {
     "title": "Score-Filter",

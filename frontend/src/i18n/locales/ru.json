@@ -1014,7 +1014,9 @@
     "selectDocuments": "Выбрать документы",
     "sendRequest": "Отправить запрос",
     "date1Required": "Дата 1 (Обязательно)",
-    "date2Optional": "Дата 2 (Необязательно)"
+    "date2Optional": "Дата 2 (Необязательно)",
+    "date1": "Дата 1",
+    "date2": "Дата 2"
   },
   "scoreFilter": {
     "title": "Фильтр оценки",

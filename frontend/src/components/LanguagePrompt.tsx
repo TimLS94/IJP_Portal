@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
+
+const PROMPT_DONE_KEY = "language_prompt_done";
 
 const LANGS: { code: "de" | "en" | "es" | "ru"; flag: string; label: string }[] = [
   { code: "de", flag: "🇩🇪", label: "Deutsch" },
@@ -19,9 +21,16 @@ const LANGS: { code: "de" | "en" | "es" | "ru"; flag: string; label: string }[] 
 export default function LanguagePrompt() {
   const { user, isApplicant, isAuthenticated, setLanguage } = useAuth();
   const [saving, setSaving] = useState<string | null>(null);
+  // Standard true, damit vor dem Auslesen des Flags nichts aufblitzt
+  const [dismissed, setDismissed] = useState(true);
+
+  useEffect(() => {
+    try { setDismissed(localStorage.getItem(PROMPT_DONE_KEY) === "1"); }
+    catch { setDismissed(false); }
+  }, []);
 
   const needsChoice =
-    isAuthenticated && isApplicant && user != null && !user.preferred_language;
+    isAuthenticated && isApplicant && user != null && !user.preferred_language && !dismissed;
 
   if (!needsChoice) return null;
 
@@ -29,6 +38,9 @@ export default function LanguagePrompt() {
     setSaving(code);
     try {
       await setLanguage(code);
+      // Lokal merken -> auch bei Server-/Race-Problemen nie mehr erneut fragen (pro Gerät)
+      try { localStorage.setItem(PROMPT_DONE_KEY, "1"); } catch { /* ignore */ }
+      setDismissed(true);
     } catch {
       toast.error("Fehler beim Speichern / Error saving");
       setSaving(null);

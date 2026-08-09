@@ -54,11 +54,24 @@ interface Job {
   created_at: string;
 }
 
+interface DeletedJob {
+  id: number;
+  title: string;
+  company_name: string;
+  location?: string;
+  view_count?: number;
+  application_count?: number;
+  deletion_reason_label?: string | null;
+  deletion_reason_note?: string | null;
+  deleted_at?: string | null;
+}
+
 export default function AdminJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("");
+  const [deletedJobs, setDeletedJobs] = useState<DeletedJob[]>([]);
   const [typeFilter, setTypeFilter] = useState("");
   const [page, setPage] = useState(0);
   const limit = 20;
@@ -76,6 +89,14 @@ export default function AdminJobsPage() {
   const loadJobs = async () => {
     setLoading(true);
     try {
+      if (activeFilter === "deleted") {
+        // Gelöschte Stellen: nur noch Statistik, keine Bearbeitung
+        const response = await adminAPI.getArchivedJobs();
+        setDeletedJobs(response.data.jobs || []);
+        setTotal(response.data.total || 0);
+        setJobs([]);
+        return;
+      }
       const params = {
         skip: page * limit,
         limit,
@@ -86,6 +107,7 @@ export default function AdminJobsPage() {
       const response = await adminAPI.listJobs(params);
       setJobs(response.data.jobs || []);
       setTotal(response.data.total || 0);
+      setDeletedJobs([]);
     } catch {
       toast.error("Fehler beim Laden der Stellen");
     } finally {
@@ -188,6 +210,7 @@ export default function AdminJobsPage() {
               <option value="">Alle Status</option>
               <option value="true">Aktiv</option>
               <option value="false">Inaktiv</option>
+              <option value="deleted">Gelöscht (nur Statistik)</option>
             </select>
           </div>
           <div>
@@ -214,6 +237,37 @@ export default function AdminJobsPage() {
           <div className="flex justify-center py-12">
             <Loader2 className="h-12 w-12 animate-spin text-primary-600" />
           </div>
+        ) : activeFilter === "deleted" ? (
+          deletedJobs.length === 0 ? (
+            <div className="text-center py-12">
+              <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">Keine gelöschten Stellen</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-500 mb-1">Gelöschte Stellen – nur Statistik (keine Bearbeitung).</p>
+              {deletedJobs.map((dj) => (
+                <div key={dj.id} className="p-4 border rounded-lg bg-gray-50">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900">{dj.title}</p>
+                      <p className="text-sm text-gray-500">{dj.company_name}{dj.location ? ` · ${dj.location}` : ""}</p>
+                      {dj.deletion_reason_label && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Grund: {dj.deletion_reason_label}{dj.deletion_reason_note ? ` – ${dj.deletion_reason_note}` : ""}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-600 flex items-center gap-4 shrink-0">
+                      <span className="flex items-center gap-1" title="Aufrufe"><Eye className="h-4 w-4" />{dj.view_count ?? 0}</span>
+                      <span className="flex items-center gap-1" title="Bewerbungen"><Users className="h-4 w-4" />{dj.application_count ?? 0}</span>
+                      {dj.deleted_at && <span className="text-gray-400">{formatDate(dj.deleted_at)}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : jobs.length === 0 ? (
           <div className="text-center py-12">
             <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />

@@ -1315,6 +1315,16 @@ export default function CompanyApplicationsPage() {
                                     english_level: "Englisch", experience: "Erfahrung",
                                     text_match: "Profil-Match", availability: "Verfügbarkeit"
                                   };
+                                  // Sprach-Balken ausblenden, wenn die Sprache nicht ins Scoring zählt
+                                  // (optional oder gar keine Anforderung) -> kein irreführendes "0/25".
+                                  const langKey = key === "german_level" ? "german" : key === "english_level" ? "english" : null;
+                                  if (langKey) {
+                                    const d = matchDetails.admin_details?.[langKey];
+                                    const req = (d?.required_level || "").toString().toLowerCase();
+                                    const imp = (d?.importance || "required").toString().toLowerCase();
+                                    const noRequirement = !req || ["not_required", "none", "keine"].includes(req);
+                                    if (imp === "optional" || noRequirement) return null;
+                                  }
                                   const max = maxScores[key] || 25;
                                   const percent = Math.round((Number(value) / max) * 100);
                                   return (
