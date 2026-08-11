@@ -64,6 +64,7 @@ interface MatchBreakdown {
     experience?: { cv_available?: boolean; cv_used?: boolean; years?: number };
     german?: { required_level?: string; importance?: string };
     english?: { required_level?: string; importance?: string };
+    work_authorization?: { knockout?: boolean };
   };
 }
 
@@ -729,7 +730,6 @@ export default function AdminApplicationsPage() {
                     ["position_type", "Positionstyp"], ["german_level", "Deutsch"], ["english_level", "Englisch"],
                     ["experience", "Erfahrung"], ["text_match", "Text-Match"], ["availability", "Verfügbarkeit"], ["other_languages", "Weitere Sprachen"],
                   ];
-                  const workAuth = b.breakdown?.work_authorization;
                   const cvAvailable = b.admin_details?.experience?.cv_available;
                   const cvUsed = b.admin_details?.experience?.cv_used;
                   return (
@@ -769,10 +769,9 @@ export default function AdminApplicationsPage() {
                               </div>
                             );
                           })}
-                          {typeof workAuth === "number" && workAuth < 0 && (
-                            <div className="flex justify-between text-xs text-red-600 pt-1">
-                              <span>Arbeitsberechtigung (Abzug)</span>
-                              <span className="font-medium tabular-nums">{workAuth}</span>
+                          {b.admin_details?.work_authorization?.knockout && (
+                            <div className="mt-2 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">
+                              K.-o.: Keine Arbeitsberechtigung – die Stelle setzt sie zwingend voraus (Gesamtscore 0).
                             </div>
                           )}
                         </div>

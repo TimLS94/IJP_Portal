@@ -251,23 +251,21 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
             "max_score": 25
         }
     
-    # Arbeitsberechtigung: negativer Faktor, wenn die Stelle eine bestehende
-    # Berechtigung voraussetzt und der Bewerber sie EXPLIZIT verneint hat.
-    # Wichtig (Abwärtskompatibilität): nur ein ausdrückliches "Nein" (False) zählt.
-    # Bewerber, die die (neue) Frage nie gesehen haben (work_authorized = None),
-    # werden NICHT abgestraft und bleiben in Alerts/Boost enthalten.
-    # Bei Saison/Work&Holiday stärker gewichtet. "support_offered"/"not_relevant" -> kein Abzug.
+    # Arbeitsberechtigung als K.-o.-Kriterium: Setzt die Stelle eine bestehende
+    # Berechtigung ZWINGEND voraus und hat der Bewerber sie EXPLIZIT verneint
+    # (work_authorized=False), ist er rechtlich nicht einsetzbar -> Gesamtscore 0,
+    # egal wie gut der Rest passt.
+    # Wichtig (Abwärtskompatibilität): nur ein ausdrückliches "Nein" ist K.-o.
+    # work_authorized=None (nie gefragt) NICHT. "support_offered"/"not_relevant" -> kein K.-o.
     work_req = getattr(job, "work_authorization_requirement", "not_relevant") or "not_relevant"
-    if work_req == "required" and applicant.work_authorized is False:
-        jt = job.position_type.value if job.position_type else None
-        penalty = 30 if jt in ("saisonjob", "workandholiday") else 15
-        scores["work_authorization"] = -penalty
-        details.append("✗ Arbeitsberechtigung fehlt (Stelle setzt bestehende Berechtigung voraus)")
+    work_auth_knockout = (work_req == "required" and applicant.work_authorized is False)
+    if work_auth_knockout:
+        details.append("✗ K.-o.: Arbeitsberechtigung fehlt (Stelle setzt bestehende Berechtigung zwingend voraus)")
         if include_admin_details:
             admin_details["work_authorization"] = {
                 "requirement": work_req,
-                "applicant_authorized": bool(applicant.work_authorized),
-                "penalty": -penalty,
+                "applicant_authorized": False,
+                "knockout": True,
             }
 
     # Gesamtscore: auf das erreichbare Maximum normalisiert, damit "optional"/nicht
@@ -303,9 +301,10 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
 
     denominator = min(100, denominator)
     normalized = round(numerator / denominator * 100) if denominator > 0 else 0
-    # Arbeitsberechtigung-Strafe (negativ) flach nach der Normalisierung anwenden
-    normalized += scores.get("work_authorization", 0)
     total_score = max(0, min(100, normalized))
+    # K.-o.: fehlende zwingend geforderte Arbeitsberechtigung -> Gesamtscore 0
+    if work_auth_knockout:
+        total_score = 0
     
     result = {
         "total_score": total_score,
