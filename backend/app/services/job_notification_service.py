@@ -185,18 +185,12 @@ def get_core_fit_applicants(job: JobPosting, db: Session) -> List[dict]:
         Applicant.portal != "ijp"
     ).all()
 
+    # Kein Score-Rechnen hier: der Booster zeigt keinen Score in der Mail und sendet
+    # an ALLE Kern-geeigneten -> teures calculate_match_score (liest CVs) entfällt.
     result = []
     for applicant in applicants:
-        if not is_core_fit(applicant, job, db):
-            continue
-        score = 0
-        try:
-            score = calculate_match_score(applicant, job, db=db).get("total_score", 0)
-        except Exception:
-            score = 0
-        result.append({"applicant": applicant, "score": score})
-
-    result.sort(key=lambda x: x["score"], reverse=True)
+        if is_core_fit(applicant, job, db):
+            result.append({"applicant": applicant, "score": 0})
     return result
 
 
@@ -216,27 +210,29 @@ def _currently_boosted_jobs(db: Session) -> List[JobPosting]:
         recent_boost = j.last_boosted_at and j.last_boosted_at.replace(tzinfo=None) >= boost_cutoff
         featured_active = j.is_featured and (not j.featured_until or j.featured_until.replace(tzinfo=None) > now)
         if recent_boost or featured_active:
-            result.append(j)
-    return result
+            result.append((featured_active, j))
+
+    def _recency(j):
+        d = j.last_boosted_at or j.created_at
+        if not d:
+            return 0.0
+        d = d.replace(tzinfo=None) if getattr(d, "tzinfo", None) else d
+        return d.timestamp()
+
+    # Featured zuerst, dann nach Aktualität (neueste zuerst) – globale Reihenfolge für den Digest
+    result.sort(key=lambda t: (0 if t[0] else 1, -_recency(t[1])))
+    return [j for _, j in result]
 
 
 def _digest_jobs_for_applicant(applicant: Applicant, boosted_jobs: List[JobPosting], db: Session, cap: int = 8) -> List[dict]:
-    """Kern-geeignete Booster-Jobs für EINEN Bewerber: nach Score sortiert, max 1 pro
-    Arbeitgeber, auf cap gedeckelt. Leere Liste = keine passende Stelle."""
-    scored = []
+    """Kern-geeignete Booster-Jobs für EINEN Bewerber (in globaler Reihenfolge:
+    Featured/aktuellste zuerst), max 1 pro Arbeitgeber, auf cap gedeckelt.
+    KEIN Score/CV – schnell auch bei vielen Bewerbern."""
+    seen_employers = set()
+    out = []
     for job in boosted_jobs:
         if not is_core_fit(applicant, job, db):
             continue
-        try:
-            score = calculate_match_score(applicant, job, db=db).get("total_score", 0)
-        except Exception:
-            score = 0
-        scored.append((score, job))
-    scored.sort(key=lambda x: x[0], reverse=True)
-
-    seen_employers = set()
-    out = []
-    for score, job in scored:
         if getattr(job, "is_external", False) and getattr(job, "external_employer_name", None):
             key = ("ext", job.external_employer_name)
         else:
@@ -244,7 +240,7 @@ def _digest_jobs_for_applicant(applicant: Applicant, boosted_jobs: List[JobPosti
         if key in seen_employers:
             continue
         seen_employers.add(key)
-        out.append({"job": job, "score": score})
+        out.append({"job": job})
         if len(out) >= cap:
             break
     return out
@@ -259,9 +255,10 @@ def send_boost_digest_to_applicants(db: Session, cap: int = 8) -> dict:
     if not boosted:
         return {"boosted_jobs": 0, "recipients": 0, "sent": 0}
 
-    applicants = db.query(Applicant).join(User, Applicant.user_id == User.id).filter(
-        User.is_active == True, Applicant.portal != "ijp"
-    ).all()
+    from sqlalchemy.orm import joinedload
+    applicants = db.query(Applicant).options(joinedload(Applicant.user)).join(
+        User, Applicant.user_id == User.id
+    ).filter(User.is_active == True, Applicant.portal != "ijp").all()
 
     sent = 0
     recipients = 0
@@ -273,8 +270,9 @@ def send_boost_digest_to_applicants(db: Session, cap: int = 8) -> dict:
         if not jobs:
             continue
         recipients += 1
+        lang = getattr(user, "preferred_language", None) or "en"
         try:
-            if email_service.send_boost_digest(user.email, f"{applicant.first_name} {applicant.last_name}", jobs):
+            if email_service.send_boost_digest(user.email, f"{applicant.first_name} {applicant.last_name}", jobs, lang=lang):
                 sent += 1
         except Exception as e:
             logger.error(f"Boost-Digest an {user.email} fehlgeschlagen: {e}")
@@ -285,9 +283,10 @@ def get_boost_digest_preview(db: Session, cap: int = 8) -> dict:
     """Vorschau (sendet nichts): wie viele Bewerber bekämen den Digest und wie viele
     Jobs im Schnitt."""
     boosted = _currently_boosted_jobs(db)
-    applicants = db.query(Applicant).join(User, Applicant.user_id == User.id).filter(
-        User.is_active == True, Applicant.portal != "ijp"
-    ).all()
+    from sqlalchemy.orm import joinedload
+    applicants = db.query(Applicant).options(joinedload(Applicant.user)).join(
+        User, Applicant.user_id == User.id
+    ).filter(User.is_active == True, Applicant.portal != "ijp").all()
     recipients = 0
     total_jobs = 0
     for applicant in applicants:

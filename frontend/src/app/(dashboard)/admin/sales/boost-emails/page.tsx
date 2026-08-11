@@ -42,18 +42,23 @@ export default function BoostEmailsPage() {
   const [previewing, setPreviewing] = useState<number | null>(null);
   const [previews, setPreviews] = useState<Record<number, RecipientBreakdown>>({});
   const [digest, setDigest] = useState<{ boosted_jobs: number; recipients: number; avg_jobs: number } | null>(null);
+  const [digestLoading, setDigestLoading] = useState(false);
   const [sendingDigest, setSendingDigest] = useState(false);
 
+  // Bewusst NICHT automatisch beim Laden – die Berechnung geht über alle Bewerber
+  // und wird nur auf Klick angestoßen.
   const loadDigestPreview = useCallback(async () => {
+    setDigestLoading(true);
     try {
       const r = await adminAPI.boostDigestPreview();
       setDigest(r.data);
     } catch {
       setDigest(null);
+      toast.error("Vorschau fehlgeschlagen");
+    } finally {
+      setDigestLoading(false);
     }
   }, []);
-
-  useEffect(() => { loadDigestPreview(); }, [loadDigestPreview]);
 
   const handleSendDigest = async () => {
     if (!digest || digest.recipients === 0) return;
@@ -255,21 +260,33 @@ export default function BoostEmailsPage() {
             <p className="text-sm text-gray-600 mt-1">
               Jeder Bewerber bekommt <strong>eine</strong> Mail mit den geboosteten Stellen, für die er <strong>kern-geeignet</strong> ist (max. 8, 1 pro Arbeitgeber). Wer zu keiner passt, bekommt nichts.
             </p>
-            {digest && (
+            {digest ? (
               <p className="text-sm text-gray-700 mt-2">
                 {digest.boosted_jobs} geboostete Stelle{digest.boosted_jobs === 1 ? "" : "n"} ·{" "}
                 <strong>{digest.recipients}</strong> Empfänger · ⌀ {digest.avg_jobs} Jobs/Mail
               </p>
+            ) : (
+              <p className="text-xs text-gray-500 mt-2">Mail in der Profilsprache des Bewerbers (Standard Englisch). Erst „Empfänger berechnen".</p>
             )}
           </div>
-          <button
-            onClick={handleSendDigest}
-            disabled={sendingDigest || !digest || digest.recipients === 0}
-            className="bg-orange-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {sendingDigest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Sammel-Mail senden
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadDigestPreview}
+              disabled={digestLoading}
+              className="border border-orange-300 text-orange-700 px-3 py-2 rounded-lg font-medium hover:bg-orange-100 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              {digestLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              Empfänger berechnen
+            </button>
+            <button
+              onClick={handleSendDigest}
+              disabled={sendingDigest || !digest || digest.recipients === 0}
+              className="bg-orange-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sendingDigest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Sammel-Mail senden
+            </button>
+          </div>
         </div>
       </div>
 

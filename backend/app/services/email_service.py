@@ -1180,15 +1180,37 @@ class EmailService:
         self,
         to_email: str,
         applicant_name: str,
-        matching_jobs: list
+        matching_jobs: list,
+        lang: str = "en",
     ) -> bool:
-        """Personalisierter Booster-Digest: nur die geboosteten Stellen, für die
-        DIESER Bewerber kern-geeignet ist. matching_jobs = [{"job":..., "score":int}]."""
+        """Personalisierter Booster-Digest in der Profilsprache des Bewerbers
+        (de/en/es/ru, Default Englisch). matching_jobs = [{"job":...}]."""
         try:
             from app.core.config import settings
             frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
         except Exception:
             frontend_url = 'https://www.jobon.work'
+
+        T = {
+            "en": {"head": "Recommended jobs for you", "sub": "handpicked matches",
+                   "hi": "Hi", "intro": "These currently featured jobs match your profile:",
+                   "view": "View", "cta": "See all jobs", "jobs": "recommended jobs",
+                   "foot": "You receive this email because you enabled job notifications. Unsubscribe in your profile."},
+            "de": {"head": "Empfohlene Stellen für dich", "sub": "handverlesen",
+                   "hi": "Hallo", "intro": "Diese aktuell hervorgehobenen Stellen passen zu deinem Profil:",
+                   "view": "Jetzt ansehen", "cta": "Alle Stellen ansehen", "jobs": "empfohlene Stellen",
+                   "foot": "Du erhältst diese E-Mail, weil du Job-Benachrichtigungen aktiviert hast. Abmelden im Profil."},
+            "es": {"head": "Empleos recomendados para ti", "sub": "seleccionados a mano",
+                   "hi": "Hola", "intro": "Estos empleos destacados coinciden con tu perfil:",
+                   "view": "Ver ahora", "cta": "Ver todos los empleos", "jobs": "empleos recomendados",
+                   "foot": "Recibes este correo porque activaste las notificaciones de empleo. Puedes darte de baja en tu perfil."},
+            "ru": {"head": "Рекомендованные вакансии для вас", "sub": "подобрано вручную",
+                   "hi": "Здравствуйте", "intro": "Эти актуальные вакансии подходят вашему профилю:",
+                   "view": "Смотреть", "cta": "Все вакансии", "jobs": "рекомендованных вакансий",
+                   "foot": "Вы получили это письмо, потому что включили уведомления о вакансиях. Отписаться можно в профиле."},
+        }
+        t = T.get((lang or "en").lower(), T["en"])
+        n = len(matching_jobs)
 
         jobs_html = ""
         for match in matching_jobs:
@@ -1203,27 +1225,27 @@ class EmailService:
                 <tr><td style="padding:15px;">
                     <p style="margin:0 0 4px 0; font-size:16px; font-weight:bold; color:#1f2937;">{job.title}</p>
                     <p style="margin:0; color:#6b7280; font-size:14px;">{company_name} &bull; {job.location or 'Deutschland'}</p>
-                    <p style="margin:10px 0 0 0;"><a href="{job_url}" style="color:#ea580c; text-decoration:none; font-weight:600;">Jetzt ansehen &rarr;</a></p>
+                    <p style="margin:10px 0 0 0;"><a href="{job_url}" style="color:#ea580c; text-decoration:none; font-weight:600;">{t['view']} &rarr;</a></p>
                 </td></tr>
             </table>
             """
 
-        subject = f"{len(matching_jobs)} empfohlene Stelle{'n' if len(matching_jobs) != 1 else ''} für dich | JobOn"
+        subject = f"{n} {t['jobs']} | JobOn"
         html_content = f"""
         <html><body style="font-family:Arial,sans-serif; max-width:600px; margin:0 auto; background:#f3f4f6; padding:20px;">
             <div style="background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; padding:28px; text-align:center; border-radius:12px 12px 0 0;">
-                <h1 style="margin:0; font-size:22px;">Empfohlene Stellen für dich</h1>
-                <p style="margin:8px 0 0 0; font-size:15px;">{len(matching_jobs)} passende Stelle{'n' if len(matching_jobs) != 1 else ''} – handverlesen</p>
+                <h1 style="margin:0; font-size:22px;">{t['head']}</h1>
+                <p style="margin:8px 0 0 0; font-size:15px;">{n} &bull; {t['sub']}</p>
             </div>
             <div style="padding:28px; background:#ffffff; border-radius:0 0 12px 12px;">
-                <p style="font-size:16px; color:#374151;">Hallo {applicant_name},</p>
-                <p style="color:#4b5563;">diese aktuell hervorgehobenen Stellen passen zu deinem Profil:</p>
+                <p style="font-size:16px; color:#374151;">{t['hi']} {applicant_name},</p>
+                <p style="color:#4b5563;">{t['intro']}</p>
                 {jobs_html}
                 <p style="text-align:center; margin:24px 0 0 0;">
-                    <a href="{frontend_url}/jobs" style="background:#f97316; color:#fff; padding:12px 26px; text-decoration:none; border-radius:8px; font-weight:bold; display:inline-block;">Alle Stellen ansehen</a>
+                    <a href="{frontend_url}/jobs" style="background:#f97316; color:#fff; padding:12px 26px; text-decoration:none; border-radius:8px; font-weight:bold; display:inline-block;">{t['cta']}</a>
                 </p>
                 <hr style="border:none; border-top:1px solid #e5e7eb; margin:24px 0;">
-                <p style="color:#9ca3af; font-size:12px;">Du erhältst diese E-Mail, weil du Job-Benachrichtigungen aktiviert hast. Abmelden im Profil.</p>
+                <p style="color:#9ca3af; font-size:12px;">{t['foot']}</p>
             </div>
         </body></html>
         """

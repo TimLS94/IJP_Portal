@@ -696,7 +696,7 @@ async def generate_boosted_job_post(
 
 
 @router.post("/boosted-jobs/{job_id}/send-emails")
-async def send_boost_emails(
+def send_boost_emails(
     job_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -728,7 +728,7 @@ async def send_boost_emails(
 
 
 @router.get("/boosted-jobs/{job_id}/preview-recipients")
-async def preview_boost_recipients(
+def preview_boost_recipients(
     job_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -746,7 +746,7 @@ async def preview_boost_recipients(
 
 
 @router.get("/boost-digest/preview")
-async def boost_digest_preview(
+def boost_digest_preview(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -757,7 +757,7 @@ async def boost_digest_preview(
 
 
 @router.post("/boost-digest/send")
-async def boost_digest_send(
+def boost_digest_send(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
