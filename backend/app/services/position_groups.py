@@ -5,41 +5,37 @@ Sonderrolle "general" ("Allgemein / Sonstige") = **Wildcard/Catch-all**:
   - Ein general-JOB ist für ALLE Bewerber offen (Helferjob = niedrigste Hürde).
   - Ein general-BEWERBER ("Sonstige" / offen) matcht ALLE Job-Typen.
 
-Restliche Gruppen überschneiden sich inhaltlich (symmetrisch):
-  - saisonjob ↔ workandholiday     (kommen zusammen)
-  - fachkraft                       (einzeln, eigenständig)
-  - studentenferienjob              (einzeln)
-  - ausbildung                      (einzeln)
+Beziehungen der übrigen Stellenarten:
+  - workandholiday -> saisonjob   (GERICHTET, nicht symmetrisch):
+      Work-&-Holiday-Bewerber machen auch Saisonarbeit, sind also auch für
+      Saison-Jobs offen. Ein reiner Saison-Bewerber ist aber NICHT automatisch
+      für Work&Holiday offen (das braucht ein spezielles Visum).
+  - fachkraft / studentenferienjob / ausbildung  (jeweils einzeln)
 
 Ein Bewerber, der z.B. nur "ausbildung" sucht, bekommt ausschließlich
 Ausbildungs-Alerts (plus alle general-Jobs, weil diese Wildcard sind).
-Wer "saisonjob" sucht, bekommt auch "workandholiday".
+Wer "workandholiday" sucht, bekommt auch "saisonjob" – aber nicht umgekehrt.
 """
 from typing import Iterable, List, Optional
 
 # "Allgemein / Sonstige" – wirkt in beide Richtungen als Wildcard.
 GENERAL = "general"
 
-# Symmetrische Gruppen (Äquivalenzklassen). "general" ist bewusst NICHT enthalten,
-# da es als Wildcard gesondert behandelt wird.
-POSITION_GROUPS: List[set] = [
-    {"saisonjob", "workandholiday"},
-    {"fachkraft"},
-    {"studentenferienjob"},
-    {"ausbildung"},
-]
+# Gerichtete Erweiterungen (Ober-Kategorien): Wer den Schlüssel-Typ sucht, ist auch
+# für die Werte-Typen offen – aber NICHT umgekehrt.
+POSITION_EXPANSIONS = {
+    "workandholiday": {"saisonjob"},  # W&H ist immer auch Saison, Saison aber nicht W&H
+}
 
 
 def expand_position_types(types: Iterable[str]) -> set:
-    """Erweitert eine Menge gewünschter Stellenarten um alle Gruppen-Partner."""
+    """Erweitert gewünschte Stellenarten um ihre (gerichteten) Ober-Kategorien."""
     result: set = set()
     for t in types:
         if not t:
             continue
         result.add(t)
-        for group in POSITION_GROUPS:
-            if t in group:
-                result |= group
+        result |= POSITION_EXPANSIONS.get(t, set())
     return result
 
 
