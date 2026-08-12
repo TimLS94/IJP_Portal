@@ -757,7 +757,8 @@
       "visa": "Visa",
       "other": "Other"
     },
-    "fieldsAutofilled": "{{count}} fields were filled in automatically – please review!"
+    "fieldsAutofilled": "{{count}} fields were filled in automatically – please review!",
+    "workAuthRequired": "Please indicate whether you have a work permit for Germany (required)."
   },
   "documents": {
     "title": "My Documents",

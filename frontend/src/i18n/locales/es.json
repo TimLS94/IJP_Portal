@@ -752,7 +752,8 @@
       "visa": "Visa",
       "other": "Otro"
     },
-    "fieldsAutofilled": "¡Se rellenaron {{count}} campos automáticamente! Por favor, revísalos."
+    "fieldsAutofilled": "¡Se rellenaron {{count}} campos automáticamente! Por favor, revísalos.",
+    "workAuthRequired": "Indica si tienes permiso de trabajo para Alemania (obligatorio)."
   },
   "documents": {
     "title": "Mis documentos",

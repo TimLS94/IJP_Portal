@@ -102,6 +102,15 @@ async def update_my_profile(
                 detail="Für Studentenferienjobs sind die Semesterferien (Start und Ende) erforderlich."
             )
 
+    # Arbeitserlaubnis ist Pflichtangabe: Wird das Feld mitgesendet, muss es
+    # beantwortet sein (nicht null). Teil-Updates ohne das Feld bleiben unberührt
+    # -> Bestand (work_authorized = None) wird nicht gebrochen (abwärtskompatibel).
+    if "work_authorized" in update_data and update_data["work_authorized"] is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bitte gib an, ob du eine Arbeitserlaubnis für Deutschland hast (Pflichtangabe)."
+        )
+
     for field, value in update_data.items():
         setattr(applicant, field, value)
 

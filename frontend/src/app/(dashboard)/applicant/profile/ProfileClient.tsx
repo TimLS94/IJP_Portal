@@ -143,6 +143,11 @@ export default function ProfileClient() {
   };
 
   const onSubmit = async (data: any) => {
+    // Arbeitserlaubnis ist Pflichtangabe (Ja/Nein muss gewählt sein)
+    if (data.work_authorized !== true && data.work_authorized !== false) {
+      toast.error(t("applicant.workAuthRequired", "Bitte gib an, ob du eine Arbeitserlaubnis für Deutschland hast (Pflichtangabe)."));
+      return;
+    }
     // IJP-Unterportal: Stellenart bleibt fest Studentenferienjob
     if (isIjp) {
       data.position_types = ["studentenferienjob"];
@@ -609,17 +614,33 @@ export default function ProfileClient() {
               )}
             </div>
 
-            {/* Arbeitsberechtigung (v.a. für Saison / Work & Holiday relevant) */}
+            {/* Arbeitserlaubnis – PFLICHTANGABE */}
             <div className="pt-4 border-t">
-              <div className="flex items-center gap-3 mb-3">
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" {...register("work_authorized")} />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                  <span className="ml-3 text-gray-700 font-medium">Ich bin derzeit berechtigt, in Deutschland zu arbeiten</span>
-                </label>
+              <label className="label">
+                Arbeitserlaubnis für Deutschland <span className="text-red-500">*</span>
+              </label>
+              <p className="text-sm text-gray-500 mb-2">Bist du derzeit berechtigt, in Deutschland zu arbeiten?</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setValue("work_authorized", true, { shouldDirty: true })}
+                  className={`px-5 py-2 rounded-lg border-2 font-medium transition-all ${workAuthorized === true ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}
+                >
+                  Ja
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setValue("work_authorized", false, { shouldDirty: true })}
+                  className={`px-5 py-2 rounded-lg border-2 font-medium transition-all ${workAuthorized === false ? "border-amber-500 bg-amber-100 text-amber-800" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}
+                >
+                  Nein
+                </button>
               </div>
-              {!workAuthorized && (
-                <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-3">
+              {workAuthorized !== true && workAuthorized !== false && (
+                <p className="text-xs text-amber-600 mt-1">Pflichtangabe – bitte Ja oder Nein wählen.</p>
+              )}
+              {workAuthorized === false && (
+                <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-3 mt-3">
                   <div>
                     <label className="label text-amber-800">Welche Unterstützung benötigen Sie?</label>
                     <div className="flex flex-wrap gap-2">

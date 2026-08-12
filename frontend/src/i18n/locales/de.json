@@ -757,7 +757,8 @@
       "visa": "Visum",
       "other": "Sonstiges"
     },
-    "fieldsAutofilled": "{{count}} Felder wurden automatisch ausgefüllt – bitte überprüfen!"
+    "fieldsAutofilled": "{{count}} Felder wurden automatisch ausgefüllt – bitte überprüfen!",
+    "workAuthRequired": "Bitte gib an, ob du eine Arbeitserlaubnis für Deutschland hast (Pflichtangabe)."
   },
   "documents": {
     "title": "Meine Dokumente",
