@@ -138,8 +138,11 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
                     # CV-Daten für Admin-Details speichern (zum Vergleich)
                     admin_details["cv_parsed"] = cv_data
 
-    # 1. Positionstyp-Match (30 Punkte)
-    position_match = _check_position_match(applicant, job)
+    # 1. Positionstyp-Match. Bei Ausbildung stark gewichtet (50 statt 30), weil die
+    # passende Stellenart hier entscheidend ist (mehrjährige, spezifische Entscheidung).
+    job_type_val = job.position_type.value if job.position_type else None
+    position_weight = 50 if job_type_val == "ausbildung" else 30
+    position_match = _check_position_match(applicant, job, weight=position_weight)
     scores["position_type"] = position_match["score"]
     if position_match["match"]:
         details.append(f"✓ Positionstyp passt: {job.position_type.value}")
@@ -278,7 +281,7 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
     # verhalten sich damit identisch zum bisherigen min(100, sum) -> abwärtskompatibel.
     numerator = (scores["position_type"] + scores["experience"]
                  + scores["text_match"] + scores["availability"])
-    denominator = 30 + 20 + 25 + 10  # Positionstyp, Erfahrung, Text-Match, Verfügbarkeit
+    denominator = position_weight + 20 + 25 + 10  # Positionstyp (Ausbildung=50), Erfahrung, Text-Match, Verfügbarkeit
 
     if german_imp == "optional":
         pass  # zählt nicht
@@ -318,12 +321,17 @@ def calculate_match_score(applicant: Applicant, job: JobPosting, db: Optional[Se
         admin_details["cv_analyzed"] = cv_data is not None
         admin_details["profile_has_experience"] = profile_has_experience
         result["admin_details"] = admin_details
+        # Maximalpunkte je Komponente (Positionstyp dynamisch: Ausbildung=50)
+        result["max_scores"] = {
+            "position_type": position_weight, "german_level": 25, "english_level": 15,
+            "experience": 20, "text_match": 25, "availability": 10, "other_languages": 20,
+        }
     
     return result
 
 
-def _check_position_match(applicant: Applicant, job: JobPosting) -> dict:
-    """Prüft ob der Positionstyp passt (30 Punkte).
+def _check_position_match(applicant: Applicant, job: JobPosting, weight: int = 30) -> dict:
+    """Prüft ob der Positionstyp passt (Punkte = weight, Default 30; Ausbildung höher).
 
     Berücksichtigt symmetrische Gruppen (general↔fachkraft, saisonjob↔workandholiday),
     sodass sich überschneidende Stellenarten ebenfalls als Treffer zählen.
@@ -339,15 +347,15 @@ def _check_position_match(applicant: Applicant, job: JobPosting) -> dict:
     # Wildcard "general": general-Job passt zu jedem, general-Bewerber zu jedem Job.
     # Keine Präferenz angegeben -> ebenfalls voller Treffer (konsistent zum Filter).
     if not applicant_types or job_type == GENERAL or GENERAL in applicant_types:
-        return {"match": True, "score": 30}
+        return {"match": True, "score": weight}
 
     # Exakter Treffer -> volle Punktzahl
     if job_type in applicant_types:
-        return {"match": True, "score": 30}
+        return {"match": True, "score": weight}
 
     # Gruppen-Treffer (Überschneidung) -> ebenfalls als Treffer werten
     if job_type in expand_position_types(applicant_types):
-        return {"match": True, "score": 30}
+        return {"match": True, "score": weight}
 
     return {"match": False, "score": 0}
 

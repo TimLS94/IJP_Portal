@@ -1667,11 +1667,7 @@ async def get_application_match_breakdown(
         raise HTTPException(status_code=404, detail="Bewerber oder Stelle nicht gefunden")
 
     result = calculate_match_score(applicant, job, db=db, include_admin_details=True)
-    # Maximalpunkte je Komponente für die Anzeige (Balken)
-    result["max_scores"] = {
-        "position_type": 30, "german_level": 25, "english_level": 15,
-        "experience": 20, "text_match": 25, "availability": 10, "other_languages": 20,
-    }
+    # max_scores (inkl. dynamischem Positionstyp-Gewicht) kommt aus calculate_match_score
     result["stored_score"] = app.match_score
     return result
 

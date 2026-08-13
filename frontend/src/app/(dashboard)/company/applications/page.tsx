@@ -1325,7 +1325,7 @@ export default function CompanyApplicationsPage() {
                                     const noRequirement = !req || ["not_required", "none", "keine"].includes(req);
                                     if (imp === "optional" || noRequirement) return null;
                                   }
-                                  const max = maxScores[key] || 25;
+                                  const max = matchDetails.max_scores?.[key] ?? maxScores[key] ?? 25;
                                   const percent = Math.round((Number(value) / max) * 100);
                                   return (
                                     <div key={key} className="bg-white rounded-lg p-3">
