@@ -5,7 +5,11 @@ import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 
-const PROMPT_DONE_KEY = "language_prompt_done";
+// Flag pro Nutzer scopen: ein einmal gewählter User darf die Abfrage nie wieder
+// sehen, aber ein anderer/neu registrierter Account auf demselben Gerät schon.
+const PROMPT_DONE_PREFIX = "language_prompt_done";
+const doneKey = (id?: number | string | null) =>
+  id != null ? `${PROMPT_DONE_PREFIX}_${id}` : PROMPT_DONE_PREFIX;
 
 const LANGS: { code: "de" | "en" | "es" | "ru"; flag: string; label: string }[] = [
   { code: "de", flag: "🇩🇪", label: "Deutsch" },
@@ -25,9 +29,11 @@ export default function LanguagePrompt() {
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
-    try { setDismissed(localStorage.getItem(PROMPT_DONE_KEY) === "1"); }
+    // Solange der Nutzer noch nicht bekannt ist: nichts zeigen (kein Aufblitzen).
+    if (user?.id == null) { setDismissed(true); return; }
+    try { setDismissed(localStorage.getItem(doneKey(user.id)) === "1"); }
     catch { setDismissed(false); }
-  }, []);
+  }, [user?.id]);
 
   const needsChoice =
     isAuthenticated && isApplicant && user != null && !user.preferred_language && !dismissed;
@@ -38,8 +44,8 @@ export default function LanguagePrompt() {
     setSaving(code);
     try {
       await setLanguage(code);
-      // Lokal merken -> auch bei Server-/Race-Problemen nie mehr erneut fragen (pro Gerät)
-      try { localStorage.setItem(PROMPT_DONE_KEY, "1"); } catch { /* ignore */ }
+      // Lokal pro Nutzer merken -> auch bei Server-/Race-Problemen nie mehr erneut fragen
+      try { localStorage.setItem(doneKey(user?.id), "1"); } catch { /* ignore */ }
       setDismissed(true);
     } catch {
       toast.error("Fehler beim Speichern / Error saving");
