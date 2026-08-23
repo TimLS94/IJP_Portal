@@ -93,6 +93,7 @@ Mit freundlichen Grüßen`);
   const [showSendConfirm, setShowSendConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Gmail-Versand-Status laden; wenn konfiguriert, standardmäßig aktiv
   useEffect(() => {
@@ -130,10 +131,7 @@ Mit freundlichen Grüßen`);
     return () => clearTimeout(t);
   }, [contactSearch]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -147,10 +145,45 @@ Mit freundlichen Grüßen`);
       toast.success(`${uniqueEmails.length} E-Mail-Adressen importiert`);
     };
     reader.readAsText(file);
-    
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processFile(file);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    
+    const validTypes = ['.csv', '.txt', '.xlsx', '.xls'];
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!validTypes.includes(ext)) {
+      toast.error("Bitte CSV, TXT oder Excel-Datei hochladen");
+      return;
+    }
+    
+    processFile(file);
   };
 
   const removeEmail = (index: number) => {
@@ -470,17 +503,28 @@ Mit freundlichen Grüßen`);
             <h2 className="font-semibold text-gray-900">E-Mail-Adressen importieren</h2>
           </div>
 
-          {/* Upload Area */}
-          <label className="block border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-orange-300 hover:bg-orange-50/50 transition-colors mb-4">
+          {/* Upload Area mit Drag & Drop */}
+          <label 
+            className={`block border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors mb-4 ${
+              isDragging 
+                ? "border-orange-500 bg-orange-50" 
+                : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/50"
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.txt"
+              accept=".csv,.txt,.xlsx,.xls"
               onChange={handleFileUpload}
               className="hidden"
             />
-            <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <p className="font-medium text-gray-700">CSV-Datei hochladen</p>
+            <FileText className={`h-12 w-12 mx-auto mb-3 ${isDragging ? "text-orange-500" : "text-gray-300"}`} />
+            <p className="font-medium text-gray-700">
+              {isDragging ? "Datei hier ablegen" : "CSV-Datei hochladen oder hierher ziehen"}
+            </p>
             <p className="text-sm text-gray-500">Eine E-Mail pro Zeile</p>
           </label>
 
