@@ -336,7 +336,7 @@ async def create_blog_post(
         import asyncio
         from app.services.google_indexing_service import google_indexing_service
         asyncio.create_task(google_indexing_service.request_indexing(
-            f"https://www.jobon.work/blog/{post.slug}", "URL_UPDATED"
+            f"https://www.jobonportal.de/blog/{post.slug}", "URL_UPDATED"
         ))
 
     return add_category_label(post)
@@ -396,7 +396,7 @@ async def update_blog_post(
         import asyncio
         from app.services.google_indexing_service import google_indexing_service
         asyncio.create_task(google_indexing_service.request_indexing(
-            f"https://www.jobon.work/blog/{post.slug}", "URL_UPDATED"
+            f"https://www.jobonportal.de/blog/{post.slug}", "URL_UPDATED"
         ))
 
     return add_category_label(post)
@@ -460,7 +460,7 @@ async def toggle_publish_post(
     # Google Indexierung / Deindexierung
     import asyncio
     from app.services.google_indexing_service import google_indexing_service
-    blog_url = f"https://www.jobon.work/blog/{post.slug}"
+    blog_url = f"https://www.jobonportal.de/blog/{post.slug}"
     if post.is_published:
         asyncio.create_task(google_indexing_service.request_indexing(blog_url, "URL_UPDATED"))
     else:

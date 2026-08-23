@@ -12,7 +12,7 @@ on:
       base_url:
         description: "Ziel-URL (Standard: Live-Seite)"
         required: false
-        default: "https://www.jobon.work"
+        default: "https://www.jobonportal.de"
 
 concurrency:
   group: live-monitor
@@ -28,7 +28,7 @@ jobs:
       run:
         working-directory: frontend
     env:
-      E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://www.jobon.work' }}
+      E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://www.jobonportal.de' }}
       E2E_API_URL: "https://ijp-portal.onrender.com/api/v1"
       # Eingeloggter Dashboard-Check – nur aktiv, wenn diese Secrets gesetzt sind
       TEST_APPLICANT_EMAIL: ${{ secrets.TEST_APPLICANT_EMAIL }}

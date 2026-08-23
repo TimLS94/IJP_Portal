@@ -94,7 +94,7 @@ export default function AdminInviteTokensPage() {
   };
 
   const copyLink = (token: string) => {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://www.jobon.work";
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://www.jobonportal.de";
     navigator.clipboard.writeText(`${baseUrl}/register/company?invite=${token}`);
     toast.success("Link kopiert!");
   };
@@ -125,7 +125,7 @@ export default function AdminInviteTokensPage() {
   };
 
   const getRegistrationLink = (token: string) => {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://www.jobon.work";
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://www.jobonportal.de";
     return `${baseUrl}/register/company?invite=${token}`;
   };
 

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "Finden Sie Ihren Traumjob bei JobOn. Aktuelle Stellenangebote für internationale Fachkräfte in Deutschland - Saisonjobs, Studentenferienjobs, Fachkräfte und Ausbildung.",
   keywords: ["Jobs Deutschland", "Stellenangebote", "Saisonjobs", "Studentenferienjobs", "Fachkräfte", "Ausbildung", "Arbeit in Deutschland"],
   alternates: {
-    canonical: "https://www.jobon.work/jobs",
+    canonical: "https://www.jobonportal.de/jobs",
   },
   robots: {
     index: true,
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     description: "Aktuelle Stellenangebote für internationale Fachkräfte in Deutschland.",
     type: "website",
     locale: "de_DE",
-    url: "https://www.jobon.work/jobs",
+    url: "https://www.jobonportal.de/jobs",
     siteName: "JobOn",
   },
 };
@@ -75,7 +75,7 @@ function generateJobListSchema(jobs: Job[]) {
     "itemListElement": jobs.slice(0, 20).map((job, index) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "url": `https://www.jobon.work/jobs/${job.slug}`,
+      "url": `https://www.jobonportal.de/jobs/${job.slug}`,
       "name": job.title,
     })),
   };

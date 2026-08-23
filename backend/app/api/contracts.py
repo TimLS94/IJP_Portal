@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contracts", tags=["contracts"])
 
-FRONTEND_URL = "https://www.jobon.work"
+FRONTEND_URL = "https://www.jobonportal.de"
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:

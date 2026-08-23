@@ -42,7 +42,8 @@ class Settings(BaseSettings):
     
     # CORS - Kann als kommaseparierter String oder JSON-Array angegeben werden
     # Beispiel: "https://example.com,https://app.example.com" oder '["https://example.com"]'
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://www.jobon.work,https://jobon.work"
+    # Neue Domain jobonportal.de; alte jobon.work bleibt übergangsweise erlaubt (Migration)
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://www.jobonportal.de,https://jobonportal.de,https://www.jobon.work,https://jobon.work"
     
     # Frontend URL (für E-Mail Links)
     FRONTEND_URL: str = "http://localhost:5173"

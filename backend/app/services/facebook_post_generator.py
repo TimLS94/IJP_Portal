@@ -13,7 +13,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://www.jobon.work"
+BASE_URL = "https://www.jobonportal.de"
 
 
 def _strip_html(text: str) -> str:
@@ -45,7 +45,7 @@ def build_comment_text(job) -> str:
     return f"👉 Jetzt direkt bewerben: {_job_url(job)}"
 
 
-_PROMPT = """Du bist Social-Media-Experte für die Jobplattform jobon.work und wirbst in Facebook-Gruppen für eine Stelle.
+_PROMPT = """Du bist Social-Media-Experte für die Jobplattform jobonportal.de und wirbst in Facebook-Gruppen für eine Stelle.
 
 Erstelle einen ansprechenden Werbe-Post für diese Stelle – einmal auf DEUTSCH und einmal auf SPANISCH.
 
@@ -65,9 +65,9 @@ Stellendaten (nutze NUR diese Infos, erfinde nichts):
 
 Stil (wichtig, halte dich genau daran):
 - Mit Emojis, locker und motivierend, wie eine Job-Anzeige in einer Facebook-Gruppe.
-- Struktur: Titelzeile mit passendem Emoji + "| jobon.work 🚀", kurze Ansprache ("Du suchst einen Job als ...?"), 2-4 Vorteile mit ✔️ (nur die vorhandenen: Gehalt, Unterkunft, Arbeitszeit), "👉 Deine Aufgaben:" mit •-Punkten, "👉 Dein Profil:" mit •-Punkten, dann CTA "📲 👉 Jetzt direkt über jobon.work bewerben!", abschließend "👉 Link & weitere Infos in den Kommentaren! 👇".
+- Struktur: Titelzeile mit passendem Emoji + "| jobonportal.de 🚀", kurze Ansprache ("Du suchst einen Job als ...?"), 2-4 Vorteile mit ✔️ (nur die vorhandenen: Gehalt, Unterkunft, Arbeitszeit), "👉 Deine Aufgaben:" mit •-Punkten, "👉 Dein Profil:" mit •-Punkten, dann CTA "📲 👉 Jetzt direkt über jobonportal.de bewerben!", abschließend "👉 Link & weitere Infos in den Kommentaren! 👇".
 - KEIN konkreter Link im Post-Text (der kommt in die Kommentare).
-- Spanische Version: gleiche Struktur, natürliches Spanisch, "| jobon.work 🚀".
+- Spanische Version: gleiche Struktur, natürliches Spanisch, "| jobonportal.de 🚀".
 
 Antworte NUR mit gültigem JSON (keine Codeblöcke), exakt:
 {{"de": "<kompletter deutscher Post>", "es": "<kompletter spanischer Post>"}}"""

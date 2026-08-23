@@ -34,7 +34,7 @@ export const STELLEN_ROUTES: StellenRoute[] = [
     chipEmoji: "",
     title: "Stellenangebote in Deutschland für internationale Bewerber | JobOn",
     description:
-      "Aktuelle Stellenangebote in Deutschland: Saisonjobs, Studentenjobs, Fachkräfte und Ausbildung. Jetzt kostenlos bewerben auf JobOn.work.",
+      "Aktuelle Stellenangebote in Deutschland: Saisonjobs, Studentenjobs, Fachkräfte und Ausbildung. Jetzt kostenlos bewerben auf jobonportal.de.",
     h1: "Stellenangebote in Deutschland",
     intro:
       "Finde aktuelle Jobs in Deutschland für internationale Bewerber – von Saisonjobs über Studentenjobs bis hin zu Fachkräften und Ausbildungsplätzen. Jetzt kostenlos auf JobOn bewerben.",
@@ -93,7 +93,7 @@ export const STELLEN_ROUTES: StellenRoute[] = [
     chipEmoji: "🏠",
     title: "Saisonjobs mit Unterkunft in Deutschland | JobOn",
     description:
-      "Finde Saisonjobs in Deutschland mit kostenloser Unterkunft. Über 500 internationale Bewerber auf JobOn.work.",
+      "Finde Saisonjobs in Deutschland mit kostenloser Unterkunft. Über 500 internationale Bewerber auf jobonportal.de.",
     h1: "Saisonjobs mit Unterkunft",
     intro:
       "Du suchst einen Saisonjob in Deutschland und brauchst eine Unterkunft? Auf JobOn findest du aktuelle Stellen in Hotels, Gastronomie und Tourismus — inklusive Unterkunft direkt vom Arbeitgeber.",
@@ -150,7 +150,7 @@ export const STELLEN_ROUTES: StellenRoute[] = [
     chipEmoji: "🌿",
     title: "Saisonjobs in Deutschland für internationale Bewerber | JobOn",
     description:
-      "Aktuelle Saisonjobs in Hotels, Restaurants und Tourismus in Deutschland. Jetzt kostenlos bewerben auf JobOn.work.",
+      "Aktuelle Saisonjobs in Hotels, Restaurants und Tourismus in Deutschland. Jetzt kostenlos bewerben auf jobonportal.de.",
     h1: "Saisonjobs in Deutschland",
     intro:
       "Saisonjobs in Deutschland bieten internationalen Bewerbern die Chance, Arbeitserfahrung zu sammeln und Deutschland kennenzulernen. Finde aktuelle Stellen in Gastronomie, Hotellerie und Tourismus.",
@@ -204,7 +204,7 @@ export const STELLEN_ROUTES: StellenRoute[] = [
     chipEmoji: "🎓",
     title: "Studentenjobs & Ferienjobs in Deutschland | JobOn",
     description:
-      "Ferienjobs und Studentenjobs in Deutschland für internationale Studierende. Jetzt bewerben auf JobOn.work.",
+      "Ferienjobs und Studentenjobs in Deutschland für internationale Studierende. Jetzt bewerben auf jobonportal.de.",
     h1: "Studentenjobs in Deutschland",
     intro:
       "Als internationaler Student kannst du in Deutschland während der Ferien arbeiten. Finde passende Ferienjobs in Hotels, Restaurants und mehr.",
@@ -258,7 +258,7 @@ export const STELLEN_ROUTES: StellenRoute[] = [
     chipEmoji: "💼",
     title: "Fachkräfte Jobs Deutschland für internationale Bewerber | JobOn",
     description:
-      "Fachkräfte aus dem Ausland finden hier passende Jobs in Deutschland. Jetzt Profil anlegen auf JobOn.work.",
+      "Fachkräfte aus dem Ausland finden hier passende Jobs in Deutschland. Jetzt Profil anlegen auf jobonportal.de.",
     h1: "Fachkräfte Jobs in Deutschland",
     intro:
       "Deutschland sucht qualifizierte Fachkräfte aus dem Ausland. Ob Gastronomie, Hotellerie oder Logistik — finde deinen nächsten Job in Deutschland und starte deine Karriere.",
@@ -312,7 +312,7 @@ export const STELLEN_ROUTES: StellenRoute[] = [
     chipEmoji: "📚",
     title: "Ausbildungsplätze in Deutschland für internationale Bewerber | JobOn",
     description:
-      "Ausbildungsplätze in Deutschland für internationale Bewerber. Alle Infos zu Visum und Bewerbung auf JobOn.work.",
+      "Ausbildungsplätze in Deutschland für internationale Bewerber. Alle Infos zu Visum und Bewerbung auf jobonportal.de.",
     h1: "Ausbildung in Deutschland",
     intro:
       "Eine Ausbildung in Deutschland ist der perfekte Einstieg in eine langfristige Karriere. Finde aktuelle Ausbildungsplätze und erfahre alles über Visum, Bewerbung und Voraussetzungen.",

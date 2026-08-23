@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import FeedbackButton from "@/components/FeedbackButton";
 import { jsonLdHtml } from "@/lib/jsonLd";
+import { SITE_URL } from "@/lib/site";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -11,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.jobon.work"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "JobOn | Internationale Saisonkräfte für Hotels & Gastronomie finden",
     template: "%s | JobOn",
@@ -38,13 +39,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "de_DE",
-    url: "https://www.jobon.work",
+    url: SITE_URL,
     siteName: "JobOn",
     title: "JobOn | Internationale Saisonkräfte für Hotels & Gastronomie finden",
     description: "Das Portal für Arbeitgeber und Bewerber. Finden Sie qualifizierte Saisonkräfte für Hotel, Gastronomie & Logistik in Deutschland.",
     images: [
       {
-        url: "https://www.jobon.work/logo-512x512.png",
+        url: `${SITE_URL}/logo-512x512.png`,
         width: 512,
         height: 512,
         alt: "JobOn - Portal für Saisonkräfte in Deutschland",
@@ -56,14 +57,14 @@ export const metadata: Metadata = {
     card: "summary",
     title: "JobOn | Internationale Saisonkräfte für Hotels & Gastronomie",
     description: "Das Portal für Arbeitgeber und Bewerber. Saisonkräfte für Hotel, Gastronomie & Logistik.",
-    images: ["https://www.jobon.work/logo-512x512.png"],
+    images: [`${SITE_URL}/logo-512x512.png`],
   },
   robots: {
     index: true,
     follow: true,
   },
   alternates: {
-    canonical: "https://www.jobon.work",
+    canonical: SITE_URL,
   },
   other: {
     "theme-color": "#2563eb",
@@ -74,8 +75,8 @@ const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "EmploymentAgency",
   "name": "JobOn",
-  "url": "https://www.jobon.work",
-  "logo": "https://www.jobon.work/logo-512x512.png",
+  "url": SITE_URL,
+  "logo": `${SITE_URL}/logo-512x512.png`,
   "description": "Personalvermittlung für Gastronomie, Hotellerie und Logistik in Deutschland. Internationale Fach- und Hilfskräfte.",
   "areaServed": {
     "@type": "Country",

@@ -123,7 +123,7 @@ class GoogleIndexingService:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 r = await client.get(
                     "https://www.google.com/ping",
-                    params={"sitemap": "https://www.jobon.work/sitemap.xml"}
+                    params={"sitemap": "https://www.jobonportal.de/sitemap.xml"}
                 )
                 if r.status_code == 200:
                     logger.info("✅ Google Sitemap-Ping erfolgreich")
@@ -194,7 +194,7 @@ class GoogleIndexingService:
         Returns:
             True wenn erfolgreich
         """
-        url = f"https://www.jobon.work/jobs/{job_slug}-{job_id}"
+        url = f"https://www.jobonportal.de/jobs/{job_slug}-{job_id}"
         return await self.request_indexing(url, "URL_UPDATED")
     
     async def remove_job_from_index(self, job_slug: str, job_id: int) -> bool:
@@ -208,7 +208,7 @@ class GoogleIndexingService:
         Returns:
             True wenn erfolgreich
         """
-        url = f"https://www.jobon.work/jobs/{job_slug}-{job_id}"
+        url = f"https://www.jobonportal.de/jobs/{job_slug}-{job_id}"
         return await self.request_indexing(url, "URL_DELETED")
 
 

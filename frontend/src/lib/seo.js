@@ -192,7 +192,7 @@ function setLinkTag(rel, href) {
  * @param {string} baseUrl - Basis-URL der Website
  * @returns {Object} JSON-LD Structured Data
  */
-export function generateJobPostingSchema(job, baseUrl = 'https://www.jobon.work') {
+export function generateJobPostingSchema(job, baseUrl = 'https://www.jobonportal.de') {
   if (!job) return null;
   
   const schema = {

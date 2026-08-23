@@ -333,13 +333,13 @@ class EmailService:
         """Benachrichtigt die Firma über eine neue Bewerbung"""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
             # Direkt zum Bewerber-Detail springen, falls die Bewerbung bekannt ist
             applications_link = f"{frontend_url}/company/applications"
             if application_id:
                 applications_link += f"?application={application_id}"
         except:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
         
         # Position Type Label
         position_labels = {
@@ -467,7 +467,7 @@ class EmailService:
     
     @_safe_email_call
     def send_company_activated(
-        self, to_email: str, company_name: str, frontend_url: str = "https://www.jobon.work"
+        self, to_email: str, company_name: str, frontend_url: str = "https://www.jobonportal.de"
     ) -> bool:
         """Benachrichtigt die Firma über Aktivierung"""
         subject = "IJP Portal - Konto freigeschaltet! 🎉"
@@ -642,9 +642,9 @@ class EmailService:
         from app.services.email_i18n import et
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         except:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
 
         opt = et(lang, "iv_option")
         date_options = f"""
@@ -716,9 +716,9 @@ class EmailService:
         import html as _html
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         except:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
 
         location_info = ""
         if location:
@@ -786,9 +786,9 @@ class EmailService:
         """
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         except:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
         
         # Status-Sektion
         status_section = ""
@@ -878,9 +878,9 @@ class EmailService:
         """Benachrichtigt die Firma, dass der Bewerber die Termine abgelehnt hat"""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         except:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
         
         reason_section = ""
         if reason:
@@ -934,9 +934,9 @@ class EmailService:
         """Benachrichtigt über eine Terminabsage"""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         except:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
         
         if cancelled_by == "company":
             who_cancelled = "Das Unternehmen"
@@ -999,9 +999,9 @@ class EmailService:
         """Sendet Passwort-Reset-Link (async für account.py)"""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         except:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
         
         reset_link = f"{frontend_url}/reset-password?token={reset_token}"
         greeting = f"Hallo {user_name}," if user_name else "Hallo,"
@@ -1044,9 +1044,9 @@ class EmailService:
         """
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         except:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
         
         job_url = f"{frontend_url}/jobs/{job_slug}"
         
@@ -1119,11 +1119,11 @@ class EmailService:
         """
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         except Exception:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
         if not frontend_url or 'localhost' in frontend_url:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
 
         job_url = f"{frontend_url}/jobs/{job_slug}"
 
@@ -1187,9 +1187,9 @@ class EmailService:
         (de/en/es/ru, Default Englisch). matching_jobs = [{"job":...}]."""
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         except Exception:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
 
         T = {
             "en": {"head": "Recommended jobs for you", "sub": "handpicked matches",
@@ -1263,9 +1263,9 @@ class EmailService:
         """
         try:
             from app.core.config import settings
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         except:
-            frontend_url = 'https://www.jobon.work'
+            frontend_url = 'https://www.jobonportal.de'
         
         # Build job list HTML
         jobs_html = ""
@@ -1341,7 +1341,7 @@ class EmailService:
                 <p style="color: #9ca3af; font-size: 12px; margin: 20px 0 0 0;">
                     IJP International Job Placement UG (haftungsbeschränkt)<br>
                     Husemannstr. 9, 10435 Berlin<br><br>
-                    <em>You receive this email because you have an active profile on JobOn.work</em>
+                    <em>You receive this email because you have an active profile on jobonportal.de</em>
                 </p>
             </div>
         </body></html>
@@ -1375,7 +1375,7 @@ class EmailService:
                         <p style="color: #6b7280; font-size: 12px; margin: 0;">
                             IJP International Job Placement UG (haftungsbeschränkt)<br>
                             Husemannstr. 9, 10435 Berlin<br>
-                            <a href="https://www.jobon.work" style="color: #2563eb;">www.jobon.work</a>
+                            <a href="https://www.jobonportal.de" style="color: #2563eb;">www.jobonportal.de</a>
                         </p>
                     </div>
                 </div>
@@ -1396,7 +1396,7 @@ class EmailService:
                 <div style="color: #666; font-size: 12px; border-top: 1px solid #eee; padding-top: 15px;">
                     IJP International Job Placement UG (haftungsbeschränkt)<br>
                     Husemannstr. 9, 10435 Berlin<br>
-                    www.jobon.work
+                    www.jobonportal.de
                 </div>
             </body>
             </html>
@@ -1422,7 +1422,7 @@ class EmailService:
     ) -> bool:
         """Wöchentlicher Stellen-Report an eine Firma (immer Deutsch).
         jobs_stats: Liste von {title, clicks, applications, likes}."""
-        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         total_clicks = sum(int(j.get('clicks', 0) or 0) for j in jobs_stats)
         total_apps = sum(int(j.get('applications', 0) or 0) for j in jobs_stats)
         total_likes = sum(int(j.get('likes', 0) or 0) for j in jobs_stats)
@@ -1497,7 +1497,7 @@ class EmailService:
         jobs: Liste von {title, deadline, days_left, job_id}."""
         if not jobs:
             return True
-        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobon.work')
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
         rows = ""
         for j in jobs:
             rows += f"""
@@ -1608,7 +1608,7 @@ class EmailService:
                 </table>
                 
                 <div style="text-align: center; margin-top: 30px;">
-                    <a href="https://jobon.work/company/applications" 
+                    <a href="https://www.jobonportal.de/company/applications" 
                        style="display: inline-block; background: #2563eb; color: white; padding: 14px 28px; 
                               text-decoration: none; border-radius: 8px; font-weight: bold;">
                         Alle Bewerbungen ansehen →
@@ -1621,7 +1621,7 @@ class EmailService:
                     Sie erhalten diese E-Mail, weil Sie den Bewerber-Digest aktiviert haben.
                 </p>
                 <p style="color: #6b7280; font-size: 12px; margin: 0;">
-                    <a href="https://jobon.work/company/settings" style="color: #2563eb;">E-Mail-Einstellungen ändern</a>
+                    <a href="https://www.jobonportal.de/company/settings" style="color: #2563eb;">E-Mail-Einstellungen ändern</a>
                 </p>
             </div>
         </body>

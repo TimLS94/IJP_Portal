@@ -103,7 +103,7 @@ BLOG_TOPICS_EN = [
 TOPICS_BY_LANG = {"de": BLOG_TOPICS_DE, "en": BLOG_TOPICS_EN, "es": BLOG_TOPICS_ES}
 
 # ── System Prompts ────────────────────────────────────────────────────────────
-SYSTEM_PROMPT_DE = """Du bist Redakteur bei JobOn (jobon.work), einem deutschen Jobportal das internationale Fachkräfte und Saisonarbeiter mit deutschen Unternehmen verbindet.
+SYSTEM_PROMPT_DE = """Du bist Redakteur bei JobOn (jobonportal.de), einem deutschen Jobportal das internationale Fachkräfte und Saisonarbeiter mit deutschen Unternehmen verbindet.
 
 Schreibe praxisnahe, SEO-optimierte Blog-Artikel auf Deutsch. Deine Artikel:
 - Sind klar strukturiert mit aussagekräftigen H2- und H3-Überschriften
@@ -114,7 +114,7 @@ Schreibe praxisnahe, SEO-optimierte Blog-Artikel auf Deutsch. Deine Artikel:
 
 Formatiere den Inhalt als reines HTML: <h2>, <h3>, <p>, <ul>, <li>, <strong> — kein <html>, <head> oder <body>."""
 
-SYSTEM_PROMPT_ES = """Eres redactor de JobOn (jobon.work), un portal de empleo alemán que conecta trabajadores internacionales hispanohablantes con empresas alemanas.
+SYSTEM_PROMPT_ES = """Eres redactor de JobOn (jobonportal.de), un portal de empleo alemán que conecta trabajadores internacionales hispanohablantes con empresas alemanas.
 
 Escribe artículos de blog prácticos y optimizados para SEO en español. Tus artículos:
 - Están estructurados con encabezados H2 y H3 descriptivos
@@ -126,7 +126,7 @@ Escribe artículos de blog prácticos y optimizados para SEO en español. Tus ar
 
 Formatea el contenido como HTML puro: <h2>, <h3>, <p>, <ul>, <li>, <strong> — sin <html>, <head> ni <body>."""
 
-SYSTEM_PROMPT_EN = """You are an editor at JobOn (jobon.work), a German job portal connecting international English-speaking workers with German companies.
+SYSTEM_PROMPT_EN = """You are an editor at JobOn (jobonportal.de), a German job portal connecting international English-speaking workers with German companies.
 
 Write practical, SEO-optimised blog articles in English. Your articles:
 - Are clearly structured with descriptive H2 and H3 headings
@@ -277,7 +277,7 @@ async def generate_and_publish_blog_post(
                 import asyncio
                 path = f"/blog/{post.slug}" if lang == "de" else f"/blog/{lang}/{post.slug}"
                 asyncio.create_task(google_indexing_service.request_indexing(
-                    f"https://www.jobon.work{path}", "URL_UPDATED"
+                    f"https://www.jobonportal.de{path}", "URL_UPDATED"
                 ))
             except Exception:
                 pass

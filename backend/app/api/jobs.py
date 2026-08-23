@@ -195,7 +195,7 @@ async def get_sitemap_xml(db: Session = Depends(get_db)):
         JobPosting.is_external.isnot(True)  # externe (BA-)Stellen: Duplicate Content
     ).all()
 
-    base_url = "https://www.jobon.work"
+    base_url = "https://www.jobonportal.de"
     
     # XML Header
     xml_parts = [
@@ -767,7 +767,7 @@ async def create_job(
         try:
             import asyncio
             asyncio.create_task(google_indexing_service.request_indexing(
-                f"https://www.jobon.work/jobs/{job.slug}-{job.id}",
+                f"https://www.jobonportal.de/jobs/{job.slug}-{job.id}",
                 "URL_UPDATED"
             ))
         except Exception as e:
@@ -899,7 +899,7 @@ async def delete_job(
         try:
             import asyncio
             asyncio.create_task(google_indexing_service.request_indexing(
-                f"https://www.jobon.work/jobs/{job.slug}-{job.id}",
+                f"https://www.jobonportal.de/jobs/{job.slug}-{job.id}",
                 "URL_DELETED"
             ))
         except Exception as e:
@@ -924,7 +924,7 @@ async def delete_job(
         try:
             import asyncio
             asyncio.create_task(google_indexing_service.request_indexing(
-                f"https://www.jobon.work/jobs/{job.slug}-{job.id}",
+                f"https://www.jobonportal.de/jobs/{job.slug}-{job.id}",
                 "URL_DELETED"
             ))
         except Exception as e:
@@ -1004,7 +1004,7 @@ async def reactivate_job(
     try:
         import asyncio
         asyncio.create_task(google_indexing_service.request_indexing(
-            f"https://www.jobon.work/jobs/{job.slug}-{job.id}",
+            f"https://www.jobonportal.de/jobs/{job.slug}-{job.id}",
             "URL_UPDATED"
         ))
     except Exception as e:
@@ -1681,7 +1681,7 @@ async def reindex_all_jobs(
             job.slug = _gen_slug(job.title, job.location, job.accommodation_provided)
             db.commit()
 
-        url = f"https://www.jobon.work/jobs/{job.slug}-{job.id}"
+        url = f"https://www.jobonportal.de/jobs/{job.slug}-{job.id}"
         try:
             import asyncio
             success = await google_indexing_service.request_indexing(url, "URL_UPDATED")

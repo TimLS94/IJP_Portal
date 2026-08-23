@@ -4,7 +4,7 @@ import { Accessibility, Mail, Info, MessageSquare } from "lucide-react";
 export const metadata: Metadata = {
   title: "Erklärung zur Barrierefreiheit",
   description:
-    "Erklärung zur Barrierefreiheit der Plattform JobOn (jobon.work). Informationen zum Stand der Barrierefreiheit, bekannten Einschränkungen und zur Meldung von Barrieren.",
+    "Erklärung zur Barrierefreiheit der Plattform JobOn (jobonportal.de). Informationen zum Stand der Barrierefreiheit, bekannten Einschränkungen und zur Meldung von Barrieren.",
   robots: { index: true, follow: true },
 };
 
@@ -25,7 +25,7 @@ export default function BarrierefreiheitPage() {
             <section>
               <p>
                 Die IJP International Job Placement UG (haftungsbeschränkt) betreibt die Online-Plattform
-                JobOn (<a href="https://www.jobon.work" className="text-primary-600 hover:underline">www.jobon.work</a>).
+                JobOn (<a href="https://www.jobonportal.de" className="text-primary-600 hover:underline">www.jobonportal.de</a>).
                 Wir möchten unsere Plattform möglichst vielen Menschen zugänglich machen und arbeiten
                 kontinuierlich daran, die Barrierefreiheit zu verbessern.
               </p>

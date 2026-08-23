@@ -29,7 +29,7 @@ interface PartnerLink {
 
 const FRONTEND_URL =
   process.env.NEXT_PUBLIC_FRONTEND_URL ||
-  (typeof window !== "undefined" ? window.location.origin : "https://www.jobon.work");
+  (typeof window !== "undefined" ? window.location.origin : "https://www.jobonportal.de");
 
 export default function AdminPartnerLinksPage() {
   const [links, setLinks] = useState<PartnerLink[]>([]);

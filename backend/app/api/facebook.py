@@ -554,7 +554,7 @@ def _serialize_job_post(job, cached: Optional[FacebookJobPost]):
         "title": job.title,
         "employer": company_name or "Arbeitgeber",
         "location": job.location,
-        "url": f"https://www.jobon.work/jobs/{job.slug}-{job.id}" if job.slug else f"https://www.jobon.work/jobs/{job.id}",
+        "url": f"https://www.jobonportal.de/jobs/{job.slug}-{job.id}" if job.slug else f"https://www.jobonportal.de/jobs/{job.id}",
         "content_de": cached.content_de if cached else None,
         "content_es": cached.content_es if cached else None,
         "comment_text": (cached.comment_text if cached else None) or build_comment_text(job),

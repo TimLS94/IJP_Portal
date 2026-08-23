@@ -2339,7 +2339,7 @@ async def get_email_templates(
                 </div>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="https://www.jobon.work/jobs/{sample_job['job_slug']}" 
+                    <a href="https://www.jobonportal.de/jobs/{sample_job['job_slug']}" 
                        style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
                         View Position →
                     </a>
@@ -2368,7 +2368,7 @@ async def get_email_templates(
                     <span style="color: #059669; font-weight: bold;">{score}%</span>
                 </div>
             </div>
-            <a href="https://www.jobon.work/jobs/{job.url_slug}" 
+            <a href="https://www.jobonportal.de/jobs/{job.url_slug}" 
                style="color: #2563eb; text-decoration: none; font-size: 14px; margin-top: 10px; display: inline-block;">
                 View Details →
             </a>
@@ -2392,7 +2392,7 @@ async def get_email_templates(
                 {jobs_html}
                 
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="https://www.jobon.work/jobs" 
+                    <a href="https://www.jobonportal.de/jobs" 
                        style="background: #7c3aed; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
                         View All Jobs →
                     </a>

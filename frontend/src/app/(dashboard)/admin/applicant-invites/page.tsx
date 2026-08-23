@@ -129,7 +129,7 @@ export default function AdminApplicantInvitesPage() {
   };
 
   const copyLink = (invite: ApplicantInvite) => {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://www.jobon.work";
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://www.jobonportal.de";
     navigator.clipboard.writeText(`${baseUrl}/register?source=${invite.token}`);
     toast.success("Link kopiert!");
   };
@@ -473,7 +473,7 @@ export default function AdminApplicantInvitesPage() {
                   <div className="bg-gray-50 rounded-lg p-3">
                     <p className="text-xs text-gray-500 mb-1">Registrierungs-Link:</p>
                     <code className="text-sm text-primary-600 break-all">
-                      {typeof window !== "undefined" ? window.location.origin : "https://www.jobon.work"}/register?source={invite.token}
+                      {typeof window !== "undefined" ? window.location.origin : "https://www.jobonportal.de"}/register?source={invite.token}
                     </code>
                   </div>
                 </div>

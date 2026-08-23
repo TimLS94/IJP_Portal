@@ -261,7 +261,7 @@ export async function generateMetadata({
     ? job.description.replace(/<[^>]*>/g, "").substring(0, 160)
     : `${job.title} bei ${job.company.name} in ${job.location}`;
 
-  const pageUrl = `https://www.jobon.work/jobs/${slug}`;
+  const pageUrl = `https://www.jobonportal.de/jobs/${slug}`;
 
   return {
     title: `${job.title} - ${job.company.name}`,
@@ -401,7 +401,7 @@ function generateJobPostingSchema(job: Job) {
     jobLocation,
     baseSalary: salaryValue,
     // Zusätzliche SEO-relevante Felder
-    // Nur true bei eigenen Stellen (Bewerbung direkt auf jobon.work).
+    // Nur true bei eigenen Stellen (Bewerbung direkt auf jobonportal.de).
     // Externe (BA-)Stellen leiten zum Arbeitgeber weiter -> false (Google-Richtlinie).
     directApply: !job.is_external,
     employerOverview: job.company.description || undefined,
@@ -435,9 +435,9 @@ export default async function JobDetailPage({
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Startseite", item: "https://www.jobon.work" },
-      { "@type": "ListItem", position: 2, name: "Stellenangebote", item: "https://www.jobon.work/jobs" },
-      { "@type": "ListItem", position: 3, name: job.title, item: `https://www.jobon.work/jobs/${slug}` },
+      { "@type": "ListItem", position: 1, name: "Startseite", item: "https://www.jobonportal.de" },
+      { "@type": "ListItem", position: 2, name: "Stellenangebote", item: "https://www.jobonportal.de/jobs" },
+      { "@type": "ListItem", position: 3, name: job.title, item: `https://www.jobonportal.de/jobs/${slug}` },
     ],
   };
 

@@ -6,7 +6,7 @@ const events = [
   {
     name: "page_view",
     label: "Seitenaufrufe",
-    description: "Jemand hat eine Seite auf jobon.work aufgerufen",
+    description: "Jemand hat eine Seite auf jobonportal.de aufgerufen",
     icon: Eye,
     color: "bg-blue-100 text-blue-600",
     category: "Standard",

@@ -61,7 +61,7 @@ Unsere Vorteile:
 - Schnelle Vermittlung
 - Persönliche Betreuung
 
-Besuchen Sie uns auf www.jobon.work
+Besuchen Sie uns auf www.jobonportal.de
 
 Mit freundlichen Grüßen`);
   const [isHtml, setIsHtml] = useState(false);

@@ -61,7 +61,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!post) {
     return { title: "Article not found" };
   }
-  const pageUrl = `https://www.jobon.work/blog/en/${post.slug}`;
+  const pageUrl = `https://www.jobonportal.de/blog/en/${post.slug}`;
   return {
     title: post.meta_title || post.title,
     description: post.meta_description || post.excerpt || post.title,
@@ -70,7 +70,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       canonical: pageUrl,
       languages: {
         "en": pageUrl,
-        "de": `https://www.jobon.work/blog`,
+        "de": `https://www.jobonportal.de/blog`,
       },
     },
     robots: {
@@ -98,7 +98,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 function generateArticleSchema(post: BlogPost) {
-  const pageUrl = `https://www.jobon.work/blog/en/${post.slug}`;
+  const pageUrl = `https://www.jobonportal.de/blog/en/${post.slug}`;
   return {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -110,27 +110,27 @@ function generateArticleSchema(post: BlogPost) {
     author: {
       "@type": "Organization",
       name: post.author_name || "JobOn",
-      url: "https://www.jobon.work",
+      url: "https://www.jobonportal.de",
     },
     publisher: {
       "@type": "Organization",
       name: "JobOn",
-      url: "https://www.jobon.work",
+      url: "https://www.jobonportal.de",
       logo: {
         "@type": "ImageObject",
-        url: "https://www.jobon.work/logo-512x512.png",
+        url: "https://www.jobonportal.de/logo-512x512.png",
       },
     },
     image: post.featured_image
       ? { "@type": "ImageObject", url: post.featured_image }
-      : { "@type": "ImageObject", url: "https://www.jobon.work/logo-512x512.png" },
+      : { "@type": "ImageObject", url: "https://www.jobonportal.de/logo-512x512.png" },
     mainEntityOfPage: { "@type": "WebPage", "@id": pageUrl },
     keywords: post.tags || undefined,
     inLanguage: "en",
     isPartOf: {
       "@type": "WebSite",
       name: "JobOn",
-      url: "https://www.jobon.work",
+      url: "https://www.jobonportal.de",
     },
   };
 }

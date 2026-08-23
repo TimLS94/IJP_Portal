@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "JobOn ist das Portal für internationale Saisonkräfte in Deutschland. Arbeitgeber finden qualifizierte Mitarbeiter für Hotel, Gastronomie & Logistik. Bewerber finden Jobs mit Unterkunft.",
   keywords: ["Saisonkräfte finden", "Mitarbeiter Gastronomie", "Personal Hotel", "Saisonjobs Deutschland", "Kellner gesucht", "Küchenhilfe gesucht", "Jobs Deutschland", "internationale Fachkräfte"],
   alternates: {
-    canonical: "https://www.jobon.work",
+    canonical: "https://www.jobonportal.de",
   },
   robots: {
     index: true,
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     description: "Das Portal für Arbeitgeber und Bewerber. Finden Sie qualifizierte Saisonkräfte für Hotel, Gastronomie & Logistik in Deutschland.",
     type: "website",
     locale: "de_DE",
-    url: "https://www.jobon.work",
+    url: "https://www.jobonportal.de",
     siteName: "JobOn",
   },
 };
@@ -31,8 +31,8 @@ const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "JobOn",
-  "url": "https://www.jobon.work",
-  "logo": "https://www.jobon.work/logo.png",
+  "url": "https://www.jobonportal.de",
+  "logo": "https://www.jobonportal.de/logo.png",
   "description": "Portal für internationale Saisonkräfte in Hotel, Gastronomie & Logistik in Deutschland",
   "sameAs": [],
   "contactPoint": {
@@ -47,10 +47,10 @@ const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "JobOn",
-  "url": "https://www.jobon.work",
+  "url": "https://www.jobonportal.de",
   "potentialAction": {
     "@type": "SearchAction",
-    "target": "https://www.jobon.work/jobs?search={search_term_string}",
+    "target": "https://www.jobonportal.de/jobs?search={search_term_string}",
     "query-input": "required name=search_term_string",
   },
 };

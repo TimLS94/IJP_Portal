@@ -2,7 +2,8 @@ import { MetadataRoute } from "next";
 import { STELLEN_ROUTES, stellenHref } from "./(public)/stellenangebote/filters";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ijp-portal.onrender.com/api/v1";
-const BASE_URL = "https://www.jobon.work";
+import { SITE_URL } from "@/lib/site";
+const BASE_URL = SITE_URL;
 
 // Sitemap wird alle 30 Sekunden neu generiert → neue Jobs erscheinen sehr schnell
 export const revalidate = 30;

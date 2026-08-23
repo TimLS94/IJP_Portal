@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
 
-BASE_URL = "https://www.jobon.work"
+BASE_URL = "https://www.jobonportal.de"
 GROUP_CHAT_SETTING = "telegram_group_chat_id"
 GROUP_LANG_SETTING = "telegram_group_language"
 

@@ -60,7 +60,7 @@ def _require_stripe():
 def _frontend_url() -> str:
     url = (settings.FRONTEND_URL or "").strip().rstrip("/")
     if not url or "localhost" in url or "127.0.0.1" in url:
-        return "https://www.jobon.work"
+        return "https://www.jobonportal.de"
     return url
 
 

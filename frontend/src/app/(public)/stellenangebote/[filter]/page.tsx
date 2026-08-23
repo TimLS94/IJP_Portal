@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import StellenLanding from "../StellenLanding";
 import { getRouteBySlug, FILTER_SLUGS } from "../filters";
 
-const BASE_URL = "https://www.jobon.work";
+const BASE_URL = "https://www.jobonportal.de";
 
 // Revalidierung alle 60 Sekunden für neue Jobs
 export const revalidate = 60;
