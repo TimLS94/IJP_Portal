@@ -89,6 +89,8 @@ Mit freundlichen Grüßen`);
   const [importSender, setImportSender] = useState("");
   const [importDate, setImportDate] = useState("");
   const [importing, setImporting] = useState(false);
+  // Bestätigungsdialog vor dem Versenden
+  const [showSendConfirm, setShowSendConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
 
@@ -263,7 +265,8 @@ Mit freundlichen Grüßen`);
     ? (includeContacted ? [...checkResult.new, ...checkResult.already_contacted.map(a => a.email)] : checkResult.new)
     : emails;
 
-  const sendAllEmails = async () => {
+  // Öffnet den Bestätigungsdialog (prüft vorher Pflichtfelder)
+  const handleSendClick = () => {
     if (recipients.length === 0) {
       toast.error("Keine Empfänger vorhanden");
       return;
@@ -272,14 +275,12 @@ Mit freundlichen Grüßen`);
       toast.error("Betreff und Inhalt erforderlich");
       return;
     }
-    const skipped = checkResult && !includeContacted ? checkResult.already_contacted.length : 0;
-    const confirmMsg = skipped > 0
-      ? `${recipients.length} E-Mails versenden?\n(${skipped} bereits kontaktierte werden übersprungen)`
-      : `${recipients.length} E-Mails versenden?`;
-    if (!confirm(confirmMsg)) {
-      return;
-    }
+    setShowSendConfirm(true);
+  };
 
+  // Tatsächlicher Versand nach Bestätigung
+  const sendAllEmails = async () => {
+    setShowSendConfirm(false);
     setSending(true);
     setSendProgress({ sent: 0, total: recipients.length });
 
@@ -725,7 +726,7 @@ Mit freundlichen Grüßen`);
               Test an mich
             </button>
             <button
-              onClick={sendAllEmails}
+              onClick={handleSendClick}
               disabled={sending || recipients.length === 0 || !subject || !content}
               className="px-6 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 flex items-center gap-2 font-medium"
             >
@@ -744,6 +745,70 @@ Mit freundlichen Grüßen`);
           </div>
         </div>
       </div>
+
+      {/* Absender-Bestätigung Modal */}
+      {showSendConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-orange-100 rounded-full">
+                  <AlertCircle className="h-6 w-6 text-orange-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">E-Mail-Versand bestätigen</h3>
+              </div>
+              
+              <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-red-800 font-medium mb-2">⚠️ Absender prüfen!</p>
+                <p className="text-lg font-bold text-red-900">
+                  {useGmail && gmailConfig.enabled
+                    ? `${gmailConfig.name || "Gmail"} <${gmailConfig.from}>`
+                    : `${senderName} <${senderEmail}>`}
+                </p>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Empfänger:</span>
+                  <span className="font-semibold text-gray-900">{recipients.length}</span>
+                </div>
+                {checkResult && !includeContacted && checkResult.already_contacted.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Übersprungen:</span>
+                    <span className="text-amber-600">{checkResult.already_contacted.length}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Betreff:</span>
+                  <span className="font-medium text-gray-900 truncate max-w-[200px]">{subject}</span>
+                </div>
+                {attachments.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Anhänge:</span>
+                    <span className="text-gray-900">{attachments.length}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSendConfirm(false)}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={sendAllEmails}
+                  className="flex-1 px-4 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium flex items-center justify-center gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  Ja, senden
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preview Modal */}
       {showPreview && (
