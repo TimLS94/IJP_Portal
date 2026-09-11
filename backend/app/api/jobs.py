@@ -18,6 +18,23 @@ from app.services.settings_service import get_setting
 from app.services.slug_service import generate_job_slug, extract_id_from_slug
 from app.services.google_indexing_service import google_indexing_service
 
+
+def _exclude_deactivated_company_jobs(query, db: Session):
+    """Blendet Stellen von deaktivierten Firmen aus der öffentlichen Sicht aus.
+    Deaktivierte Firmen (User.is_active == False) sollen keine sichtbaren Stellen haben."""
+    from sqlalchemy import or_ as _or
+    inactive_ids = [
+        c_id for (c_id,) in db.query(Company.id)
+        .join(User, User.id == Company.user_id)
+        .filter(User.is_active == False)
+        .all()
+    ]
+    if inactive_ids:
+        query = query.filter(
+            _or(JobPosting.company_id.is_(None), JobPosting.company_id.notin_(inactive_ids))
+        )
+    return query
+
 # Standard-Wert falls Setting nicht existiert (wird aus DB überschrieben)
 DEFAULT_MAX_DEADLINE_DAYS = 90
 
@@ -141,6 +158,9 @@ async def list_public_jobs(
         else:
             query = query.filter(JobPosting.country == country.upper())
 
+    # Stellen deaktivierter Firmen ausblenden
+    query = _exclude_deactivated_company_jobs(query, db)
+
     # Hervorgehobene Jobs zuerst (mit Slot-Limit + Rotation), dann nach Erstellungsdatum
     top_rank = _featured_top_rank(query, datetime.utcnow())
     jobs = query.order_by(
@@ -157,12 +177,13 @@ async def get_sitemap_urls(db: Session = Depends(get_db)):
     Externe (BA-)Stellen sind Duplicate Content -> nicht in die Sitemap.
     Format: [{url: "/jobs/slug-id", lastmod: "2026-01-15", title: "..."}]
     """
-    jobs = db.query(JobPosting).filter(
+    _q = db.query(JobPosting).filter(
         JobPosting.is_active == True,
         JobPosting.is_archived == False,
         JobPosting.is_draft == False,  # Entwürfe ausblenden
         JobPosting.is_external.isnot(True)  # externe Stellen nicht indexieren
-    ).all()
+    )
+    jobs = _exclude_deactivated_company_jobs(_q, db).all()
     
     urls = []
     for job in jobs:
@@ -188,12 +209,13 @@ async def get_sitemap_xml(db: Session = Depends(get_db)):
     """
     Generiert eine vollständige Sitemap.xml mit allen aktiven Jobs.
     """
-    jobs = db.query(JobPosting).filter(
+    _q = db.query(JobPosting).filter(
         JobPosting.is_active == True,
         JobPosting.is_archived == False,
         JobPosting.is_draft == False,  # Entwürfe ausblenden
         JobPosting.is_external.isnot(True)  # externe (BA-)Stellen: Duplicate Content
-    ).all()
+    )
+    jobs = _exclude_deactivated_company_jobs(_q, db).all()
 
     base_url = "https://www.jobonportal.de"
     
@@ -273,6 +295,9 @@ async def list_jobs(
                 ))
             )
 
+    # Stellen deaktivierter Firmen ausblenden
+    query = _exclude_deactivated_company_jobs(query, db)
+
     # Hervorgehobene Jobs zuerst (mit Slot-Limit + Rotation), dann nach Erstellungsdatum
     top_rank = _featured_top_rank(query, datetime.utcnow())
     jobs = query.order_by(
@@ -332,6 +357,17 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Stellenangebot nicht gefunden"
         )
+
+    # Stellen deaktivierter Firmen öffentlich nicht anzeigen (404).
+    if job.company_id is not None:
+        _owner_active = db.query(User.is_active).join(
+            Company, Company.user_id == User.id
+        ).filter(Company.id == job.company_id).scalar()
+        if _owner_active is False:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Stellenangebot nicht gefunden"
+            )
 
     # Inaktive Jobs sind öffentlich nicht zugänglich.
     # Archivierte (früher öffentliche) Stellen: 410 Gone -> Google entfernt sie sauber

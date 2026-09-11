@@ -108,7 +108,17 @@ async def get_current_user(
     user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None:
         raise credentials_exception
-    
+
+    # SICHERHEIT: Deaktivierte Konten dürfen NICHTS tun – nicht nur der Login wird
+    # gesperrt. Sonst bleibt ein einmal (z.B. via Invite-Token) ausgestellter JWT
+    # bis zu 30 Tage gültig, auch nachdem ein Admin das Konto auf inaktiv gesetzt hat.
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Konto ist deaktiviert",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     return user
 
 

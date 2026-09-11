@@ -1060,7 +1060,19 @@ async def toggle_user_active(
     was_inactive = not user.is_active
     user.is_active = not user.is_active
     db.commit()
-    
+
+    # Wenn eine FIRMA deaktiviert wird: ihre aktiven Stellen ebenfalls deaktivieren,
+    # sonst bleiben sie öffentlich sichtbar / in der Sitemap.
+    if not user.is_active and user.role == UserRole.COMPANY:
+        _company = db.query(Company).filter(Company.user_id == user.id).first()
+        if _company:
+            from app.models.job_posting import JobPosting
+            db.query(JobPosting).filter(
+                JobPosting.company_id == _company.id,
+                JobPosting.is_active == True
+            ).update({JobPosting.is_active: False}, synchronize_session=False)
+            db.commit()
+
     # Wenn eine FIRMA aktiviert wird, sende Aktivierungs-E-Mail
     if user.is_active and was_inactive and user.role == UserRole.COMPANY:
         company = db.query(Company).filter(Company.user_id == user.id).first()

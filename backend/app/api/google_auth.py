@@ -145,10 +145,30 @@ async def google_login(
                 email_service.send_welcome_email, email, given_name or "Bewerber", "applicant"
             )
     
+    # SICHERHEIT: Google-Login ist ausschließlich für Bewerber vorgesehen ("nur für
+    # Bewerber"). Bestehende Firmen-/Admin-Konten dürfen sich NICHT über Google
+    # anmelden – sonst umgeht man den regulären Login und die Rollentrennung
+    # (z.B. Firma per gleicher Gmail übernehmen).
+    if user.role != UserRole.APPLICANT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Für dieses Konto bitte mit E-Mail und Passwort anmelden."
+        )
+
+    # SICHERHEIT: Deaktivierte / noch nicht freigeschaltete Konten dürfen sich auch
+    # NICHT über Google einloggen. Sonst umgeht man den is_active-Gate des normalen
+    # Logins, indem man ein bestehendes inaktives Konto (z.B. eine noch nicht
+    # freigeschaltete Firma) per Google-Login mit derselben E-Mail "übernimmt".
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Konto ist deaktiviert oder noch nicht freigeschaltet"
+        )
+
     # Login-Zeit aktualisieren
     user.last_login_at = datetime.now(timezone.utc)
     db.commit()
-    
+
     # JWT Token erstellen (sub muss User-ID sein, nicht Email!)
     access_token = create_access_token(data={"sub": str(user.id)})
     
