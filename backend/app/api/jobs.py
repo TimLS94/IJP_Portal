@@ -64,10 +64,13 @@ def _exclude_deactivated_company_jobs(query, db: Session):
     """Blendet Stellen von deaktivierten Firmen aus der öffentlichen Sicht aus.
     Deaktivierte Firmen (User.is_active == False) sollen keine sichtbaren Stellen haben."""
     from sqlalchemy import or_ as _or
+    # WICHTIG: Nur echte, vom Admin deaktivierte Firmen ausblenden – NICHT die
+    # Platzhalter-Firmen gescrapter BA-Stellen (die sind per Design is_active=False,
+    # ihre externen Stellen sollen aber sichtbar bleiben).
     inactive_ids = [
         c_id for (c_id,) in db.query(Company.id)
         .join(User, User.id == Company.user_id)
-        .filter(User.is_active == False)
+        .filter(User.is_active == False, Company.is_scraped == False)
         .all()
     ]
     if inactive_ids:
@@ -399,12 +402,13 @@ async def get_job_by_slug(slug_with_id: str, db: Session = Depends(get_db)):
             detail="Stellenangebot nicht gefunden"
         )
 
-    # Stellen deaktivierter Firmen öffentlich nicht anzeigen (404).
+    # Stellen deaktivierter (echter) Firmen öffentlich nicht anzeigen (404).
+    # Gescrapte BA-Firmen sind per Design is_active=False -> NICHT ausblenden.
     if job.company_id is not None:
-        _owner_active = db.query(User.is_active).join(
+        _owner = db.query(User.is_active, Company.is_scraped).join(
             Company, Company.user_id == User.id
-        ).filter(Company.id == job.company_id).scalar()
-        if _owner_active is False:
+        ).filter(Company.id == job.company_id).first()
+        if _owner and _owner[0] is False and not _owner[1]:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Stellenangebot nicht gefunden"
