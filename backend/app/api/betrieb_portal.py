@@ -64,6 +64,10 @@ async def portal_login(
     }
 
 
+def _iso(d) -> "str | None":
+    return d.isoformat() if d else None
+
+
 def _student_entry(req: JobRequest, db: Session) -> dict:
     a = req.applicant
     status_val = req.public_status or req.status
@@ -82,6 +86,11 @@ def _student_entry(req: JobRequest, db: Session) -> dict:
         ),
         "position_type": req.position_type.value if req.position_type else None,
         "preferred_location": req.preferred_location,
+        # Für Studentenferienjobs geschäftskritisch: wann kann der Student arbeiten?
+        "semester_break_start": _iso(a.semester_break_start),
+        "semester_break_end": _iso(a.semester_break_end),
+        "available_from": _iso(a.available_from),
+        "available_until": _iso(a.available_until),
         "documents": [
             {
                 "id": d.id,

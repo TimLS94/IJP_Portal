@@ -14,6 +14,10 @@ interface Student {
   status_label: string;
   position_type: string | null;
   preferred_location: string | null;
+  semester_break_start: string | null;
+  semester_break_end: string | null;
+  available_from: string | null;
+  available_until: string | null;
   documents: PortalDoc[];
 }
 interface PortalData { betrieb_name: string | null; students: Student[]; }
@@ -25,6 +29,29 @@ function statusPill(status: string | null): string {
   if (["rejected", "ijp_rejected", "cancelled", "on_hold"].includes(s))
     return "bg-red-100 text-red-700 border-red-200";
   return "bg-blue-100 text-blue-800 border-blue-200";
+}
+
+function fmtDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+function fmtRange(from: string | null, to: string | null): string | null {
+  const a = fmtDate(from), b = fmtDate(to);
+  if (a && b) return `${a} – ${b}`;
+  if (a) return `ab ${a}`;
+  if (b) return `bis ${b}`;
+  return null;
+}
+function InfoRow({ label, value, highlight }: { label: string; value: string | null; highlight?: boolean }) {
+  if (!value) return null;
+  return (
+    <div className="flex gap-2">
+      <span className="text-gray-400 shrink-0">{label}:</span>
+      <span className={highlight ? "text-gray-900 font-medium" : "text-gray-700"}>{value}</span>
+    </div>
+  );
 }
 
 export default function BetriebPortalPage() {
@@ -188,15 +215,16 @@ export default function BetriebPortalPage() {
             {students.map((s) => (
               <div key={s.request_id} className="bg-white rounded-xl border p-5">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <h2 className="font-semibold text-gray-900">{s.name}</h2>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {[s.nationality, s.preferred_location].filter(Boolean).join(" · ") || " "}
-                    </p>
-                  </div>
+                  <h2 className="font-semibold text-gray-900">{s.name}</h2>
                   <span className={`text-xs px-2.5 py-1 rounded-full border ${statusPill(s.status)}`}>
                     {s.status_label || "—"}
                   </span>
+                </div>
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+                  <InfoRow label="Staatsangehörigkeit" value={s.nationality} />
+                  <InfoRow label="Wunschregion" value={s.preferred_location} />
+                  <InfoRow label="Semesterferien" value={fmtRange(s.semester_break_start, s.semester_break_end)} highlight />
+                  <InfoRow label="Verfügbar" value={fmtRange(s.available_from, s.available_until)} />
                 </div>
 
                 {s.documents.length > 0 && (
