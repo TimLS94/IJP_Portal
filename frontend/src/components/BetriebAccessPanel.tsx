@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { betriebAccessAPI } from "@/lib/api";
 import {
-  Link2, Copy, Check, Loader2, KeyRound, RefreshCw, Trash2,
-  Eye, EyeOff, ShieldCheck, ShieldOff,
+  Link2, Copy, Check, Loader2, KeyRound, RefreshCw, Trash2, ShieldCheck, ShieldOff, Info,
 } from "lucide-react";
 
 interface AccessInfo {
@@ -14,18 +13,9 @@ interface AccessInfo {
   is_active?: boolean;
   last_accessed_at?: string | null;
 }
-interface StudentDoc { id: number; type: string | null; name: string; shared_with_betrieb: boolean; }
-interface StudentRow {
-  request_id: number;
-  applicant_id: number;
-  name: string;
-  status_label: string;
-  documents: StudentDoc[];
-}
 
 export default function BetriebAccessPanel({ companyId }: { companyId: number }) {
   const [access, setAccess] = useState<AccessInfo | null>(null);
-  const [students, setStudents] = useState<StudentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,12 +24,8 @@ export default function BetriebAccessPanel({ companyId }: { companyId: number })
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [a, s] = await Promise.all([
-        betriebAccessAPI.get(companyId),
-        betriebAccessAPI.getStudents(companyId),
-      ]);
+      const a = await betriebAccessAPI.get(companyId);
       setAccess(a.data);
-      setStudents(s.data);
     } finally {
       setLoading(false);
     }
@@ -88,16 +74,6 @@ export default function BetriebAccessPanel({ companyId }: { companyId: number })
     navigator.clipboard?.writeText(access.url);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
-  };
-
-  const toggleDoc = async (doc: StudentDoc) => {
-    // optimistisch
-    setStudents((prev) => prev.map((st) => ({
-      ...st,
-      documents: st.documents.map((d) => d.id === doc.id ? { ...d, shared_with_betrieb: !d.shared_with_betrieb } : d),
-    })));
-    try { await betriebAccessAPI.setDocShare(doc.id, !doc.shared_with_betrieb); }
-    catch { load(); }
   };
 
   if (loading) {
@@ -167,39 +143,11 @@ export default function BetriebAccessPanel({ companyId }: { companyId: number })
         </div>
       )}
 
-      {/* Kandidaten + Dokument-Freigabe */}
-      <h4 className="text-sm font-semibold text-gray-900 mt-6 mb-2">Zugeteilte Kandidaten &amp; Dokument-Freigabe</h4>
-      {students.length === 0 ? (
-        <p className="text-sm text-gray-400">Diesem Betrieb sind noch keine Kandidaten zugeteilt (über die Anfragen zuteilen).</p>
-      ) : (
-        <div className="space-y-3">
-          {students.map((st) => (
-            <div key={st.request_id} className="border rounded-lg p-3">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-800 text-sm">{st.name}</span>
-                <span className="text-xs text-gray-500">{st.status_label}</span>
-              </div>
-              {st.documents.length === 0 ? (
-                <p className="text-xs text-gray-400 mt-1">Keine Dokumente hochgeladen.</p>
-              ) : (
-                <div className="mt-2 space-y-1">
-                  {st.documents.map((d) => (
-                    <label key={d.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                      <button type="button" onClick={() => toggleDoc(d)} className="shrink-0">
-                        {d.shared_with_betrieb
-                          ? <Eye className="h-4 w-4 text-green-600" />
-                          : <EyeOff className="h-4 w-4 text-gray-300" />}
-                      </button>
-                      <span className={d.shared_with_betrieb ? "text-gray-800" : "text-gray-400"}>{d.name}</span>
-                      {d.shared_with_betrieb && <span className="text-[10px] text-green-600 border border-green-200 rounded px-1">sichtbar</span>}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      <p className="mt-3 text-xs text-gray-500 flex items-start gap-1.5">
+        <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+        Welche Dokumente die Firma sieht, gibst du direkt bei der Zuteilung frei
+        (Bewerber-Anfragen → Kandidat öffnen → Dokumente → Auge).
+      </p>
     </div>
   );
 }

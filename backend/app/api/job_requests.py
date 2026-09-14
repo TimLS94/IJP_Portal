@@ -527,6 +527,7 @@ async def get_job_request_details(
                 "original_name": doc.original_name,
                 "file_path": doc.file_path,
                 "uploaded_at": doc.uploaded_at,
+                "shared_with_betrieb": bool(doc.shared_with_betrieb),
             }
             for doc in documents
         ]

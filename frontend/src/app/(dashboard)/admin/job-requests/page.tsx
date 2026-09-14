@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { jobRequestsAPI, adminAPI, adminPartnerLinksAPI, contractsAPI, ijpAPI } from '@/lib/api';
+import { jobRequestsAPI, adminAPI, adminPartnerLinksAPI, contractsAPI, ijpAPI, betriebAccessAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 import {
   ClipboardList, User, Search, Download, ChevronDown, Eye,
   Phone, Mail, MapPin, FileText, X, Loader2, Calendar,
-  GraduationCap, Shield, CheckCircle, Filter, Users, FileSignature, Upload, Building2
+  GraduationCap, Shield, CheckCircle, Filter, Users, FileSignature, Upload, Building2, EyeOff
 } from 'lucide-react';
 
 const positionTypeLabels: Record<string, string> = {
@@ -63,6 +63,7 @@ interface Document {
   id: number;
   original_name: string;
   document_type: string;
+  shared_with_betrieb: boolean;
 }
 
 export default function AdminJobRequests() {
@@ -99,6 +100,22 @@ export default function AdminJobRequests() {
   const [selectedRequest, setSelectedRequest] = useState<number | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [requestDetails, setRequestDetails] = useState<any>(null);
+
+  // Dokument für die zugeteilte Firma freigeben/verbergen (Betrieb-Portal)
+  const toggleDocShare = async (doc: Document) => {
+    const next = !doc.shared_with_betrieb;
+    const apply = (val: boolean) => setRequestDetails((prev: any) => prev ? {
+      ...prev,
+      documents: prev.documents.map((d: Document) => d.id === doc.id ? { ...d, shared_with_betrieb: val } : d),
+    } : prev);
+    apply(next);
+    try {
+      await betriebAccessAPI.setDocShare(doc.id, next);
+    } catch {
+      apply(!next);
+      toast.error('Freigabe fehlgeschlagen');
+    }
+  };
   
   // Status ändern
   const [changingStatus, setChangingStatus] = useState(false);
@@ -798,7 +815,7 @@ export default function AdminJobRequests() {
 
                 <div className="p-6 grid lg:grid-cols-2 gap-6 overflow-hidden">
                   {/* Linke Spalte */}
-                  <div className="space-y-6">
+                  <div className="space-y-6 min-w-0">
                     {/* Kontaktdaten */}
                     <div className="bg-gray-50 rounded-xl p-4">
                       <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -903,9 +920,22 @@ export default function AdminJobRequests() {
                       ) : (
                         <div className="space-y-2">
                           {requestDetails.documents.map((doc: Document) => (
-                            <div key={doc.id} className="flex items-center justify-between p-2 bg-white rounded-lg">
-                              <span className="text-sm">{doc.original_name}</span>
-                              <span className="text-xs text-gray-500">{doc.document_type}</span>
+                            <div key={doc.id} className="flex items-center justify-between gap-2 p-2 bg-white rounded-lg">
+                              <span className="text-sm truncate">{doc.original_name}</span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-xs text-gray-400">{doc.document_type}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleDocShare(doc)}
+                                  title={doc.shared_with_betrieb
+                                    ? 'Für die zugeteilte Firma sichtbar – klicken zum Verbergen'
+                                    : 'Für die zugeteilte Firma verborgen – klicken zum Freigeben'}
+                                  className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border transition ${doc.shared_with_betrieb ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}
+                                >
+                                  {doc.shared_with_betrieb ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                                  {doc.shared_with_betrieb ? 'Firma' : 'verborgen'}
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1022,7 +1052,7 @@ export default function AdminJobRequests() {
                   </div>
 
                   {/* Rechte Spalte */}
-                  <div className="space-y-6">
+                  <div className="space-y-6 min-w-0">
                     {/* Auftrag-Info */}
                     <div className="bg-gray-50 rounded-xl p-4">
                       <h3 className="font-bold text-gray-900 mb-3">Auftragsdetails</h3>
