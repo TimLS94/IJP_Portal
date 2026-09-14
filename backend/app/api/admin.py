@@ -2567,6 +2567,7 @@ async def export_user_data(
             export_data["company"] = {
                 "id": company.id,
                 "company_name": company.company_name,
+                "legal_form": company.legal_form,
                 "street": company.street,
                 "house_number": company.house_number,
                 "postal_code": company.postal_code,

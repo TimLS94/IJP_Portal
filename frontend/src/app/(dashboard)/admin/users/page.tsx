@@ -58,6 +58,7 @@ export default function AdminUsersPage() {
   const [gdprLoading, setGdprLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [gdprCompany, setGdprCompany] = useState<any>(null);
 
   useEffect(() => {
     loadUsers();
@@ -192,13 +193,20 @@ export default function AdminUsersPage() {
     setGdprUser(user);
     setShowGdprModal(true);
     setGdprLoading(true);
-    
+    setGdprCompany(null);
+    setGdprDocuments([]);
+
     try {
-      const response = await adminAPI.gdprGetDocuments(user.id);
-      setGdprDocuments(response.data.documents || []);
+      if (user.role === "company") {
+        // Firmendaten aus dem Auskunfts-Export holen und inline anzeigen
+        const exp = await adminAPI.gdprExportData(user.id);
+        setGdprCompany(exp.data?.company || null);
+      } else {
+        const response = await adminAPI.gdprGetDocuments(user.id);
+        setGdprDocuments(response.data.documents || []);
+      }
     } catch {
-      console.error("Fehler beim Laden der Dokumente");
-      setGdprDocuments([]);
+      console.error("Fehler beim Laden der DSGVO-Daten");
     } finally {
       setGdprLoading(false);
     }
@@ -655,6 +663,39 @@ export default function AdminUsersPage() {
                   Daten exportieren (JSON)
                 </button>
               </div>
+
+              {/* Firmendaten (nur Unternehmen) */}
+              {gdprUser.role === "company" && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-green-600" />
+                    Firmendaten
+                  </h3>
+                  {gdprLoading ? (
+                    <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+                  ) : gdprCompany ? (
+                    <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                      {([
+                        ["Firmenname", gdprCompany.company_name],
+                        ["Firmenform", gdprCompany.legal_form],
+                        ["Ansprechpartner", gdprCompany.contact_person],
+                        ["Adresse", [[gdprCompany.street, gdprCompany.house_number].filter(Boolean).join(" "), [gdprCompany.postal_code, gdprCompany.city].filter(Boolean).join(" "), gdprCompany.country].filter(Boolean).join(", ")],
+                        ["Telefon", gdprCompany.phone],
+                        ["Website", gdprCompany.website],
+                        ["Branche", gdprCompany.industry],
+                        ["Größe", gdprCompany.company_size],
+                      ] as [string, string | null][]).map(([label, value]) => (
+                        <div key={label} className="flex gap-2">
+                          <span className="text-gray-400 shrink-0 min-w-[110px]">{label}:</span>
+                          <span className="text-gray-800 break-words">{value || "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm py-4">Keine Firmendaten hinterlegt.</p>
+                  )}
+                </div>
+              )}
 
               {/* Dokumente */}
               {gdprUser.role === "applicant" && (
