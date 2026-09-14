@@ -17,6 +17,47 @@ from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPosti
 from app.services.settings_service import get_setting
 from app.services.slug_service import generate_job_slug, extract_id_from_slug
 from app.services.google_indexing_service import google_indexing_service
+from app.services.email_service import email_service
+
+
+def _notify_applicants_job_closed(job, company, db: Session) -> None:
+    """Informiert Bewerber mit noch offener Bewerbung, dass die Stelle geschlossen/
+    besetzt wurde, und setzt ihre Bewerbung auf 'abgelehnt'. Neutrale Absage (AGG-sicher),
+    respektiert die Absage-Mail-Einstellung der Firma. Muss VOR dem Löschen laufen."""
+    from app.models.application import Application, ApplicationStatus
+
+    # Noch laufende Bewerbungen (nicht bereits abgeschlossen/abgelehnt/zurückgezogen)
+    OPEN_STATES = {
+        ApplicationStatus.PENDING, ApplicationStatus.IJP_REVIEW, ApplicationStatus.IJP_APPROVED,
+        ApplicationStatus.SENT_TO_COMPANY, ApplicationStatus.COMPANY_REVIEW,
+        ApplicationStatus.INTERVIEW_SCHEDULED, ApplicationStatus.INTERVIEW_DONE,
+        ApplicationStatus.CONTRACT_SENT,
+    }
+    apps = db.query(Application).filter(Application.job_posting_id == job.id).all()
+    for app in apps:
+        if app.status not in OPEN_STATES:
+            continue
+        applicant = app.applicant
+        if not applicant:
+            continue
+        user = db.query(User).filter(User.id == applicant.user_id).first()
+        app.status = ApplicationStatus.REJECTED  # Stelle besetzt/geschlossen
+        if user and user.email and company.rejection_email_enabled:
+            try:
+                email_service.send_rejection_email(
+                    to_email=user.email,
+                    applicant_name=f"{applicant.first_name} {applicant.last_name}",
+                    job_title=job.title,
+                    company_name=company.company_name,
+                    custom_subject=company.rejection_email_subject,
+                    custom_text=company.rejection_email_text,
+                    applicant_gender=applicant.gender,
+                    applicant_last_name=applicant.last_name,
+                )
+            except Exception:
+                import logging
+                logging.getLogger(__name__).warning(f"Absage-Mail an {user.email} fehlgeschlagen")
+    # commit erfolgt im Aufrufer
 
 
 def _exclude_deactivated_company_jobs(query, db: Session):
@@ -926,7 +967,16 @@ async def delete_job(
             pass  # Ungültiger Grund ignorieren
     job.deletion_reason_note = deletion_reason_note
     job.deleted_at = datetime.utcnow()
-    
+
+    # Bewerber offener Bewerbungen automatisch über die Schließung/Besetzung informieren.
+    # Nur bei bewusster Schließung (deletion_reason gesetzt), vor dem endgültigen Löschen.
+    if deletion_reason:
+        try:
+            _notify_applicants_job_closed(job, company, db)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Bewerber-Benachrichtigung beim Schließen fehlgeschlagen: {e}")
+
     if permanent:
         # Endgültig löschen
         applications_count = db.query(Application).filter(Application.job_posting_id == job_id).count()
