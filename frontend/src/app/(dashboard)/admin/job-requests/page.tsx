@@ -974,7 +974,7 @@ export default function AdminJobRequests() {
                           </div>
                           <div className="pt-2 border-t border-gray-200">
                             <p className="text-xs text-gray-500 mb-2">Neuen Vertrag senden (ersetzt den bisherigen Status):</p>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <select
                                 value={selectedTemplateId}
                                 onChange={(e) => setSelectedTemplateId(e.target.value)}
@@ -1003,7 +1003,7 @@ export default function AdminJobRequests() {
                       ) : (
                         <div className="space-y-2">
                           <p className="text-sm text-gray-600">Vorlage wählen – Name & Adresse werden automatisch eingetragen, der Bewerber erhält ein PDF zum Unterschreiben.</p>
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <select
                               value={selectedTemplateId}
                               onChange={(e) => setSelectedTemplateId(e.target.value)}

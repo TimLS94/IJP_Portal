@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { betriebPortalAPI } from "@/lib/api";
+import { getNationalityLabel } from "@/data/nationalities";
 import { Lock, Loader2, FileText, Download, Users, AlertCircle, ShieldCheck } from "lucide-react";
 
 interface PortalDoc { id: number; type: string | null; name: string; size: number | null; }
@@ -221,7 +222,7 @@ export default function BetriebPortalPage() {
                   </span>
                 </div>
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
-                  <InfoRow label="Staatsangehörigkeit" value={s.nationality} />
+                  <InfoRow label="Staatsangehörigkeit" value={s.nationality != null ? (getNationalityLabel(s.nationality, "de") || null) : null} />
                   <InfoRow label="Wunschregion" value={s.preferred_location} />
                   <InfoRow label="Semesterferien" value={fmtRange(s.semester_break_start, s.semester_break_end)} highlight />
                   <InfoRow label="Verfügbar" value={fmtRange(s.available_from, s.available_until)} />
