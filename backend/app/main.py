@@ -19,11 +19,11 @@ logger.info("Config loaded")
 from app.core.database import engine, Base, SessionLocal
 logger.info("Database module loaded")
 
-from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales, facebook, google_auth, files, notifications, ba_scraper, ijp, partner, billing, contracts, telegram
+from app.api import auth, applicants, companies, jobs, applications, documents, generator, admin, blog, account, job_requests, contact, company_members, anabin, interviews, company_requests, sales, facebook, google_auth, files, notifications, ba_scraper, ijp, partner, billing, contracts, telegram, betrieb_portal
 logger.info("API routers loaded")
 
 # Import Models für create_all
-from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request, facebook_post, ijp as ijp_model, contract as contract_model, job_promotion, telegram_subscriber  # noqa: F401 (needed for create_all)
+from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request, facebook_post, ijp as ijp_model, contract as contract_model, job_promotion, telegram_subscriber, betrieb_access  # noqa: F401 (needed for create_all)
 logger.info("Models loaded")
 
 from app.core.seed_data import seed_database
@@ -834,6 +834,23 @@ def ensure_job_promotions_table():
 ensure_job_promotions_table()
 
 
+def ensure_document_betrieb_share_column():
+    """documents.shared_with_betrieb (Freigabe fürs passwortgeschützte Betrieb-Portal)."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("ALTER TABLE documents ADD COLUMN shared_with_betrieb BOOLEAN DEFAULT FALSE"))
+        db.commit()
+        logger.info("'shared_with_betrieb' column added to documents table")
+    except Exception:
+        db.rollback()  # Spalte existiert bereits – ok
+    finally:
+        db.close()
+
+
+ensure_document_betrieb_share_column()
+
+
 def backfill_is_filtered():
     """
     Setzt is_filtered korrekt für bestehende Bewerbungen:
@@ -1587,6 +1604,7 @@ app.include_router(notifications.router, prefix=settings.API_V1_PREFIX)
 app.include_router(ba_scraper.router, prefix=settings.API_V1_PREFIX)
 app.include_router(ijp.router, prefix=settings.API_V1_PREFIX)
 app.include_router(partner.router, prefix=settings.API_V1_PREFIX)
+app.include_router(betrieb_portal.router, prefix=settings.API_V1_PREFIX)
 app.include_router(billing.router, prefix=settings.API_V1_PREFIX)
 app.include_router(contracts.router, prefix=settings.API_V1_PREFIX)
 app.include_router(telegram.router, prefix=settings.API_V1_PREFIX)

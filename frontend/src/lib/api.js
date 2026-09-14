@@ -578,6 +578,51 @@ export const crmAPI = {
   fillEmployerDoc: (docId, applicantId) => api.post(`/ijp/employer-docs/${docId}/fill`, null, { params: { applicant_id: applicantId }, responseType: 'blob' }),
 };
 
+// Admin: Betrieb-Portal-Zugang (passwortgeschützter Link) verwalten
+export const betriebAccessAPI = {
+  get: (betriebId) => api.get(`/ijp/betriebe/${betriebId}/access`),
+  createOrReset: (betriebId, data) => api.post(`/ijp/betriebe/${betriebId}/access`, data),
+  update: (betriebId, data) => api.patch(`/ijp/betriebe/${betriebId}/access`, data),
+  remove: (betriebId) => api.delete(`/ijp/betriebe/${betriebId}/access`),
+  getStudents: (betriebId) => api.get(`/ijp/betriebe/${betriebId}/students`),
+  setDocShare: (documentId, shared) =>
+    api.patch(`/ijp/documents/${documentId}/share`, { shared_with_betrieb: shared }),
+};
+
+// Öffentliches Betrieb-Portal (Token + Passwort). WICHTIG: eigener Betrieb-Token,
+// NICHT der User-Token aus dem axios-Interceptor -> daher direktes fetch.
+const _PORTAL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1';
+export const betriebPortalAPI = {
+  info: async (token) => {
+    const r = await fetch(`${_PORTAL_BASE}/betrieb-portal/${token}/info`);
+    if (!r.ok) throw new Error('not_found');
+    return r.json();
+  },
+  login: async (token, password) => {
+    const r = await fetch(`${_PORTAL_BASE}/betrieb-portal/${token}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      throw new Error(body.detail || 'login_failed');
+    }
+    return r.json();
+  },
+  me: async (betriebToken) => {
+    const r = await fetch(`${_PORTAL_BASE}/betrieb-portal/me`, {
+      headers: { Authorization: `Bearer ${betriebToken}` },
+    });
+    if (!r.ok) throw new Error('unauthorized');
+    return r.json();
+  },
+  downloadDocument: (id, betriebToken) =>
+    fetch(`${_PORTAL_BASE}/betrieb-portal/documents/${id}`, {
+      headers: { Authorization: `Bearer ${betriebToken}` },
+    }),
+};
+
 // Auth API Erweiterung für Einladungs-Token-Prüfung
 export const verifyInviteToken = (token) => api.get(`/auth/verify-invite/${token}`);
 

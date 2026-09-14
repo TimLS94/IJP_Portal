@@ -19,11 +19,14 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_password_hash
 from app.core.config import settings
 from app.models.user import User, UserRole
 from app.models.ijp import IJPBetrieb, IJPTemplate, CRMContact, CompanyDocument
 from app.models.applicant import Applicant
+from app.models.job_request import JobRequest, JOB_REQUEST_STATUS_LABELS
+from app.models.document import Document
+from app.models.betrieb_access import BetriebAccessLink
 
 logger = logging.getLogger(__name__)
 
@@ -332,6 +335,142 @@ def delete_betrieb(betrieb_id: int, db: Session = Depends(get_db), current_user:
         raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
     db.delete(betrieb)
     db.commit()
+
+
+# ── Betrieb-Portal-Zugang (passwortgeschützter Link) ──────────────────────────
+
+class BetriebAccessSet(BaseModel):
+    password: Optional[str] = None      # neues Passwort setzen
+    is_active: Optional[bool] = None    # aktivieren/sperren
+
+
+def _portal_url(token: str) -> str:
+    base = getattr(settings, "FRONTEND_URL", "https://www.jobonportal.de").rstrip("/")
+    return f"{base}/betrieb/{token}"
+
+
+def _access_payload(link: Optional[BetriebAccessLink], betrieb_id: int) -> dict:
+    if not link:
+        return {"exists": False, "betrieb_id": betrieb_id}
+    return {
+        "exists": True,
+        "betrieb_id": betrieb_id,
+        "token": link.token,
+        "url": _portal_url(link.token),
+        "is_active": link.is_active,
+        "last_accessed_at": link.last_accessed_at.isoformat() if link.last_accessed_at else None,
+    }
+
+
+@router.get("/betriebe/{betrieb_id}/access")
+def get_betrieb_access(betrieb_id: int, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    betrieb = db.query(IJPBetrieb).filter(IJPBetrieb.id == betrieb_id).first()
+    if not betrieb:
+        raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
+    link = db.query(BetriebAccessLink).filter(BetriebAccessLink.betrieb_id == betrieb_id).first()
+    return _access_payload(link, betrieb_id)
+
+
+@router.post("/betriebe/{betrieb_id}/access")
+def create_or_reset_betrieb_access(betrieb_id: int, data: BetriebAccessSet, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    """Erstellt den Zugang bzw. setzt ihn zurück (neuer Token). Passwort beim Erstellen Pflicht."""
+    betrieb = db.query(IJPBetrieb).filter(IJPBetrieb.id == betrieb_id).first()
+    if not betrieb:
+        raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
+
+    link = db.query(BetriebAccessLink).filter(BetriebAccessLink.betrieb_id == betrieb_id).first()
+    if not link:
+        if not data.password:
+            raise HTTPException(status_code=400, detail="Passwort erforderlich")
+        link = BetriebAccessLink(
+            betrieb_id=betrieb_id,
+            token=BetriebAccessLink.generate_token(),
+            password_hash=get_password_hash(data.password),
+            is_active=(True if data.is_active is None else data.is_active),
+        )
+        db.add(link)
+    else:
+        link.token = BetriebAccessLink.generate_token()
+        if data.password:
+            link.password_hash = get_password_hash(data.password)
+        if data.is_active is not None:
+            link.is_active = data.is_active
+    db.commit()
+    db.refresh(link)
+    return _access_payload(link, betrieb_id)
+
+
+@router.patch("/betriebe/{betrieb_id}/access")
+def update_betrieb_access(betrieb_id: int, data: BetriebAccessSet, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    """Passwort ändern und/oder aktivieren/sperren (Token bleibt)."""
+    link = db.query(BetriebAccessLink).filter(BetriebAccessLink.betrieb_id == betrieb_id).first()
+    if not link:
+        raise HTTPException(status_code=404, detail="Zugang nicht gefunden")
+    if data.password:
+        link.password_hash = get_password_hash(data.password)
+    if data.is_active is not None:
+        link.is_active = data.is_active
+    db.commit()
+    db.refresh(link)
+    return _access_payload(link, betrieb_id)
+
+
+@router.delete("/betriebe/{betrieb_id}/access", status_code=204)
+def delete_betrieb_access(betrieb_id: int, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    link = db.query(BetriebAccessLink).filter(BetriebAccessLink.betrieb_id == betrieb_id).first()
+    if link:
+        db.delete(link)
+        db.commit()
+
+
+@router.get("/betriebe/{betrieb_id}/students")
+def list_betrieb_students(betrieb_id: int, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    """Admin-Vorschau: zugeteilte Studenten inkl. Dokument-Freigabe-Status."""
+    reqs = (
+        db.query(JobRequest)
+        .filter(JobRequest.assigned_betrieb_id == betrieb_id)
+        .order_by(JobRequest.created_at.desc())
+        .all()
+    )
+    out = []
+    for req in reqs:
+        a = req.applicant
+        if not a:
+            continue
+        docs = db.query(Document).filter(Document.applicant_id == a.id).all()
+        status_val = req.public_status or req.status
+        out.append({
+            "request_id": req.id,
+            "applicant_id": a.id,
+            "name": f"{a.first_name} {a.last_name}".strip(),
+            "status": status_val.value if status_val else None,
+            "status_label": JOB_REQUEST_STATUS_LABELS.get(status_val, status_val.value if status_val else ""),
+            "documents": [
+                {
+                    "id": d.id,
+                    "type": d.document_type.value if d.document_type else None,
+                    "name": d.original_name,
+                    "shared_with_betrieb": bool(d.shared_with_betrieb),
+                }
+                for d in docs
+            ],
+        })
+    return out
+
+
+class DocShareUpdate(BaseModel):
+    shared_with_betrieb: bool
+
+
+@router.patch("/documents/{document_id}/share")
+def set_document_share(document_id: int, data: DocShareUpdate, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
+    """Ein Dokument für den Betrieb-Zugang freigeben / sperren."""
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
+    doc.shared_with_betrieb = data.shared_with_betrieb
+    db.commit()
+    return {"id": doc.id, "shared_with_betrieb": doc.shared_with_betrieb}
 
 
 # ── Bewerber ──────────────────────────────────────────────────────────────────

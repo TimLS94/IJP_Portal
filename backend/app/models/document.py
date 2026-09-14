@@ -149,6 +149,8 @@ class Document(Base):
     # Beschreibung und Status
     description = Column(String(500))
     is_verified = Column(Boolean, default=False)  # Von Admin geprüft?
+    # Für den passwortgeschützten Betrieb-Zugang freigegeben (Admin steuert pro Dokument)
+    shared_with_betrieb = Column(Boolean, default=False, nullable=False)
     
     # Timestamps
     uploaded_at = Column(DateTime(timezone=True), default=utc_now)

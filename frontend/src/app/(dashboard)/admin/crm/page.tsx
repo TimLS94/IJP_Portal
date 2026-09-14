@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { crmAPI } from "@/lib/api";
+import BetriebAccessPanel from "@/components/BetriebAccessPanel";
 import {
   Building2, User, Phone, Mail, Globe, MapPin, Briefcase,
   Plus, Pencil, Trash2, X, Search, ChevronRight, Star,
@@ -385,6 +386,9 @@ function CompanyDetail({
 
         {/* Company Documents */}
         <CompanyDocuments company={company} />
+
+        {/* Passwortgeschützter Firmen-Zugang + Dokument-Freigabe */}
+        <BetriebAccessPanel companyId={company.id} />
 
         {/* Contacts */}
         <div className="space-y-2">
