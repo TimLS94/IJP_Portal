@@ -51,6 +51,7 @@ const SENDER_OPTIONS = [
 
 export default function ColdOutreachPage() {
   const [emails, setEmails] = useState<string[]>([]);
+  const [manualEmail, setManualEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState(`Sehr geehrte Damen und Herren,
 
@@ -188,6 +189,23 @@ Mit freundlichen Grüßen`);
 
   const removeEmail = (index: number) => {
     setEmails(emails.filter((_, i) => i !== index));
+  };
+
+  // Einzelne (oder mehrere) Adressen manuell zur Empfängerliste hinzufügen
+  const addManualEmails = () => {
+    const parts = manualEmail
+      .split(/[\r\n,;\s]+/)
+      .map((s) => s.trim().toLowerCase())
+      .filter((s) => s.includes("@") && s.includes("."));
+    if (parts.length === 0) { toast.error("Keine gültige E-Mail-Adresse"); return; }
+    const existing = new Set(emails.map((e) => e.toLowerCase()));
+    const toAdd = parts.filter((p) => !existing.has(p) && !existing.has(p.toLowerCase()));
+    // Duplikate auch innerhalb der Eingabe vermeiden
+    const uniqueToAdd = Array.from(new Set(toAdd));
+    if (uniqueToAdd.length === 0) { toast("Bereits in der Liste"); setManualEmail(""); return; }
+    setEmails([...emails, ...uniqueToAdd]);
+    toast.success(`${uniqueToAdd.length} Adresse${uniqueToAdd.length > 1 ? "n" : ""} hinzugefügt`);
+    setManualEmail("");
   };
 
   const clearEmails = () => {
@@ -527,6 +545,25 @@ Mit freundlichen Grüßen`);
             </p>
             <p className="text-sm text-gray-500">Eine E-Mail pro Zeile</p>
           </label>
+
+          {/* Einzelne Adresse(n) manuell hinzufügen */}
+          <div className="flex gap-2 mb-4">
+            <input
+              type="email"
+              value={manualEmail}
+              onChange={(e) => setManualEmail(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addManualEmails(); } }}
+              placeholder="E-Mail-Adresse eingeben (auch mehrere, komma-/zeilengetrennt)"
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
+            />
+            <button
+              type="button"
+              onClick={addManualEmails}
+              className="btn-primary text-sm whitespace-nowrap"
+            >
+              Hinzufügen
+            </button>
+          </div>
 
           {/* Email List */}
           {emails.length > 0 && (
