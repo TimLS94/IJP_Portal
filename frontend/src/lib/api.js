@@ -362,6 +362,9 @@ export const interviewsAPI = interviewAPI;
 
 export const adminAPI = {
   getStats: (days = 7) => api.get('/admin/stats', { params: { days } }),
+  listEmailSuppressions: () => api.get('/admin/email-suppressions'),
+  addEmailSuppression: (email, reason) => api.post('/admin/email-suppressions', { email, reason }),
+  deleteEmailSuppression: (id) => api.delete(`/admin/email-suppressions/${id}`),
   getAiUsage: () => api.get('/admin/ai-usage'),
   getPremiumCancellations: (limit = 50) => api.get('/admin/premium-cancellations', { params: { limit } }),
   getSubscriptionStats: () => api.get('/admin/subscription-stats'),

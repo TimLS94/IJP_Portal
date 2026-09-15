@@ -2973,6 +2973,52 @@ async def get_job_translation_status(
     }
 
 
+# ==================== E-MAIL-SPERRLISTE (SUPPRESSION) ====================
+
+class EmailSuppressionCreate(BaseModel):
+    email: str
+    reason: Optional[str] = None
+
+
+@router.get("/email-suppressions")
+async def list_email_suppressions(current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Alle gesperrten E-Mail-Adressen (bekommen NIE E-Mails)."""
+    from app.models.email_suppression import EmailSuppression
+    rows = db.query(EmailSuppression).order_by(EmailSuppression.created_at.desc()).all()
+    return [
+        {"id": r.id, "email": r.email, "reason": r.reason,
+         "created_at": r.created_at.isoformat() if r.created_at else None}
+        for r in rows
+    ]
+
+
+@router.post("/email-suppressions")
+async def add_email_suppression(data: EmailSuppressionCreate, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Adresse sperren – ab sofort geht KEINE E-Mail mehr an sie raus."""
+    from app.models.email_suppression import EmailSuppression
+    addr = (data.email or "").strip().lower()
+    if not addr or "@" not in addr:
+        raise HTTPException(status_code=400, detail="Ungültige E-Mail-Adresse")
+    existing = db.query(EmailSuppression).filter(EmailSuppression.email == addr).first()
+    if existing:
+        return {"id": existing.id, "email": existing.email, "reason": existing.reason, "already": True}
+    row = EmailSuppression(email=addr, reason=(data.reason or None))
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return {"id": row.id, "email": row.email, "reason": row.reason, "already": False}
+
+
+@router.delete("/email-suppressions/{suppression_id}", status_code=204)
+async def delete_email_suppression(suppression_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Sperre aufheben."""
+    from app.models.email_suppression import EmailSuppression
+    row = db.query(EmailSuppression).filter(EmailSuppression.id == suppression_id).first()
+    if row:
+        db.delete(row)
+        db.commit()
+
+
 # ==================== EINLADUNGS-TOKENS ====================
 
 class InviteTokenCreate(BaseModel):

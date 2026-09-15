@@ -248,6 +248,7 @@ export default function Navbar() {
         { to: "/admin/crm", icon: Building2, label: "CRM" },
         { to: "/admin/applicant-invites", icon: Users, label: t("nav.applicantInvites") },
         { to: "/admin/partner-links", icon: Link2, label: "Partner-Links" },
+        { to: "/admin/email-blocklist", icon: Shield, label: "E-Mail-Sperrliste" },
         { header: "Verwaltung" },
         { to: "/admin/applications", icon: FileText, label: t("nav.adminApplications") },
         { to: "/admin/users", icon: Users, label: t("nav.adminUsers") },

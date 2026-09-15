@@ -31,6 +31,30 @@ def log_email(email_type: str, recipient: str, subject: str, success: bool = Tru
         logger.warning(f"E-Mail-Log konnte nicht gespeichert werden: {e}")
 
 
+def _is_suppressed(to_email: str) -> bool:
+    """True, wenn die Adresse auf der Sperrliste steht (Env ODER DB) und deshalb
+    KEINE E-Mail bekommen darf (z.B. nach Abmahnung/Opt-out). Ein DB-Fehler blockt
+    den Env-Teil nicht – die Env-Sperrliste greift immer."""
+    if not to_email:
+        return False
+    addr = to_email.strip().lower()
+    # 1) Env-Sperrliste – harte Garantie, unabhängig von der DB
+    raw = getattr(settings, "EMAIL_SUPPRESSION_LIST", "") or ""
+    if addr in {e.strip().lower() for e in raw.split(",") if e.strip()}:
+        return True
+    # 2) DB-Sperrliste (per Admin verwaltbar)
+    try:
+        from app.core.database import SessionLocal
+        from app.models.email_suppression import EmailSuppression
+        db = SessionLocal()
+        try:
+            return db.query(EmailSuppression).filter(EmailSuppression.email == addr).first() is not None
+        finally:
+            db.close()
+    except Exception:
+        return False
+
+
 def _safe_email_call(func):
     """Decorator der ALLE E-Mail-Fehler abfängt - App darf NIEMALS crashen!"""
     import asyncio
@@ -111,6 +135,15 @@ class EmailService:
         attachments: Liste von dicts mit keys: filename, content (base64), type (mime)
         """
         
+        # SPERRLISTE: Adressen auf der Suppression-Liste bekommen NIE eine E-Mail.
+        if _is_suppressed(to_email):
+            logger.warning(f"E-Mail unterdrückt (Sperrliste): {to_email}")
+            try:
+                log_email(email_type, to_email, subject, False)
+            except Exception:
+                pass
+            return False
+
         # Verwende übergebene Absender oder Standard
         sender_email = from_email or self.from_email
         sender_name = from_name or self.from_name
@@ -185,6 +218,14 @@ class EmailService:
         """Versendet eine E-Mail über ein separates SMTP-Konto (z.B. Gmail) inkl.
         Anhängen (PDF etc.). Absender ist zwingend das SMTP-Konto/verifizierter Alias
         (Gmail überschreibt fremde Absender). Fehler werden abgefangen -> False."""
+        # SPERRLISTE: Adressen auf der Suppression-Liste bekommen NIE eine E-Mail.
+        if _is_suppressed(to_email):
+            logger.warning(f"Outreach-E-Mail unterdrückt (Sperrliste): {to_email}")
+            try:
+                log_email(email_type, to_email, subject, False)
+            except Exception:
+                pass
+            return False
         import base64
         import smtplib
         from email.mime.multipart import MIMEMultipart

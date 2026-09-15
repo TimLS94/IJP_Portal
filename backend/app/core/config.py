@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     FROM_EMAIL: str = "noreply@internationaljobplacement.com"
     FROM_NAME: str = "International Job Placement"
 
+    # E-Mail-Sperrliste (Suppression): kommaseparierte Adressen, die NIE E-Mails
+    # bekommen (z.B. nach Abmahnung/Opt-out). Zusätzlich zur DB-Sperrliste.
+    EMAIL_SUPPRESSION_LIST: str = ""
+
     # Optionaler separater SMTP-Versand NUR für Kaltakquise/Vertrieb (z.B. Gmail).
     # Wenn OUTREACH_SMTP_USER + OUTREACH_SMTP_PASSWORD gesetzt sind, laufen Cold-
     # Outreach-Mails über dieses Konto (SMTP) statt über SendGrid. Transaktionsmails
