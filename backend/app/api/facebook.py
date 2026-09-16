@@ -747,22 +747,29 @@ def preview_boost_recipients(
 
 @router.get("/boost-digest/preview")
 def boost_digest_preview(
+    job_ids: Optional[List[int]] = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Vorschau des personalisierten Booster-Sammel-Digests (sendet nichts)."""
+    """Vorschau des personalisierten Booster-Sammel-Digests (sendet nichts).
+    Optionale job_ids nehmen zusätzliche (auch nicht-geboostete) Stellen auf."""
     require_admin(current_user)
     from app.services.job_notification_service import get_boost_digest_preview
-    return get_boost_digest_preview(db)
+    return get_boost_digest_preview(db, extra_job_ids=job_ids)
+
+
+class BoostDigestSendRequest(BaseModel):
+    job_ids: List[int] = []
 
 
 @router.post("/boost-digest/send")
 def boost_digest_send(
+    req: BoostDigestSendRequest = BoostDigestSendRequest(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Versendet EINE personalisierte Sammel-Mail pro Bewerber mit den geboosteten
-    Stellen, für die er kern-geeignet ist."""
+    (+ admin-ausgewählten) Stellen, für die er kern-geeignet ist."""
     require_admin(current_user)
     from app.services.job_notification_service import send_boost_digest_to_applicants
-    return send_boost_digest_to_applicants(db)
+    return send_boost_digest_to_applicants(db, extra_job_ids=req.job_ids)

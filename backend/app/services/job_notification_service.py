@@ -246,12 +246,41 @@ def _digest_jobs_for_applicant(applicant: Applicant, boosted_jobs: List[JobPosti
     return out
 
 
-def send_boost_digest_to_applicants(db: Session, cap: int = 8) -> dict:
-    """Personalisierter Booster-Digest: jeder aktive Bewerber mit Alerts bekommt EINE
-    Mail mit den geboosteten Stellen, für die er kern-geeignet ist. Wer zu keiner
-    passt, bekommt nichts (kein Spam)."""
-    from app.services.email_service import email_service
+def _jobs_by_ids(db: Session, job_ids) -> List[JobPosting]:
+    """Aktive, veröffentlichte Stellen zu den IDs – unabhängig vom Boost-Status
+    (damit der Admin gezielt auch NICHT geboostete Stellen ins Digest nehmen kann)."""
+    ids = [int(i) for i in (job_ids or []) if str(i).strip()]
+    if not ids:
+        return []
+    return db.query(JobPosting).filter(
+        JobPosting.id.in_(ids),
+        JobPosting.is_active == True,
+        JobPosting.is_draft == False,
+        JobPosting.is_archived == False,
+    ).all()
+
+
+def _digest_pool(db: Session, extra_job_ids=None) -> List[JobPosting]:
+    """Job-Pool fürs Digest: admin-ausgewählte Stellen ZUERST (Priorität), dann die
+    aktuell geboosteten. Dedupliziert nach ID."""
+    extras = _jobs_by_ids(db, extra_job_ids)
     boosted = _currently_boosted_jobs(db)
+    seen = set()
+    pool = []
+    for j in list(extras) + list(boosted):
+        if j.id in seen:
+            continue
+        seen.add(j.id)
+        pool.append(j)
+    return pool
+
+
+def send_boost_digest_to_applicants(db: Session, cap: int = 8, extra_job_ids=None) -> dict:
+    """Personalisierter Booster-Digest: jeder aktive Bewerber mit Alerts bekommt EINE
+    Mail mit den geboosteten (+ admin-ausgewählten) Stellen, für die er kern-geeignet
+    ist. Wer zu keiner passt, bekommt nichts (kein Spam)."""
+    from app.services.email_service import email_service
+    boosted = _digest_pool(db, extra_job_ids)
     if not boosted:
         return {"boosted_jobs": 0, "recipients": 0, "sent": 0}
 
@@ -279,10 +308,10 @@ def send_boost_digest_to_applicants(db: Session, cap: int = 8) -> dict:
     return {"boosted_jobs": len(boosted), "recipients": recipients, "sent": sent}
 
 
-def get_boost_digest_preview(db: Session, cap: int = 8) -> dict:
+def get_boost_digest_preview(db: Session, cap: int = 8, extra_job_ids=None) -> dict:
     """Vorschau (sendet nichts): wie viele Bewerber bekämen den Digest und wie viele
     Jobs im Schnitt."""
-    boosted = _currently_boosted_jobs(db)
+    boosted = _digest_pool(db, extra_job_ids)
     from sqlalchemy.orm import joinedload
     applicants = db.query(Applicant).options(joinedload(Applicant.user)).join(
         User, Applicant.user_id == User.id

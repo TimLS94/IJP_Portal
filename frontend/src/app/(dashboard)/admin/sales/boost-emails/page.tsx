@@ -44,13 +44,17 @@ export default function BoostEmailsPage() {
   const [digest, setDigest] = useState<{ boosted_jobs: number; recipients: number; avg_jobs: number } | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
   const [sendingDigest, setSendingDigest] = useState(false);
+  // Vom Admin zusätzlich fürs Sammel-Mail ausgewählte Stellen (auch nicht geboostete)
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const toggleSelect = (id: number) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   // Bewusst NICHT automatisch beim Laden – die Berechnung geht über alle Bewerber
   // und wird nur auf Klick angestoßen.
   const loadDigestPreview = useCallback(async () => {
     setDigestLoading(true);
     try {
-      const r = await adminAPI.boostDigestPreview();
+      const r = await adminAPI.boostDigestPreview(selectedIds);
       setDigest(r.data);
     } catch {
       setDigest(null);
@@ -58,15 +62,15 @@ export default function BoostEmailsPage() {
     } finally {
       setDigestLoading(false);
     }
-  }, []);
+  }, [selectedIds]);
 
   const handleSendDigest = async () => {
     if (!digest || digest.recipients === 0) return;
     if (!confirm(`Personalisierte Sammel-Mail an ${digest.recipients} Bewerber senden? Jeder bekommt nur die geboosteten Stellen, für die er geeignet ist.`)) return;
     setSendingDigest(true);
     try {
-      const r = await adminAPI.sendBoostDigest();
-      toast.success(`${r.data?.sent ?? 0} Sammel-Mails gesendet (${r.data?.boosted_jobs ?? 0} geboostete Stellen)`);
+      const r = await adminAPI.sendBoostDigest(selectedIds);
+      toast.success(`${r.data?.sent ?? 0} Sammel-Mails gesendet (${r.data?.boosted_jobs ?? 0} Stellen im Pool)`);
       loadDigestPreview();
     } catch (e) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -168,6 +172,15 @@ export default function BoostEmailsPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <label className="inline-flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer select-none px-2 py-1 rounded-lg border border-orange-200 bg-orange-50/60">
+            <input
+              type="checkbox"
+              checked={selectedIds.includes(job.job_id)}
+              onChange={() => toggleSelect(job.job_id)}
+              className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+            />
+            Ins Sammel-Mail
+          </label>
           <button
             onClick={() => sendEmails(job.job_id, isOther)}
             disabled={sending === job.job_id}
@@ -260,6 +273,11 @@ export default function BoostEmailsPage() {
             <p className="text-sm text-gray-600 mt-1">
               Jeder Bewerber bekommt <strong>eine</strong> Mail mit den geboosteten Stellen, für die er <strong>kern-geeignet</strong> ist (max. 8, 1 pro Arbeitgeber). Wer zu keiner passt, bekommt nichts.
             </p>
+            {selectedIds.length > 0 && (
+              <p className="text-sm text-orange-700 mt-1">
+                + <strong>{selectedIds.length}</strong> zusätzlich ausgewählte Stelle{selectedIds.length === 1 ? "" : "n"} (auch nicht geboostete) werden aufgenommen. Nach Änderung „Empfänger berechnen" erneut klicken.
+              </p>
+            )}
             {digest ? (
               <p className="text-sm text-gray-700 mt-2">
                 {digest.boosted_jobs} geboostete Stelle{digest.boosted_jobs === 1 ? "" : "n"} ·{" "}

@@ -497,8 +497,13 @@ export const adminAPI = {
   generateBoostedJobPost: (jobId) => api.post(`/facebook/boosted-jobs/${jobId}/generate`),
   sendBoostEmails: (jobId) => api.post(`/facebook/boosted-jobs/${jobId}/send-emails`),
   previewBoostRecipients: (jobId) => api.get(`/facebook/boosted-jobs/${jobId}/preview-recipients`),
-  boostDigestPreview: () => api.get('/facebook/boost-digest/preview'),
-  sendBoostDigest: () => api.post('/facebook/boost-digest/send'),
+  boostDigestPreview: (jobIds = []) => {
+    const p = new URLSearchParams();
+    (jobIds || []).forEach((id) => p.append('job_ids', String(id)));
+    const qs = p.toString();
+    return api.get(`/facebook/boost-digest/preview${qs ? `?${qs}` : ''}`);
+  },
+  sendBoostDigest: (jobIds = []) => api.post('/facebook/boost-digest/send', { job_ids: jobIds || [] }),
   updateFacebookPost: (id, data) => api.put(`/facebook/posts/${id}`, data),
   deleteFacebookPost: (id) => api.delete(`/facebook/posts/${id}`),
   markFacebookPostUsed: (id) => api.post(`/facebook/posts/${id}/use`),
