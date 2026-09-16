@@ -508,14 +508,24 @@ export default function CompanyJobsPage() {
                       >
                         <Star className={`h-4 w-4 ${job.is_featured ? "fill-amber-400" : ""}`} /><span className="hidden sm:inline">{job.is_featured ? "Hervorgehoben" : "Hervorheben"}</span>
                       </button>
-                      <button
-                        onClick={() => handleBoost(job)}
-                        disabled={(promo?.boost_remaining ?? 0) <= 0}
-                        title={isBoostActive(job) ? "Booster läuft" : `Booster aktivieren (${promo?.boost_remaining ?? 0} diesen Monat übrig)`}
-                        className={`text-sm flex items-center gap-1 px-3 py-2 rounded-lg border disabled:opacity-40 disabled:cursor-not-allowed ${isBoostActive(job) ? "border-purple-500 bg-purple-100 text-purple-800" : "border-purple-300 text-purple-700 hover:bg-purple-50"}`}
-                      >
-                        <Rocket className="h-4 w-4" /><span className="hidden sm:inline">{isBoostActive(job) ? "Booster läuft" : "Booster"}</span>
-                      </button>
+                      {(promo?.boost_remaining ?? 0) > 0 ? (
+                        <button
+                          onClick={() => handleBoost(job)}
+                          title={isBoostActive(job) ? "Booster läuft" : `Booster aktivieren (${promo?.boost_remaining ?? 0} diesen Monat übrig)`}
+                          className={`text-sm flex items-center gap-1 px-3 py-2 rounded-lg border ${isBoostActive(job) ? "border-purple-500 bg-purple-100 text-purple-800" : "border-purple-300 text-purple-700 hover:bg-purple-50"}`}
+                        >
+                          <Rocket className="h-4 w-4" /><span className="hidden sm:inline">{isBoostActive(job) ? "Booster läuft" : "Booster"}</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleBuyPromotion(job, "boost")}
+                          disabled={!job.is_active || job.is_draft}
+                          title="Monats-Kontingent aufgebraucht – weiteren Booster für 4,99 € kaufen"
+                          className="text-sm flex items-center gap-1 px-3 py-2 rounded-lg border border-purple-300 text-purple-700 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <Rocket className="h-4 w-4" /><span className="hidden sm:inline">Booster 4,99 €</span>
+                        </button>
+                      )}
                     </>
                   )}
                   {promo && !promo.is_premium && (

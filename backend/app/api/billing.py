@@ -34,6 +34,7 @@ router = APIRouter(prefix="/billing", tags=["Billing"])
 # Aktive Abo-Status, bei denen Premium gilt
 ACTIVE_STATUSES = {"active", "trialing"}
 PRICE_SETTING_KEY = "stripe_price_id_auto"  # Cache für automatisch erstellte Price-ID
+TAX_RATE_SETTING_KEY = "stripe_tax_rate_id_auto"  # Cache für automatisch erstellten USt-Satz
 
 # Einmalig bezahlte Promotions (Nicht-Premium): Label + Preis je Aktion
 PAID_FEATURE_DURATION_DAYS = 14  # gekaufte Hervorhebung gilt 14 Tage
@@ -92,6 +93,42 @@ def _ensure_price(db: Session) -> str:
     db.commit()
     logger.info(f"Stripe-Price automatisch angelegt: {price.id}")
     return price.id
+
+
+def _ensure_tax_rate(db: Session) -> str | None:
+    """Liefert die Stripe-Tax-Rate-ID für 19% USt (inklusive/Brutto). Nutzt
+    STRIPE_TAX_RATE_ID aus der Config, sonst eine gecachte, sonst legt sie eine an.
+    inclusive=True: die hinterlegten Preise sind Brutto -> die USt wird herausgerechnet
+    und auf der Rechnung ausgewiesen (Endpreis bleibt gleich)."""
+    configured = (getattr(settings, "STRIPE_TAX_RATE_ID", "") or "").strip()
+    if configured:
+        return configured
+
+    cached = get_setting(db, TAX_RATE_SETTING_KEY, None)
+    if cached:
+        try:
+            tr = stripe.TaxRate.retrieve(cached)
+            if _g(tr, "active", True):
+                return cached
+        except stripe.error.InvalidRequestError:
+            pass
+
+    try:
+        tax_rate = stripe.TaxRate.create(
+            display_name="USt",
+            description="Umsatzsteuer (Deutschland)",
+            percentage=19.0,
+            inclusive=True,   # Brutto: Preis enthält die USt bereits
+            country="DE",
+        )
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe-TaxRate konnte nicht angelegt werden: {e}")
+        return None
+
+    set_setting(db, TAX_RATE_SETTING_KEY, tax_rate.id)
+    db.commit()
+    logger.info(f"Stripe-TaxRate (19% USt, inklusive) automatisch angelegt: {tax_rate.id}")
+    return tax_rate.id
 
 
 def _get_or_create_customer(db: Session, company: Company, user: User) -> str:
@@ -288,20 +325,28 @@ async def create_promotion_checkout(
     label, amount = PROMOTION_KINDS[kind]
     customer_id = _get_or_create_customer(db, company, current_user)
     base = _frontend_url()
+    tax_rate_id = _ensure_tax_rate(db)
+
+    line_item = {
+        "price_data": {
+            "currency": "eur",
+            "product_data": {"name": label},
+            "unit_amount": amount,
+        },
+        "quantity": 1,
+    }
+    if tax_rate_id:
+        line_item["tax_rates"] = [tax_rate_id]
 
     try:
         session = stripe.checkout.Session.create(
             mode="payment",
             customer=customer_id,
-            line_items=[{
-                "price_data": {
-                    "currency": "eur",
-                    "product_data": {"name": label},
-                    "unit_amount": amount,
-                },
-                "quantity": 1,
-            }],
+            line_items=[line_item],
             billing_address_collection="auto",
+            # Echte Rechnung erzeugen (wie beim Abo) statt nur Beleg – Business-/
+            # Steuerdaten kommen aus den Stripe-Business-Einstellungen.
+            invoice_creation={"enabled": True},
             success_url=f"{base}/company/jobs?promo=success",
             cancel_url=f"{base}/company/jobs?promo=canceled",
             metadata={
@@ -358,7 +403,12 @@ async def create_checkout_session(
         pass
 
     price_id = _ensure_price(db)
+    tax_rate_id = _ensure_tax_rate(db)
     base = _frontend_url()
+
+    premium_line_item = {"price": price_id, "quantity": 1}
+    if tax_rate_id:
+        premium_line_item["tax_rates"] = [tax_rate_id]
 
     subscription_data = {"metadata": {"company_id": str(company.id)}}
     if settings.PREMIUM_TRIAL_DAYS and settings.PREMIUM_TRIAL_DAYS > 0 and not trial_already_used:
@@ -368,7 +418,7 @@ async def create_checkout_session(
         session = stripe.checkout.Session.create(
             mode="subscription",
             customer=customer_id,
-            line_items=[{"price": price_id, "quantity": 1}],
+            line_items=[premium_line_item],
             subscription_data=subscription_data,
             allow_promotion_codes=True,
             billing_address_collection="auto",

@@ -92,6 +92,7 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: str = ""     # pk_live_... / pk_test_... (für Frontend)
     STRIPE_WEBHOOK_SECRET: str = ""      # whsec_... (Signaturprüfung der Webhooks)
     STRIPE_PRICE_ID: str = ""            # price_... (29€/Monat). Leer = wird automatisch angelegt.
+    STRIPE_TAX_RATE_ID: str = ""         # txr_... (19% USt). Leer = wird automatisch angelegt.
     PREMIUM_PRICE_CENTS: int = 2900      # 29,00 € (Endpreis, inkl. USt)
     PREMIUM_TRIAL_DAYS: int = 7          # Kostenlose Testphase in Tagen (0 = keine)
 
