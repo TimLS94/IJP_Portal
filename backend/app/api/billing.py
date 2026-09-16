@@ -330,7 +330,8 @@ async def create_promotion_checkout(
     line_item = {
         "price_data": {
             "currency": "eur",
-            "product_data": {"name": label},
+            # Job-Titel mit in die Beschreibung (Rechnung/Checkout zeigt, welche Stelle)
+            "product_data": {"name": f"{label} – {job.title}"[:250]},
             "unit_amount": amount,
         },
         "quantity": 1,
