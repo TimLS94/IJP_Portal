@@ -551,6 +551,14 @@ async def stripe_webhook(
                 _apply_paid_promotion(db, obj, background_tasks, diag)
                 return diag
 
+            # SICHERHEIT: Nur echte Abo-Checkouts (mit Subscription) dürfen Premium
+            # aktivieren. Eine Zahlung OHNE Abo (z.B. Booster/Hervorheben) darf
+            # NIEMALS Premium setzen – auch nicht, falls die purpose-Metadaten fehlen.
+            # Premium-Abos werden zusätzlich über customer.subscription.* aktiviert.
+            if not _g(obj, "subscription"):
+                diag["premium_skipped"] = "no_subscription"
+                return diag
+
             # Premium direkt aus der Checkout-Session aktivieren – ohne dass der
             # (ggf. eingeschränkte) Key ein Subscriptions-Read-Recht braucht.
             company = None
