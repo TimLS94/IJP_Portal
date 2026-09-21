@@ -50,6 +50,9 @@ POSITION_TYPE_LABELS = {
 
 def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
     """Baut einen Datensatz für die Partner-Ansicht auf."""
+    # E-Mail-Adresse des Bewerbers (für den Partner sichtbar)
+    _user = db.query(User).filter(User.id == applicant.user_id).first()
+    _email = _user.email if _user else None
     # Aktiver IJP-Auftrag (neuester)
     job_request = (
         db.query(JobRequest)
@@ -116,6 +119,7 @@ def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
         "applicant_id": applicant.id,
         "first_name": applicant.first_name,
         "last_name": applicant.last_name,
+        "email": _email,
         "position_type": pos_type,
         "position_type_label": POSITION_TYPE_LABELS.get(pos_type) if pos_type else None,
         "registered_at": applicant.created_at if hasattr(applicant, "created_at") else None,
@@ -318,3 +322,55 @@ async def get_partner_view(
         "docs_complete_count": docs_complete,
         "applicants": entries,
     }
+
+
+class PartnerApplicantCreate(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = None
+    consent: bool = False
+
+
+@router.post("/partner/{token}/applicants")
+async def partner_add_applicant(token: str, data: PartnerApplicantCreate, db: Session = Depends(get_db)):
+    """Ein Partner legt über seinen Link selbst einen Studenten (Bewerber) an.
+    Der Bewerber wird der Partner-Quelle zugeordnet und erscheint sofort in der
+    Partner-Ansicht. Kein Passwort (Konto ist später per 'Passwort vergessen'/Google
+    übernehmbar). Selbst-Registrierung per Link funktioniert unverändert weiter."""
+    from datetime import date as _date
+
+    link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
+    if not link or not link.is_active:
+        raise HTTPException(status_code=404, detail="Link nicht gefunden oder deaktiviert")
+
+    first = (data.first_name or "").strip()
+    last = (data.last_name or "").strip()
+    email = (data.email or "").strip().lower()
+    if not first or not last:
+        raise HTTPException(status_code=400, detail="Vor- und Nachname erforderlich")
+    if "@" not in email or "." not in email:
+        raise HTTPException(status_code=400, detail="Ungültige E-Mail-Adresse")
+    if not data.consent:
+        raise HTTPException(status_code=400, detail="Bitte die Einwilligung des Studenten bestätigen")
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=400, detail="Diese E-Mail ist bereits registriert")
+
+    user = User(email=email, password_hash=None, role=UserRole.APPLICANT, is_active=True)
+    db.add(user)
+    db.flush()  # ID generieren
+
+    applicant = Applicant(
+        user_id=user.id,
+        first_name=first,
+        last_name=last,
+        phone=((data.phone or "").strip() or None),
+        invite_source=link.partner_source,
+        privacy_accepted=True,   # Partner bestätigt die Einwilligung des Studenten
+        privacy_accepted_at=_date.today(),
+    )
+    db.add(applicant)
+    db.commit()
+    db.refresh(applicant)
+
+    return _build_applicant_entry(applicant, db)

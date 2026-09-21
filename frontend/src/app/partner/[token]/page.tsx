@@ -19,6 +19,7 @@ interface ApplicantEntry {
   applicant_id: number;
   first_name: string;
   last_name: string;
+  email: string | null;
   position_type: string | null;
   position_type_label: string | null;
   registered_at: string | null;
@@ -96,6 +97,9 @@ function ApplicantRow({ entry }: { entry: ApplicantEntry }) {
           <p className="font-semibold text-gray-900">
             {entry.first_name} {entry.last_name}
           </p>
+          {entry.email && (
+            <p className="text-xs text-gray-500 truncate" title={entry.email}>{entry.email}</p>
+          )}
           {entry.position_type_label && (
             <p className="text-xs text-gray-500">{entry.position_type_label}</p>
           )}
@@ -213,6 +217,29 @@ export default function PartnerViewPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [filtering, setFiltering] = useState(false);
+
+  // Student selbst eintragen (Partner)
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", phone: "" });
+  const [consent, setConsent] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const addStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!consent) { alert("Bitte die Einwilligung des Studenten zur Datenübermittlung an IJP bestätigen."); return; }
+    setSaving(true);
+    try {
+      await partnerAPI.addApplicant(token, { ...form, consent });
+      setForm({ first_name: "", last_name: "", email: "", phone: "" });
+      setConsent(false);
+      setShowAdd(false);
+      fetchData(dateFrom || undefined, dateTo || undefined);
+    } catch (err: unknown) {
+      alert((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Konnte nicht gespeichert werden.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const fetchData = useCallback(
     async (from?: string, to?: string) => {
@@ -372,6 +399,55 @@ export default function PartnerViewPage() {
               </button>
             )}
           </form>
+        </div>
+
+        {/* Student selbst eintragen */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <p className="font-semibold text-gray-900 flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-600" /> Studenten selbst eintragen
+              </p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Trage Studenten direkt für IJP ein. Alternativ kannst du deinen Registrierungs-Link verteilen, damit Studenten sich selbst eintragen.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAdd((v) => !v)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shrink-0"
+            >
+              {showAdd ? "Schließen" : "Student hinzufügen"}
+            </button>
+          </div>
+
+          {showAdd && (
+            <form onSubmit={addStudent} className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input required placeholder="Vorname" value={form.first_name}
+                onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <input required placeholder="Nachname" value={form.last_name}
+                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <input required type="email" placeholder="E-Mail-Adresse" value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <input placeholder="Telefon (optional)" value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <label className="sm:col-span-2 flex items-start gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4" />
+                <span>Der Student hat der Übermittlung seiner Daten an IJP International Job Placement zugestimmt.</span>
+              </label>
+              <div className="sm:col-span-2">
+                <button type="submit" disabled={saving}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-2">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Student eintragen
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Tabelle */}
