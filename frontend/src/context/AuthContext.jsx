@@ -10,14 +10,24 @@ const AuthContext = createContext(null);
 // Safari wirft bei blockiertem Speicher (ITP / Private Mode / nach Cross-Tab-OAuth)
 // einen SecurityError bei localStorage-Zugriff. Immer defensiv kapseln, sonst
 // stürzt die App ab (weiße Seite, v.a. nach Google-Login auf Safari).
+// "Auf-Behalf"-Session (z.B. Partner füllt Studenten-Profil aus) läuft isoliert im
+// sessionStorage – nur für DIESEN Tab, ohne die normale Login-Session (localStorage)
+// zu überschreiben. Hat der Tab einen sessionStorage-Token, gilt dieser Speicher.
+const authStore = () => {
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage.getItem('token')) return window.sessionStorage;
+  } catch { /* ignore */ }
+  try { if (typeof window !== 'undefined') return window.localStorage; } catch { /* ignore */ }
+  return null;
+};
 const safeGet = (k) => {
-  try { return typeof window !== 'undefined' ? window.localStorage.getItem(k) : null; } catch { return null; }
+  try { const s = authStore(); return s ? s.getItem(k) : null; } catch { return null; }
 };
 const safeSet = (k, v) => {
-  try { if (typeof window !== 'undefined') window.localStorage.setItem(k, v); } catch { /* ignore */ }
+  try { const s = authStore(); if (s) s.setItem(k, v); } catch { /* ignore */ }
 };
 const safeRemove = (k) => {
-  try { if (typeof window !== 'undefined') window.localStorage.removeItem(k); } catch { /* ignore */ }
+  try { const s = authStore(); if (s) s.removeItem(k); } catch { /* ignore */ }
 };
 
 export function AuthProvider({ children }) {
@@ -25,6 +35,26 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // "Auf-Behalf"-Zugang (Partner öffnet Studenten-Profil): Token/User aus der URL
+    // in den sessionStorage übernehmen (isoliert pro Tab), dann die URL bereinigen –
+    // die normale Login-Session im localStorage bleibt unberührt.
+    try {
+      if (typeof window !== 'undefined') {
+        const sp = new URLSearchParams(window.location.search);
+        const ob = sp.get('onbehalf');
+        if (ob) {
+          window.sessionStorage.setItem('token', ob);
+          const u = sp.get('u');
+          if (u) {
+            try { window.sessionStorage.setItem('user', decodeURIComponent(escape(atob(u)))); } catch { /* ignore */ }
+          }
+          sp.delete('onbehalf'); sp.delete('u');
+          const clean = window.location.pathname + (sp.toString() ? `?${sp.toString()}` : '');
+          window.history.replaceState({}, '', clean);
+        }
+      }
+    } catch { /* ignore */ }
+
     // Beim Start prüfen ob Token vorhanden (Safari-sicher)
     try {
       const token = safeGet('token');

@@ -234,14 +234,15 @@ export default function PartnerViewPage() {
   const [consent, setConsent] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Öffnet in einem neuen Tab das ECHTE Studenten-Profil-Formular (inkl. Dokument-Upload),
-  // eingeloggt als der betreffende Student – der Partner füllt dort alles aus.
+  // Öffnet in einem NEUEN Tab das ECHTE Studenten-Profil-Formular (inkl. Dokument-Upload).
+  // Der Token geht nur per URL an den Tab, der ihn isoliert im sessionStorage nutzt –
+  // die eigene Login-Session (localStorage) des Partners/Admins bleibt unberührt.
   const openProfileSession = (accessToken: string, user: unknown) => {
-    try {
-      localStorage.setItem("token", accessToken);
-      localStorage.setItem("user", JSON.stringify(user));
-    } catch {}
-    window.open("/applicant/profile", "_blank");
+    let u = "";
+    try { u = btoa(unescape(encodeURIComponent(JSON.stringify(user ?? {})))); } catch {}
+    const qs = new URLSearchParams({ onbehalf: accessToken });
+    if (u) qs.set("u", u);
+    window.open(`/applicant/profile?${qs.toString()}`, "_blank");
   };
 
   const addStudent = async (e: React.FormEvent) => {

@@ -22,7 +22,11 @@ const api = axios.create({
 // Request Interceptor - Token hinzufügen
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    // "Auf-Behalf"-Session (Partner füllt Studenten-Profil): sessionStorage-Token
+    // (isoliert pro Tab) hat Vorrang, sonst normaler localStorage-Login-Token.
+    let token = null;
+    try { if (typeof window !== 'undefined') token = window.sessionStorage.getItem('token'); } catch { /* ignore */ }
+    if (!token) { try { if (typeof window !== 'undefined') token = window.localStorage.getItem('token'); } catch { /* ignore */ } }
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
