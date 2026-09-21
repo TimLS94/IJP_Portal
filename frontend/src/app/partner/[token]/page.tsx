@@ -20,6 +20,7 @@ interface ApplicantEntry {
   first_name: string;
   last_name: string;
   email: string | null;
+  editable_by_partner?: boolean;
   position_type: string | null;
   position_type_label: string | null;
   registered_at: string | null;
@@ -75,7 +76,7 @@ function DocBadge({ doc }: { doc: DocCheck }) {
   );
 }
 
-function ApplicantRow({ entry }: { entry: ApplicantEntry }) {
+function ApplicantRow({ entry, onFillProfile }: { entry: ApplicantEntry; onFillProfile: (id: number) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   const formatDate = (d: string | null) => {
@@ -102,6 +103,15 @@ function ApplicantRow({ entry }: { entry: ApplicantEntry }) {
           )}
           {entry.position_type_label && (
             <p className="text-xs text-gray-500">{entry.position_type_label}</p>
+          )}
+          {entry.editable_by_partner && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onFillProfile(entry.applicant_id); }}
+              className="mt-1 text-xs text-blue-600 hover:underline font-medium"
+            >
+              Profil & Dokumente ausfüllen →
+            </button>
           )}
         </div>
 
@@ -224,20 +234,40 @@ export default function PartnerViewPage() {
   const [consent, setConsent] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Öffnet in einem neuen Tab das ECHTE Studenten-Profil-Formular (inkl. Dokument-Upload),
+  // eingeloggt als der betreffende Student – der Partner füllt dort alles aus.
+  const openProfileSession = (accessToken: string, user: unknown) => {
+    try {
+      localStorage.setItem("token", accessToken);
+      localStorage.setItem("user", JSON.stringify(user));
+    } catch {}
+    window.open("/applicant/profile", "_blank");
+  };
+
   const addStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consent) { alert("Bitte die Einwilligung des Studenten zur Datenübermittlung an IJP bestätigen."); return; }
     setSaving(true);
     try {
-      await partnerAPI.addApplicant(token, { ...form, consent });
+      const res = await partnerAPI.addApplicant(token, { ...form, consent });
       setForm({ first_name: "", last_name: "", email: "", phone: "" });
       setConsent(false);
       setShowAdd(false);
       fetchData(dateFrom || undefined, dateTo || undefined);
+      if (res.data?.access_token) openProfileSession(res.data.access_token, res.data.user);
     } catch (err: unknown) {
       alert((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Konnte nicht gespeichert werden.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const fillProfile = async (applicantId: number) => {
+    try {
+      const res = await partnerAPI.getApplicantAccess(token, applicantId);
+      openProfileSession(res.data.access_token, res.data.user);
+    } catch (err: unknown) {
+      alert((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Profil konnte nicht geöffnet werden.");
     }
   };
 
@@ -409,7 +439,7 @@ export default function PartnerViewPage() {
                 <Users className="h-5 w-5 text-blue-600" /> Studenten selbst eintragen
               </p>
               <p className="text-sm text-gray-500 mt-0.5">
-                Trage Studenten direkt für IJP ein. Alternativ kannst du deinen Registrierungs-Link verteilen, damit Studenten sich selbst eintragen.
+                Name + E-Mail eintragen → danach öffnet sich in einem neuen Tab das <strong>vollständige Profil-Formular inkl. Dokument-Upload</strong> (wie bei der normalen Registrierung), das du für den Studenten ausfüllst. Alternativ kannst du deinen Registrierungs-Link verteilen, damit Studenten sich selbst eintragen. Bereits angelegte Studenten kannst du über „Profil & Dokumente ausfüllen" weiter vervollständigen.
               </p>
             </div>
             <button
@@ -472,7 +502,7 @@ export default function PartnerViewPage() {
             </div>
 
             {data.applicants.map((entry) => (
-              <ApplicantRow key={entry.applicant_id} entry={entry} />
+              <ApplicantRow key={entry.applicant_id} entry={entry} onFillProfile={fillProfile} />
             ))}
           </div>
         )}

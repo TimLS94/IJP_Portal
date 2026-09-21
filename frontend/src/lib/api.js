@@ -668,6 +668,10 @@ export const partnerAPI = {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1';
     return axios.post(`${baseUrl}/partner/${token}/applicants`, data);
   },
+  getApplicantAccess: (token, applicantId) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1';
+    return axios.post(`${baseUrl}/partner/${token}/applicants/${applicantId}/access`);
+  },
 };
 
 export default api;

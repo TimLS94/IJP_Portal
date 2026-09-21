@@ -120,6 +120,9 @@ def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
         "first_name": applicant.first_name,
         "last_name": applicant.last_name,
         "email": _email,
+        # Vom Partner angelegte Studenten (ohne eigenes Passwort) darf der Partner
+        # vervollständigen; selbst-registrierte verwalten ihr Profil selbst.
+        "editable_by_partner": bool(_user and not _user.password_hash),
         "position_type": pos_type,
         "position_type_label": POSITION_TYPE_LABELS.get(pos_type) if pos_type else None,
         "registered_at": applicant.created_at if hasattr(applicant, "created_at") else None,
@@ -373,4 +376,42 @@ async def partner_add_applicant(token: str, data: PartnerApplicantCreate, db: Se
     db.commit()
     db.refresh(applicant)
 
-    return _build_applicant_entry(applicant, db)
+    from app.core.security import create_access_token
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return {
+        "access_token": access_token,
+        "user": {"id": user.id, "email": user.email, "role": user.role.value, "is_active": user.is_active},
+        "applicant": _build_applicant_entry(applicant, db),
+    }
+
+
+@router.post("/partner/{token}/applicants/{applicant_id}/access")
+async def partner_applicant_access(token: str, applicant_id: int, db: Session = Depends(get_db)):
+    """Zugriffs-Token für einen vom Partner angelegten Studenten – damit der Partner
+    dessen vollständiges Profil + Dokumente im echten Formular ausfüllen kann.
+    Nur innerhalb der Partner-Quelle und nur für Studenten OHNE eigenes Passwort
+    (selbst-registrierte verwalten ihr Profil selbst)."""
+    from app.core.security import create_access_token
+
+    link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
+    if not link or not link.is_active:
+        raise HTTPException(status_code=404, detail="Link nicht gefunden oder deaktiviert")
+
+    applicant = db.query(Applicant).filter(
+        Applicant.id == applicant_id,
+        Applicant.invite_source == link.partner_source,
+    ).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Student nicht gefunden")
+
+    user = db.query(User).filter(User.id == applicant.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Konto nicht gefunden")
+    if user.password_hash:
+        raise HTTPException(status_code=403, detail="Dieser Student verwaltet sein Profil selbst.")
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return {
+        "access_token": access_token,
+        "user": {"id": user.id, "email": user.email, "role": user.role.value, "is_active": user.is_active},
+    }
