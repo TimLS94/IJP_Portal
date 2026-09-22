@@ -26,7 +26,8 @@ class JobTranslation(BaseModel):
 
 class JobPostingBase(BaseModel):
     title: Optional[str] = None
-    position_type: Optional[PositionType] = None
+    position_type: Optional[PositionType] = None  # Legacy: Einzelauswahl (für Abwärtskompatibilität)
+    position_types: Optional[List[str]] = []  # NEU: Mehrfachauswahl als Liste ["fachkraft", "saisonjob"]
     employment_type: Optional[EmploymentType] = None  # NEU: Vollzeit/Teilzeit
     description: Optional[str] = None
     tasks: Optional[str] = None  # NEU: Aufgaben
@@ -112,7 +113,8 @@ class JobPostingCreate(JobPostingBase):
 
 class JobPostingUpdate(BaseModel):
     title: Optional[str] = None
-    position_type: Optional[PositionType] = None
+    position_type: Optional[PositionType] = None  # Legacy
+    position_types: Optional[List[str]] = None  # NEU: Mehrfachauswahl
     employment_type: Optional[EmploymentType] = None  # NEU
     description: Optional[str] = None
     tasks: Optional[str] = None  # NEU

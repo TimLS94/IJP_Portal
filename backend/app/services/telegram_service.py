@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.services.settings_service import get_setting
-from app.services.position_groups import position_compatible
+from app.services.position_groups import position_compatible_multi, get_job_position_types
 
 logger = logging.getLogger(__name__)
 
@@ -308,8 +308,10 @@ def format_job_message(job, lang: str = DEFAULT_LANGUAGE) -> str:
     title = html.escape(_localized_title(job, lang))
     employer = html.escape(_employer_name(job))
     location = html.escape(job.location or "Deutschland")
-    pos_value = job.position_type.value if job.position_type else ""
-    pos_label = POSITION_LABELS[lang].get(pos_value, "")
+    # NEU: Alle Stellenarten anzeigen (nicht nur die erste)
+    job_types = get_job_position_types(job)
+    pos_labels = [POSITION_LABELS[lang].get(pt, "") for pt in job_types if POSITION_LABELS[lang].get(pt)]
+    pos_label = ", ".join(pos_labels) if pos_labels else ""
 
     lines = [f"💼 <b>{title}</b>"]
     lines.append(f"🏢 {employer}")
@@ -328,9 +330,10 @@ def format_job_message(job, lang: str = DEFAULT_LANGUAGE) -> str:
 
 def _subscriber_matches(subscriber, job) -> bool:
     """Prüft, ob eine Stelle zu den Filtern eines Abonnenten passt."""
-    job_type = job.position_type.value if job.position_type else None
+    # NEU: Alle Stellenarten des Jobs berücksichtigen
+    job_types = get_job_position_types(job)
     if subscriber.position_type is not None:
-        if not position_compatible([subscriber.position_type.value], job_type):
+        if not position_compatible_multi([subscriber.position_type.value], job_types):
             return False
     if subscriber.location:
         job_location = (job.location or "").lower()

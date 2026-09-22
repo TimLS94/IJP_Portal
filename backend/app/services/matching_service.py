@@ -335,27 +335,35 @@ def _check_position_match(applicant: Applicant, job: JobPosting, weight: int = 3
 
     Berücksichtigt symmetrische Gruppen (general↔fachkraft, saisonjob↔workandholiday),
     sodass sich überschneidende Stellenarten ebenfalls als Treffer zählen.
+    
+    NEU: Unterstützt Jobs mit mehreren Stellenarten (position_types).
+    Ein Match liegt vor, wenn mindestens eine Job-Stellenart zu den Bewerber-Wünschen passt.
     """
-    from app.services.position_groups import get_applicant_position_types, expand_position_types, GENERAL
+    from app.services.position_groups import get_applicant_position_types, get_job_position_types, expand_position_types, GENERAL
 
-    job_type = job.position_type.value if job.position_type else None
-    if not job_type:
+    # NEU: Alle Stellenarten des Jobs berücksichtigen
+    job_types = get_job_position_types(job)
+    if not job_types:
         return {"match": False, "score": 0}
 
     applicant_types = get_applicant_position_types(applicant)
 
     # Wildcard "general": general-Job passt zu jedem, general-Bewerber zu jedem Job.
     # Keine Präferenz angegeben -> ebenfalls voller Treffer (konsistent zum Filter).
-    if not applicant_types or job_type == GENERAL or GENERAL in applicant_types:
+    if not applicant_types or GENERAL in job_types or GENERAL in applicant_types:
         return {"match": True, "score": weight}
 
-    # Exakter Treffer -> volle Punktzahl
-    if job_type in applicant_types:
-        return {"match": True, "score": weight}
+    # Erweitere die Bewerber-Typen (z.B. workandholiday -> auch saisonjob)
+    expanded_applicant_types = expand_position_types(applicant_types)
 
-    # Gruppen-Treffer (Überschneidung) -> ebenfalls als Treffer werten
-    if job_type in expand_position_types(applicant_types):
-        return {"match": True, "score": weight}
+    # Prüfe ob mindestens eine Job-Stellenart passt
+    for job_type in job_types:
+        # Exakter Treffer -> volle Punktzahl
+        if job_type in applicant_types:
+            return {"match": True, "score": weight}
+        # Gruppen-Treffer (Überschneidung) -> ebenfalls als Treffer werten
+        if job_type in expanded_applicant_types:
+            return {"match": True, "score": weight}
 
     return {"match": False, "score": 0}
 
@@ -435,10 +443,11 @@ def is_core_fit(applicant: Applicant, job: JobPosting, db: Optional[Session] = N
     Optionale/wünschenswerte Sprachen gaten nie; work_authorized=None (nie gefragt)
     schließt nicht aus (abwärtskompatibel), nur ein explizites "Nein".
     """
-    from app.services.position_groups import position_compatible, get_applicant_position_types
+    from app.services.position_groups import position_compatible_multi, get_applicant_position_types, get_job_position_types
 
-    job_type = job.position_type.value if job.position_type else None
-    if not position_compatible(get_applicant_position_types(applicant), job_type):
+    # NEU: Alle Stellenarten des Jobs berücksichtigen
+    job_types = get_job_position_types(job)
+    if not position_compatible_multi(get_applicant_position_types(applicant), job_types):
         return False
 
     a_de = applicant.german_level.value if applicant.german_level else "keine"

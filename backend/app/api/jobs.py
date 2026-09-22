@@ -189,7 +189,14 @@ async def list_public_jobs(
     )
 
     if position_type:
-        query = query.filter(JobPosting.position_type == position_type)
+        from sqlalchemy import or_ as _or_pt, func
+        # Prüfe sowohl das Legacy-Feld position_type als auch das neue position_types Array
+        query = query.filter(
+            _or_pt(
+                JobPosting.position_type == position_type,
+                func.json_contains(JobPosting.position_types, f'"{position_type.value}"')
+            )
+        )
 
     if location:
         query = query.filter(JobPosting.location.ilike(f"%{location}%"))
@@ -316,7 +323,14 @@ async def list_jobs(
     )
 
     if position_type:
-        query = query.filter(JobPosting.position_type == position_type)
+        from sqlalchemy import or_ as _or_pt2, func as func2
+        # Prüfe sowohl das Legacy-Feld position_type als auch das neue position_types Array
+        query = query.filter(
+            _or_pt2(
+                JobPosting.position_type == position_type,
+                func2.json_contains(JobPosting.position_types, f'"{position_type.value}"')
+            )
+        )
 
     if location:
         query = query.filter(JobPosting.location.ilike(f"%{location}%"))
@@ -803,6 +817,19 @@ async def create_job(
     
     job_dict = job_data.model_dump()
 
+    # position_types -> position_type Synchronisation (Legacy-Kompatibilität)
+    # Wenn position_types gesetzt ist, setze position_type auf den ersten Wert
+    if job_dict.get("position_types") and len(job_dict["position_types"]) > 0:
+        first_type = job_dict["position_types"][0]
+        try:
+            job_dict["position_type"] = PositionType(first_type)
+        except ValueError:
+            job_dict["position_type"] = None
+    elif job_dict.get("position_type") and not job_dict.get("position_types"):
+        # Umgekehrt: wenn nur position_type gesetzt ist, in position_types übernehmen
+        pt_value = job_dict["position_type"].value if hasattr(job_dict["position_type"], "value") else str(job_dict["position_type"])
+        job_dict["position_types"] = [pt_value]
+
     # Pflichtfelder nur bei tatsächlicher Veröffentlichung erzwingen (Entwürfe dürfen leer sein)
     will_publish = bool(job_dict.get("is_active", True)) and not bool(job_dict.get("is_draft", False))
     if will_publish:
@@ -885,6 +912,18 @@ async def update_job(
         )
     
     update_data = job_data.model_dump(exclude_unset=True)
+    
+    # position_types -> position_type Synchronisation (Legacy-Kompatibilität)
+    if "position_types" in update_data and update_data["position_types"] and len(update_data["position_types"]) > 0:
+        first_type = update_data["position_types"][0]
+        try:
+            update_data["position_type"] = PositionType(first_type)
+        except ValueError:
+            update_data["position_type"] = None
+    elif "position_type" in update_data and update_data["position_type"] and "position_types" not in update_data:
+        # Umgekehrt: wenn nur position_type gesetzt ist, in position_types übernehmen
+        pt_value = update_data["position_type"].value if hasattr(update_data["position_type"], "value") else str(update_data["position_type"])
+        update_data["position_types"] = [pt_value]
     
     # Prüfen ob Slug-relevante Felder geändert werden
     slug_fields_changed = any(

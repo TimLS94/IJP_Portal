@@ -14,7 +14,7 @@ from app.models.job_posting import JobPosting
 from app.models.user import User
 from app.services.matching_service import calculate_match_score, is_core_fit
 from app.services.settings_service import get_setting
-from app.services.position_groups import get_applicant_position_types, position_compatible
+from app.services.position_groups import get_applicant_position_types, get_job_position_types, position_compatible_multi
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,8 @@ def get_matching_applicants(job: JobPosting, db: Session, threshold: int = 85) -
     """
     matching_applicants = []
 
-    job_type = job.position_type.value if job.position_type else None
+    # NEU: Alle Stellenarten des Jobs berücksichtigen (nicht nur position_type)
+    job_types = get_job_position_types(job)
 
     # Get all active applicants (IJP-Unterportal ausgeschlossen – die bekommen keine JobOn-Alerts)
     applicants = db.query(Applicant).join(
@@ -45,7 +46,8 @@ def get_matching_applicants(job: JobPosting, db: Session, threshold: int = 85) -
 
     for applicant in applicants:
         # Harter Filter: nur kompatible Stellenarten (Gruppen-Logik)
-        if not position_compatible(get_applicant_position_types(applicant), job_type):
+        # NEU: Verwendet position_compatible_multi für mehrere Job-Stellenarten
+        if not position_compatible_multi(get_applicant_position_types(applicant), job_types):
             continue
         try:
             match_result = calculate_match_score(applicant, job, db=db)
@@ -389,7 +391,8 @@ def get_boost_recipients_breakdown(job: JobPosting, db: Session) -> dict:
     Arbeitsberechtigung) -> mit E-Mail & Alerts an.
     Dient der Transparenz ("warum nur X E-Mails?"), sendet nichts.
     """
-    job_type = job.position_type.value if job.position_type else None
+    # NEU: Alle Stellenarten des Jobs berücksichtigen
+    job_types = get_job_position_types(job)
     applicants = db.query(Applicant).join(
         User, Applicant.user_id == User.id
     ).filter(
@@ -402,7 +405,7 @@ def get_boost_recipients_breakdown(job: JobPosting, db: Session) -> dict:
     core_ok = 0
     recipients = 0
     for applicant in applicants:
-        if not position_compatible(get_applicant_position_types(applicant), job_type):
+        if not position_compatible_multi(get_applicant_position_types(applicant), job_types):
             continue
         position_ok += 1
         if not is_core_fit(applicant, job, db):
@@ -452,8 +455,9 @@ def get_matching_jobs_for_applicant(applicant: Applicant, db: Session, threshold
 
     for job in jobs:
         # Harter Filter: nur kompatible Stellenarten (Gruppen-Logik)
-        job_type = job.position_type.value if job.position_type else None
-        if not position_compatible(applicant_types, job_type):
+        # NEU: Verwendet position_compatible_multi für mehrere Job-Stellenarten
+        job_types = get_job_position_types(job)
+        if not position_compatible_multi(applicant_types, job_types):
             continue
         try:
             match_result = calculate_match_score(applicant, job, db=db)

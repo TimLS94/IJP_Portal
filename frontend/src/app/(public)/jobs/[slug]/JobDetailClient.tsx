@@ -74,7 +74,8 @@ interface Job {
   salary_max?: number;
   salary_type?: string;
   employment_type?: string;
-  position_type?: string;
+  position_type?: string;  // Legacy: Einzelauswahl
+  position_types?: string[];  // NEU: Mehrfachauswahl
   german_level?: string;
   english_level?: string;
   german_importance?: string;
@@ -393,7 +394,16 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
 
               <div className="flex items-start justify-between gap-4 mb-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 min-w-0 break-words hyphens-auto">{getTranslatedText("title")}</h1>
-                {job.position_type && (
+                {/* NEU: Alle Stellenarten anzeigen (position_types Array) */}
+                {(job.position_types && job.position_types.length > 0) ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {job.position_types.map((pt) => (
+                      <span key={pt} className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap border ${positionTypeColors[pt] || positionTypeColors.general}`}>
+                        {posLabel(pt)}
+                      </span>
+                    ))}
+                  </div>
+                ) : job.position_type && (
                   <span className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap border ${positionTypeColors[job.position_type] || positionTypeColors.general}`}>
                     {posLabel(job.position_type)}
                   </span>

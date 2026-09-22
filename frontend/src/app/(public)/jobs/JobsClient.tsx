@@ -32,7 +32,8 @@ interface Job {
   salary_max?: number;
   salary_type?: string;
   employment_type?: string;
-  position_type?: string;
+  position_type?: string;  // Legacy: Einzelauswahl
+  position_types?: string[];  // NEU: Mehrfachauswahl
   german_required?: string;
   english_required?: string;
   other_languages_required?: OtherLanguage[];
@@ -500,7 +501,14 @@ export default function JobsClient({
                     <h2 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
                       {getJobTitle(job)}
                     </h2>
-                    {job.position_type && (
+                    {/* NEU: Alle Stellenarten anzeigen (position_types Array) */}
+                    {(job.position_types && job.position_types.length > 0) ? (
+                      job.position_types.map((pt) => (
+                        <span key={pt} className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${positionTypeColors[pt] || positionTypeColors.general}`}>
+                          {t(`positionTypes.${pt}`, pt)}
+                        </span>
+                      ))
+                    ) : job.position_type && (
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${positionTypeColors[job.position_type] || positionTypeColors.general}`}>
                         {t(`positionTypes.${job.position_type}`, job.position_type || "")}
                       </span>
