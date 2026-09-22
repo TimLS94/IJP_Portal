@@ -113,10 +113,10 @@ const positionTypeLabelsByLang: Record<string, Record<string, string>> = {
 };
 
 const employmentTypeLabelsByLang: Record<string, Record<string, string>> = {
-  de: { fulltime: "Vollzeit", parttime: "Teilzeit", both: "Vollzeit oder Teilzeit" },
-  en: { fulltime: "Full-time", parttime: "Part-time", both: "Full-time or part-time" },
-  es: { fulltime: "Tiempo completo", parttime: "Tiempo parcial", both: "Tiempo completo o parcial" },
-  ru: { fulltime: "Полная занятость", parttime: "Частичная занятость", both: "Полная или частичная занятость" },
+  de: { fulltime: "Vollzeit", parttime: "Teilzeit", both: "Vollzeit oder Teilzeit", mini_job: "Minijob", seasonal: "Saisonarbeit", internship: "Praktikum" },
+  en: { fulltime: "Full-time", parttime: "Part-time", both: "Full-time or part-time", mini_job: "Mini job", seasonal: "Seasonal", internship: "Internship" },
+  es: { fulltime: "Tiempo completo", parttime: "Tiempo parcial", both: "Tiempo completo o parcial", mini_job: "Minijob", seasonal: "Trabajo de temporada", internship: "Prácticas" },
+  ru: { fulltime: "Полная занятость", parttime: "Частичная занятость", both: "Полная или частичная занятость", mini_job: "Мини-работа", seasonal: "Сезонная работа", internship: "Стажировка" },
 };
 
 const notRequiredByLang: Record<string, string> = {
