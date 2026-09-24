@@ -371,6 +371,7 @@ async def partner_add_applicant(token: str, data: PartnerApplicantCreate, db: Se
         invite_source=link.partner_source,
         privacy_accepted=True,   # Partner bestätigt die Einwilligung des Studenten
         privacy_accepted_at=_date.today(),
+        portal="ijp",            # IJP-Studenten-Unterportal (nicht der öffentliche JobOn-Pool)
     )
     db.add(applicant)
     db.commit()
@@ -380,7 +381,7 @@ async def partner_add_applicant(token: str, data: PartnerApplicantCreate, db: Se
     access_token = create_access_token(data={"sub": str(user.id)})
     return {
         "access_token": access_token,
-        "user": {"id": user.id, "email": user.email, "role": user.role.value, "is_active": user.is_active},
+        "user": {"id": user.id, "email": user.email, "role": user.role.value, "is_active": user.is_active, "portal": "ijp"},
         "applicant": _build_applicant_entry(applicant, db),
     }
 
@@ -413,5 +414,5 @@ async def partner_applicant_access(token: str, applicant_id: int, db: Session = 
     access_token = create_access_token(data={"sub": str(user.id)})
     return {
         "access_token": access_token,
-        "user": {"id": user.id, "email": user.email, "role": user.role.value, "is_active": user.is_active},
+        "user": {"id": user.id, "email": user.email, "role": user.role.value, "is_active": user.is_active, "portal": getattr(applicant, "portal", "ijp") or "ijp"},
     }

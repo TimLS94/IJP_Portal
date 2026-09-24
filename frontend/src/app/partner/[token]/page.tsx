@@ -237,17 +237,21 @@ export default function PartnerViewPage() {
   // Öffnet in einem NEUEN Tab das ECHTE Studenten-Profil-Formular (inkl. Dokument-Upload).
   // Der Token geht nur per URL an den Tab, der ihn isoliert im sessionStorage nutzt –
   // die eigene Login-Session (localStorage) des Partners/Admins bleibt unberührt.
-  const openProfileSession = (accessToken: string, user: unknown) => {
+  const profileSessionUrl = (accessToken: string, user: unknown) => {
     let u = "";
     try { u = btoa(unescape(encodeURIComponent(JSON.stringify(user ?? {})))); } catch {}
     const qs = new URLSearchParams({ onbehalf: accessToken });
     if (u) qs.set("u", u);
-    window.open(`/applicant/profile?${qs.toString()}`, "_blank");
+    return `/applicant/profile?${qs.toString()}`;
   };
 
+  // Der neue Tab wird SYNCHRON im Klick geöffnet (about:blank), sonst blockt der
+  // Browser das window.open, das erst nach dem await käme. Nach dem API-Call wird
+  // nur noch die URL des bereits offenen Tabs gesetzt.
   const addStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consent) { alert("Bitte die Einwilligung des Studenten zur Datenübermittlung an IJP bestätigen."); return; }
+    const tab = window.open("about:blank", "_blank");
     setSaving(true);
     try {
       const res = await partnerAPI.addApplicant(token, { ...form, consent });
@@ -255,8 +259,13 @@ export default function PartnerViewPage() {
       setConsent(false);
       setShowAdd(false);
       fetchData(dateFrom || undefined, dateTo || undefined);
-      if (res.data?.access_token) openProfileSession(res.data.access_token, res.data.user);
+      if (res.data?.access_token && tab) {
+        tab.location.href = profileSessionUrl(res.data.access_token, res.data.user);
+      } else if (tab) {
+        tab.close();
+      }
     } catch (err: unknown) {
+      if (tab) tab.close();
       alert((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Konnte nicht gespeichert werden.");
     } finally {
       setSaving(false);
@@ -264,10 +273,12 @@ export default function PartnerViewPage() {
   };
 
   const fillProfile = async (applicantId: number) => {
+    const tab = window.open("about:blank", "_blank");
     try {
       const res = await partnerAPI.getApplicantAccess(token, applicantId);
-      openProfileSession(res.data.access_token, res.data.user);
+      if (tab) tab.location.href = profileSessionUrl(res.data.access_token, res.data.user);
     } catch (err: unknown) {
+      if (tab) tab.close();
       alert((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Profil konnte nicht geöffnet werden.");
     }
   };
