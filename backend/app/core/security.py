@@ -84,6 +84,34 @@ def decode_token(token: str) -> Optional[dict]:
         return None
 
 
+def get_active_user_from_token(token: Optional[str], db: Session):
+    """Validiert einen rohen JWT (Query-Param/Header ausserhalb von Depends) mit denselben
+    Sicherheitsregeln wie get_current_user: gueltige Signatur, KEIN betrieb_portal-Scope,
+    numerische sub, existierendes UND aktives Konto. Gibt den User zurueck oder None.
+    Bewusst ohne Exception, damit Aufrufer ihre eigene Fehlerbehandlung machen koennen."""
+    from app.models.user import User
+
+    if not token:
+        return None
+    payload = decode_token(token)
+    if payload is None:
+        return None
+    # Betrieb-Portal-Tokens sind keine Nutzer-Tokens.
+    if payload.get("scope") == "betrieb_portal":
+        return None
+    user_id = payload.get("sub")
+    if user_id is None:
+        return None
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        return None
+    user = db.query(User).filter(User.id == user_id_int).first()
+    if user is None or not user.is_active:
+        return None
+    return user
+
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)

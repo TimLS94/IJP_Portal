@@ -8,7 +8,10 @@ from pathlib import Path
 
 from app.services.storage_service import storage_service
 from app.core.config import settings
-from app.core.security import decode_token
+from app.core.security import get_active_user_from_token
+from app.core.database import get_db
+from sqlalchemy.orm import Session
+from fastapi import Depends
 
 router = APIRouter(prefix="/files", tags=["Dateien"])
 
@@ -41,25 +44,70 @@ def _safe_resolve(file_path: str) -> Path:
     return resolved
 
 
+def _may_access_document(user, file_path: str, db: Session) -> bool:
+    """Ownership-Check für Dokument-Dateien: Bewerber nur eigene, Firma nur bei
+    vorhandener Bewerbung auf eine eigene Stelle, Admin alles."""
+    from app.models.user import UserRole
+    from app.models.document import Document
+    from app.models.applicant import Applicant
+    from app.models.company import Company
+    from app.models.application import Application
+    from app.models.job_posting import JobPosting
+
+    if user.role == UserRole.ADMIN:
+        return True
+
+    document = db.query(Document).filter(Document.file_path == file_path).first()
+    if not document:
+        # Unbekannter documents/-Pfad: kein Zugriff (nichts durchreichen).
+        return False
+
+    if user.role == UserRole.APPLICANT:
+        applicant = db.query(Applicant).filter(Applicant.user_id == user.id).first()
+        return bool(applicant and document.applicant_id == applicant.id)
+
+    if user.role == UserRole.COMPANY:
+        company = db.query(Company).filter(Company.user_id == user.id).first()
+        if not company:
+            return False
+        has_application = db.query(Application).join(
+            JobPosting, Application.job_posting_id == JobPosting.id
+        ).filter(
+            Application.applicant_id == document.applicant_id,
+            JobPosting.company_id == company.id
+        ).first()
+        return bool(has_application)
+
+    return False
+
+
 @router.get("/{file_path:path}")
 async def get_file(
     file_path: str,
     request: Request,
+    db: Session = Depends(get_db),
 ):
     """
     Liefert eine Datei aus dem Storage.
     Öffentliche Prefixe (z.B. Firmenlogos) sind ohne Login abrufbar,
-    alle anderen Dateien (Dokumente, Pässe, CVs) nur für eingeloggte Nutzer.
+    Dokumente (Pässe, CVs) nur für berechtigte Nutzer (Eigentümer/verknüpfte Firma/Admin).
     """
     is_public = file_path.startswith(_PUBLIC_PREFIXES)
 
     if not is_public:
-        # Auth manuell prüfen (img-Tags senden keinen Bearer-Token,
-        # daher kein Depends – aber geschützte Dateien brauchen einen gültigen Token)
+        # Auth manuell prüfen (img-Tags senden keinen Bearer-Token, daher kein Depends).
+        # SICHERHEIT: gültiger UND aktiver Nutzer (kein betrieb_portal-Scope, nicht deaktiviert).
         auth_header = request.headers.get("Authorization", "")
         token = auth_header[7:] if auth_header.lower().startswith("bearer ") else None
-        if not token or not decode_token(token):
+        if not token:
+            token = request.query_params.get("token")
+        user = get_active_user_from_token(token, db)
+        if not user:
             raise HTTPException(status_code=401, detail="Nicht autorisiert")
+
+        # SICHERHEIT: Dokument-Dateien nur für Berechtigte (kein Zugriff über fremde Pfade).
+        if file_path.startswith("documents/") and not _may_access_document(user, file_path, db):
+            raise HTTPException(status_code=403, detail="Keine Berechtigung")
 
     # Datei herunterladen (R2 / S3 Storage)
     success, content, error = await storage_service.download_file(file_path)
