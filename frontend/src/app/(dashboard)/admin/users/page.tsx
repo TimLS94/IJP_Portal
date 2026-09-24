@@ -40,7 +40,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
-  const [portalFilter, setPortalFilter] = useState(""); // "" = alle, "jobon", "ijp"
+  const [portalFilter, setPortalFilter] = useState("jobon"); // "jobon" | "ijp" – getrennte Tabellen (IJP zählt nicht zu JobOn)
   const [page, setPage] = useState(0);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -297,6 +297,24 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Filter */}
+      {/* Getrennte Tabellen: JobOn-Nutzer vs. IJP-Studenten (IJP zählt nicht zu den JobOn-Nutzern) */}
+      <div className="flex gap-2 mb-4 border-b border-gray-200">
+        <button
+          type="button"
+          onClick={() => { setPortalFilter("jobon"); setPage(0); }}
+          className={`px-4 py-2 -mb-px border-b-2 text-sm font-medium ${portalFilter === "jobon" ? "border-primary-600 text-primary-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+        >
+          JobOn-Nutzer{portalFilter === "jobon" ? ` (${total})` : ""}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setPortalFilter("ijp"); setPage(0); }}
+          className={`px-4 py-2 -mb-px border-b-2 text-sm font-medium ${portalFilter === "ijp" ? "border-primary-600 text-primary-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+        >
+          IJP-Studenten{portalFilter === "ijp" ? ` (${total})` : ""}
+        </button>
+      </div>
+
       <div className="card mb-6">
         <form onSubmit={handleSearch} className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[200px]">
@@ -324,20 +342,6 @@ export default function AdminUsersPage() {
               <option value="applicant">Bewerber</option>
               <option value="company">Unternehmen</option>
               <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div>
-            <select
-              className="input-styled"
-              value={portalFilter}
-              onChange={(e) => {
-                setPortalFilter(e.target.value);
-                setPage(0);
-              }}
-            >
-              <option value="">Alle Portale</option>
-              <option value="jobon">JobOn</option>
-              <option value="ijp">IJP</option>
             </select>
           </div>
           <button type="submit" className="btn-primary">

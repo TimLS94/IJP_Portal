@@ -17,7 +17,8 @@ from app.models.user import User, UserRole
 from app.models.partner_link import PartnerLink
 from app.models.applicant import Applicant
 from app.models.document import Document, DocumentType, DOCUMENT_REQUIREMENTS
-from app.models.job_request import JobRequest, JOB_REQUEST_STATUS_LABELS, JOB_REQUEST_STATUS_COLORS, INTERNAL_JOB_REQUEST_STATUSES
+from app.models.job_request import JobRequest, JobRequestStatus, JOB_REQUEST_STATUS_LABELS, JOB_REQUEST_STATUS_COLORS, INTERNAL_JOB_REQUEST_STATUSES
+from app.models.applicant import PositionType
 
 router = APIRouter(tags=["Partner"])
 
@@ -374,6 +375,20 @@ async def partner_add_applicant(token: str, data: PartnerApplicantCreate, db: Se
         portal="ijp",            # IJP-Studenten-Unterportal (nicht der öffentliche JobOn-Pool)
     )
     db.add(applicant)
+    db.flush()  # applicant.id für den Auftrag
+
+    # IJP-Auftrag (Studentenferienjob) direkt anlegen, damit der Student sofort in
+    # "Bewerberaufträge" erscheint – inkl. Partner-Quelle (invite_source) für Filter.
+    job_request = JobRequest(
+        applicant_id=applicant.id,
+        position_type=PositionType.STUDENTENFERIENJOB,
+        privacy_consent=True,
+        privacy_consent_date=datetime.utcnow(),
+        privacy_consent_text=f"Über Partner '{link.partner_source}' angelegt; Einwilligung des Studenten vom Partner bestätigt am {_date.today().isoformat()}.",
+        notes=f"Über Partner-Link '{link.partner_source}' angelegt.",
+        status=JobRequestStatus.PENDING,
+    )
+    db.add(job_request)
     db.commit()
     db.refresh(applicant)
 
