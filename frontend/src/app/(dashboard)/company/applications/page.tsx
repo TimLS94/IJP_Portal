@@ -161,6 +161,14 @@ export default function CompanyApplicationsPage() {
     companyAPI.getProfile().then(r => setIsPremium(!!r.data?.is_premium)).catch(() => {});
   }, []);
 
+  // Vorfilterung nach Stelle aus der URL (?job=<id>) – z.B. Klick auf "Bewerbungen" bei einer Stelle
+  useEffect(() => {
+    try {
+      const j = new URLSearchParams(window.location.search).get("job");
+      if (j) setJobFilter(j);
+    } catch { /* ignore */ }
+  }, []);
+
   const deepLinkApplied = useRef(false);
 
   // Deep-Link aus der E-Mail (?application=<id>) → direkt das Bewerber-Detail öffnen
