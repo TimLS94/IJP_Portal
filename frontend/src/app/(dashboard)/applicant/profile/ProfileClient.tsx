@@ -93,6 +93,8 @@ export default function ProfileClient() {
   const [cvParsing, setCvParsing] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
+  // Nach dem Speichern (nur IJP-Studenten): Erinnerung "IJP beauftragen" + was noch fehlt.
+  const [commissionPrompt, setCommissionPrompt] = useState<string[] | null>(null);
   const cvFileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -160,12 +162,38 @@ export default function ProfileClient() {
         return;
       }
     }
+    // IJP-Studenten: eigene Adresse UND Uni-Adresse sind Pflicht.
+    if (isIjp) {
+      const missingOwn = ["street", "house_number", "postal_code", "city", "country"]
+        .filter((f) => !String(data[f] || "").trim());
+      if (missingOwn.length > 0) {
+        toast.error("Bitte gib deine vollständige Adresse an (Straße, Hausnummer, PLZ, Ort, Land).");
+        return;
+      }
+      const missingUni = ["university_street", "university_house_number", "university_postal_code", "university_city", "university_country"]
+        .filter((f) => !String(data[f] || "").trim());
+      if (missingUni.length > 0) {
+        toast.error("Bitte gib die vollständige Adresse deiner Universität an (Straße, Hausnummer, PLZ, Ort, Land).");
+        return;
+      }
+    }
     setSaving(true);
     try {
       data.other_languages = otherLanguages;
       data.work_experiences = workExperiences;
       await applicantAPI.updateProfile(data);
       toast.success(t("applicant.profileSaved"));
+      // Nur bei Studenten: Erinnerung "IJP beauftragen" + was noch fehlt.
+      if (isIjp) {
+        const missing: string[] = [];
+        const reqDocs = (requirements?.documents || []).filter((r: any) => r.is_required);
+        for (const r of reqDocs) {
+          if (!hasDoc(r.document_type)) {
+            missing.push(t(`applicant.documentTypes.${r.document_type}`, { defaultValue: r.type_label || r.document_type }));
+          }
+        }
+        setCommissionPrompt(missing);
+      }
     } catch (e: any) { toast.error(e.response?.data?.detail || t("common.error")); }
     finally { setSaving(false); }
   };
@@ -244,6 +272,33 @@ export default function ProfileClient() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Nach dem Speichern (nur IJP-Studenten): Erinnerung IJP zu beauftragen + was noch fehlt */}
+      {commissionPrompt !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setCommissionPrompt(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Profil gespeichert ✅</h3>
+            <p className="text-gray-600 mb-4">Um deine Vermittlung zu starten, musst du IJP noch beauftragen.</p>
+            {commissionPrompt.length > 0 ? (
+              <div className="mb-4 rounded-xl border-2 border-amber-200 bg-amber-50 p-4">
+                <p className="font-medium text-amber-800 mb-2">Dafür fehlt noch:</p>
+                <ul className="list-disc list-inside text-sm text-amber-900 space-y-1">
+                  {commissionPrompt.map((m, i) => <li key={i}>{m}</li>)}
+                </ul>
+                <p className="text-xs text-amber-700 mt-2">Lade die fehlenden Dokumente unten auf dieser Seite hoch.</p>
+              </div>
+            ) : (
+              <div className="mb-4 rounded-xl border-2 border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                Alles vollständig – du kannst IJP jetzt beauftragen.
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button type="button" onClick={() => router.push("/applicant/ijp-auftrag")} className="btn-primary flex-1">IJP beauftragen →</button>
+              <button type="button" onClick={() => setCommissionPrompt(null)} className="px-4 py-2 text-gray-600 hover:text-gray-800">Später</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <User className="h-8 w-8 text-primary-600" />

@@ -26,6 +26,34 @@ export default function DashboardLayout({
     }
   }, [isAuthenticated, loading, router, pathname]);
 
+  // Zu welchem Bereich gehört der Pfad – und wer darf rein.
+  // Admin ist Superuser (darf zur Inspektion überall hin).
+  const sectionRole = pathname?.startsWith("/admin")
+    ? "admin"
+    : pathname?.startsWith("/company")
+    ? "company"
+    : pathname?.startsWith("/applicant")
+    ? "applicant"
+    : null;
+  const roleMismatch =
+    isAuthenticated && !!user && !!sectionRole && user.role !== "admin" && user.role !== sectionRole;
+
+  const homeForUser = () => {
+    if (user?.role === "admin") return "/admin/dashboard";
+    if (user?.role === "company") return "/company/dashboard";
+    if (user?.portal === "ijp") return "/applicant/ijp-auftrag";
+    return "/applicant/profile";
+  };
+
+  useEffect(() => {
+    // SICHERHEIT: Nutzer dürfen nur in den zu ihrer Rolle passenden Bereich.
+    // Verhindert z.B., dass ein Bewerber /admin/* öffnet.
+    if (!loading && roleMismatch) {
+      router.replace(homeForUser());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, roleMismatch, router]);
+
   useEffect(() => {
     // IJP-Bewerber haben nur Profil/Dokumente/IJP-Auftrag – JobOn-Seiten sind gesperrt.
     if (!loading && isAuthenticated && user?.portal === "ijp") {
@@ -45,6 +73,12 @@ export default function DashboardLayout({
   }
 
   if (!isAuthenticated) {
+    return null;
+  }
+
+  // Falscher Bereich für diese Rolle: nichts rendern (Redirect läuft im Effect),
+  // damit die fremde Seite (z.B. Admin-Hülle) nicht kurz aufblitzt.
+  if (roleMismatch) {
     return null;
   }
 
