@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query, Request, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
 
-from app.core.database import get_db
+from app.core.database import get_db, SessionLocal
 from app.core.security import get_current_user, decode_token, get_active_user_from_token
 from app.core.config import settings
 from app.models.user import User, UserRole
@@ -116,6 +116,7 @@ async def get_all_document_requirements(db: Session = Depends(get_db)):
 
 @router.post("")
 async def upload_document(
+    background_tasks: BackgroundTasks,
     document_type: DocumentType = Form(...),
     description: str = Form(None),
     file: UploadFile = File(...),
@@ -161,13 +162,12 @@ async def upload_document(
         db=db
     )
 
-    # CV hochgeladen → leere Profilfelder automatisch aus CV befüllen
+    # CV hochgeladen → leere Profilfelder automatisch aus CV befüllen.
+    # WICHTIG: NICHT im Request-Pfad (LLM-Call kann 10–20s dauern und würde den
+    # Upload/den Bewerbungs-Flow blockieren). Läuft als Background-Task mit eigener
+    # DB-Session; schlägt er fehl, ist das Dokument trotzdem gespeichert.
     if document_type == DocumentType.CV:
-        try:
-            await _enrich_profile_from_cv(applicant, file_bytes, db)
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"CV auto-enrich failed for applicant {applicant.id}: {e}")
+        background_tasks.add_task(_enrich_cv_background, applicant.id, file_bytes)
 
     return {
         "id": document.id,
@@ -180,15 +180,38 @@ async def upload_document(
     }
 
 
-async def _enrich_profile_from_cv(applicant: Applicant, file_bytes: bytes, db: Session) -> None:
+def _enrich_cv_background(applicant_id: int, file_bytes: bytes) -> None:
+    """Background-Task (synchron → Starlette führt ihn im Threadpool aus, ohne den
+    Event-Loop zu blockieren): parst das CV und befüllt NUR leere Profilfelder.
+    Nutzt eine EIGENE DB-Session, da die Request-Session bereits geschlossen ist."""
+    import logging
+    log = logging.getLogger(__name__)
+    db = SessionLocal()
+    try:
+        applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+        if not applicant:
+            return
+        _enrich_profile_from_cv(applicant, file_bytes, db)
+    except Exception as e:
+        log.warning(f"CV auto-enrich failed for applicant {applicant_id}: {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+    finally:
+        db.close()
+
+
+def _enrich_profile_from_cv(applicant: Applicant, file_bytes: bytes, db: Session) -> None:
     """
     Parst das hochgeladene CV und befüllt NUR leere Profilfelder.
-    Vorhandene Daten werden NIEMALS überschrieben.
+    Vorhandene Daten werden NIEMALS überschrieben. Synchron/blockierend – nur aus
+    einem Threadpool/Background-Task aufrufen, nie direkt im Event-Loop.
     """
-    from app.services.cv_parser_service import parse_cv
+    from app.services.cv_parser_service import parse_cv_sync
     from app.core.config import settings
 
-    cv_data = await parse_cv(
+    cv_data = parse_cv_sync(
         pdf_bytes=file_bytes,
         openai_key=getattr(settings, "OPENAI_API_KEY", ""),
         gemini_key=getattr(settings, "GOOGLE_API_KEY", ""),

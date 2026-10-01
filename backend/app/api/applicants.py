@@ -287,15 +287,16 @@ async def parse_cv(
     # ========== CV PARSING ==========
     from app.core.config import settings
     from app.services.cv_parser_service import parse_cv_with_openai, parse_cv_with_gemini, sanitize_parsed_data, parse_cv_regex
+    from starlette.concurrency import run_in_threadpool
 
     ai_result = None
     parser_used = "none"
-    
-    # 1. OpenAI bevorzugt
+
+    # 1. OpenAI bevorzugt (im Threadpool – blockierender LLM-Call darf den Event-Loop nicht einfrieren)
     if settings.OPENAI_API_KEY:
         logger.info(f"CV Parser: Trying OpenAI (key present: {bool(settings.OPENAI_API_KEY)})")
         try:
-            raw = parse_cv_with_openai(text, settings.OPENAI_API_KEY)
+            raw = await run_in_threadpool(parse_cv_with_openai, text, settings.OPENAI_API_KEY)
             if raw:
                 ai_result = sanitize_parsed_data(raw)
                 parser_used = "openai"
@@ -307,7 +308,7 @@ async def parse_cv(
     if not ai_result and settings.GOOGLE_AI_API_KEY:
         logger.info(f"CV Parser: Trying Gemini (key present: {bool(settings.GOOGLE_AI_API_KEY)})")
         try:
-            raw = parse_cv_with_gemini(text, settings.GOOGLE_AI_API_KEY)
+            raw = await run_in_threadpool(parse_cv_with_gemini, text, settings.GOOGLE_AI_API_KEY)
             if raw:
                 ai_result = sanitize_parsed_data(raw)
                 parser_used = "gemini"

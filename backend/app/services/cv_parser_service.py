@@ -99,7 +99,9 @@ def parse_cv_with_openai(text: str, api_key: str) -> Optional[dict]:
         return None
     try:
         from openai import OpenAI
-        client = OpenAI(api_key=api_key)
+        # WICHTIG: harter Timeout – ohne diesen wartet das SDK bis zu 10 Min,
+        # was den Upload-Request bis zum Gateway-Timeout blockiert.
+        client = OpenAI(api_key=api_key, timeout=20.0, max_retries=1)
         truncated = text[:12000]
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -123,7 +125,11 @@ def parse_cv_with_gemini(text: str, api_key: str) -> Optional[dict]:
         return None
     try:
         from google import genai
-        client = genai.Client(api_key=api_key)
+        # Timeout in ms – verhindert unbegrenztes Blockieren des Upload-Requests.
+        try:
+            client = genai.Client(api_key=api_key, http_options={"timeout": 20000})
+        except Exception:
+            client = genai.Client(api_key=api_key)
         truncated = text[:8000]
         response = client.models.generate_content(
             model="gemini-2.0-flash",
@@ -491,9 +497,10 @@ def parse_cv_regex(text: str) -> dict:
     return result
 
 
-async def parse_cv(pdf_bytes: bytes, openai_key: str = "", gemini_key: str = "") -> Optional[dict]:
-    """Hauptfunktion: PDF → Text → AI → bereinigte Profildaten.
-    Versucht zuerst OpenAI, dann Gemini, dann Regex-Parser."""
+def parse_cv_sync(pdf_bytes: bytes, openai_key: str = "", gemini_key: str = "") -> Optional[dict]:
+    """Synchrone Hauptfunktion: PDF → Text → AI → bereinigte Profildaten.
+    ACHTUNG: blockierend (PDF-Text + LLM-Call) – niemals direkt im Event-Loop
+    aufrufen. Über parse_cv() (Threadpool) oder einen sync Background-Task nutzen."""
     text = extract_text_from_pdf(pdf_bytes)
     if not text:
         return None
@@ -516,4 +523,9 @@ async def parse_cv(pdf_bytes: bytes, openai_key: str = "", gemini_key: str = "")
     result = parse_cv_regex(text)
     return result if result else None
 
-    return sanitize_parsed_data(raw_data)
+
+async def parse_cv(pdf_bytes: bytes, openai_key: str = "", gemini_key: str = "") -> Optional[dict]:
+    """Async-Wrapper: führt das blockierende Parsing im Threadpool aus, damit der
+    Event-Loop (und alle anderen Requests) nicht eingefroren wird."""
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(parse_cv_sync, pdf_bytes, openai_key, gemini_key)
