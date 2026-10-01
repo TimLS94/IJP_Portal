@@ -816,6 +816,29 @@ export default function AdminJobRequests() {
                 <div className="p-6 grid lg:grid-cols-2 gap-6 overflow-hidden">
                   {/* Linke Spalte */}
                   <div className="space-y-6 min-w-0">
+                    {/* Profil-Vollständigkeit (nur Studentenferienjob) */}
+                    {requestDetails.request.position_type === 'studentenferienjob' && (() => {
+                      const a: any = requestDetails.applicant;
+                      const ad = a.address || {};
+                      const ua = a.university_address || {};
+                      const miss: string[] = [];
+                      if (!a.phone) miss.push('Telefon');
+                      if (!a.date_of_birth) miss.push('Geburtsdatum');
+                      if (!ad.street || !ad.postal_code || !ad.city || !ad.country) miss.push('Eigene Adresse (vollständig)');
+                      if (!ua.street || !ua.postal_code || !ua.city || !ua.country) miss.push('Uni-Adresse (vollständig)');
+                      if (!a.semester_break_start || !a.semester_break_end) miss.push('Semesterferien');
+                      if (miss.length === 0) return null;
+                      return (
+                        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                          <p className="font-bold text-red-800 mb-1">⚠️ Profil unvollständig</p>
+                          <p className="text-sm text-red-700 mb-2">Der Student hat sein Profil noch nicht vollständig ausgefüllt. Es fehlt:</p>
+                          <ul className="list-disc list-inside text-sm text-red-900 space-y-0.5">
+                            {miss.map((m, i) => <li key={i}>{m}</li>)}
+                          </ul>
+                        </div>
+                      );
+                    })()}
+
                     {/* Kontaktdaten */}
                     <div className="bg-gray-50 rounded-xl p-4">
                       <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -833,9 +856,15 @@ export default function AdminJobRequests() {
                           <Phone className="h-4 w-4 text-gray-400" />
                           {requestDetails.applicant.phone || '-'}
                         </p>
-                        <p className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-gray-400" />
-                          {requestDetails.applicant.address.city}, {requestDetails.applicant.address.country}
+                        <p className="flex items-start gap-2">
+                          <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                          <span>
+                            {[requestDetails.applicant.address.street, requestDetails.applicant.address.house_number].filter(Boolean).join(' ') || '—'}
+                            {(requestDetails.applicant.address.postal_code || requestDetails.applicant.address.city) && (
+                              <><br />{[requestDetails.applicant.address.postal_code, requestDetails.applicant.address.city].filter(Boolean).join(' ')}</>
+                            )}
+                            {requestDetails.applicant.address.country && <><br />{requestDetails.applicant.address.country}</>}
+                          </span>
                         </p>
                         <p className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-400" />
@@ -867,6 +896,13 @@ export default function AdminJobRequests() {
                         <p><strong>Berufserfahrung:</strong> {requestDetails.applicant.work_experience_years || 0} Jahre</p>
                         {requestDetails.applicant.university_name && (
                           <p><strong>Universität:</strong> {requestDetails.applicant.university_name}</p>
+                        )}
+                        {requestDetails.applicant.university_address && (requestDetails.applicant.university_address.street || requestDetails.applicant.university_address.city) && (
+                          <p><strong>Uni-Adresse:</strong>{' '}
+                            {[requestDetails.applicant.university_address.street, requestDetails.applicant.university_address.house_number].filter(Boolean).join(' ')}
+                            {(requestDetails.applicant.university_address.postal_code || requestDetails.applicant.university_address.city) ? `, ${[requestDetails.applicant.university_address.postal_code, requestDetails.applicant.university_address.city].filter(Boolean).join(' ')}` : ''}
+                            {requestDetails.applicant.university_address.country ? `, ${requestDetails.applicant.university_address.country}` : ''}
+                          </p>
                         )}
                         {requestDetails.applicant.field_of_study && (
                           <p><strong>Studiengang:</strong> {requestDetails.applicant.field_of_study}</p>

@@ -513,12 +513,20 @@ async def get_job_request_details(
             "english_level": applicant.english_level.value if applicant and applicant.english_level else None,
             "work_experience_years": applicant.work_experience_years if applicant else None,
             "university_name": applicant.university_name if applicant else None,
+            "university_address": {
+                "street": applicant.university_street if applicant else None,
+                "house_number": applicant.university_house_number if applicant else None,
+                "postal_code": applicant.university_postal_code if applicant else None,
+                "city": applicant.university_city if applicant else None,
+                "country": applicant.university_country if applicant else None,
+            },
             "field_of_study": applicant.field_of_study if applicant else None,
             "current_semester": applicant.current_semester if applicant else None,
             # Semesterferien
             "semester_break_start": applicant.semester_break_start if applicant else None,
             "semester_break_end": applicant.semester_break_end if applicant else None,
             "continue_studying": applicant.continue_studying if applicant else None,
+            "portal": getattr(applicant, "portal", "jobon") if applicant else None,
         },
         "documents": [
             {

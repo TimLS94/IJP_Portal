@@ -12,6 +12,8 @@ import toast from "react-hot-toast";
 interface AnabinStudent {
   id: number;
   name: string;
+  portal?: string;
+  invite_source?: string;
   university_name?: string;
   university_city?: string;
   university_country?: string;
@@ -81,6 +83,8 @@ export default function AnabinVerificationPage() {
   const [saving, setSaving] = useState(false);
   const [loadingPdf, setLoadingPdf] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
+  const [portalFilter, setPortalFilter] = useState("");   // "" | "ijp" | "jobon"
+  const [partnerFilter, setPartnerFilter] = useState("");  // invite_source
   
   // Manuelle Verifizierungsfelder
   const [manualData, setManualData] = useState({
@@ -325,8 +329,15 @@ export default function AnabinVerificationPage() {
   };
 
   const students = data?.students || [];
+  // Partner-Quellen für das Dropdown (distinct, aus den geladenen Studenten)
+  const partnerSources = Array.from(
+    new Set(students.map(s => s.invite_source).filter((v): v is string => !!v))
+  ).sort();
   const filteredStudents = students.filter(s => {
     if (statusFilter && s.anabin_verified !== statusFilter) return false;
+    if (portalFilter === "ijp" && (s.portal || "jobon") !== "ijp") return false;
+    if (portalFilter === "jobon" && (s.portal || "jobon") === "ijp") return false;
+    if (partnerFilter && s.invite_source !== partnerFilter) return false;
     if (search) {
       const searchLower = search.toLowerCase();
       return s.name?.toLowerCase().includes(searchLower) ||
@@ -585,6 +596,31 @@ export default function AnabinVerificationPage() {
               <option value="verified">Verifiziert</option>
               <option value="uncertain">Unsicher</option>
               <option value="not_found">Nicht gefunden</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+          </div>
+          <div className="relative w-full md:w-48">
+            <select
+              className="input-styled appearance-none pr-10"
+              value={portalFilter}
+              onChange={(e) => setPortalFilter(e.target.value)}
+            >
+              <option value="">Alle Portale</option>
+              <option value="ijp">IJP-Studenten</option>
+              <option value="jobon">JobOn</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+          </div>
+          <div className="relative w-full md:w-48">
+            <select
+              className="input-styled appearance-none pr-10"
+              value={partnerFilter}
+              onChange={(e) => setPartnerFilter(e.target.value)}
+            >
+              <option value="">Alle Partner</option>
+              {partnerSources.map((src) => (
+                <option key={src} value={src}>{src}</option>
+              ))}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
           </div>

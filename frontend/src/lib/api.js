@@ -14,6 +14,9 @@ export const resolveFileUrl = (url) => {
 
 const api = axios.create({
   baseURL: API_URL,
+  // Sicherheitsnetz: hängt eine Anfrage (z.B. Upload/Parsing), soll sie als
+  // sauberer Fehler enden statt als endloser Spinner ("Seite lädt nicht").
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -429,7 +432,7 @@ export const adminAPI = {
   gdprDeleteDocument: (documentId) => api.delete(`/admin/gdpr/documents/${documentId}`),
   
   // Anabin Uni-Verifizierung
-  getAnabinStudents: () => api.get('/anabin/students-to-verify'),
+  getAnabinStudents: (params) => api.get('/anabin/students-to-verify', { params }),
   searchAnabin: (applicantId) => api.get(`/anabin/search/${applicantId}`),
   autoVerifyAnabin: (applicantId) => api.post(`/anabin/auto-verify/${applicantId}`),
   verifyAnabin: (data) => api.post('/anabin/verify', data),

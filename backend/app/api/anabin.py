@@ -43,11 +43,14 @@ class VerifyUniversityRequest(BaseModel):
 
 @router.get("/students-to-verify")
 async def get_students_to_verify(
+    portal: Optional[str] = None,          # "ijp" | "jobon" – nach Portal filtern
+    invite_source: Optional[str] = None,   # Partner-Quelle filtern
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Listet alle Studenten (Studentenferienjob) die verifiziert werden müssen.
+    Optional filterbar nach Portal (IJP-Student vs. JobOn) und Partner-Quelle.
     Nur für Admins.
     """
     if current_user.role != UserRole.ADMIN:
@@ -55,12 +58,12 @@ async def get_students_to_verify(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Nur Admins können auf diese Funktion zugreifen"
         )
-    
+
     # Alle Bewerber mit Universitätsname (= potenzielle Studenten)
     # Einfachere Abfrage, die sowohl position_type als auch university_name berücksichtigt
     from sqlalchemy import or_, and_, cast, String
-    
-    applicants = db.query(Applicant).filter(
+
+    query = db.query(Applicant).filter(
         or_(
             Applicant.position_type == PositionType.STUDENTENFERIENJOB,
             and_(
@@ -68,13 +71,22 @@ async def get_students_to_verify(
                 Applicant.university_name != ""
             )
         )
-    ).all()
-    
+    )
+    if portal == "ijp":
+        query = query.filter(Applicant.portal == "ijp")
+    elif portal == "jobon":
+        query = query.filter(Applicant.portal != "ijp")
+    if invite_source:
+        query = query.filter(Applicant.invite_source == invite_source)
+    applicants = query.all()
+
     result = []
     for app in applicants:
         result.append({
             "id": app.id,
             "name": f"{app.first_name} {app.last_name}",
+            "portal": getattr(app, "portal", "jobon") or "jobon",
+            "invite_source": app.invite_source,
             "university_name": app.university_name,
             "university_city": app.university_city,
             "university_country": app.university_country,
