@@ -44,3 +44,8 @@ class User(Base):
     def portal(self):
         """Portal-Zugehörigkeit des Bewerbers ("jobon"/"ijp"); None für Firmen/Admins."""
         return self.applicant.portal if self.applicant else None
+
+    @property
+    def has_password(self):
+        """Ob das Konto ein Passwort hat (z.B. partner-angelegte Studenten noch nicht)."""
+        return bool(self.password_hash)

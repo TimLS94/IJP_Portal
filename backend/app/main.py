@@ -148,6 +148,9 @@ def ensure_external_job_columns():
             ("companies", "expiry_reminder_enabled", "BOOLEAN DEFAULT TRUE"),
             ("users", "preferred_language", "VARCHAR(5)"),
             ("email_logs", "sender_email", "VARCHAR(255)"),
+            ("partner_links", "can_add_students", "BOOLEAN DEFAULT TRUE"),
+            ("partner_links", "can_edit_students", "BOOLEAN DEFAULT FALSE"),
+            ("partner_links", "send_onboarding_email", "BOOLEAN DEFAULT TRUE"),
         ]
         allowed_tables = {t for t, _, _ in new_columns}
         allowed_cols = {c for _, c, _ in new_columns}

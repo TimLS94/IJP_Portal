@@ -43,6 +43,8 @@ interface PartnerData {
   total_applicants: number;
   commissioned_count: number;
   docs_complete_count: number;
+  can_add_students?: boolean;
+  can_edit_students?: boolean;
   applicants: ApplicantEntry[];
 }
 
@@ -443,7 +445,8 @@ export default function PartnerViewPage() {
           </form>
         </div>
 
-        {/* Student selbst eintragen */}
+        {/* Student selbst eintragen (nur wenn der Admin es für diesen Link freigegeben hat) */}
+        {data.can_add_students !== false && (
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
@@ -491,6 +494,7 @@ export default function PartnerViewPage() {
             </form>
           )}
         </div>
+        )}
 
         {/* Tabelle */}
         {data.applicants.length === 0 ? (

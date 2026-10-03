@@ -25,6 +25,14 @@ class PartnerLink(Base):
     # Link aktiv/deaktiviert
     is_active = Column(Boolean, default=True)
 
+    # Admin-steuerbare Rechte des Partners:
+    # darf selbst Studenten anlegen / darf bereits eingegebene Daten nachbearbeiten.
+    can_add_students = Column(Boolean, default=True, server_default="true", nullable=False)
+    can_edit_students = Column(Boolean, default=False, server_default="false", nullable=False)
+
+    # Onboarding-Mail an den Studenten beim Anlegen (Passwort-Setzen-Link) senden?
+    send_onboarding_email = Column(Boolean, default=True, server_default="true", nullable=False)
+
     # Optionale Notiz für den Admin
     notes = Column(String(500), nullable=True)
 

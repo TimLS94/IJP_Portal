@@ -52,6 +52,10 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 
+class SetPasswordRequest(BaseModel):
+    new_password: str
+
+
 class ChangeEmailRequest(BaseModel):
     new_email: EmailStr
     password: str
@@ -207,8 +211,27 @@ async def change_password(
     # Passwort aktualisieren
     current_user.password_hash = get_password_hash(data.new_password)
     db.commit()
-    
+
     return {"message": "Passwort erfolgreich geändert"}
+
+
+@router.post("/set-password")
+async def set_password(
+    data: SetPasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Setzt erstmalig ein Passwort für ein Konto OHNE Passwort (z.B. partner-angelegte
+    Studenten). Für Konten mit Passwort ist change-password zu nutzen."""
+    if current_user.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Dieses Konto hat bereits ein Passwort. Bitte 'Passwort ändern' nutzen."
+        )
+    check_password_strength(data.new_password)
+    current_user.password_hash = get_password_hash(data.new_password)
+    db.commit()
+    return {"message": "Passwort gesetzt"}
 
 
 # ==================== E-MAIL ÄNDERN ====================

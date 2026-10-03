@@ -4,6 +4,7 @@ declare module "@/context/AuthContext" {
     email: string;
     role: "applicant" | "company" | "admin";
     portal?: "jobon" | "ijp" | null;
+    has_password?: boolean | null;
     preferred_language?: "de" | "en" | "es" | "ru" | null;
   }
 
@@ -26,6 +27,7 @@ declare module "@/context/AuthContext" {
       companyName: string
     ) => Promise<User>;
     setLanguage: (language: "de" | "en" | "es" | "ru") => Promise<void>;
+    updateUser: (patch: Partial<User>) => void;
     logout: () => void;
     isAuthenticated: boolean;
     isApplicant: boolean;

@@ -150,6 +150,9 @@ class CreatePartnerLinkSchema(BaseModel):
     name: str
     partner_source: str
     notes: Optional[str] = None
+    can_add_students: Optional[bool] = None
+    can_edit_students: Optional[bool] = None
+    send_onboarding_email: Optional[bool] = None
 
 
 class UpdatePartnerLinkSchema(BaseModel):
@@ -157,6 +160,9 @@ class UpdatePartnerLinkSchema(BaseModel):
     partner_source: Optional[str] = None
     is_active: Optional[bool] = None
     notes: Optional[str] = None
+    can_add_students: Optional[bool] = None
+    can_edit_students: Optional[bool] = None
+    send_onboarding_email: Optional[bool] = None
 
 
 def require_admin(current_user: User = Depends(get_current_user)):
@@ -188,6 +194,9 @@ async def list_partner_links(
             "token": link.token,
             "is_active": link.is_active,
             "notes": link.notes,
+            "can_add_students": bool(getattr(link, "can_add_students", True)),
+            "can_edit_students": bool(getattr(link, "can_edit_students", False)),
+            "send_onboarding_email": bool(getattr(link, "send_onboarding_email", True)),
             "applicant_count": applicant_count,
             "created_at": link.created_at,
             "last_accessed_at": link.last_accessed_at,
@@ -207,6 +216,9 @@ async def create_partner_link(
         partner_source=data.partner_source,
         token=PartnerLink.generate_token(),
         notes=data.notes,
+        can_add_students=True if data.can_add_students is None else data.can_add_students,
+        can_edit_students=False if data.can_edit_students is None else data.can_edit_students,
+        send_onboarding_email=True if data.send_onboarding_email is None else data.send_onboarding_email,
     )
     db.add(link)
     db.commit()
@@ -233,6 +245,12 @@ async def update_partner_link(
         link.is_active = data.is_active
     if data.notes is not None:
         link.notes = data.notes
+    if data.can_add_students is not None:
+        link.can_add_students = data.can_add_students
+    if data.can_edit_students is not None:
+        link.can_edit_students = data.can_edit_students
+    if data.send_onboarding_email is not None:
+        link.send_onboarding_email = data.send_onboarding_email
     db.commit()
     return {"message": "Aktualisiert"}
 
@@ -312,7 +330,12 @@ async def get_partner_view(
             filtered.append(applicant)
         applicants = filtered
 
+    can_edit = bool(getattr(link, "can_edit_students", False))
     entries = [_build_applicant_entry(a, db) for a in applicants]
+    # Bearbeiten nur, wenn der Admin es für diesen Partner freigegeben hat.
+    if not can_edit:
+        for e in entries:
+            e["editable_by_partner"] = False
 
     # Zusammenfassung
     total = len(entries)
@@ -324,6 +347,8 @@ async def get_partner_view(
         "total_applicants": total,
         "commissioned_count": commissioned,
         "docs_complete_count": docs_complete,
+        "can_add_students": bool(getattr(link, "can_add_students", True)),
+        "can_edit_students": can_edit,
         "applicants": entries,
     }
 
@@ -347,6 +372,8 @@ async def partner_add_applicant(token: str, data: PartnerApplicantCreate, db: Se
     link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
     if not link or not link.is_active:
         raise HTTPException(status_code=404, detail="Link nicht gefunden oder deaktiviert")
+    if not getattr(link, "can_add_students", True):
+        raise HTTPException(status_code=403, detail="Das Anlegen von Studenten ist für diesen Link nicht freigegeben.")
 
     first = (data.first_name or "").strip()
     last = (data.last_name or "").strip()
@@ -375,22 +402,30 @@ async def partner_add_applicant(token: str, data: PartnerApplicantCreate, db: Se
         portal="ijp",            # IJP-Studenten-Unterportal (nicht der öffentliche JobOn-Pool)
     )
     db.add(applicant)
-    db.flush()  # applicant.id für den Auftrag
-
-    # IJP-Auftrag (Studentenferienjob) direkt anlegen, damit der Student sofort in
-    # "Bewerberaufträge" erscheint – inkl. Partner-Quelle (invite_source) für Filter.
-    job_request = JobRequest(
-        applicant_id=applicant.id,
-        position_type=PositionType.STUDENTENFERIENJOB,
-        privacy_consent=True,
-        privacy_consent_date=datetime.utcnow(),
-        privacy_consent_text=f"Über Partner '{link.partner_source}' angelegt; Einwilligung des Studenten vom Partner bestätigt am {_date.today().isoformat()}.",
-        notes=f"Über Partner-Link '{link.partner_source}' angelegt.",
-        status=JobRequestStatus.PENDING,
-    )
-    db.add(job_request)
     db.commit()
     db.refresh(applicant)
+
+    # KEINE automatische Beauftragung mehr: der Student wird nur gespeichert.
+    # Der IJP-Auftrag entsteht erst durch die EXPLIZITE Beauftragung ("IJP beauftragen"
+    # nach dem Profil-Speichern) – erst dann gilt er als beauftragt.
+
+    # Onboarding-Mail (Passwort-Setzen-Link, 7 Tage gültig), wenn für diesen Link aktiviert.
+    # Fallback für den Studenten bleibt jederzeit "Passwort vergessen" mit seiner E-Mail.
+    if getattr(link, "send_onboarding_email", True):
+        try:
+            from app.models.password_reset import PasswordResetToken
+            from app.services.email_service import email_service
+            from datetime import timedelta
+            reset = PasswordResetToken(
+                user_id=user.id,
+                token=PasswordResetToken.generate_token(),
+                expires_at=utc_now() + timedelta(days=7),
+            )
+            db.add(reset)
+            db.commit()
+            email_service.send_student_onboarding_email(email, f"{first} {last}".strip(), reset.token)
+        except Exception:
+            db.rollback()
 
     from app.core.security import create_access_token
     access_token = create_access_token(data={"sub": str(user.id)})
@@ -412,6 +447,8 @@ async def partner_applicant_access(token: str, applicant_id: int, db: Session = 
     link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
     if not link or not link.is_active:
         raise HTTPException(status_code=404, detail="Link nicht gefunden oder deaktiviert")
+    if not getattr(link, "can_edit_students", False):
+        raise HTTPException(status_code=403, detail="Das Bearbeiten von Studentendaten ist für diesen Link nicht freigegeben.")
 
     applicant = db.query(Applicant).filter(
         Applicant.id == applicant_id,

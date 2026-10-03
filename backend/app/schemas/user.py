@@ -29,6 +29,7 @@ class UserResponse(UserBase):
     is_active: bool
     created_at: datetime
     portal: Optional[str] = None  # "jobon" | "ijp" (nur für Bewerber, sonst None)
+    has_password: Optional[bool] = None  # False = Konto ohne Passwort (z.B. partner-angelegt)
     preferred_language: Optional[str] = None  # de|en|es|ru; None = noch nicht gewählt
 
     class Config:

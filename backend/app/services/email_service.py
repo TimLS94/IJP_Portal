@@ -1067,7 +1067,38 @@ class EmailService:
         </body></html>
         """
         return self.send_email(to_email, subject, html_content, email_type="password_reset")
-    
+
+    def send_student_onboarding_email(self, to_email: str, name: str, reset_token: str) -> bool:
+        """Onboarding-Mail für vom Partner angelegte Studenten: Konto wurde erstellt,
+        hier Passwort setzen und einloggen (um Status zu sehen & Profil zu bearbeiten)."""
+        try:
+            from app.core.config import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
+        except Exception:
+            frontend_url = 'https://www.jobonportal.de'
+
+        set_link = f"{frontend_url}/reset-password?token={reset_token}"
+        greeting = f"Hallo {name}," if name else "Hallo,"
+        subject = "Dein IJP-Konto wurde erstellt – Passwort festlegen"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>🎓 Willkommen bei IJP</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>{greeting}</p>
+                <p>Für dich wurde ein IJP-Konto angelegt. Lege jetzt dein Passwort fest, um dich einzuloggen –
+                   dort siehst du den <strong>Status deiner Vermittlung</strong> und kannst dein <strong>Profil &amp; Dokumente</strong> vervollständigen.</p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{set_link}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Passwort festlegen</a>
+                </p>
+                <p style="color:#6b7280; font-size: 14px;">Falls der Link abgelaufen ist, kannst du jederzeit über „Passwort vergessen" mit dieser E-Mail-Adresse ein neues anfordern.</p>
+                <p>Mit freundlichen Grüßen,<br>Dein IJP-Team</p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content, email_type="student_onboarding")
+
     @_safe_email_call
     def send_matching_job_notification(
         self,

@@ -298,6 +298,7 @@ export const accountAPI = {
   resetPassword: (token, new_password) => api.post('/account/reset-password', { token, new_password }),
   verifyResetToken: (token) => api.get(`/account/verify-reset-token/${token}`),
   changePassword: (current_password, new_password) => api.post('/account/change-password', { current_password, new_password }),
+  setPassword: (new_password) => api.post('/account/set-password', { new_password }),
   changeEmail: (new_email, password) => api.post('/account/change-email', { new_email, password }),
   deleteAccount: (password, confirmation) => api.post('/account/delete-account', { password, confirmation }),
   getAccountInfo: () => api.get('/account/me'),

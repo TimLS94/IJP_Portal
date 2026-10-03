@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { jobRequestsAPI, applicantAPI, contractsAPI } from "@/lib/api";
+import { jobRequestsAPI, applicantAPI, contractsAPI, accountAPI } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import {
   ClipboardList, CheckCircle, AlertTriangle, FileText, Loader2,
@@ -31,7 +32,27 @@ const positionTypeColors: Record<string, string> = {
 
 export default function ApplicantJobRequestPage() {
   const { t } = useTranslation();
+  const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [showPwForm, setShowPwForm] = useState(false);
+  const [newPw, setNewPw] = useState("");
+  const [savingPw, setSavingPw] = useState(false);
+
+  const handleSetPassword = async () => {
+    if (newPw.length < 6) { toast.error(t("auth.passwordMinLength", "Mindestens 6 Zeichen")); return; }
+    setSavingPw(true);
+    try {
+      await accountAPI.setPassword(newPw);
+      try { updateUser?.({ has_password: true }); } catch { /* ignore */ }
+      setShowPwForm(false);
+      setNewPw("");
+      toast.success(t("account.passwordSet", "Passwort gesetzt – du kannst dich künftig direkt einloggen."));
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail || t("common.error"));
+    } finally {
+      setSavingPw(false);
+    }
+  };
 
   const positionTypeLabels: Record<string, string> = {
     studentenferienjob: t('positionTypes.studentenferienjob'),
@@ -246,6 +267,60 @@ export default function ApplicantJobRequestPage() {
           <h1 className="text-3xl font-bold text-gray-900">{t('jobRequest.title')}</h1>
           <p className="text-gray-600">{t('jobRequest.subtitle')}</p>
         </div>
+      </div>
+
+      {/* Konto-Box: Status des Zugangs + Link zum Profil */}
+      <div className="mb-8 rounded-2xl border border-primary-100 bg-primary-50/60 p-5">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900 flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary-600" /> So erreichst &amp; sicherst du dein Konto
+            </p>
+            {user?.has_password === false ? (
+              <p className="text-sm text-gray-600 mt-1">
+                Lege ein Passwort fest, damit du dich künftig direkt einloggen kannst – ohne Link.
+              </p>
+            ) : (
+              <p className="text-sm text-gray-600 mt-1">
+                <CheckCircle className="h-4 w-4 text-green-600 inline mr-1" />
+                Passwort ist gesetzt – du kannst dich jederzeit über die Login-Seite anmelden.
+              </p>
+            )}
+          </div>
+          <Link href="/applicant/profile" className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary-200 bg-white text-primary-700 text-sm font-medium hover:bg-primary-50">
+            <FileText className="h-4 w-4" /> Profil &amp; Dokumente
+          </Link>
+        </div>
+
+        {user?.has_password === false && (
+          <div className="mt-3">
+            {showPwForm ? (
+              <div className="flex items-end gap-2 flex-wrap">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Neues Passwort</label>
+                  <input
+                    type="password"
+                    value={newPw}
+                    onChange={(e) => setNewPw(e.target.value)}
+                    placeholder="••••••••"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <button type="button" onClick={handleSetPassword} disabled={savingPw}
+                  className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 inline-flex items-center gap-2">
+                  {savingPw ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Passwort festlegen
+                </button>
+                <button type="button" onClick={() => { setShowPwForm(false); setNewPw(""); }}
+                  className="text-sm text-gray-500 hover:text-gray-700 px-2 py-2">Abbrechen</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setShowPwForm(true)}
+                className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700">
+                Passwort festlegen
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bestehende Aufträge */}

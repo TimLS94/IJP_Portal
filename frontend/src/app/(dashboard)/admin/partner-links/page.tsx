@@ -22,6 +22,9 @@ interface PartnerLink {
   token: string;
   is_active: boolean;
   notes?: string;
+  can_add_students?: boolean;
+  can_edit_students?: boolean;
+  send_onboarding_email?: boolean;
   applicant_count: number;
   created_at: string;
   last_accessed_at?: string;
@@ -98,6 +101,20 @@ export default function AdminPartnerLinksPage() {
     try {
       await adminPartnerLinksAPI.update(link.id, { is_active: !link.is_active });
       toast.success(link.is_active ? "Link deaktiviert" : "Link aktiviert");
+      loadLinks();
+    } catch {
+      toast.error("Fehler beim Aktualisieren");
+    }
+  };
+
+  const togglePermission = async (link: PartnerLink, field: "can_add_students" | "can_edit_students" | "send_onboarding_email") => {
+    const current = field === "can_add_students" ? link.can_add_students
+      : field === "can_edit_students" ? link.can_edit_students
+      : link.send_onboarding_email;
+    const next = !current;
+    try {
+      await adminPartnerLinksAPI.update(link.id, { [field]: next });
+      toast.success("Berechtigung aktualisiert");
       loadLinks();
     } catch {
       toast.error("Fehler beim Aktualisieren");
@@ -293,6 +310,37 @@ export default function AdminPartnerLinksPage() {
                   <div className="flex gap-4 mt-2 text-xs text-gray-400">
                     <span>Erstellt: {formatDate(link.created_at)}</span>
                     <span>Letzter Zugriff: {formatDate(link.last_accessed_at)}</span>
+                  </div>
+
+                  {/* Admin-Rechte des Partners */}
+                  <div className="mt-3 flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="accent-primary-600"
+                        checked={link.can_add_students !== false}
+                        onChange={() => togglePermission(link, "can_add_students")}
+                      />
+                      Student selbst hinzufügen erlauben
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="accent-primary-600"
+                        checked={!!link.can_edit_students}
+                        onChange={() => togglePermission(link, "can_edit_students")}
+                      />
+                      Daten nachträglich bearbeiten erlauben
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="accent-primary-600"
+                        checked={link.send_onboarding_email !== false}
+                        onChange={() => togglePermission(link, "send_onboarding_email")}
+                      />
+                      Onboarding-Mail an Student senden
+                    </label>
                   </div>
 
                   {/* Link-URL */}

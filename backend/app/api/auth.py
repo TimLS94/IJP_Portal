@@ -192,26 +192,8 @@ async def register_applicant(
     db.commit()
     db.refresh(applicant)
 
-    # IJP-Studenten (Selbst-Registrierung über Link): direkt einen IJP-Auftrag anlegen,
-    # damit sie – wie die vom Partner eingetragenen – sofort unter "Bewerberaufträge"
-    # mit Partner-Verknüpfung (invite_source) erscheinen.
-    if portal == "ijp":
-        from app.models.job_request import JobRequest, JobRequestStatus
-        from app.models.applicant import PositionType
-        existing = db.query(JobRequest).filter(JobRequest.applicant_id == applicant.id).first()
-        if not existing:
-            db.add(JobRequest(
-                applicant_id=applicant.id,
-                position_type=PositionType.STUDENTENFERIENJOB,
-                privacy_consent=True,
-                privacy_consent_date=datetime.utcnow(),
-                privacy_consent_text=(
-                    f"Über Link registriert (Quelle: {invite_source or 'IJP'})."
-                ),
-                notes=(f"Über Link registriert (Quelle: {invite_source})." if invite_source else "Über IJP-Registrierung angelegt."),
-                status=JobRequestStatus.PENDING,
-            ))
-            db.commit()
+    # KEINE automatische Beauftragung: IJP-Studenten werden nur registriert.
+    # Der IJP-Auftrag entsteht erst durch die EXPLIZITE Beauftragung ("IJP beauftragen").
 
     # Willkommens-E-Mail senden
     email_service.send_welcome_email(

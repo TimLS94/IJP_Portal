@@ -147,6 +147,15 @@ export function AuthProvider({ children }) {
     try { i18n.changeLanguage(language); } catch { /* ignore */ }
   };
 
+  // Einzelne Felder des Users lokal mergen + persistieren (z.B. has_password nach Setzen).
+  const updateUser = (patch) => {
+    setUser((prev) => {
+      const next = prev ? { ...prev, ...patch } : prev;
+      if (next) { try { safeSet('user', JSON.stringify(next)); } catch { /* ignore */ } }
+      return next;
+    });
+  };
+
   const value = {
     user,
     loading,
@@ -155,6 +164,7 @@ export function AuthProvider({ children }) {
     registerApplicant,
     registerCompany,
     setLanguage,
+    updateUser,
     logout,
     isAuthenticated: !!user,
     isApplicant: user?.role === 'applicant',
