@@ -244,7 +244,11 @@
     "cancel": "Abbrechen",
     "accountCreated": "Willkommen! Dein Konto wurde erstellt.",
     "signingIn": "Wird angemeldet...",
-    "googleLoginFailed": "Google-Anmeldung fehlgeschlagen"
+    "googleLoginFailed": "Google-Anmeldung fehlgeschlagen",
+    "ijpBadge": "IJP – Studentenvermittlung",
+    "ijpCreateAccount": "Konto für Studierende erstellen",
+    "ijpDescription": "Registriere dich, fülle dein Profil aus, lade deine Dokumente hoch und beauftrage IJP mit der Vermittlung.",
+    "ijpRegistrationSuccess": "Registrierung erfolgreich! Willkommen bei IJP."
   },
   "forgotPassword": {
     "title": "Passwort vergessen?",
@@ -758,7 +762,10 @@
       "other": "Sonstiges"
     },
     "fieldsAutofilled": "{{count}} Felder wurden automatisch ausgefüllt – bitte überprüfen!",
-    "workAuthRequired": "Bitte gib an, ob du eine Arbeitserlaubnis für Deutschland hast (Pflichtangabe)."
+    "workAuthRequired": "Bitte gib an, ob du eine Arbeitserlaubnis für Deutschland hast (Pflichtangabe).",
+    "additionalDocuments": "Weitere Dokumente",
+    "addDocument": "Dokument hinzufügen",
+    "noAdditionalDocuments": "Noch keine weiteren Dokumente. Du kannst beliebige zusätzliche PDFs hochladen."
   },
   "documents": {
     "title": "Meine Dokumente",

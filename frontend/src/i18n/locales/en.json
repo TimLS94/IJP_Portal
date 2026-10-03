@@ -244,7 +244,11 @@
     "cancel": "Cancel",
     "accountCreated": "Welcome! Your account has been created.",
     "signingIn": "Signing in...",
-    "googleLoginFailed": "Google sign-in failed"
+    "googleLoginFailed": "Google sign-in failed",
+    "ijpBadge": "IJP – Student Placement",
+    "ijpCreateAccount": "Create a student account",
+    "ijpDescription": "Register, complete your profile, upload your documents and commission IJP with your placement.",
+    "ijpRegistrationSuccess": "Registration successful! Welcome to IJP."
   },
   "forgotPassword": {
     "title": "Forgot Password?",
@@ -758,7 +762,10 @@
       "other": "Other"
     },
     "fieldsAutofilled": "{{count}} fields were filled in automatically – please review!",
-    "workAuthRequired": "Please indicate whether you have a work permit for Germany (required)."
+    "workAuthRequired": "Please indicate whether you have a work permit for Germany (required).",
+    "additionalDocuments": "Additional documents",
+    "addDocument": "Add document",
+    "noAdditionalDocuments": "No additional documents yet. You can upload any extra PDFs."
   },
   "documents": {
     "title": "My Documents",

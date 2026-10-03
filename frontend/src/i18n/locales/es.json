@@ -240,7 +240,11 @@
     "cancel": "Cancelar",
     "accountCreated": "¡Bienvenido/a! Tu cuenta ha sido creada.",
     "signingIn": "Iniciando sesión...",
-    "googleLoginFailed": "Error al iniciar sesión con Google"
+    "googleLoginFailed": "Error al iniciar sesión con Google",
+    "ijpBadge": "IJP – Colocación de estudiantes",
+    "ijpCreateAccount": "Crear una cuenta de estudiante",
+    "ijpDescription": "Regístrate, completa tu perfil, sube tus documentos y encarga a IJP tu colocación.",
+    "ijpRegistrationSuccess": "¡Registro exitoso! Bienvenido/a a IJP."
   },
   "forgotPassword": {
     "title": "¿Olvidó su contraseña?",
@@ -753,7 +757,10 @@
       "other": "Otro"
     },
     "fieldsAutofilled": "¡Se rellenaron {{count}} campos automáticamente! Por favor, revísalos.",
-    "workAuthRequired": "Indica si tienes permiso de trabajo para Alemania (obligatorio)."
+    "workAuthRequired": "Indica si tienes permiso de trabajo para Alemania (obligatorio).",
+    "additionalDocuments": "Documentos adicionales",
+    "addDocument": "Añadir documento",
+    "noAdditionalDocuments": "Aún no hay documentos adicionales. Puedes subir cualquier PDF adicional."
   },
   "documents": {
     "title": "Mis documentos",

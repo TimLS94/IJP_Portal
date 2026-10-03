@@ -916,6 +916,33 @@ export default function ProfileClient() {
               💡 {t('applicant.selectPositionTypeHint')}
             </p>
           )}
+
+          {/* Weitere (freie) Dokumente – zusätzlich zu den vordefinierten, beliebig viele */}
+          <div className="space-y-3 pt-4 border-t mt-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-sm font-medium text-gray-700">{t('applicant.additionalDocuments', 'Weitere Dokumente')}</p>
+              <label className={`inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 cursor-pointer transition-colors ${uploading === 'other' ? 'opacity-50 cursor-wait' : ''}`}>
+                {uploading === 'other' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                <span>{t('applicant.addDocument', 'Dokument hinzufügen')}</span>
+                <input type="file" accept=".pdf" onChange={e => handleUpload(e, 'other')} className="hidden" />
+              </label>
+            </div>
+            {documents.filter(d => d.document_type === 'other').length === 0 ? (
+              <p className="text-xs text-gray-400">{t('applicant.noAdditionalDocuments', 'Noch keine weiteren Dokumente. Du kannst beliebige zusätzliche PDFs hochladen.')}</p>
+            ) : (
+              documents.filter(d => d.document_type === 'other').map((doc: any) => (
+                <div key={doc.id} className="flex items-center justify-between p-4 rounded-xl border-2 border-green-300 bg-green-50">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <CheckCircle className="h-6 w-6 text-green-600 shrink-0" />
+                    <p className="font-medium text-sm truncate">{doc.file_name || doc.original_name}</p>
+                  </div>
+                  <button type="button" onClick={() => handleDelete(doc.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0">
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Desktop: Sticky Bar */}
