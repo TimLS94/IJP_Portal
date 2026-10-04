@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Link2, Plus, Trash2, Copy, Check, X, Users,
-  Loader2, ToggleLeft, ToggleRight, ExternalLink, Shield
+  Loader2, ToggleLeft, ToggleRight, ExternalLink, Shield, Lock
 } from "lucide-react";
 import { adminPartnerLinksAPI, adminAPI } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -25,6 +25,7 @@ interface PartnerLink {
   can_add_students?: boolean;
   can_edit_students?: boolean;
   send_onboarding_email?: boolean;
+  has_password?: boolean;
   applicant_count: number;
   created_at: string;
   last_accessed_at?: string;
@@ -118,6 +119,23 @@ export default function AdminPartnerLinksPage() {
       loadLinks();
     } catch {
       toast.error("Fehler beim Aktualisieren");
+    }
+  };
+
+  const setLinkPassword = async (link: PartnerLink) => {
+    const pw = window.prompt(
+      link.has_password
+        ? `Neues Passwort für "${link.name}" eingeben (leer lassen = Passwortschutz entfernen):`
+        : `Passwort für "${link.name}" festlegen (der Partner muss es beim Öffnen des Links eingeben):`,
+      ""
+    );
+    if (pw === null) return; // Abbrechen
+    try {
+      await adminPartnerLinksAPI.update(link.id, { password: pw });
+      toast.success(pw.trim() ? "Passwort gesetzt" : "Passwortschutz entfernt");
+      loadLinks();
+    } catch {
+      toast.error("Fehler beim Speichern des Passworts");
     }
   };
 
@@ -341,6 +359,14 @@ export default function AdminPartnerLinksPage() {
                       />
                       Onboarding-Mail an Student senden
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => setLinkPassword(link)}
+                      className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-primary-700"
+                    >
+                      <Lock className="h-4 w-4" />
+                      {link.has_password ? "Passwort geschützt – ändern/entfernen" : "Passwort festlegen"}
+                    </button>
                   </div>
 
                   {/* Link-URL */}

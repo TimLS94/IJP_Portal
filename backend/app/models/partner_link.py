@@ -33,6 +33,10 @@ class PartnerLink(Base):
     # Onboarding-Mail an den Studenten beim Anlegen (Passwort-Setzen-Link) senden?
     send_onboarding_email = Column(Boolean, default=True, server_default="true", nullable=False)
 
+    # Optionaler Passwortschutz des Links (vom Admin vorgegeben). Ist er gesetzt,
+    # muss der Partner vor dem Zugriff das Passwort eingeben. NULL = offener Link.
+    password_hash = Column(String(255), nullable=True)
+
     # Optionale Notiz für den Admin
     notes = Column(String(500), nullable=True)
 

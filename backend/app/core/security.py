@@ -96,8 +96,8 @@ def get_active_user_from_token(token: Optional[str], db: Session):
     payload = decode_token(token)
     if payload is None:
         return None
-    # Betrieb-Portal-Tokens sind keine Nutzer-Tokens.
-    if payload.get("scope") == "betrieb_portal":
+    # Betrieb-/Partner-Portal-Tokens sind keine Nutzer-Tokens.
+    if payload.get("scope") in ("betrieb_portal", "partner_portal"):
         return None
     user_id = payload.get("sub")
     if user_id is None:
@@ -131,7 +131,7 @@ async def get_current_user(
 
     # SICHERHEIT: Betrieb-Portal-Tokens sind KEINE Nutzer-Tokens und dürfen keine
     # regulären Endpunkte ansprechen (strikte Trennung der Zugangsarten).
-    if payload.get("scope") == "betrieb_portal":
+    if payload.get("scope") in ("betrieb_portal", "partner_portal"):
         raise credentials_exception
 
     user_id: str = payload.get("sub")

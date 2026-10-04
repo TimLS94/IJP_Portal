@@ -4,15 +4,15 @@ Partner-Links API
 Öffentliche read-only Ansicht für externe Partner (Sprachschulen, Agenturen),
 die Bewerber an IJP vermitteln. Kein Login — nur Token-Validierung.
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import BaseModel
 
 from app.core.database import get_db, utc_now
-from app.core.security import get_current_user
+from app.core.security import get_current_user, verify_password, get_password_hash, create_access_token, decode_token
 from app.models.user import User, UserRole
 from app.models.partner_link import PartnerLink
 from app.models.applicant import Applicant
@@ -153,6 +153,7 @@ class CreatePartnerLinkSchema(BaseModel):
     can_add_students: Optional[bool] = None
     can_edit_students: Optional[bool] = None
     send_onboarding_email: Optional[bool] = None
+    password: Optional[str] = None  # Klartext zum Setzen; leer/None = kein Passwort
 
 
 class UpdatePartnerLinkSchema(BaseModel):
@@ -163,6 +164,7 @@ class UpdatePartnerLinkSchema(BaseModel):
     can_add_students: Optional[bool] = None
     can_edit_students: Optional[bool] = None
     send_onboarding_email: Optional[bool] = None
+    password: Optional[str] = None  # Klartext zum Setzen; "" = Passwortschutz entfernen
 
 
 def require_admin(current_user: User = Depends(get_current_user)):
@@ -197,6 +199,7 @@ async def list_partner_links(
             "can_add_students": bool(getattr(link, "can_add_students", True)),
             "can_edit_students": bool(getattr(link, "can_edit_students", False)),
             "send_onboarding_email": bool(getattr(link, "send_onboarding_email", True)),
+            "has_password": bool(getattr(link, "password_hash", None)),
             "applicant_count": applicant_count,
             "created_at": link.created_at,
             "last_accessed_at": link.last_accessed_at,
@@ -219,6 +222,7 @@ async def create_partner_link(
         can_add_students=True if data.can_add_students is None else data.can_add_students,
         can_edit_students=False if data.can_edit_students is None else data.can_edit_students,
         send_onboarding_email=True if data.send_onboarding_email is None else data.send_onboarding_email,
+        password_hash=(get_password_hash(data.password) if (data.password or "").strip() else None),
     )
     db.add(link)
     db.commit()
@@ -251,6 +255,9 @@ async def update_partner_link(
         link.can_edit_students = data.can_edit_students
     if data.send_onboarding_email is not None:
         link.send_onboarding_email = data.send_onboarding_email
+    if data.password is not None:
+        # "" entfernt den Passwortschutz, sonst neues Passwort setzen.
+        link.password_hash = get_password_hash(data.password) if data.password.strip() else None
     db.commit()
     return {"message": "Aktualisiert"}
 
@@ -272,9 +279,55 @@ async def delete_partner_link(
 
 # ── Public Partner Endpoint ────────────────────────────────────────────────────
 
+def _partner_authorized(link: "PartnerLink", request: Request) -> bool:
+    """True, wenn der Link offen ist (kein Passwort gesetzt) ODER ein gültiges
+    Partner-Session-Token für genau diesen Link mitgeschickt wurde (nach /login)."""
+    if not getattr(link, "password_hash", None):
+        return True
+    tok = request.headers.get("X-Partner-Token") or request.query_params.get("pt") or ""
+    payload = decode_token(tok)
+    if not payload or payload.get("scope") != "partner_portal":
+        return False
+    return payload.get("sub") == f"partner:{link.id}"
+
+
+class PartnerLoginSchema(BaseModel):
+    password: str
+
+
+@router.get("/partner/{token}/meta")
+async def partner_meta(token: str, db: Session = Depends(get_db)):
+    """Öffentlich: nur Name + ob der Link ein Passwort verlangt (keine Bewerberdaten)."""
+    link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
+    if not link:
+        raise HTTPException(status_code=404, detail="Link nicht gefunden")
+    return {
+        "partner_name": link.name,
+        "is_active": bool(link.is_active),
+        "requires_password": bool(getattr(link, "password_hash", None)),
+    }
+
+
+@router.post("/partner/{token}/login")
+async def partner_login(token: str, data: PartnerLoginSchema, db: Session = Depends(get_db)):
+    """Prüft das vom Admin gesetzte Link-Passwort und gibt ein kurzlebiges
+    Partner-Session-Token zurück (12h), das die Partner-Endpunkte autorisiert."""
+    link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
+    if not link or not link.is_active:
+        raise HTTPException(status_code=404, detail="Link nicht gefunden oder deaktiviert")
+    if getattr(link, "password_hash", None) and not verify_password(data.password, link.password_hash):
+        raise HTTPException(status_code=403, detail="Falsches Passwort")
+    partner_token = create_access_token(
+        data={"sub": f"partner:{link.id}", "scope": "partner_portal"},
+        expires_delta=timedelta(hours=12),
+    )
+    return {"partner_token": partner_token}
+
+
 @router.get("/partner/{token}")
 async def get_partner_view(
     token: str,
+    request: Request,
     date_from: Optional[str] = Query(None, description="ISO date, filter: IJP Auftrag ab"),
     date_to: Optional[str] = Query(None, description="ISO date, filter: IJP Auftrag bis"),
     db: Session = Depends(get_db),
@@ -282,13 +335,15 @@ async def get_partner_view(
     """
     Öffentlicher Endpunkt für Partner-Links.
     Gibt eine gefilterte, read-only Übersicht aller Bewerber dieses Partners zurück.
-    Kein Login erforderlich — nur Token-Validierung.
+    Kein Login erforderlich — nur Token-Validierung (plus Passwort, falls gesetzt).
     """
     link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
     if not link:
         raise HTTPException(status_code=404, detail="Link nicht gefunden")
     if not link.is_active:
         raise HTTPException(status_code=403, detail="Dieser Link wurde deaktiviert")
+    if not _partner_authorized(link, request):
+        raise HTTPException(status_code=401, detail="Passwort erforderlich")
 
     # Letzten Zugriff festhalten
     link.last_accessed_at = utc_now()
@@ -362,7 +417,7 @@ class PartnerApplicantCreate(BaseModel):
 
 
 @router.post("/partner/{token}/applicants")
-async def partner_add_applicant(token: str, data: PartnerApplicantCreate, db: Session = Depends(get_db)):
+async def partner_add_applicant(token: str, data: PartnerApplicantCreate, request: Request, db: Session = Depends(get_db)):
     """Ein Partner legt über seinen Link selbst einen Studenten (Bewerber) an.
     Der Bewerber wird der Partner-Quelle zugeordnet und erscheint sofort in der
     Partner-Ansicht. Kein Passwort (Konto ist später per 'Passwort vergessen'/Google
@@ -372,6 +427,8 @@ async def partner_add_applicant(token: str, data: PartnerApplicantCreate, db: Se
     link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
     if not link or not link.is_active:
         raise HTTPException(status_code=404, detail="Link nicht gefunden oder deaktiviert")
+    if not _partner_authorized(link, request):
+        raise HTTPException(status_code=401, detail="Passwort erforderlich")
     if not getattr(link, "can_add_students", True):
         raise HTTPException(status_code=403, detail="Das Anlegen von Studenten ist für diesen Link nicht freigegeben.")
 
@@ -437,7 +494,7 @@ async def partner_add_applicant(token: str, data: PartnerApplicantCreate, db: Se
 
 
 @router.post("/partner/{token}/applicants/{applicant_id}/access")
-async def partner_applicant_access(token: str, applicant_id: int, db: Session = Depends(get_db)):
+async def partner_applicant_access(token: str, applicant_id: int, request: Request, db: Session = Depends(get_db)):
     """Zugriffs-Token für einen vom Partner angelegten Studenten – damit der Partner
     dessen vollständiges Profil + Dokumente im echten Formular ausfüllen kann.
     Nur innerhalb der Partner-Quelle und nur für Studenten OHNE eigenes Passwort
@@ -447,6 +504,8 @@ async def partner_applicant_access(token: str, applicant_id: int, db: Session = 
     link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
     if not link or not link.is_active:
         raise HTTPException(status_code=404, detail="Link nicht gefunden oder deaktiviert")
+    if not _partner_authorized(link, request):
+        raise HTTPException(status_code=401, detail="Passwort erforderlich")
     if not getattr(link, "can_edit_students", False):
         raise HTTPException(status_code=403, detail="Das Bearbeiten von Studentendaten ist für diesen Link nicht freigegeben.")
 

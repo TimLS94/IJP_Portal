@@ -6,7 +6,7 @@ import { partnerAPI } from "@/lib/api";
 import {
   CheckCircle2, XCircle, Clock, Users, FileText,
   Filter, Loader2, AlertCircle, ChevronDown, ChevronUp,
-  ClipboardList, Shield
+  ClipboardList, Shield, Lock
 } from "lucide-react";
 
 interface DocCheck {
@@ -226,6 +226,12 @@ export default function PartnerViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Passwortschutz (vom Admin pro Link gesetzt)
+  const [needPassword, setNeedPassword] = useState(false);
+  const [pwInput, setPwInput] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [metaName, setMetaName] = useState<string | null>(null);
+
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [filtering, setFiltering] = useState(false);
@@ -298,7 +304,11 @@ export default function PartnerViewPage() {
         const status = (err as { response?: { status?: number } })?.response?.status;
         if (status === 404) setError("Dieser Link existiert nicht.");
         else if (status === 403) setError("Dieser Link wurde deaktiviert. Bitte wende dich an IJP.");
-        else setError("Fehler beim Laden der Daten.");
+        else if (status === 401) {
+          // Passwort fehlt/abgelaufen -> Gate zeigen
+          try { window.sessionStorage.removeItem(`partner_token_${token}`); } catch { /* ignore */ }
+          setNeedPassword(true);
+        } else setError("Fehler beim Laden der Daten.");
       } finally {
         setLoading(false);
         setFiltering(false);
@@ -307,9 +317,47 @@ export default function PartnerViewPage() {
     [token]
   );
 
+  // Beim Start: erst Meta prüfen (braucht der Link ein Passwort?).
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    (async () => {
+      try {
+        const res = await partnerAPI.getMeta(token);
+        setMetaName(res.data?.partner_name || null);
+        if (res.data?.is_active === false) { setError("Dieser Link wurde deaktiviert. Bitte wende dich an IJP."); setLoading(false); return; }
+        let hasToken = false;
+        try { hasToken = !!window.sessionStorage.getItem(`partner_token_${token}`); } catch { /* ignore */ }
+        if (res.data?.requires_password && !hasToken) {
+          setNeedPassword(true);
+          setLoading(false);
+          return;
+        }
+        fetchData();
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 404) setError("Dieser Link existiert nicht.");
+        else setError("Fehler beim Laden der Daten.");
+        setLoading(false);
+      }
+    })();
+  }, [token, fetchData]);
+
+  const handlePartnerLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoggingIn(true);
+    try {
+      const res = await partnerAPI.login(token, pwInput);
+      try { window.sessionStorage.setItem(`partner_token_${token}`, res.data.partner_token); } catch { /* ignore */ }
+      setPwInput("");
+      setNeedPassword(false);
+      setLoading(true);
+      fetchData();
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      alert(status === 403 ? "Falsches Passwort." : "Login fehlgeschlagen.");
+    } finally {
+      setLoggingIn(false);
+    }
+  };
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,6 +371,32 @@ export default function PartnerViewPage() {
     setFiltering(true);
     fetchData();
   };
+
+  if (needPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <form onSubmit={handlePartnerLogin} className="bg-white rounded-2xl border border-gray-200 p-6 w-full max-w-sm">
+          <div className="text-center mb-4">
+            <Lock className="h-10 w-10 text-blue-600 mx-auto mb-2" />
+            <h1 className="text-xl font-bold text-gray-900">{metaName || "Partner-Zugang"}</h1>
+            <p className="text-sm text-gray-500 mt-1">Dieser Link ist passwortgeschützt. Bitte gib das Passwort ein, das du von IJP erhalten hast.</p>
+          </div>
+          <input
+            type="password"
+            value={pwInput}
+            onChange={(e) => setPwInput(e.target.value)}
+            placeholder="Passwort"
+            autoFocus
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3"
+          />
+          <button type="submit" disabled={loggingIn || !pwInput}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 inline-flex items-center justify-center gap-2">
+            {loggingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Zugang öffnen
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

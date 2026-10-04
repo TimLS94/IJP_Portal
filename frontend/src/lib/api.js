@@ -667,19 +667,24 @@ export const contractsAPI = {
 };
 
 // Public: Partner-Ansicht (kein Auth, nur Token)
+// Partner-Session-Token (nach /login bei passwortgeschütztem Link), pro Link-Token isoliert.
+const partnerBase = () => process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1';
+const partnerHeaders = (token) => {
+  try {
+    const pt = typeof window !== 'undefined' ? window.sessionStorage.getItem(`partner_token_${token}`) : null;
+    return pt ? { 'X-Partner-Token': pt } : {};
+  } catch { return {}; }
+};
+
 export const partnerAPI = {
-  getView: (token, params = {}) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1';
-    return axios.get(`${baseUrl}/partner/${token}`, { params });
-  },
-  addApplicant: (token, data) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1';
-    return axios.post(`${baseUrl}/partner/${token}/applicants`, data);
-  },
-  getApplicantAccess: (token, applicantId) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ijp-portal.onrender.com/api/v1';
-    return axios.post(`${baseUrl}/partner/${token}/applicants/${applicantId}/access`);
-  },
+  getMeta: (token) => axios.get(`${partnerBase()}/partner/${token}/meta`),
+  login: (token, password) => axios.post(`${partnerBase()}/partner/${token}/login`, { password }),
+  getView: (token, params = {}) =>
+    axios.get(`${partnerBase()}/partner/${token}`, { params, headers: partnerHeaders(token) }),
+  addApplicant: (token, data) =>
+    axios.post(`${partnerBase()}/partner/${token}/applicants`, data, { headers: partnerHeaders(token) }),
+  getApplicantAccess: (token, applicantId) =>
+    axios.post(`${partnerBase()}/partner/${token}/applicants/${applicantId}/access`, {}, { headers: partnerHeaders(token) }),
 };
 
 export default api;
