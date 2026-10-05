@@ -1150,7 +1150,7 @@ async def get_my_jobs(
 ):
     """Listet alle eigenen Stellenangebote (nur Firmen) mit Statistiken"""
     from app.models.job_interaction import JobInteraction, InteractionType
-    from app.models.application import Application
+    from app.models.application import Application, ApplicationStatus
     from sqlalchemy import func
     
     if current_user.role != UserRole.COMPANY:
@@ -1177,7 +1177,8 @@ async def get_my_jobs(
     # Wenn keine Jobs, leere Dicts
     like_counts = {}
     application_counts = {}
-    
+    new_application_counts = {}
+
     if job_ids:
         # Like-Counts pro Job
         like_counts = dict(
@@ -1197,7 +1198,20 @@ async def get_my_jobs(
             .group_by(Application.job_posting_id)
             .all()
         )
-    
+
+        # Neue/unbearbeitete Bewerbungen pro Job = Status "pending" (eingereicht,
+        # noch nicht bearbeitet), ohne gefilterte ("stille") Bewerbungen.
+        new_application_counts = dict(
+            db.query(Application.job_posting_id, func.count(Application.id))
+            .filter(
+                Application.job_posting_id.in_(job_ids),
+                Application.status == ApplicationStatus.PENDING,
+                Application.is_filtered == False,  # noqa: E712
+            )
+            .group_by(Application.job_posting_id)
+            .all()
+        )
+
     # Jobs mit Statistiken zurückgeben
     result = []
     for job in jobs:
@@ -1219,6 +1233,7 @@ async def get_my_jobs(
             "view_count": job.view_count or 0,
             "like_count": like_counts.get(job.id, 0),
             "application_count": application_counts.get(job.id, 0),
+            "new_application_count": new_application_counts.get(job.id, 0),
             "email_click_count": job.email_click_count or 0,
             "phone_click_count": job.phone_click_count or 0,
             "is_featured": bool(job.is_featured),

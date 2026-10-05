@@ -162,10 +162,14 @@ export default function CompanyApplicationsPage() {
   }, []);
 
   // Vorfilterung nach Stelle aus der URL (?job=<id>) – z.B. Klick auf "Bewerbungen" bei einer Stelle
+  // und optional ?status=<status> (z.B. "pending" vom Klick auf "neu")
   useEffect(() => {
     try {
-      const j = new URLSearchParams(window.location.search).get("job");
+      const sp = new URLSearchParams(window.location.search);
+      const j = sp.get("job");
       if (j) setJobFilter(j);
+      const s = sp.get("status");
+      if (s) setStatusFilter(s);
     } catch { /* ignore */ }
   }, []);
 
