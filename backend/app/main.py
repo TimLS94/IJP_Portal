@@ -982,6 +982,12 @@ def cleanup_jobs():
             for application in applications:
                 db.delete(application)
             db.flush()
+            # Job-Interactions (Likes etc.) mitlöschen: FK ist NOT NULL und hat keinen
+            # Delete-Cascade -> sonst versucht SQLAlchemy job_posting_id=NULL zu setzen
+            # und verletzt die NOT-NULL-Constraint (bricht den gesamten Cleanup ab).
+            from app.models.job_interaction import JobInteraction
+            db.query(JobInteraction).filter(JobInteraction.job_posting_id == job.id).delete(synchronize_session=False)
+            db.flush()
             db.delete(job)
             deleted_count += 1
             logger.info(f"Job {job.id} '{job.title}' endgültig gelöscht ({archive_deletion_days} Tage im Archiv)")

@@ -189,12 +189,15 @@ async def list_public_jobs(
     )
 
     if position_type:
-        from sqlalchemy import or_ as _or_pt, func
-        # Prüfe sowohl das Legacy-Feld position_type als auch das neue position_types Array
+        from sqlalchemy import or_ as _or_pt, cast as _cast, String as _String
+        # Prüfe sowohl das Legacy-Feld position_type als auch das neue position_types Array.
+        # WICHTIG: json_contains ist MySQL und existiert auf PostgreSQL NICHT -> stattdessen
+        # das JSON-Array als Text prüfen (portabel für Postgres + SQLite). Der Wert ist ein
+        # kontrolliertes Enum, daher kein Injection-Risiko.
         query = query.filter(
             _or_pt(
                 JobPosting.position_type == position_type,
-                func.json_contains(JobPosting.position_types, f'"{position_type.value}"')
+                _cast(JobPosting.position_types, _String).like(f'%"{position_type.value}"%')
             )
         )
 
@@ -323,12 +326,12 @@ async def list_jobs(
     )
 
     if position_type:
-        from sqlalchemy import or_ as _or_pt2, func as func2
-        # Prüfe sowohl das Legacy-Feld position_type als auch das neue position_types Array
+        from sqlalchemy import or_ as _or_pt2, cast as _cast2, String as _String2
+        # json_contains ist MySQL und existiert auf PostgreSQL NICHT -> JSON-Array als Text prüfen.
         query = query.filter(
             _or_pt2(
                 JobPosting.position_type == position_type,
-                func2.json_contains(JobPosting.position_types, f'"{position_type.value}"')
+                _cast2(JobPosting.position_types, _String2).like(f'%"{position_type.value}"%')
             )
         )
 
