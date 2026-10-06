@@ -77,6 +77,18 @@ export default function AdminUsersPage() {
       .catch(() => {});
   }, []);
 
+  const convertToIjp = async (user: UserData) => {
+    if (!user.applicant_id) return;
+    if (!confirm(`"${user.name || user.email}" als IJP-Student markieren?\n\nDanach kannst du unten die Partner-Quelle zuordnen.`)) return;
+    try {
+      await adminAPI.updateApplicantPortal(user.applicant_id, "ijp");
+      toast.success("Als IJP-Student markiert");
+      loadUsers();
+    } catch {
+      toast.error("Konnte nicht umgestellt werden");
+    }
+  };
+
   const saveSource = async (user: UserData, value: string) => {
     if (!user.applicant_id) return;
     setSavingSourceId(user.applicant_id);
@@ -467,11 +479,21 @@ export default function AdminUsersPage() {
                                     {savingSourceId === user.applicant_id && <Loader2 className="h-3 w-3 animate-spin text-gray-400" />}
                                   </div>
                                 ) : (
-                                  <p className="text-xs text-gray-400 mt-0.5">
-                                    Quelle: {user.invite_source
-                                      ? `${user.invite_source}${user.invite_source_country ? ` (${user.invite_source_country})` : ""}`
-                                      : "Direkt"}
-                                  </p>
+                                  <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                                    <p className="text-xs text-gray-400">
+                                      Quelle: {user.invite_source
+                                        ? `${user.invite_source}${user.invite_source_country ? ` (${user.invite_source_country})` : ""}`
+                                        : "Direkt"}
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => convertToIjp(user)}
+                                      className="text-xs font-medium text-primary-600 hover:text-primary-800 hover:underline"
+                                      title="Diesen Bewerber als IJP-Student markieren (z.B. falsch per Google registriert)"
+                                    >
+                                      → IJP-Student
+                                    </button>
+                                  </div>
                                 )
                               )}
                             </div>

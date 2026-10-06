@@ -24,6 +24,7 @@ class GoogleAuthRequest(BaseModel):
     credential: str  # Google ID Token
     accepted_privacy: bool = False  # Datenschutz-Zustimmung (nur bei Neu-Registrierung Pflicht)
     source_token: Optional[str] = None  # Partner-/Einladungs-Token für Quellen-Tracking
+    portal: Optional[str] = None  # "ijp" = IJP-Studenten-Unterportal (z.B. Google-Button auf /register/ijp)
 
 
 class GoogleAuthResponse(BaseModel):
@@ -117,6 +118,10 @@ async def google_login(
             invite_source = None
             invite_source_country = None
             invite_token_id = None
+            # Portal: explizit (IJP-Google-Button) ODER aus dem Einladungs-Token (portal_type=ijp).
+            # WICHTIG: ohne das wurden IJP-Studenten, die sich per Google anmelden, faelschlich
+            # zu normalen JobOn-Bewerbern (Bugfix).
+            portal = "ijp" if (data.portal == "ijp") else "jobon"
             if data.source_token:
                 from app.models.applicant_invite import ApplicantInviteToken
                 invite = db.query(ApplicantInviteToken).filter(
@@ -127,6 +132,8 @@ async def google_login(
                     invite_source_country = invite.source_country
                     invite_token_id = invite.id
                     invite.use()
+                    if getattr(invite, "portal_type", "jobon") == "ijp":
+                        portal = "ijp"
 
             # Applicant-Profil erstellen
             applicant = Applicant(
@@ -136,6 +143,7 @@ async def google_login(
                 invite_source=invite_source,
                 invite_source_country=invite_source_country,
                 invite_token_id=invite_token_id,
+                portal=portal,
             )
             db.add(applicant)
             db.commit()

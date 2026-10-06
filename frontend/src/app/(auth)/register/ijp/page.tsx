@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Mail, Lock, Loader2, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { getStoredSource, clearStoredSource } from "@/lib/sourceTracking";
+import GoogleLoginButton from "@/components/GoogleLoginButton";
 
 interface IjpRegisterForm {
   email: string;
@@ -206,6 +207,14 @@ function IjpRegisterPageInner() {
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : t("auth.registerButton")}
           </button>
         </form>
+
+        {/* Google-Login mit IJP-Kontext, damit Studenten auch per Google als IJP-Student starten */}
+        <div className="flex items-center gap-3 my-5">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-xs text-gray-400">{t("auth.orWithEmail", "oder")}</span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
+        <GoogleLoginButton portal="ijp" />
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">

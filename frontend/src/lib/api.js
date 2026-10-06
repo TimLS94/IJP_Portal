@@ -86,7 +86,13 @@ export const authAPI = {
    * @param {boolean} [acceptedPrivacy]
    * @param {string | null} [sourceToken]
    */
-  googleLogin: (credential, acceptedPrivacy = false, sourceToken = null) => api.post('/auth/google/login', { credential, accepted_privacy: acceptedPrivacy, source_token: sourceToken }),
+  /**
+   * @param {string} credential
+   * @param {boolean} [acceptedPrivacy]
+   * @param {string|null} [sourceToken]
+   * @param {string|null} [portal]
+   */
+  googleLogin: (credential, acceptedPrivacy = false, sourceToken = null, portal = null) => api.post('/auth/google/login', { credential, accepted_privacy: acceptedPrivacy, source_token: sourceToken, portal }),
 };
 
 // Applicant API
@@ -412,6 +418,7 @@ export const adminAPI = {
   // Bewerber
   listApplicants: (params) => api.get('/admin/applicants', { params }),
   updateApplicantSource: (id, inviteSource) => api.patch(`/admin/applicants/${id}/source`, { invite_source: inviteSource }),
+  updateApplicantPortal: (id, portal) => api.patch(`/admin/applicants/${id}/portal`, { portal }),
   getApplicantDocuments: (id) => api.get(`/admin/applicants/${id}/documents`),
   downloadAllDocuments: (id) => api.get(`/admin/applicants/${id}/documents/download-all`, { responseType: 'blob' }),
   

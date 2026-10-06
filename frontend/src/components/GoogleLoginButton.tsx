@@ -25,9 +25,10 @@ declare global {
 
 interface GoogleLoginButtonProps {
   onSuccess?: (user: any) => void;
+  portal?: "jobon" | "ijp";  // "ijp" = Student meldet sich aus dem IJP-Flow an
 }
 
-export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps) {
+export default function GoogleLoginButton({ onSuccess, portal }: GoogleLoginButtonProps) {
   const [googleConfig, setGoogleConfig] = useState<{ enabled: boolean; client_id?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -86,7 +87,7 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
         ? new URLSearchParams(window.location.search).get("source")
         : null;
       const sourceToken = urlSource || getStoredSource();
-      const result = await authAPI.googleLogin(credential, accepted, sourceToken);
+      const result = await authAPI.googleLogin(credential, accepted, sourceToken, portal || null);
       const { access_token, user, is_new_user } = result.data;
 
       localStorage.setItem("token", access_token);

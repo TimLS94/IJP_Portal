@@ -1985,6 +1985,29 @@ async def update_applicant_source(
     return {"message": "Quelle aktualisiert", "invite_source": source}
 
 
+class UpdateApplicantPortalRequest(BaseModel):
+    portal: str  # "ijp" | "jobon"
+
+
+@router.patch("/applicants/{applicant_id}/portal")
+async def update_applicant_portal(
+    applicant_id: int,
+    data: UpdateApplicantPortalRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Setzt das Portal eines Bewerbers (IJP-Student vs. JobOn) – z.B. um Studenten,
+    die sich faelschlich per Google als normaler Nutzer angemeldet haben, nachtraeglich
+    korrekt als IJP-Studenten zu markieren."""
+    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
+    portal = "ijp" if data.portal == "ijp" else "jobon"
+    applicant.portal = portal
+    db.commit()
+    return {"message": "Portal aktualisiert", "portal": portal}
+
+
 @router.get("/applicants/export/csv")
 async def export_applicants_csv(
     invite_source: Optional[str] = None,
