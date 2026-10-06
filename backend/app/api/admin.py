@@ -1019,10 +1019,11 @@ async def list_users(
         if user.role == UserRole.APPLICANT:
             applicant = db.query(Applicant).filter(Applicant.user_id == user.id).first()
             if applicant:
+                user_data["applicant_id"] = applicant.id
                 user_data["name"] = f"{applicant.first_name} {applicant.last_name}"
                 user_data["position_type"] = applicant.position_type
                 user_data["portal"] = getattr(applicant, "portal", "jobon") or "jobon"
-                # Herkunft/Partner-Quelle – schon ab Registrierung sichtbar (vor dem Auftrag)
+                # Herkunft/Partner-Quelle – schon ab Registrierung sichtbar + editierbar (vor dem Auftrag)
                 user_data["invite_source"] = getattr(applicant, "invite_source", None)
                 user_data["invite_source_country"] = getattr(applicant, "invite_source_country", None)
         elif user.role == UserRole.COMPANY:

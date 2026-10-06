@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { adminAPI, downloadBlob } from "@/lib/api";
+import { adminAPI, adminPartnerLinksAPI, downloadBlob } from "@/lib/api";
 import toast from "react-hot-toast";
 import { 
   Users, Search, UserCheck, UserX, Building2, 
@@ -25,6 +25,7 @@ interface UserData {
   last_login_at?: string;
   is_premium?: boolean;
   portal?: string; // "jobon" | "ijp"
+  applicant_id?: number;
   invite_source?: string | null;
   invite_source_country?: string | null;
 }
@@ -62,9 +63,33 @@ export default function AdminUsersPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [gdprCompany, setGdprCompany] = useState<any>(null);
 
+  // Partner-Quellen zum Auswählen/Speichern direkt in der Nutzerliste
+  const [partnerLinks, setPartnerLinks] = useState<{ name: string; partner_source: string }[]>([]);
+  const [savingSourceId, setSavingSourceId] = useState<number | null>(null);
+
   useEffect(() => {
     loadUsers();
   }, [roleFilter, portalFilter, page, sortBy, sortDir]);
+
+  useEffect(() => {
+    adminPartnerLinksAPI.list()
+      .then((r) => setPartnerLinks(r.data.links || []))
+      .catch(() => {});
+  }, []);
+
+  const saveSource = async (user: UserData, value: string) => {
+    if (!user.applicant_id) return;
+    setSavingSourceId(user.applicant_id);
+    try {
+      await adminAPI.updateApplicantSource(user.applicant_id, value || null);
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, invite_source: value || null } : u));
+      toast.success(value ? `Quelle gesetzt: ${value}` : 'Auf "Direkt" gesetzt');
+    } catch {
+      toast.error("Quelle konnte nicht gespeichert werden");
+    } finally {
+      setSavingSourceId(null);
+    }
+  };
 
   const loadUsers = async () => {
     setLoading(true);
@@ -419,11 +444,35 @@ export default function AdminUsersPage() {
                                 )}
                               </div>
                               {user.role === "applicant" && (
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  Quelle: {user.invite_source
-                                    ? `${user.invite_source}${user.invite_source_country ? ` (${user.invite_source_country})` : ""}`
-                                    : "Direkt"}
-                                </p>
+                                user.portal === "ijp" ? (
+                                  <div className="mt-1 flex items-center gap-1">
+                                    <span className="text-xs text-gray-400 shrink-0">Quelle:</span>
+                                    <select
+                                      value={user.invite_source || ""}
+                                      disabled={savingSourceId === user.applicant_id}
+                                      onChange={(e) => saveSource(user, e.target.value)}
+                                      className="text-xs border border-gray-200 rounded px-1 py-0.5 bg-white max-w-[200px] disabled:opacity-50"
+                                      title="Partner-Quelle auswählen und speichern"
+                                    >
+                                      <option value="">Direkt (keine Quelle)</option>
+                                      {user.invite_source && !partnerLinks.some((p) => p.partner_source === user.invite_source) && (
+                                        <option value={user.invite_source}>{user.invite_source}</option>
+                                      )}
+                                      {partnerLinks.map((p) => (
+                                        <option key={p.partner_source} value={p.partner_source}>
+                                          {p.name} ({p.partner_source})
+                                        </option>
+                                      ))}
+                                    </select>
+                                    {savingSourceId === user.applicant_id && <Loader2 className="h-3 w-3 animate-spin text-gray-400" />}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-gray-400 mt-0.5">
+                                    Quelle: {user.invite_source
+                                      ? `${user.invite_source}${user.invite_source_country ? ` (${user.invite_source_country})` : ""}`
+                                      : "Direkt"}
+                                  </p>
+                                )
                               )}
                             </div>
                           </div>
