@@ -444,23 +444,40 @@ async def partner_add_applicant(token: str, data: PartnerApplicantCreate, reques
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=400, detail="Diese E-Mail ist bereits registriert")
 
-    user = User(email=email, password_hash=None, role=UserRole.APPLICANT, is_active=True)
-    db.add(user)
-    db.flush()  # ID generieren
+    # Anlegen in try/except: schlägt der Insert fehl (z.B. E-Mail-Dublette durch eine
+    # Race-Condition bei mehreren schnellen Einträgen), MUSS zurückgerollt werden –
+    # sonst bleibt die Session "aborted" und vergiftet die Verbindung (InFailedSqlTransaction),
+    # was Folge-Anfragen reißt und einen Teil der Studenten still verschluckt.
+    try:
+        user = User(email=email, password_hash=None, role=UserRole.APPLICANT, is_active=True)
+        db.add(user)
+        db.flush()  # ID generieren
 
-    applicant = Applicant(
-        user_id=user.id,
-        first_name=first,
-        last_name=last,
-        phone=((data.phone or "").strip() or None),
-        invite_source=link.partner_source,
-        privacy_accepted=True,   # Partner bestätigt die Einwilligung des Studenten
-        privacy_accepted_at=_date.today(),
-        portal="ijp",            # IJP-Studenten-Unterportal (nicht der öffentliche JobOn-Pool)
-    )
-    db.add(applicant)
-    db.commit()
-    db.refresh(applicant)
+        applicant = Applicant(
+            user_id=user.id,
+            first_name=first,
+            last_name=last,
+            phone=((data.phone or "").strip() or None),
+            invite_source=link.partner_source,
+            privacy_accepted=True,   # Partner bestätigt die Einwilligung des Studenten
+            privacy_accepted_at=_date.today(),
+            portal="ijp",            # IJP-Studenten-Unterportal (nicht der öffentliche JobOn-Pool)
+        )
+        db.add(applicant)
+        db.commit()
+        db.refresh(applicant)
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        import logging
+        logging.getLogger(__name__).error(f"Partner-Student anlegen fehlgeschlagen ({email}): {e}")
+        # Falls parallel schon angelegt: existierenden Account als Erfolg behandeln wäre riskant
+        # (fremde Zuordnung) – daher klare Fehlermeldung, Partner kann erneut/korrigiert eintragen.
+        raise HTTPException(
+            status_code=409,
+            detail="Student konnte nicht angelegt werden (evtl. ist die E-Mail bereits vergeben). Bitte Angaben prüfen und erneut versuchen.",
+        )
 
     # KEINE automatische Beauftragung mehr: der Student wird nur gespeichert.
     # Der IJP-Auftrag entsteht erst durch die EXPLIZITE Beauftragung ("IJP beauftragen"

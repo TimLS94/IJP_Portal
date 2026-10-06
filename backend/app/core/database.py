@@ -34,5 +34,14 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+        # Fehlgeschlagene Transaktion sauber zurücksetzen, damit die Verbindung
+        # nicht "vergiftet" in den Pool zurückkehrt (verhindert InFailedSqlTransaction-
+        # Kaskaden, z.B. wenn die DB während eines Deploys kurz Verbindungen trennt).
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         db.close()

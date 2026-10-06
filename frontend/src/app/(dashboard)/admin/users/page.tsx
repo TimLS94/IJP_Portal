@@ -25,6 +25,8 @@ interface UserData {
   last_login_at?: string;
   is_premium?: boolean;
   portal?: string; // "jobon" | "ijp"
+  invite_source?: string | null;
+  invite_source_country?: string | null;
 }
 
 interface GdprDocument {
@@ -407,12 +409,23 @@ export default function AdminUsersPage() {
                             <div className="bg-gray-100 p-2 rounded-full">
                               <RoleIcon className="h-5 w-5 text-gray-600" />
                             </div>
-                            <span className="font-medium">{user.name || "-"}</span>
-                            {user.portal === "ijp" && (
-                              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-700">
-                                IJP
-                              </span>
-                            )}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium">{user.name || "-"}</span>
+                                {user.portal === "ijp" && (
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-700">
+                                    IJP
+                                  </span>
+                                )}
+                              </div>
+                              {user.role === "applicant" && (
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  Quelle: {user.invite_source
+                                    ? `${user.invite_source}${user.invite_source_country ? ` (${user.invite_source_country})` : ""}`
+                                    : "Direkt"}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-600">{user.email}</td>
