@@ -365,6 +365,7 @@ export const interviewAPI = {
   getPending: () => api.get('/interviews/pending'),
   // Kombinierte Update-Email senden
   sendUpdateEmail: (data) => api.post('/interviews/send-update-email', data),
+  update: (interviewId, data) => api.patch(`/interviews/${interviewId}`, data),
   // Kalender-Ansicht für Firma
   getCompanyCalendar: () => api.get('/interviews/company/calendar'),
   // ICS-Download für einen Termin

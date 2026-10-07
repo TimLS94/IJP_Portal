@@ -152,6 +152,25 @@ export default function CompanyApplicationsPage() {
     notes: "",
   });
   const [pendingInterview, setPendingInterview] = useState<any>(null);
+  // Interview-Link nachträglich bearbeiten
+  const [editLinkId, setEditLinkId] = useState<number | null>(null);
+  const [editLinkValue, setEditLinkValue] = useState("");
+  const [savingLink, setSavingLink] = useState(false);
+
+  const saveInterviewLink = async (interview: any, appId: number) => {
+    setSavingLink(true);
+    try {
+      const res = await interviewAPI.update(interview.id, { meeting_link: editLinkValue || null, send_email: true });
+      toast.success(res.data?.email_sent ? "Link gespeichert – E-Mail an Kandidat gesendet" : "Link gespeichert");
+      setEditLinkId(null);
+      setEditLinkValue("");
+      loadInterviews(appId);
+    } catch {
+      toast.error("Link konnte nicht gespeichert werden");
+    } finally {
+      setSavingLink(false);
+    }
+  };
 
   useEffect(() => {
     loadApplications();
@@ -1614,6 +1633,29 @@ export default function CompanyApplicationsPage() {
                                       {interview.meeting_link}
                                     </a>
                                   </p>
+                                )}
+                                {(interview.status === "proposed" || interview.status === "confirmed") && (
+                                  <div className="mt-2">
+                                    {editLinkId === interview.id ? (
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <input
+                                          type="url"
+                                          value={editLinkValue}
+                                          onChange={(e) => setEditLinkValue(e.target.value)}
+                                          placeholder="https://zoom.us/… · Teams · Meet"
+                                          className="text-sm border border-gray-300 rounded px-2 py-1 flex-1 min-w-[180px]"
+                                        />
+                                        <button type="button" disabled={savingLink} onClick={() => selectedAppId && saveInterviewLink(interview, selectedAppId)} className="text-sm bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700 disabled:opacity-50">
+                                          {savingLink ? "…" : "Speichern & Mail"}
+                                        </button>
+                                        <button type="button" onClick={() => { setEditLinkId(null); setEditLinkValue(""); }} className="text-sm text-gray-500 hover:text-gray-700">Abbrechen</button>
+                                      </div>
+                                    ) : (
+                                      <button type="button" onClick={() => { setEditLinkId(interview.id); setEditLinkValue(interview.meeting_link || ""); }} className="text-sm text-primary-600 hover:underline inline-flex items-center gap-1">
+                                        <Video className="h-3.5 w-3.5" /> {interview.meeting_link ? "Link bearbeiten" : "Link hinzufügen"}
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                               

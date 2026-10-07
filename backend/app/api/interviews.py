@@ -531,6 +531,77 @@ async def send_update_email(
     }
 
 
+class InterviewUpdate(BaseModel):
+    """Nachträgliches Bearbeiten eines Interviews (z.B. Link hinzufügen/ändern)."""
+    meeting_link: Optional[str] = None
+    location: Optional[str] = None
+    send_email: bool = True
+
+
+@router.patch("/{interview_id}", response_model=dict)
+async def update_interview(
+    interview_id: int,
+    data: InterviewUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aktualisiert ein bestehendes Interview (Meeting-Link/Ort) nachträglich und
+    benachrichtigt den Kandidaten per E-Mail (inkl. Link), wenn der Link sich ändert."""
+    if current_user.role not in ["company", "admin"]:
+        raise HTTPException(status_code=403, detail="Keine Berechtigung")
+
+    interview = db.query(Interview).filter(Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview nicht gefunden")
+
+    application = db.query(Application).filter(Application.id == interview.application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Bewerbung nicht gefunden")
+
+    if current_user.role == "company":
+        company = get_company_for_user(current_user, db)
+        if not company or not application.job_posting or application.job_posting.company_id != company.id:
+            raise HTTPException(status_code=403, detail="Keine Berechtigung für dieses Interview")
+
+    old_link = interview.meeting_link
+    if data.meeting_link is not None:
+        interview.meeting_link = (data.meeting_link.strip() or None)
+    if data.location is not None:
+        interview.location = (data.location.strip() or None)
+    interview.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(interview)
+
+    link_changed = (interview.meeting_link or None) != (old_link or None)
+    email_sent = False
+    if data.send_email and link_changed and interview.meeting_link:
+        applicant = application.applicant
+        if applicant and applicant.user and applicant.user.email:
+            job_title = application.job_posting.title if application.job_posting else "Stelle"
+            company_name = (application.job_posting.company.company_name
+                            if application.job_posting and application.job_posting.company else "Unternehmen")
+            when = interview.confirmed_date or interview.proposed_date_1
+            dates = [when.strftime("%d.%m.%Y um %H:%M Uhr")] if when else None
+            try:
+                email_service.send_application_update(
+                    to_email=applicant.user.email,
+                    applicant_name=f"{applicant.first_name} {applicant.last_name}",
+                    job_title=job_title,
+                    company_name=company_name,
+                    new_status=None,
+                    interview_dates=dates,
+                    interview_location=interview.location,
+                    interview_link=interview.meeting_link,
+                    interview_notes="Der Link zum Vorstellungsgespräch wurde hinzugefügt bzw. aktualisiert.",
+                )
+                email_sent = True
+            except Exception as _e:
+                import logging
+                logging.getLogger(__name__).warning(f"Interview-Update-Mail fehlgeschlagen (Interview {interview.id}): {_e}")
+
+    return {"success": True, "meeting_link": interview.meeting_link, "email_sent": email_sent}
+
+
 @router.get("/application/{application_id}", response_model=List[dict])
 async def get_interviews_for_application(
     application_id: int,
