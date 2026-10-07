@@ -874,24 +874,39 @@ async def download_all_documents(
     if not documents:
         raise HTTPException(status_code=404, detail="Keine Dokumente vorhanden")
     
+    # WICHTIG: In Produktion liegen die Dateien im R2/Cloud-Storage, NICHT lokal.
+    # Daher jede Datei über den Storage-Service holen (wie beim Einzel-Download),
+    # statt vom lokalen Dateisystem zu lesen.
+    from app.services.storage_service import storage_service
     zip_buffer = io.BytesIO()
     files_added = 0
-    
+
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         for doc in documents:
-            # Baue den vollständigen Pfad: uploads/{applicant_id}/{filename}
-            full_path = os.path.join(settings.UPLOAD_DIR, str(applicant.id), doc.file_name)
-            
-            if os.path.exists(full_path):
-                archive_name = f"{doc.document_type.value}_{doc.original_name}"
-                zip_file.write(full_path, archive_name)
+            content = None
+            try:
+                ok, content, _err = await storage_service.download_file(doc.file_path)
+                if not ok:
+                    content = None
+            except Exception:
+                content = None
+            # Fallback auf lokales Dateisystem (nur Dev)
+            if content is None:
+                full_path = os.path.join(settings.UPLOAD_DIR, str(applicant.id), doc.file_name)
+                for p in (full_path, doc.file_path):
+                    try:
+                        if p and os.path.exists(p):
+                            with open(p, "rb") as fh:
+                                content = fh.read()
+                            break
+                    except Exception:
+                        pass
+            if content:
+                # doc.id als Prefix verhindert Namenskollisionen (z.B. mehrere "Sonstiges")
+                archive_name = f"{doc.id}_{doc.document_type.value}_{doc.original_name}"
+                zip_file.writestr(archive_name, content)
                 files_added += 1
-            elif os.path.exists(doc.file_path):
-                # Fallback: Versuche den gespeicherten Pfad direkt
-                archive_name = f"{doc.document_type.value}_{doc.original_name}"
-                zip_file.write(doc.file_path, archive_name)
-                files_added += 1
-    
+
     if files_added == 0:
         raise HTTPException(status_code=404, detail="Keine Dateien gefunden auf dem Server")
     
