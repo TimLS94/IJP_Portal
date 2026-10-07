@@ -586,6 +586,8 @@ async def update_job_request_status(
     
     old_status = req.status
     old_public_status = req.public_status
+    old_interview_link = req.interview_link
+    old_interview_date = req.interview_date
     req.status = data.status
 
     # Öffentlichen Status setzen oder löschen
@@ -719,7 +721,54 @@ async def update_job_request_status(
                 </html>
                 """
             )
-    
+
+    # Interview-Link/-Termin nachträglich hinzugefügt/geändert (OHNE Status-Wechsel):
+    # separate E-Mail an den Kandidaten – inkl. Link direkt in der Mail.
+    # Nur bei LINK-Änderung triggern (das Frontend kürzt das Datum auf YYYY-MM-DD,
+    # ein Datumsvergleich würde sonst falsch-positiv auslösen).
+    interview_changed = (req.interview_link or None) != (old_interview_link or None)
+    if interview_changed and not email_status and req.interview_link:
+        applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+        user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
+        if user:
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
+            link_added = bool(req.interview_link) and (req.interview_link != old_interview_link)
+            headline = ("Der Link zu Ihrem Vorstellungsgespräch wurde hinzugefügt"
+                        if link_added else "Ihre Interview-Details wurden aktualisiert")
+            details = ""
+            if req.interview_date:
+                details += f'<p style="margin:5px 0;"><strong>Termin:</strong> {req.interview_date.strftime("%d.%m.%Y um %H:%M Uhr")}</p>'
+            if req.interview_link:
+                details += (f'<p style="margin:5px 0;"><strong>Link zum Gespräch:</strong> '
+                            f'<a href="{req.interview_link}" style="color:#2563eb;">{req.interview_link}</a></p>')
+            try:
+                email_service.send_email(
+                    to_email=user.email,
+                    subject="IJP: Link zum Vorstellungsgespräch",
+                    html_content=f"""
+                    <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <h1 style="color: #2563eb; margin: 0;">IJP - International Job Placement</h1>
+                            </div>
+                            <p>Hallo {applicant.first_name},</p>
+                            <p>{headline}:</p>
+                            <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+                                <h3 style="color: #92400e; margin: 0 0 10px 0;">📅 Vorstellungsgespräch</h3>
+                                {details}
+                            </div>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{frontend_url}/applicant/ijp-auftrag" style="background: #2563eb; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Details ansehen →</a>
+                            </div>
+                            <p>Mit freundlichen Grüßen,<br><strong>Ihr IJP-Team</strong></p>
+                        </div>
+                    </body></html>
+                    """
+                )
+            except Exception as _e:
+                import logging
+                logging.getLogger(__name__).warning(f"Interview-Update-Mail fehlgeschlagen (Auftrag {req.id}): {_e}")
+
     return {
         "message": "Status aktualisiert",
         "status": req.status.value,
