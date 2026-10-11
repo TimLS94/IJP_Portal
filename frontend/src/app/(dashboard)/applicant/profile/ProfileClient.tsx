@@ -145,8 +145,8 @@ export default function ProfileClient() {
   };
 
   const onSubmit = async (data: any) => {
-    // Arbeitserlaubnis ist Pflichtangabe (Ja/Nein muss gewählt sein)
-    if (data.work_authorized !== true && data.work_authorized !== false) {
+    // Arbeitserlaubnis ist Pflichtangabe (Ja/Nein) – NICHT für IJP-Studenten (kein Visum-Thema).
+    if (!isIjp && data.work_authorized !== true && data.work_authorized !== false) {
       toast.error(t("applicant.workAuthRequired", "Bitte gib an, ob du eine Arbeitserlaubnis für Deutschland hast (Pflichtangabe)."));
       return;
     }
@@ -669,7 +669,8 @@ export default function ProfileClient() {
               )}
             </div>
 
-            {/* Arbeitserlaubnis – PFLICHTANGABE */}
+            {/* Arbeitserlaubnis – PFLICHTANGABE (nicht für IJP-Studenten: kein Visum/Arbeitserlaubnis-Thema) */}
+            {!isIjp && (
             <div className="pt-4 border-t">
               <label className="label">
                 Arbeitserlaubnis für Deutschland <span className="text-red-500">*</span>
@@ -726,6 +727,7 @@ export default function ProfileClient() {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
 

@@ -362,7 +362,8 @@ export default function ApplicantSettingsPage() {
             </div>
           </label>
 
-          {/* Telegram Job-Alerts */}
+          {/* Telegram Job-Alerts – NICHT für IJP-Studenten (eigener IJP-Bot für Status) */}
+          {user?.portal !== "ijp" && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-sky-50 rounded-xl">
             <div className="flex items-center gap-3">
               <Send className="h-5 w-5 text-sky-600" />
@@ -385,6 +386,7 @@ export default function ApplicantSettingsPage() {
               <span className="text-sm text-gray-400 shrink-0">{t('telegram.unavailable')}</span>
             )}
           </div>
+          )}
         </div>
       </div>
 

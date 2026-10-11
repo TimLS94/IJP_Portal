@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Send, X } from "lucide-react";
 import { telegramAPI } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/context/AuthContext";
 
 const STORAGE_KEY = "telegram_banner_seen";
 
@@ -28,10 +29,14 @@ function safeSet(key: string, value: string): void {
 // Wird nur einmal angezeigt (danach dauerhaft in den E-Mail-Einstellungen erreichbar).
 export default function TelegramAccountBanner() {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const isIjp = user?.portal === "ijp";
   const [link, setLink] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    // IJP-Studenten bekommen einen eigenen IJP-Bot (Status), nicht die JobOn-Job-Alerts.
+    if (isIjp) return;
     if (safeGet(STORAGE_KEY)) return; // schon gesehen -> nie wieder
     let active = true;
     telegramAPI
@@ -46,7 +51,7 @@ export default function TelegramAccountBanner() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [isIjp]);
 
   const dismiss = () => {
     safeSet(STORAGE_KEY, "1");
