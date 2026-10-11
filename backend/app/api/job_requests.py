@@ -3,7 +3,8 @@ API Endpoints für IJP-Aufträge (Job Requests)
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func as _sa_func
 from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel
@@ -412,14 +413,37 @@ async def list_job_requests(
             pass
     
     total = query.count()
-    requests = query.order_by(JobRequest.created_at.desc()).offset(skip).limit(limit).all()
-    
+    requests = (
+        query.options(joinedload(JobRequest.assigned_betrieb))
+        .order_by(JobRequest.created_at.desc())
+        .offset(skip).limit(limit).all()
+    )
+
+    # Performance: Applicants/Users/Dokument-Zähler gebündelt laden statt N+1 pro Auftrag
+    # (verhindert sehr lange Ladezeiten in der Bewerberaufträge-Liste).
+    applicant_ids = [req.applicant_id for req in requests if req.applicant_id]
+    applicants_map = {}
+    users_map = {}
+    doc_counts = {}
+    if applicant_ids:
+        _apps = db.query(Applicant).filter(Applicant.id.in_(applicant_ids)).all()
+        applicants_map = {a.id: a for a in _apps}
+        _user_ids = [a.user_id for a in _apps if a.user_id]
+        if _user_ids:
+            users_map = {u.id: u for u in db.query(User).filter(User.id.in_(_user_ids)).all()}
+        doc_counts = dict(
+            db.query(Document.applicant_id, _sa_func.count(Document.id))
+            .filter(Document.applicant_id.in_(applicant_ids))
+            .group_by(Document.applicant_id)
+            .all()
+        )
+
     result = []
     for req in requests:
-        applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
-        user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
-        doc_count = db.query(Document).filter(Document.applicant_id == applicant.id).count() if applicant else 0
-        
+        applicant = applicants_map.get(req.applicant_id)
+        user = users_map.get(applicant.user_id) if applicant else None
+        doc_count = doc_counts.get(applicant.id, 0) if applicant else 0
+
         result.append({
             "id": req.id,
             "applicant_id": applicant.id if applicant else None,
