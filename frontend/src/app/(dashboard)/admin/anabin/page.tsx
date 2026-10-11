@@ -98,6 +98,9 @@ export default function AnabinVerificationPage() {
   useEffect(() => {
     loadStudents();
     loadDatabaseInfo();
+    // Laufenden Scrape erkennen, auch wenn der Nutzer den Scraper nicht geöffnet hat
+    // (sonst bleibt ein Hintergrund-Scrape ohne sichtbaren Abbrechen-Button).
+    loadScrapeStatus();
   }, []);
 
   const loadStudents = async () => {
@@ -445,6 +448,19 @@ export default function AnabinVerificationPage() {
             </button>
           </div>
         </div>
+
+        {/* Immer sichtbarer Hinweis + Abbrechen, wenn ein Scrape läuft (auch bei geschlossenem Panel) */}
+        {scrapeProgress?.status === "running" && !showScraper && (
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-blue-800 font-medium">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Anabin-Scrape läuft {scrapeProgress.current_country ? `(${scrapeProgress.current_country})` : ""} – {scrapeProgress.universities_found} Unis gefunden
+            </div>
+            <button onClick={handleCancelScrape} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 flex items-center gap-1">
+              <Square className="h-4 w-4" /> Scrape abbrechen
+            </button>
+          </div>
+        )}
 
         {/* Scraper Panel */}
         {showScraper && (
