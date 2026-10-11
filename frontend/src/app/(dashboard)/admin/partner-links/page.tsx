@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Link2, Plus, Trash2, Copy, Check, X, Users,
-  Loader2, ToggleLeft, ToggleRight, ExternalLink, Shield, Lock
+  Loader2, ToggleLeft, ToggleRight, ExternalLink, Shield, Lock, Eye, EyeOff
 } from "lucide-react";
 import { adminPartnerLinksAPI, adminAPI } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -26,6 +26,7 @@ interface PartnerLink {
   can_edit_students?: boolean;
   send_onboarding_email?: boolean;
   has_password?: boolean;
+  password?: string | null;
   applicant_count: number;
   created_at: string;
   last_accessed_at?: string;
@@ -41,6 +42,7 @@ export default function AdminPartnerLinksPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [revealedPwId, setRevealedPwId] = useState<number | null>(null);
   const [inviteSources, setInviteSources] = useState<ApplicantInvite[]>([]);
 
   const [form, setForm] = useState({
@@ -367,6 +369,19 @@ export default function AdminPartnerLinksPage() {
                       <Lock className="h-4 w-4" />
                       {link.has_password ? "Passwort geschützt – ändern/entfernen" : "Passwort festlegen"}
                     </button>
+                    {link.has_password && (
+                      <button
+                        type="button"
+                        onClick={() => setRevealedPwId(revealedPwId === link.id ? null : link.id)}
+                        className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-primary-700"
+                        title="Link-Passwort anzeigen"
+                      >
+                        {revealedPwId === link.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {revealedPwId === link.id
+                          ? (link.password ? <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs">{link.password}</code> : <span className="text-xs text-gray-400">(nicht gespeichert)</span>)
+                          : "Passwort anzeigen"}
+                      </button>
+                    )}
                   </div>
 
                   {/* Link-URL */}

@@ -200,6 +200,7 @@ async def list_partner_links(
             "can_edit_students": bool(getattr(link, "can_edit_students", False)),
             "send_onboarding_email": bool(getattr(link, "send_onboarding_email", True)),
             "has_password": bool(getattr(link, "password_hash", None)),
+            "password": getattr(link, "password_plain", None),  # Klartext (nur Admin) zum Wiederanzeigen
             "applicant_count": applicant_count,
             "created_at": link.created_at,
             "last_accessed_at": link.last_accessed_at,
@@ -223,6 +224,7 @@ async def create_partner_link(
         can_edit_students=False if data.can_edit_students is None else data.can_edit_students,
         send_onboarding_email=True if data.send_onboarding_email is None else data.send_onboarding_email,
         password_hash=(get_password_hash(data.password) if (data.password or "").strip() else None),
+        password_plain=((data.password or "").strip() or None),
     )
     db.add(link)
     db.commit()
@@ -258,6 +260,7 @@ async def update_partner_link(
     if data.password is not None:
         # "" entfernt den Passwortschutz, sonst neues Passwort setzen.
         link.password_hash = get_password_hash(data.password) if data.password.strip() else None
+        link.password_plain = data.password.strip() or None
     db.commit()
     return {"message": "Aktualisiert"}
 

@@ -36,6 +36,9 @@ class PartnerLink(Base):
     # Optionaler Passwortschutz des Links (vom Admin vorgegeben). Ist er gesetzt,
     # muss der Partner vor dem Zugriff das Passwort eingeben. NULL = offener Link.
     password_hash = Column(String(255), nullable=True)
+    # Klartext des Link-Passworts, damit der Admin es wieder anzeigen kann (nur Admin-sichtbar).
+    # Bewusst für dieses geteilte Zugangs-Secret – KEIN Nutzer-Konto-Passwort.
+    password_plain = Column(String(255), nullable=True)
 
     # Optionale Notiz für den Admin
     notes = Column(String(500), nullable=True)
