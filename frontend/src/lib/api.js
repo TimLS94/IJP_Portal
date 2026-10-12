@@ -328,6 +328,7 @@ export const jobRequestsAPI = {
   getRequestDetails: (id) => api.get(`/job-requests/admin/${id}`),
   updateStatus: (id, data) => api.put(`/job-requests/admin/${id}/status`, data),
   assignBetrieb: (id, betriebId) => api.put(`/job-requests/admin/${id}/assign-betrieb`, { betrieb_id: betriebId }),
+  requestDocuments: (id, data) => api.post(`/job-requests/admin/${id}/request-documents`, data),
   exportCSV: (params) => api.get('/job-requests/admin/export/csv', { params, responseType: 'blob' }),
   downloadDocuments: (id) => api.get(`/job-requests/admin/${id}/documents/download-all`, { responseType: 'blob' }),
 };
@@ -420,6 +421,7 @@ export const adminAPI = {
   listApplicants: (params) => api.get('/admin/applicants', { params }),
   updateApplicantSource: (id, inviteSource) => api.patch(`/admin/applicants/${id}/source`, { invite_source: inviteSource }),
   updateApplicantPortal: (id, portal) => api.patch(`/admin/applicants/${id}/portal`, { portal }),
+  getApplicantOnbehalf: (id) => api.post(`/admin/applicants/${id}/onbehalf`),
   getApplicantDocuments: (id) => api.get(`/admin/applicants/${id}/documents`),
   downloadAllDocuments: (id) => api.get(`/admin/applicants/${id}/documents/download-all`, { responseType: 'blob' }),
   

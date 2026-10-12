@@ -89,6 +89,24 @@ export default function AdminUsersPage() {
     }
   };
 
+  // Admin füllt Profil/Dokumente eines Studenten selbst aus (isolierter Tab, unabhängig
+  // von Partner-Link/Quelle/Passwort). Tab wird SYNCHRON geöffnet (sonst Popup-Block).
+  const openProfileAsAdmin = async (user: UserData) => {
+    if (!user.applicant_id) return;
+    const tab = window.open("about:blank", "_blank");
+    try {
+      const res = await adminAPI.getApplicantOnbehalf(user.applicant_id);
+      let u = "";
+      try { u = btoa(unescape(encodeURIComponent(JSON.stringify(res.data.user ?? {})))); } catch { /* ignore */ }
+      const qs = new URLSearchParams({ onbehalf: res.data.access_token });
+      if (u) qs.set("u", u);
+      if (tab) tab.location.href = `/applicant/profile?${qs.toString()}`;
+    } catch {
+      if (tab) tab.close();
+      toast.error("Profil konnte nicht geöffnet werden");
+    }
+  };
+
   const saveSource = async (user: UserData, value: string) => {
     if (!user.applicant_id) return;
     setSavingSourceId(user.applicant_id);
@@ -477,6 +495,14 @@ export default function AdminUsersPage() {
                                       ))}
                                     </select>
                                     {savingSourceId === user.applicant_id && <Loader2 className="h-3 w-3 animate-spin text-gray-400" />}
+                                    <button
+                                      type="button"
+                                      onClick={() => openProfileAsAdmin(user)}
+                                      className="text-xs font-medium text-primary-600 hover:text-primary-800 hover:underline shrink-0"
+                                      title="Profil & Dokumente dieses Studenten selbst ausfüllen (Admin)"
+                                    >
+                                      Profil ausfüllen →
+                                    </button>
                                   </div>
                                 ) : (
                                   <div className="mt-0.5 flex items-center gap-2 flex-wrap">

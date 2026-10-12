@@ -2008,6 +2008,35 @@ async def update_applicant_portal(
     return {"message": "Portal aktualisiert", "portal": portal}
 
 
+@router.post("/applicants/{applicant_id}/onbehalf")
+async def admin_onbehalf_access(
+    applicant_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin-Zugriffstoken, um das Profil/Dokumente eines Bewerbers im isolierten Tab
+    selbst auszufüllen – unabhängig von Partner-Link/Quelle/Passwort. Kurzlebig (2h)."""
+    from app.core.security import create_access_token
+    from datetime import timedelta
+    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
+    user = db.query(User).filter(User.id == applicant.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Konto nicht gefunden")
+    token = create_access_token(data={"sub": str(user.id)}, expires_delta=timedelta(hours=2))
+    return {
+        "access_token": token,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role.value,
+            "is_active": user.is_active,
+            "portal": getattr(applicant, "portal", "jobon") or "jobon",
+        },
+    }
+
+
 @router.get("/applicants/export/csv")
 async def export_applicants_csv(
     invite_source: Optional[str] = None,
