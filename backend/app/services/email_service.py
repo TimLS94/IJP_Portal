@@ -590,7 +590,41 @@ class EmailService:
         </body></html>
         """
         return self.send_email(to_email, subject, html_content, email_type="other")
-    
+
+    def send_ijp_document_request(self, to_email: str, applicant_name: str,
+                                  requested_documents: list = None, message: str = None) -> bool:
+        """Admin fordert für einen IJP-Auftrag Unterlagen vom Studenten nach."""
+        from app.core.config import settings
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
+        subject = "IJP: Bitte Unterlagen nachreichen"
+        docs = requested_documents or []
+        docs_block = ""
+        if docs:
+            items = "".join([f"<li>{d}</li>" for d in docs])
+            docs_block = f'<ul style="background:white;padding:16px 36px;border-radius:8px;margin:16px 0;">{items}</ul>'
+        message_html = f'<p style="background:#f3f4f6;padding:12px 16px;border-radius:8px;"><strong>Nachricht:</strong> {message}</p>' if message else ""
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>📄 Unterlagen nachreichen</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {applicant_name},</p>
+                <p>für Ihren IJP-Auftrag werden noch folgende Unterlagen benötigt:</p>
+                {docs_block}
+                {message_html}
+                <p style="background: #dbeafe; padding: 15px; border-radius: 8px; border-left: 4px solid #2563eb;">
+                    💡 Bitte laden Sie die Unterlagen in Ihrem Konto unter „Dokumente" hoch.
+                </p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/applicant/documents" style="background: #2563eb; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Dokumente hochladen</a>
+                </p>
+                <p>Mit freundlichen Grüßen,<br><strong>Ihr IJP-Team</strong></p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content, email_type="other")
+
     @_safe_email_call
     def send_rejection_email(
         self, to_email: str, applicant_name: str, job_title: str, 

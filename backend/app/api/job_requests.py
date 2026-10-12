@@ -800,6 +800,41 @@ async def update_job_request_status(
     }
 
 
+class RequestDocumentsSchema(BaseModel):
+    document_types: Optional[List[str]] = None  # Labels der angeforderten Unterlagen
+    message: Optional[str] = None
+
+
+@router.post("/admin/{request_id}/request-documents")
+async def request_documents_for_job_request(
+    request_id: int,
+    data: RequestDocumentsSchema,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Admin fordert für einen IJP-Auftrag Unterlagen vom Studenten nach (E-Mail)."""
+    req = db.query(JobRequest).filter(JobRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Auftrag nicht gefunden")
+    applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+    user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
+    if not user or not user.email:
+        raise HTTPException(status_code=400, detail="Keine E-Mail-Adresse des Studenten vorhanden")
+
+    docs = [d for d in (data.document_types or []) if (d or "").strip()]
+    msg = (data.message or "").strip() or None
+    if not docs and not msg:
+        raise HTTPException(status_code=400, detail="Bitte Unterlagen auswählen oder eine Nachricht angeben")
+
+    ok = email_service.send_ijp_document_request(
+        to_email=user.email,
+        applicant_name=f"{applicant.first_name} {applicant.last_name}",
+        requested_documents=docs,
+        message=msg,
+    )
+    return {"success": bool(ok), "email": user.email}
+
+
 @router.get("/admin/export/csv")
 async def export_job_requests_csv(
     status_filter: Optional[JobRequestStatus] = None,

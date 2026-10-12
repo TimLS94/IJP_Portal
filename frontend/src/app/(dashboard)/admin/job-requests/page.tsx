@@ -127,6 +127,33 @@ export default function AdminJobRequests() {
   const [interviewDate, setInterviewDate] = useState('');
   const [interviewLink, setInterviewLink] = useState('');
   const [contractDate, setContractDate] = useState('');
+  // Unterlagen nachfordern
+  const [showReqDocs, setShowReqDocs] = useState(false);
+  const [reqDocsTypes, setReqDocsTypes] = useState<string[]>([]);
+  const [reqDocsMessage, setReqDocsMessage] = useState('');
+  const [sendingReqDocs, setSendingReqDocs] = useState(false);
+
+  const DOC_OPTIONS = ['Reisepass', 'Lebenslauf', 'Immatrikulationsbescheinigung', 'Immatrikulationsbescheinigung (Übersetzung)', 'Passfoto', 'Sprachzertifikat', 'BA-Erklärung', 'Sonstiges'];
+
+  const sendRequestDocuments = async () => {
+    if (!selectedRequest) return;
+    if (reqDocsTypes.length === 0 && !reqDocsMessage.trim()) {
+      toast.error('Bitte Unterlagen auswählen oder eine Nachricht angeben');
+      return;
+    }
+    setSendingReqDocs(true);
+    try {
+      await jobRequestsAPI.requestDocuments(selectedRequest, { document_types: reqDocsTypes, message: reqDocsMessage.trim() || null });
+      toast.success('Unterlagen-Anforderung an den Studenten gesendet');
+      setShowReqDocs(false);
+      setReqDocsTypes([]);
+      setReqDocsMessage('');
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail || 'Konnte nicht gesendet werden');
+    } finally {
+      setSendingReqDocs(false);
+    }
+  };
 
   useEffect(() => {
     loadStatusOptions();
@@ -936,21 +963,64 @@ export default function AdminJobRequests() {
 
                     {/* Dokumente */}
                     <div className="bg-gray-50 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
                         <h3 className="font-bold text-gray-900 flex items-center gap-2">
                           <FileText className="h-5 w-5 text-primary-600" />
                           Dokumente ({requestDetails.documents.length})
                         </h3>
-                        {requestDetails.documents.length > 0 && (
+                        <div className="flex items-center gap-3">
                           <button
-                            onClick={() => handleDownloadDocuments(requestDetails.request.id, `${requestDetails.applicant.first_name}_${requestDetails.applicant.last_name}`)}
-                            className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                            onClick={() => setShowReqDocs((v) => !v)}
+                            className="text-sm text-amber-700 hover:text-amber-800 flex items-center gap-1"
                           >
-                            <Download className="h-4 w-4" />
-                            Alle herunterladen
+                            <FileText className="h-4 w-4" />
+                            Unterlagen nachfordern
                           </button>
-                        )}
+                          {requestDetails.documents.length > 0 && (
+                            <button
+                              onClick={() => handleDownloadDocuments(requestDetails.request.id, `${requestDetails.applicant.first_name}_${requestDetails.applicant.last_name}`)}
+                              className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                            >
+                              <Download className="h-4 w-4" />
+                              Alle herunterladen
+                            </button>
+                          )}
+                        </div>
                       </div>
+
+                      {showReqDocs && (
+                        <div className="mb-3 p-3 rounded-lg border-2 border-amber-200 bg-amber-50">
+                          <p className="text-sm font-medium text-amber-800 mb-2">Welche Unterlagen fehlen?</p>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {DOC_OPTIONS.map((opt) => {
+                              const on = reqDocsTypes.includes(opt);
+                              return (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => setReqDocsTypes((prev) => on ? prev.filter((x) => x !== opt) : [...prev, opt])}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium border-2 ${on ? 'border-amber-500 bg-amber-100 text-amber-800' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <textarea
+                            value={reqDocsMessage}
+                            onChange={(e) => setReqDocsMessage(e.target.value)}
+                            placeholder="Optionale Nachricht an den Studenten…"
+                            rows={2}
+                            className="w-full text-sm border border-gray-300 rounded-lg px-2 py-1.5 mb-2"
+                          />
+                          <div className="flex items-center gap-2">
+                            <button type="button" disabled={sendingReqDocs} onClick={sendRequestDocuments} className="bg-amber-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50 inline-flex items-center gap-1">
+                              {sendingReqDocs ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Anforderung senden
+                            </button>
+                            <button type="button" onClick={() => setShowReqDocs(false)} className="text-sm text-gray-500 hover:text-gray-700">Abbrechen</button>
+                          </div>
+                        </div>
+                      )}
                       {requestDetails.documents.length === 0 ? (
                         <p className="text-gray-500 text-sm">Keine Dokumente</p>
                       ) : (
