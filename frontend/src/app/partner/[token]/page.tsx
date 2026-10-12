@@ -79,7 +79,7 @@ function DocBadge({ doc }: { doc: DocCheck }) {
   );
 }
 
-function ApplicantRow({ entry, onFillProfile }: { entry: ApplicantEntry; onFillProfile: (id: number) => void }) {
+function ApplicantRow({ entry, onFillProfile, canEditStudents }: { entry: ApplicantEntry; onFillProfile: (id: number) => void; canEditStudents?: boolean }) {
   const [expanded, setExpanded] = useState(false);
 
   const formatDate = (d: string | null) => {
@@ -117,9 +117,9 @@ function ApplicantRow({ entry, onFillProfile }: { entry: ApplicantEntry; onFillP
             </button>
           ) : (
             <p className="mt-1 text-xs text-gray-400">
-              {entry.has_password
-                ? "🔒 Student hat ein eigenes Passwort – er verwaltet sein Profil selbst."
-                : "Bearbeiten für diesen Link nicht freigegeben (IJP kontaktieren)."}
+              {canEditStudents === false
+                ? "Bearbeiten für diesen Link nicht freigegeben (IJP kontaktieren)."
+                : "🔒 Student hat ein eigenes Passwort – er verwaltet sein Profil selbst."}
             </p>
           )}
         </div>
@@ -599,7 +599,7 @@ export default function PartnerViewPage() {
             </div>
 
             {data.applicants.map((entry) => (
-              <ApplicantRow key={entry.applicant_id} entry={entry} onFillProfile={fillProfile} />
+              <ApplicantRow key={entry.applicant_id} entry={entry} onFillProfile={fillProfile} canEditStudents={data.can_edit_students} />
             ))}
           </div>
         )}
