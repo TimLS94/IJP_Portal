@@ -143,7 +143,10 @@ class Applicant(Base):
     # "jobon" = normales öffentliches Portal, "ijp" = abgeschottetes IJP-Studenten-Unterportal.
     # IJP-Bewerber werden JobOn-weit (Admin-Listen, Job-Alerts, Firmen-Sicht) ausgeschlossen.
     portal = Column(String(20), default="jobon", server_default="jobon", nullable=False)
-    
+    # Admin-Freischaltung: Partner darf diesen Studenten bearbeiten, auch wenn er ein
+    # Passwort hat (überschreibt die normale "nur passwortlose"-Regel).
+    partner_edit_override = Column(Boolean, default=False, server_default="false", nullable=False)
+
     # Relationships
     user = relationship("User", back_populates="applicant", foreign_keys=[user_id])
     applications = relationship("Application", back_populates="applicant", cascade="all, delete-orphan")

@@ -119,7 +119,7 @@ function ApplicantRow({ entry, onFillProfile, canEditStudents }: { entry: Applic
             <p className="mt-1 text-xs text-gray-400">
               {canEditStudents === false
                 ? "Bearbeiten für diesen Link nicht freigegeben (IJP kontaktieren)."
-                : "🔒 Student hat ein eigenes Passwort – er verwaltet sein Profil selbst."}
+                : "🔒 Student hat ein eigenes Passwort – Bearbeitung durch IJP freischaltbar."}
             </p>
           )}
         </div>

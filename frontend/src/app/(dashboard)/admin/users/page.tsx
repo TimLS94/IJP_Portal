@@ -28,6 +28,7 @@ interface UserData {
   applicant_id?: number;
   invite_source?: string | null;
   invite_source_country?: string | null;
+  partner_edit_override?: boolean;
 }
 
 interface GdprDocument {
@@ -104,6 +105,18 @@ export default function AdminUsersPage() {
     } catch {
       if (tab) tab.close();
       toast.error("Profil konnte nicht geöffnet werden");
+    }
+  };
+
+  const togglePartnerEdit = async (user: UserData) => {
+    if (!user.applicant_id) return;
+    const next = !user.partner_edit_override;
+    try {
+      await adminAPI.setPartnerEdit(user.applicant_id, next);
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, partner_edit_override: next } : u));
+      toast.success(next ? "Partner-Bearbeitung freigeschaltet" : "Partner-Bearbeitung gesperrt");
+    } catch {
+      toast.error("Konnte nicht gespeichert werden");
     }
   };
 
@@ -503,6 +516,15 @@ export default function AdminUsersPage() {
                                     >
                                       Profil ausfüllen →
                                     </button>
+                                    <label className="flex items-center gap-1 text-xs text-gray-600 shrink-0 cursor-pointer" title="Partner darf diesen Studenten bearbeiten – auch mit eigenem Passwort">
+                                      <input
+                                        type="checkbox"
+                                        className="accent-primary-600"
+                                        checked={!!user.partner_edit_override}
+                                        onChange={() => togglePartnerEdit(user)}
+                                      />
+                                      Partner darf bearbeiten
+                                    </label>
                                   </div>
                                 ) : (
                                   <div className="mt-0.5 flex items-center gap-2 flex-wrap">

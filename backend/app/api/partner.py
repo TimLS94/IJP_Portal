@@ -123,7 +123,8 @@ def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
         "email": _email,
         # Vom Partner angelegte Studenten (ohne eigenes Passwort) darf der Partner
         # vervollständigen; selbst-registrierte verwalten ihr Profil selbst.
-        "editable_by_partner": bool(_user and not _user.password_hash),
+        # Editierbar: passwortlos ODER vom Admin für Partner-Bearbeitung freigeschaltet.
+        "editable_by_partner": bool(_user and (not _user.password_hash or getattr(applicant, "partner_edit_override", False))),
         "has_password": bool(_user and _user.password_hash),  # True = Student verwaltet selbst
         "position_type": pos_type,
         "position_type_label": POSITION_TYPE_LABELS.get(pos_type) if pos_type else None,
@@ -540,7 +541,7 @@ async def partner_applicant_access(token: str, applicant_id: int, request: Reque
     user = db.query(User).filter(User.id == applicant.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Konto nicht gefunden")
-    if user.password_hash:
+    if user.password_hash and not getattr(applicant, "partner_edit_override", False):
         raise HTTPException(status_code=403, detail="Dieser Student verwaltet sein Profil selbst.")
 
     access_token = create_access_token(data={"sub": str(user.id)})

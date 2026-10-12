@@ -213,6 +213,7 @@ def ensure_applicant_invite_columns():
             ("applicants", "invite_source_country", "VARCHAR(100)"),
             ("applicants", "invite_token_id", "INTEGER"),
             ("applicants", "portal", "VARCHAR(20) DEFAULT 'jobon'"),
+            ("applicants", "partner_edit_override", "BOOLEAN DEFAULT FALSE"),
             ("applicant_invite_tokens", "portal_type", "VARCHAR(20) DEFAULT 'jobon'"),
         ]
         allowed_tables = {t for t, _, _ in new_columns}

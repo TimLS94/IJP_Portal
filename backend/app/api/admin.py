@@ -1026,6 +1026,7 @@ async def list_users(
                 # Herkunft/Partner-Quelle – schon ab Registrierung sichtbar + editierbar (vor dem Auftrag)
                 user_data["invite_source"] = getattr(applicant, "invite_source", None)
                 user_data["invite_source_country"] = getattr(applicant, "invite_source_country", None)
+                user_data["partner_edit_override"] = bool(getattr(applicant, "partner_edit_override", False))
         elif user.role == UserRole.COMPANY:
             company = db.query(Company).filter(Company.user_id == user.id).first()
             if company:
@@ -2006,6 +2007,27 @@ async def update_applicant_portal(
     applicant.portal = portal
     db.commit()
     return {"message": "Portal aktualisiert", "portal": portal}
+
+
+class PartnerEditOverrideRequest(BaseModel):
+    allowed: bool
+
+
+@router.patch("/applicants/{applicant_id}/partner-edit")
+async def update_partner_edit_override(
+    applicant_id: int,
+    data: PartnerEditOverrideRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin schaltet frei, dass der Partner diesen Studenten bearbeiten darf – auch
+    wenn der Student ein eigenes Passwort hat (überschreibt die normale Regel)."""
+    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
+    applicant.partner_edit_override = bool(data.allowed)
+    db.commit()
+    return {"message": "Freigabe aktualisiert", "allowed": bool(data.allowed)}
 
 
 @router.post("/applicants/{applicant_id}/onbehalf")

@@ -422,6 +422,7 @@ export const adminAPI = {
   updateApplicantSource: (id, inviteSource) => api.patch(`/admin/applicants/${id}/source`, { invite_source: inviteSource }),
   updateApplicantPortal: (id, portal) => api.patch(`/admin/applicants/${id}/portal`, { portal }),
   getApplicantOnbehalf: (id) => api.post(`/admin/applicants/${id}/onbehalf`),
+  setPartnerEdit: (id, allowed) => api.patch(`/admin/applicants/${id}/partner-edit`, { allowed }),
   getApplicantDocuments: (id) => api.get(`/admin/applicants/${id}/documents`),
   downloadAllDocuments: (id) => api.get(`/admin/applicants/${id}/documents/download-all`, { responseType: 'blob' }),
   
