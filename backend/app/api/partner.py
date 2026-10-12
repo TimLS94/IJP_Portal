@@ -124,6 +124,7 @@ def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
         # Vom Partner angelegte Studenten (ohne eigenes Passwort) darf der Partner
         # vervollständigen; selbst-registrierte verwalten ihr Profil selbst.
         "editable_by_partner": bool(_user and not _user.password_hash),
+        "has_password": bool(_user and _user.password_hash),  # True = Student verwaltet selbst
         "position_type": pos_type,
         "position_type_label": POSITION_TYPE_LABELS.get(pos_type) if pos_type else None,
         "registered_at": applicant.created_at if hasattr(applicant, "created_at") else None,

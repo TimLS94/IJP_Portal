@@ -21,6 +21,7 @@ interface ApplicantEntry {
   last_name: string;
   email: string | null;
   editable_by_partner?: boolean;
+  has_password?: boolean;
   position_type: string | null;
   position_type_label: string | null;
   registered_at: string | null;
@@ -106,7 +107,7 @@ function ApplicantRow({ entry, onFillProfile }: { entry: ApplicantEntry; onFillP
           {entry.position_type_label && (
             <p className="text-xs text-gray-500">{entry.position_type_label}</p>
           )}
-          {entry.editable_by_partner && (
+          {entry.editable_by_partner ? (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onFillProfile(entry.applicant_id); }}
@@ -114,6 +115,12 @@ function ApplicantRow({ entry, onFillProfile }: { entry: ApplicantEntry; onFillP
             >
               Profil & Dokumente ausfüllen →
             </button>
+          ) : (
+            <p className="mt-1 text-xs text-gray-400">
+              {entry.has_password
+                ? "🔒 Student hat ein eigenes Passwort – er verwaltet sein Profil selbst."
+                : "Bearbeiten für diesen Link nicht freigegeben (IJP kontaktieren)."}
+            </p>
           )}
         </div>
 
