@@ -96,6 +96,7 @@ export default function KrankenkassePage() {
   const [logoError, setLogoError] = useState(false);
 
   const [embassyChoice, setEmbassyChoice] = useState<null | boolean>(null);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<null | { redirect_url: string | null; embassy: boolean }>(null);
 
@@ -124,7 +125,7 @@ export default function KrankenkassePage() {
   const marquee = (t("krankenkasse.marquee", { returnObjects: true }) as string[]) || [];
 
   const handleSignup = async () => {
-    if (embassyChoice === null) return;
+    if (embassyChoice === null || !privacyAccepted) return;
     setSubmitting(true);
     try {
       const lang = (i18n.language || "de").split("-")[0];
@@ -144,7 +145,6 @@ export default function KrankenkassePage() {
     <div className="bg-slate-50 min-h-screen">
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-primary-900 to-primary-800 text-white">
-        <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] [background-size:60px_60px]" />
         <div className="absolute -top-40 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
         <div className="relative max-w-5xl mx-auto px-4 py-16 md:py-28">
           <Reveal>
@@ -550,10 +550,27 @@ export default function KrankenkassePage() {
                         );
                       })}
                     </div>
+
+                    <label className="flex items-start gap-3 cursor-pointer select-none rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                      <input
+                        type="checkbox"
+                        checked={privacyAccepted}
+                        onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-slate-600 leading-relaxed">
+                        {t("krankenkasse.privacyConsent")}{" "}
+                        <Link href="/datenschutz" className="text-primary-600 underline hover:text-primary-700">
+                          {t("krankenkasse.privacyPolicyLink")}
+                        </Link>
+                        .
+                      </span>
+                    </label>
+
                     <button
                       type="button"
                       onClick={handleSignup}
-                      disabled={embassyChoice === null || submitting}
+                      disabled={embassyChoice === null || !privacyAccepted || submitting}
                       className="kk-sheen relative overflow-hidden inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-all shadow-sm enabled:hover:-translate-y-0.5"
                     >
                       {submitting ? t("krankenkasse.signupLoading") : t("krankenkasse.signupButton")}

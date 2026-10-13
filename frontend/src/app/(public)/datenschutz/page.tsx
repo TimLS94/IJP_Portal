@@ -101,6 +101,19 @@ export default function DatenschutzPage() {
             <section>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">6. Weitergabe von Daten</h2>
               <p className="text-gray-700">Eine Übermittlung Ihrer persönlichen Daten an Dritte zu anderen als den im Folgenden aufgeführten Zwecken findet nicht statt. Wir geben Ihre persönlichen Daten nur an Dritte weiter, wenn Sie Ihre ausdrückliche Einwilligung dazu erteilt haben.</p>
+
+              <h3 className="font-semibold mt-6 text-gray-900">Krankenkassen-Anmeldung (Partner BARMER / my-insurance24)</h3>
+              <div className="text-gray-700 space-y-4 mt-2">
+                <p>Auf unseren Informationsseiten zur Krankenversicherung können Sie als eingeloggte Nutzerin oder eingeloggter Nutzer Ihr Interesse an einer Mitgliedschaft bekunden. Wir sind dabei <strong>kein Versicherungsvermittler und keine Versicherungsberatung und beraten nicht</strong> zu Versicherungen; wir stellen lediglich den Kontakt zu unserem Partner her.</p>
+                <p>Wenn Sie auf „Zur Anmeldung&quot; klicken, speichern wir zur Bearbeitung folgende Daten und leiten Sie anschließend zum Antragsformular unseres Partners (my-insurance24, betrieben von der COVAGO GmbH) weiter:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Name und E-Mail-Adresse</li>
+                  <li>Angabe, ob Sie einen Versicherungsnachweis für die Botschaft benötigen</li>
+                  <li>gewählte Sprache sowie Zeitpunkt der Anmeldung</li>
+                </ul>
+                <p>Rechtsgrundlage ist Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie beim Absenden erteilen und jederzeit mit Wirkung für die Zukunft widerrufen können. Die Verarbeitung dient dazu, Ihre Anmeldung zu bearbeiten und Sie – sofern gewünscht – beim Nachweis für die Botschaft zu unterstützen.</p>
+                <p>Die Daten, die Sie anschließend direkt im Antragsformular unter www.my-insurance24.com eingeben, werden von dem dortigen Anbieter (COVAGO GmbH) als eigenständig Verantwortlichem bzw. von der BARMER verarbeitet. Es gelten insoweit deren Datenschutzbestimmungen.</p>
+              </div>
             </section>
 
             {/* Speicherdauer */}
@@ -126,7 +139,7 @@ export default function DatenschutzPage() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">10. Änderungen dieser Datenschutzerklärung</h2>
               <p className="text-gray-700">Wir behalten uns vor, diese Datenschutzerklärung anzupassen, damit sie stets den aktuellen rechtlichen Anforderungen entspricht.</p>
               <p className="text-gray-500 text-sm mt-4">
-                Stand: Dezember 2025
+                Stand: Oktober 2026
               </p>
             </section>
 

@@ -2377,6 +2377,8 @@
       "Un socio fuerte para tu comienzo"
     ],
     "legalTitle": "Aviso importante – sin asesoramiento",
-    "legalBody": "No somos mediadores ni asesores de seguros y no ofrecemos asesoramiento sobre seguros. Esta página ofrece información general y solo pone en contacto con nuestro socio. El asesoramiento personal y la contratación se realizan directamente con {{name}} o a través de my-insurance24."
+    "legalBody": "No somos mediadores ni asesores de seguros y no ofrecemos asesoramiento sobre seguros. Esta página ofrece información general y solo pone en contacto con nuestro socio. El asesoramiento personal y la contratación se realizan directamente con {{name}} o a través de my-insurance24.",
+    "privacyConsent": "Acepto que mis datos se almacenen para tramitar mi alta y se transmitan a nuestro socio. Los datos que introduzca después en my-insurance24 son tratados por ellos. Más información en nuestra",
+    "privacyPolicyLink": "política de privacidad"
   }
 }

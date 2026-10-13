@@ -2460,6 +2460,8 @@
       "A strong partner for your start"
     ],
     "legalTitle": "Important note – no advice",
-    "legalBody": "We are not an insurance intermediary or insurance adviser and we do not provide insurance advice. This page offers general information and only establishes contact with our partner. Personal advice and the conclusion of membership take place directly with {{name}} or via my-insurance24."
+    "legalBody": "We are not an insurance intermediary or insurance adviser and we do not provide insurance advice. This page offers general information and only establishes contact with our partner. Personal advice and the conclusion of membership take place directly with {{name}} or via my-insurance24.",
+    "privacyConsent": "I agree that my details are stored to process my sign-up and passed on to our partner. Data I then enter on my-insurance24 is processed by them. More in our",
+    "privacyPolicyLink": "privacy policy"
   }
 }

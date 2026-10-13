@@ -2460,6 +2460,8 @@
       "Starker Partner für deinen Start"
     ],
     "legalTitle": "Wichtiger Hinweis – keine Beratung",
-    "legalBody": "Wir sind kein Versicherungsvermittler und keine Versicherungsberatung und beraten nicht zu Versicherungen. Diese Seite bietet allgemeine Informationen und stellt lediglich den Kontakt zu unserem Partner her. Die persönliche Beratung sowie der Abschluss der Mitgliedschaft erfolgen direkt bei {{name}} bzw. über my-insurance24."
+    "legalBody": "Wir sind kein Versicherungsvermittler und keine Versicherungsberatung und beraten nicht zu Versicherungen. Diese Seite bietet allgemeine Informationen und stellt lediglich den Kontakt zu unserem Partner her. Die persönliche Beratung sowie der Abschluss der Mitgliedschaft erfolgen direkt bei {{name}} bzw. über my-insurance24.",
+    "privacyConsent": "Ich bin einverstanden, dass meine Angaben zur Bearbeitung meiner Anmeldung gespeichert und an unseren Partner übermittelt werden. Daten, die ich anschließend bei my-insurance24 eingebe, werden von dort verarbeitet. Mehr dazu in unserer",
+    "privacyPolicyLink": "Datenschutzerklärung"
   }
 }
