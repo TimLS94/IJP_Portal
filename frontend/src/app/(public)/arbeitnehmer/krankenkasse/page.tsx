@@ -145,7 +145,8 @@ export default function KrankenkassePage() {
     <div className="bg-slate-50 min-h-screen">
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-primary-900 to-primary-800 text-white">
-        <div className="absolute -top-40 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.07] [background-image:linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] [background-size:52px_52px] [mask-image:radial-gradient(ellipse_at_top_right,black,transparent_72%)]" />
+        <div className="absolute -top-40 -right-32 h-96 w-96 rounded-full bg-primary-400/15 blur-3xl" />
         <div className="relative max-w-5xl mx-auto px-4 py-16 md:py-28">
           <Reveal>
             <Link
@@ -240,10 +241,10 @@ export default function KrankenkassePage() {
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-4 py-14 md:py-20 space-y-20">
+      <div className="max-w-5xl mx-auto px-4 py-12 md:py-20 space-y-14 md:space-y-20">
         {/* What is */}
         <Reveal>
-          <section className="group rounded-3xl bg-white border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow p-8">
+          <section className="group rounded-3xl bg-white border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow p-6 sm:p-8">
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-2xl bg-primary-50 text-primary-600 flex-shrink-0 ring-1 ring-primary-100 group-hover:scale-105 transition-transform">
                 <Stethoscope className="h-6 w-6" />
@@ -265,7 +266,7 @@ export default function KrankenkassePage() {
           </Reveal>
           <div className="grid md:grid-cols-2 gap-6">
             <Reveal delay={60}>
-              <div className="h-full relative rounded-3xl border-2 border-primary-200 bg-gradient-to-br from-primary-50 to-white p-7 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all">
+              <div className="h-full relative rounded-3xl border-2 border-primary-200 bg-gradient-to-br from-primary-50 to-white p-6 sm:p-7 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all">
                 <div className="inline-flex px-3 py-1 rounded-full bg-primary-600 text-white text-xs font-semibold mb-4 tracking-wide">
                   GKV
                 </div>
@@ -281,7 +282,7 @@ export default function KrankenkassePage() {
               </div>
             </Reveal>
             <Reveal delay={140}>
-              <div className="h-full rounded-3xl border border-slate-200 bg-white p-7 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div className="h-full rounded-3xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
                 <div className="inline-flex px-3 py-1 rounded-full bg-slate-600 text-white text-xs font-semibold mb-4 tracking-wide">
                   PKV
                 </div>
@@ -303,7 +304,7 @@ export default function KrankenkassePage() {
         <Reveal>
           <section className="group rounded-3xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-shadow">
             <div className="grid md:grid-cols-5">
-              <div className="md:col-span-2 relative overflow-hidden bg-gradient-to-br from-[#0a9b4e] to-[#007a3d] p-8 flex flex-col items-center justify-center text-center gap-4">
+              <div className="md:col-span-2 relative overflow-hidden bg-gradient-to-br from-[#0a9b4e] to-[#007a3d] p-6 sm:p-8 flex flex-col items-center justify-center text-center gap-4">
                 <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/10 blur-2xl kk-float" />
                 <a
                   href={partner.url}
@@ -330,7 +331,7 @@ export default function KrankenkassePage() {
                   {t("krankenkasse.partnerBadge")}
                 </span>
               </div>
-              <div className="md:col-span-3 p-8">
+              <div className="md:col-span-3 p-6 sm:p-8">
                 <h2 className="text-2xl font-bold text-slate-900">
                   {t("krankenkasse.partnerTitle", { name: partnerName })}
                 </h2>
@@ -369,10 +370,10 @@ export default function KrankenkassePage() {
               const isFormStep = i === 2;
               return (
                 <Reveal key={i} delay={i * 90}>
-                  <div className="flex gap-5">
+                  <div className="flex gap-4 sm:gap-5">
                     {/* left rail */}
                     <div className="flex flex-col items-center">
-                      <div className="relative h-14 w-14 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-600/30 ring-4 ring-slate-50 flex items-center justify-center">
+                      <div className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-600/30 ring-4 ring-slate-50 flex items-center justify-center">
                         <Icon className="h-6 w-6" />
                         <span className="absolute inset-0 rounded-2xl bg-primary-400/40 blur-md -z-10" />
                       </div>
@@ -382,11 +383,11 @@ export default function KrankenkassePage() {
                     </div>
                     {/* content card */}
                     <div className={`flex-1 ${isLast ? "pb-0" : "pb-8"}`}>
-                      <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
-                        <span className="pointer-events-none absolute top-2 right-4 text-6xl leading-none font-black text-slate-100 select-none">
+                      <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                        <span className="pointer-events-none absolute top-2 right-3 sm:right-4 text-5xl sm:text-6xl leading-none font-black text-slate-100 select-none">
                           {i + 1}
                         </span>
-                        <div className="relative">
+                        <div className="relative pr-10">
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] font-semibold uppercase tracking-widest text-primary-500">
                               {t("krankenkasse.stepLabel")} {i + 1}
@@ -447,7 +448,7 @@ export default function KrankenkassePage() {
         <Reveal>
           <section id="anmelden" className="scroll-mt-24">
             <div className="rounded-[28px] bg-white border border-slate-200 shadow-xl shadow-slate-300/40 overflow-hidden">
-              <div className="relative overflow-hidden bg-gradient-to-r from-primary-800 via-primary-700 to-primary-600 px-8 py-7 text-white">
+              <div className="relative overflow-hidden bg-gradient-to-r from-primary-800 via-primary-700 to-primary-600 px-6 sm:px-8 py-6 sm:py-7 text-white">
                 <div className="absolute -top-12 right-6 h-32 w-32 rounded-full bg-white/10 blur-2xl kk-float" />
                 <div className="relative flex items-center gap-3">
                   <div className="p-2.5 rounded-2xl bg-white/15 ring-1 ring-white/20">
@@ -460,7 +461,7 @@ export default function KrankenkassePage() {
                 </div>
               </div>
 
-              <div className="p-8">
+              <div className="p-6 sm:p-8">
                 {done ? (
                   <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-6">
                     <div className="flex items-center gap-2 text-emerald-700 font-semibold text-lg">
