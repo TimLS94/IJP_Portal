@@ -2413,6 +2413,28 @@
     "successEmbassyNote": "Wir haben vermerkt, dass du einen Nachweis für die Botschaft brauchst, und kümmern uns darum.",
     "continueButton": "Weiter zum Formular",
     "articlesTitle": "Passende Artikel",
-    "disclaimer": "Diese Seite bietet eine allgemeine Orientierung und ersetzt keine individuelle Beratung. {{name}} ist unser Partner."
+    "disclaimer": "Diese Seite bietet eine allgemeine Orientierung und ersetzt keine individuelle Beratung. {{name}} ist unser Partner.",
+    "processTitle": "So läuft deine Anmeldung",
+    "processSubtitle": "In wenigen Schritten zur Krankenversicherung – wir begleiten dich.",
+    "process": [
+      {
+        "title": "Einloggen oder registrieren",
+        "desc": "Melde dich in deinem Konto an oder registriere dich in einer Minute."
+      },
+      {
+        "title": "Auf „Zur Anmeldung“ klicken",
+        "desc": "Sag uns, ob du einen Nachweis für die Botschaft brauchst – danach leiten wir dich sicher weiter."
+      },
+      {
+        "title": "BARMER-Antrag ausfüllen",
+        "desc": "Bei my-insurance24 füllst du deinen Mitgliedsantrag aus: persönliche Daten, Geburtsdetails, Beschäftigung, Vorversicherung und Unterschrift."
+      },
+      {
+        "title": "Fertig – wir kümmern uns",
+        "desc": "Brauchst du einen Nachweis für die Botschaft, melden wir uns bei dir."
+      }
+    ],
+    "processLangNote": "Tipp: Im BARMER-Antrag kannst du oben rechts die Sprache auf Englisch umstellen.",
+    "startCta": "Jetzt anmelden"
   }
 }

@@ -2330,6 +2330,28 @@
     "successEmbassyNote": "Hemos anotado que necesitas un certificado para la embajada y nos encargaremos de ello.",
     "continueButton": "Ir al formulario",
     "articlesTitle": "Artículos relacionados",
-    "disclaimer": "Esta página ofrece orientación general y no sustituye el asesoramiento individual. {{name}} es nuestro socio."
+    "disclaimer": "Esta página ofrece orientación general y no sustituye el asesoramiento individual. {{name}} es nuestro socio.",
+    "processTitle": "Cómo funciona el alta",
+    "processSubtitle": "En pocos pasos a tu seguro médico: te acompañamos.",
+    "process": [
+      {
+        "title": "Inicia sesión o regístrate",
+        "desc": "Entra en tu cuenta o regístrate en un minuto."
+      },
+      {
+        "title": "Haz clic en «Ir al alta»",
+        "desc": "Dinos si necesitas un certificado para la embajada y te redirigimos de forma segura."
+      },
+      {
+        "title": "Rellena la solicitud de BARMER",
+        "desc": "En my-insurance24 completas tu solicitud de afiliación: datos personales, datos de nacimiento, empleo, seguro anterior y firma."
+      },
+      {
+        "title": "Listo: nos encargamos",
+        "desc": "Si necesitas un certificado para la embajada, nos pondremos en contacto contigo."
+      }
+    ],
+    "processLangNote": "Consejo: en la solicitud de BARMER puedes cambiar el idioma a inglés arriba a la derecha.",
+    "startCta": "Darse de alta ahora"
   }
 }

@@ -2413,6 +2413,28 @@
     "successEmbassyNote": "We've noted that you need a proof for the embassy and will take care of it.",
     "continueButton": "Continue to the form",
     "articlesTitle": "Related articles",
-    "disclaimer": "This page provides general orientation and does not replace individual advice. {{name}} is our partner."
+    "disclaimer": "This page provides general orientation and does not replace individual advice. {{name}} is our partner.",
+    "processTitle": "How signing up works",
+    "processSubtitle": "Just a few steps to your health insurance – we'll guide you.",
+    "process": [
+      {
+        "title": "Log in or register",
+        "desc": "Sign in to your account or register in about a minute."
+      },
+      {
+        "title": "Click “Continue to sign-up”",
+        "desc": "Tell us whether you need a proof for the embassy – then we redirect you securely."
+      },
+      {
+        "title": "Fill in the BARMER application",
+        "desc": "On my-insurance24 you complete your membership application: personal details, birth details, employment, previous insurance and signature."
+      },
+      {
+        "title": "Done – we take care of it",
+        "desc": "If you need a proof for the embassy, we'll get in touch with you."
+      }
+    ],
+    "processLangNote": "Tip: In the BARMER application you can switch the language to English in the top right.",
+    "startCta": "Sign up now"
   }
 }

@@ -106,7 +106,7 @@ export default function ArbeitnehmerPage() {
           </div>
           <Link
             href="/arbeitnehmer/krankenkasse"
-            className="md:col-span-2 group relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 text-white p-7 flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow"
+            className="md:col-span-2 group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-7 flex flex-col justify-between shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
           >
             <div>
               <Heart className="h-9 w-9 mb-4" />
@@ -131,15 +131,15 @@ export default function ArbeitnehmerPage() {
               const isKk = idx === 0;
               const card = (
                 <div
-                  className={`h-full rounded-2xl border p-6 transition-all ${
+                  className={`h-full rounded-2xl border p-6 transition-all hover:-translate-y-0.5 ${
                     isKk
-                      ? "border-rose-200 bg-rose-50 hover:border-rose-300"
+                      ? "border-emerald-200 bg-emerald-50 hover:border-emerald-300 hover:shadow-md"
                       : "border-gray-200 bg-white hover:border-primary-300 hover:shadow-md"
                   }`}
                 >
                   <div
                     className={`inline-flex p-3 rounded-xl mb-4 ${
-                      isKk ? "bg-rose-100 text-rose-600" : "bg-primary-50 text-primary-600"
+                      isKk ? "bg-emerald-100 text-emerald-700" : "bg-primary-50 text-primary-600"
                     }`}
                   >
                     <Icon className="h-6 w-6" />
@@ -147,7 +147,7 @@ export default function ArbeitnehmerPage() {
                   <h3 className="font-semibold text-gray-900 text-lg">{topic.title}</h3>
                   <p className="mt-2 text-sm text-gray-600 leading-relaxed">{topic.desc}</p>
                   {isKk && (
-                    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-rose-600">
+                    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
                       {topic.cta || t("arbeitnehmer.readMore")}
                       <ArrowRight className="h-4 w-4" />
                     </span>
