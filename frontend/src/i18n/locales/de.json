@@ -109,7 +109,9 @@
     "contact": "Kontakt",
     "notifications": "Benachrichtigungen",
     "markAllAsRead": "Alle als gelesen markieren",
-    "noNotifications": "Keine Benachrichtigungen"
+    "noNotifications": "Keine Benachrichtigungen",
+    "employees": "Für Arbeitnehmer",
+    "adminInsurance": "Krankenversicherung"
   },
   "home": {
     "title": "Die Jobbörse für internationale Fachkräfte — kostenlos für Firmen & Bewerber",
@@ -2303,5 +2305,114 @@
       "title": "Neue passende Stelle: {{jobTitle}}",
       "message": "{{company}} in {{location}} – {{score}}% Match"
     }
+  },
+  "arbeitnehmer": {
+    "metaTitle": "Für Arbeitnehmer – Arbeiten & Leben in Deutschland",
+    "metaDescription": "Wichtige Infos für Arbeitnehmer und Arbeitssuchende in Deutschland: Krankenversicherung, Arbeitsvertrag, Steuern, Anmeldung und mehr.",
+    "heroBadge": "Für Arbeitnehmer",
+    "heroTitle": "Alles, was du als Arbeitnehmer in Deutschland wissen musst",
+    "heroSubtitle": "Von der Krankenversicherung bis zum ersten Arbeitstag – klare Erklärungen und hilfreiche Artikel, Schritt für Schritt.",
+    "introTitle": "Dein Start in Deutschland",
+    "introBody": "Deutschland hat klare Regeln für Arbeitnehmer – das schützt dich. Hier findest du die wichtigsten Themen einfach erklärt, dazu passende Ratgeber-Artikel aus unserem Blog.",
+    "topicsTitle": "Wichtige Themen",
+    "topics": [
+      {
+        "icon": "heart",
+        "title": "Krankenversicherung",
+        "desc": "In Deutschland Pflicht. Wir erklären dir, wie sie funktioniert – mit unserem Partner BARMER.",
+        "cta": "Mehr erfahren"
+      },
+      {
+        "icon": "file",
+        "title": "Arbeitsvertrag",
+        "desc": "Was in deinem Vertrag stehen muss: Gehalt, Arbeitszeit, Urlaub und Kündigungsfristen."
+      },
+      {
+        "icon": "euro",
+        "title": "Steuern & Sozialabgaben",
+        "desc": "Lohnsteuer, Steuerklasse und Sozialversicherung – was von deinem Brutto abgeht und warum."
+      },
+      {
+        "icon": "home",
+        "title": "Anmeldung & Wohnung",
+        "desc": "Wohnsitz anmelden (Bürgeramt), Meldebescheinigung und wie du eine Wohnung findest."
+      },
+      {
+        "icon": "building",
+        "title": "Bankkonto & Steuer-ID",
+        "desc": "Ein deutsches Konto und deine Steuer-Identifikationsnummer brauchst du für dein Gehalt."
+      },
+      {
+        "icon": "shield",
+        "title": "Deine Rechte",
+        "desc": "Mindestlohn, Urlaubsanspruch, Arbeitsschutz und Gleichbehandlung – darauf hast du Anrecht."
+      }
+    ],
+    "articlesTitle": "Passende Artikel aus unserem Blog",
+    "articlesEmpty": "Bald findest du hier passende Artikel.",
+    "moreLinksTitle": "Weiterführende Links",
+    "readMore": "Weiterlesen"
+  },
+  "krankenkasse": {
+    "metaTitle": "Krankenversicherung in Deutschland – einfach erklärt",
+    "metaDescription": "Wie funktioniert die Krankenversicherung in Deutschland? Gesetzlich vs. privat, Anmeldung und Nachweis für die Botschaft – erklärt, mit unserem Partner BARMER.",
+    "heroBadge": "Krankenversicherung",
+    "heroTitle": "Krankenversicherung in Deutschland",
+    "heroSubtitle": "In Deutschland ist eine Krankenversicherung Pflicht. Hier erfährst du einfach erklärt, wie sie funktioniert – und wie du dich anmeldest.",
+    "backToHub": "Zurück zu „Für Arbeitnehmer“",
+    "whatIsTitle": "Was ist die Krankenversicherung?",
+    "whatIsBody": "Jede Person, die in Deutschland lebt und arbeitet, muss krankenversichert sein (Versicherungspflicht). Die Krankenversicherung übernimmt die Kosten für Arztbesuche, Krankenhaus, Medikamente und Vorsorge. Dein Beitrag wird meist automatisch vom Gehalt abgezogen – dein Arbeitgeber zahlt die Hälfte dazu.",
+    "typesTitle": "Gesetzlich oder privat?",
+    "gkvTitle": "Gesetzliche Krankenversicherung (GKV)",
+    "gkvPoints": [
+      "Für die meisten Arbeitnehmer der Standard",
+      "Beitrag richtet sich nach deinem Einkommen",
+      "Familienmitglieder oft kostenlos mitversichert",
+      "Freie Wahl der Krankenkasse – z. B. BARMER"
+    ],
+    "pkvTitle": "Private Krankenversicherung (PKV)",
+    "pkvPoints": [
+      "Für Gutverdiener, Selbstständige und Beamte",
+      "Beitrag richtet sich nach Alter und Leistungen",
+      "Jede Person zahlt einen eigenen Beitrag"
+    ],
+    "stepsTitle": "So meldest du dich an",
+    "steps": [
+      {
+        "title": "Krankenkasse wählen",
+        "desc": "Wähle eine gesetzliche Krankenkasse. Wir empfehlen unseren Partner BARMER."
+      },
+      {
+        "title": "Anmeldung ausfüllen",
+        "desc": "Fülle das Anmeldeformular mit deinen Daten aus – online in wenigen Minuten."
+      },
+      {
+        "title": "Nachweis erhalten",
+        "desc": "Du bekommst eine Mitgliedsbescheinigung für deinen Arbeitgeber – und auf Wunsch einen Nachweis für die Botschaft."
+      }
+    ],
+    "partnerBadge": "Beispiel & Partner",
+    "partnerTitle": "Unser Partner: {{name}}",
+    "partnerBody": "Die {{name}} ist eine der größten gesetzlichen Krankenkassen Deutschlands und unser Partner. Sie unterstützt internationale Arbeitnehmer mit gutem Service und einer unkomplizierten Anmeldung.",
+    "partnerCta": "Zur {{name}}-Website",
+    "signupTitle": "Jetzt zur Krankenversicherung anmelden",
+    "signupBody": "Melde dich mit wenigen Klicks bei unserem Partner an. Wir leiten dich anschließend sicher zum Anmeldeformular weiter.",
+    "embassyQuestion": "Brauchst du einen Versicherungsnachweis für die Botschaft (z. B. für dein Visum)?",
+    "embassyYes": "Ja, ich brauche einen Nachweis für die Botschaft",
+    "embassyNo": "Nein, ich brauche keinen Nachweis",
+    "signupButton": "Zur Anmeldung",
+    "signupLoading": "Wird vorbereitet …",
+    "loginRequiredTitle": "Bitte zuerst einloggen",
+    "loginRequiredBody": "Um dich zur Krankenversicherung anzumelden, logge dich bitte in dein Konto ein oder registriere dich.",
+    "loginButton": "Einloggen",
+    "registerButton": "Registrieren",
+    "notAvailableTitle": "Anmeldung bald verfügbar",
+    "notAvailableBody": "Die Online-Anmeldung wird in Kürze freigeschaltet. Bitte schau bald wieder vorbei.",
+    "successTitle": "Fast geschafft!",
+    "successBody": "Deine Anmeldung ist bei uns eingegangen. Wir leiten dich jetzt zum Formular unseres Partners weiter.",
+    "successEmbassyNote": "Wir haben vermerkt, dass du einen Nachweis für die Botschaft brauchst, und kümmern uns darum.",
+    "continueButton": "Weiter zum Formular",
+    "articlesTitle": "Passende Artikel",
+    "disclaimer": "Diese Seite bietet eine allgemeine Orientierung und ersetzt keine individuelle Beratung. {{name}} ist unser Partner."
   }
 }

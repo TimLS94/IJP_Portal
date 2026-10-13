@@ -248,6 +248,7 @@ export default function Navbar() {
         { to: "/admin/crm", icon: Building2, label: "CRM" },
         { to: "/admin/applicant-invites", icon: Users, label: t("nav.applicantInvites") },
         { to: "/admin/partner-links", icon: Link2, label: "Partner-Links" },
+        { to: "/admin/insurance", icon: Heart, label: t("nav.adminInsurance") },
         { to: "/admin/email-blocklist", icon: Shield, label: "E-Mail-Sperrliste" },
         { header: "Verwaltung" },
         { to: "/admin/applications", icon: FileText, label: t("nav.adminApplications") },
@@ -356,6 +357,20 @@ export default function Navbar() {
               >
                 <BookOpen className="h-4 w-4" />
                 <span>{t("nav.blog")}</span>
+              </Link>
+            )}
+
+            {!isIjpApplicant && (
+              <Link
+                href="/arbeitnehmer"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
+                  pathname.startsWith("/arbeitnehmer")
+                    ? "text-primary-600 bg-primary-50"
+                    : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
+                }`}
+              >
+                <Heart className="h-4 w-4" />
+                <span>{t("nav.employees")}</span>
               </Link>
             )}
 
@@ -742,6 +757,16 @@ export default function Navbar() {
                 >
                   <BookOpen className="h-5 w-5 text-gray-400" />
                   <span>{t("nav.blog")}</span>
+                </Link>
+              )}
+              {!isIjpApplicant && (
+                <Link
+                  href="/arbeitnehmer"
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Heart className="h-5 w-5 text-gray-400" />
+                  <span>{t("nav.employees")}</span>
                 </Link>
               )}
             </div>

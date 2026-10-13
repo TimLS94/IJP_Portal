@@ -109,7 +109,9 @@
     "contact": "Contact",
     "notifications": "Notifications",
     "markAllAsRead": "Mark all as read",
-    "noNotifications": "No notifications"
+    "noNotifications": "No notifications",
+    "employees": "For Employees",
+    "adminInsurance": "Health Insurance"
   },
   "home": {
     "title": "Job board for international talent — free for companies & applicants",
@@ -2303,5 +2305,114 @@
       "title": "New matching job: {{jobTitle}}",
       "message": "{{company}} in {{location}} – {{score}}% match"
     }
+  },
+  "arbeitnehmer": {
+    "metaTitle": "For Employees – Working & Living in Germany",
+    "metaDescription": "Key information for employees and job seekers in Germany: health insurance, employment contract, taxes, registration and more.",
+    "heroBadge": "For Employees",
+    "heroTitle": "Everything you need to know as an employee in Germany",
+    "heroSubtitle": "From health insurance to your first day at work – clear explanations and helpful articles, step by step.",
+    "introTitle": "Your start in Germany",
+    "introBody": "Germany has clear rules for employees – and they protect you. Here are the most important topics explained simply, plus matching guide articles from our blog.",
+    "topicsTitle": "Important topics",
+    "topics": [
+      {
+        "icon": "heart",
+        "title": "Health insurance",
+        "desc": "Mandatory in Germany. We explain how it works – with our partner BARMER.",
+        "cta": "Learn more"
+      },
+      {
+        "icon": "file",
+        "title": "Employment contract",
+        "desc": "What your contract must include: salary, working hours, holidays and notice periods."
+      },
+      {
+        "icon": "euro",
+        "title": "Taxes & social contributions",
+        "desc": "Income tax, tax class and social insurance – what comes off your gross pay and why."
+      },
+      {
+        "icon": "home",
+        "title": "Registration & housing",
+        "desc": "Registering your address (Bürgeramt), the registration certificate and how to find a flat."
+      },
+      {
+        "icon": "building",
+        "title": "Bank account & tax ID",
+        "desc": "You need a German bank account and your tax identification number to get paid."
+      },
+      {
+        "icon": "shield",
+        "title": "Your rights",
+        "desc": "Minimum wage, paid holiday, health & safety and equal treatment – you are entitled to these."
+      }
+    ],
+    "articlesTitle": "Matching articles from our blog",
+    "articlesEmpty": "Matching articles will appear here soon.",
+    "moreLinksTitle": "Further links",
+    "readMore": "Read more"
+  },
+  "krankenkasse": {
+    "metaTitle": "Health insurance in Germany – simply explained",
+    "metaDescription": "How does health insurance work in Germany? Statutory vs. private, how to sign up and the proof for the embassy – explained, with our partner BARMER.",
+    "heroBadge": "Health insurance",
+    "heroTitle": "Health insurance in Germany",
+    "heroSubtitle": "In Germany, health insurance is mandatory. Here is a simple explanation of how it works – and how to sign up.",
+    "backToHub": "Back to “For Employees”",
+    "whatIsTitle": "What is health insurance?",
+    "whatIsBody": "Everyone who lives and works in Germany must have health insurance (compulsory insurance). It covers the cost of doctor visits, hospital stays, medication and check-ups. Your contribution is usually deducted automatically from your salary – and your employer pays half of it.",
+    "typesTitle": "Statutory or private?",
+    "gkvTitle": "Statutory health insurance (GKV)",
+    "gkvPoints": [
+      "The standard for most employees",
+      "Contribution based on your income",
+      "Family members often covered for free",
+      "Free choice of insurer – e.g. BARMER"
+    ],
+    "pkvTitle": "Private health insurance (PKV)",
+    "pkvPoints": [
+      "For high earners, the self-employed and civil servants",
+      "Contribution based on age and benefits",
+      "Each person pays their own contribution"
+    ],
+    "stepsTitle": "How to sign up",
+    "steps": [
+      {
+        "title": "Choose an insurer",
+        "desc": "Pick a statutory health insurer. We recommend our partner BARMER."
+      },
+      {
+        "title": "Fill in the application",
+        "desc": "Complete the application with your details – online in a few minutes."
+      },
+      {
+        "title": "Receive your proof",
+        "desc": "You get a membership certificate for your employer – and, if needed, a proof for the embassy."
+      }
+    ],
+    "partnerBadge": "Example & partner",
+    "partnerTitle": "Our partner: {{name}}",
+    "partnerBody": "{{name}} is one of Germany's largest statutory health insurers and our partner. It supports international employees with good service and a straightforward sign-up.",
+    "partnerCta": "Visit the {{name}} website",
+    "signupTitle": "Sign up for health insurance now",
+    "signupBody": "Sign up with our partner in just a few clicks. We'll then redirect you securely to the application form.",
+    "embassyQuestion": "Do you need a proof of insurance for the embassy (e.g. for your visa)?",
+    "embassyYes": "Yes, I need a proof for the embassy",
+    "embassyNo": "No, I don't need a proof",
+    "signupButton": "Continue to sign-up",
+    "signupLoading": "Preparing …",
+    "loginRequiredTitle": "Please log in first",
+    "loginRequiredBody": "To sign up for health insurance, please log in to your account or register.",
+    "loginButton": "Log in",
+    "registerButton": "Register",
+    "notAvailableTitle": "Sign-up available soon",
+    "notAvailableBody": "Online sign-up will be enabled shortly. Please check back soon.",
+    "successTitle": "Almost done!",
+    "successBody": "We've received your sign-up. We're now redirecting you to our partner's form.",
+    "successEmbassyNote": "We've noted that you need a proof for the embassy and will take care of it.",
+    "continueButton": "Continue to the form",
+    "articlesTitle": "Related articles",
+    "disclaimer": "This page provides general orientation and does not replace individual advice. {{name}} is our partner."
   }
 }

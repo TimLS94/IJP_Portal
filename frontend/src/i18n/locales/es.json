@@ -105,7 +105,9 @@
     "contact": "Contacto",
     "notifications": "Notificaciones",
     "markAllAsRead": "Marcar todo como leído",
-    "noNotifications": "Sin notificaciones"
+    "noNotifications": "Sin notificaciones",
+    "employees": "Para empleados",
+    "adminInsurance": "Seguro médico"
   },
   "home": {
     "title": "Bolsa de trabajo para profesionales internacionales — gratis para empresas y candidatos",
@@ -2220,5 +2222,114 @@
       "title": "Nueva oferta compatible: {{jobTitle}}",
       "message": "{{company}} en {{location}} – {{score}}% de compatibilidad"
     }
+  },
+  "arbeitnehmer": {
+    "metaTitle": "Para empleados – Trabajar y vivir en Alemania",
+    "metaDescription": "Información clave para empleados y personas que buscan trabajo en Alemania: seguro médico, contrato de trabajo, impuestos, empadronamiento y más.",
+    "heroBadge": "Para empleados",
+    "heroTitle": "Todo lo que necesitas saber como empleado en Alemania",
+    "heroSubtitle": "Del seguro médico a tu primer día de trabajo: explicaciones claras y artículos útiles, paso a paso.",
+    "introTitle": "Tu inicio en Alemania",
+    "introBody": "Alemania tiene reglas claras para los empleados, y te protegen. Aquí tienes los temas más importantes explicados de forma sencilla, además de artículos de nuestro blog.",
+    "topicsTitle": "Temas importantes",
+    "topics": [
+      {
+        "icon": "heart",
+        "title": "Seguro médico",
+        "desc": "Obligatorio en Alemania. Te explicamos cómo funciona, con nuestro socio BARMER.",
+        "cta": "Saber más"
+      },
+      {
+        "icon": "file",
+        "title": "Contrato de trabajo",
+        "desc": "Lo que debe incluir tu contrato: salario, jornada, vacaciones y plazos de preaviso."
+      },
+      {
+        "icon": "euro",
+        "title": "Impuestos y cotizaciones",
+        "desc": "Impuesto sobre la renta, clase fiscal y seguridad social: qué se descuenta de tu bruto y por qué."
+      },
+      {
+        "icon": "home",
+        "title": "Empadronamiento y vivienda",
+        "desc": "Registrar tu domicilio (Bürgeramt), el certificado de empadronamiento y cómo encontrar piso."
+      },
+      {
+        "icon": "building",
+        "title": "Cuenta bancaria y Steuer-ID",
+        "desc": "Necesitas una cuenta alemana y tu número de identificación fiscal para cobrar."
+      },
+      {
+        "icon": "shield",
+        "title": "Tus derechos",
+        "desc": "Salario mínimo, vacaciones pagadas, prevención de riesgos e igualdad de trato: te corresponden."
+      }
+    ],
+    "articlesTitle": "Artículos relacionados de nuestro blog",
+    "articlesEmpty": "Pronto encontrarás aquí artículos relacionados.",
+    "moreLinksTitle": "Enlaces útiles",
+    "readMore": "Leer más"
+  },
+  "krankenkasse": {
+    "metaTitle": "Seguro médico en Alemania – explicado de forma sencilla",
+    "metaDescription": "¿Cómo funciona el seguro médico en Alemania? Público vs. privado, cómo darte de alta y el certificado para la embajada, con nuestro socio BARMER.",
+    "heroBadge": "Seguro médico",
+    "heroTitle": "Seguro médico en Alemania",
+    "heroSubtitle": "En Alemania el seguro médico es obligatorio. Aquí te explicamos de forma sencilla cómo funciona y cómo darte de alta.",
+    "backToHub": "Volver a «Para empleados»",
+    "whatIsTitle": "¿Qué es el seguro médico?",
+    "whatIsBody": "Toda persona que vive y trabaja en Alemania debe tener seguro médico (seguro obligatorio). Cubre los costes de visitas al médico, hospital, medicamentos y prevención. Tu cuota suele descontarse automáticamente del salario, y tu empleador paga la mitad.",
+    "typesTitle": "¿Público o privado?",
+    "gkvTitle": "Seguro médico público (GKV)",
+    "gkvPoints": [
+      "El estándar para la mayoría de los empleados",
+      "La cuota depende de tus ingresos",
+      "Los familiares suelen estar cubiertos gratis",
+      "Libre elección de la aseguradora, p. ej. BARMER"
+    ],
+    "pkvTitle": "Seguro médico privado (PKV)",
+    "pkvPoints": [
+      "Para altos ingresos, autónomos y funcionarios",
+      "La cuota depende de la edad y las coberturas",
+      "Cada persona paga su propia cuota"
+    ],
+    "stepsTitle": "Cómo darte de alta",
+    "steps": [
+      {
+        "title": "Elige una aseguradora",
+        "desc": "Elige una aseguradora pública. Recomendamos a nuestro socio BARMER."
+      },
+      {
+        "title": "Rellena la solicitud",
+        "desc": "Completa el formulario con tus datos, en pocos minutos y en línea."
+      },
+      {
+        "title": "Recibe tu certificado",
+        "desc": "Recibes un certificado de afiliación para tu empleador y, si lo necesitas, un certificado para la embajada."
+      }
+    ],
+    "partnerBadge": "Ejemplo y socio",
+    "partnerTitle": "Nuestro socio: {{name}}",
+    "partnerBody": "{{name}} es una de las mayores aseguradoras públicas de Alemania y nuestro socio. Apoya a los empleados internacionales con buen servicio y un alta sencilla.",
+    "partnerCta": "Ir al sitio de {{name}}",
+    "signupTitle": "Date de alta en el seguro médico ahora",
+    "signupBody": "Date de alta con nuestro socio en pocos clics. Después te redirigiremos de forma segura al formulario.",
+    "embassyQuestion": "¿Necesitas un certificado de seguro para la embajada (p. ej. para tu visado)?",
+    "embassyYes": "Sí, necesito un certificado para la embajada",
+    "embassyNo": "No, no necesito certificado",
+    "signupButton": "Ir al alta",
+    "signupLoading": "Preparando …",
+    "loginRequiredTitle": "Inicia sesión primero",
+    "loginRequiredBody": "Para darte de alta en el seguro médico, inicia sesión en tu cuenta o regístrate.",
+    "loginButton": "Iniciar sesión",
+    "registerButton": "Registrarse",
+    "notAvailableTitle": "Alta disponible pronto",
+    "notAvailableBody": "El alta en línea se activará muy pronto. Vuelve a visitarnos.",
+    "successTitle": "¡Casi listo!",
+    "successBody": "Hemos recibido tu alta. Ahora te redirigimos al formulario de nuestro socio.",
+    "successEmbassyNote": "Hemos anotado que necesitas un certificado para la embajada y nos encargaremos de ello.",
+    "continueButton": "Ir al formulario",
+    "articlesTitle": "Artículos relacionados",
+    "disclaimer": "Esta página ofrece orientación general y no sustituye el asesoramiento individual. {{name}} es nuestro socio."
   }
 }

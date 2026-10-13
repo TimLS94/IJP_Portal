@@ -289,6 +289,20 @@ export const blogAPI = {
   },
 };
 
+// Insurance / Arbeitnehmer-Infos API
+export const insuranceAPI = {
+  // Öffentlich: Inhalte (getaggte Blogartikel + manuelle Links) für hub|krankenkasse
+  getContent: (topic = 'hub', language = 'de') =>
+    api.get('/insurance/content', { params: { topic, language } }),
+  // Eingeloggt: zur Krankenkasse anmelden (gibt BARMER-Redirect-URL zurück)
+  signup: (needs_embassy_proof, language = 'de') =>
+    api.post('/insurance/signup', { needs_embassy_proof, language }),
+  // Admin
+  adminGetSignups: (params) => api.get('/insurance/admin/signups', { params }),
+  adminUpdateSignup: (id, data) => api.patch(`/insurance/admin/signups/${id}`, data),
+  adminDeleteSignup: (id) => api.delete(`/insurance/admin/signups/${id}`),
+};
+
 // Notifications API
 export const notificationsAPI = {
   getCount: () => api.get('/notifications/count'),
@@ -393,6 +407,7 @@ export const adminAPI = {
   getArchivedJobs: (reason = null) => api.get('/admin/archived-jobs', { params: reason ? { reason } : {} }),
   // Feature Flags & Einstellungen
   getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
+  getSettings: () => api.get('/admin/settings'),
   setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),
   setFeatureFlag: (key, value) => api.put(`/admin/settings/${key}`, { value }),
   getArchiveDeletionPreview: (days) => api.get('/admin/settings/archive-deletion-preview', { params: { days } }),
