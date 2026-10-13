@@ -2435,6 +2435,29 @@
       }
     ],
     "processLangNote": "Tip: In the BARMER application you can switch the language to English in the top right.",
-    "startCta": "Sign up now"
+    "startCta": "Sign up now",
+    "formStepsIntro": "In the application you provide, step by step:",
+    "formSteps": [
+      "Personal details",
+      "Birth details",
+      "Employment situation",
+      "Previous insurance",
+      "Digital signature"
+    ],
+    "heroPoints": [
+      "Meets mandatory insurance",
+      "Multilingual – incl. English",
+      "Done in minutes"
+    ],
+    "stepLabel": "Step",
+    "partnerStripLabel": "Health insurance partner",
+    "marquee": [
+      "Statutory health insurer",
+      "Multilingual service",
+      "Fast online sign-up",
+      "Proof for the embassy available",
+      "For international employees",
+      "A strong partner for your start"
+    ]
   }
 }

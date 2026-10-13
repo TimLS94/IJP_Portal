@@ -181,3 +181,48 @@ h1, h2, h3, h4, h5, h6 {
     @apply text-primary-600 hover:text-primary-700 underline;
   }
 }
+
+/* --- Krankenkassen-/Arbeitnehmer-Seiten: dezente Effekte --- */
+@keyframes kk-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+@keyframes kk-float-slow {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(16px) translateX(-10px); }
+}
+@keyframes kk-sheen {
+  0% { transform: translateX(-120%); }
+  60%, 100% { transform: translateX(260%); }
+}
+.kk-float { animation: kk-float 9s ease-in-out infinite; }
+.kk-float-slow { animation: kk-float-slow 12s ease-in-out infinite; }
+/* Glanz-Streifen für Buttons (dezent) */
+.kk-sheen::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform: translateX(-120%);
+}
+.kk-sheen:hover::after { animation: kk-sheen 1.1s ease forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .kk-float, .kk-float-slow { animation: none; }
+  .kk-sheen:hover::after { animation: none; }
+}
+
+/* Partner-Band: nahtlos durchlaufende Vertrauens-Punkte (dezent) */
+@keyframes kk-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.kk-marquee-track {
+  display: inline-flex;
+  width: max-content;
+  animation: kk-marquee 32s linear infinite;
+}
+.kk-marquee-mask:hover .kk-marquee-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .kk-marquee-track { animation: none; }
+}

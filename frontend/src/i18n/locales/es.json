@@ -2352,6 +2352,29 @@
       }
     ],
     "processLangNote": "Consejo: en la solicitud de BARMER puedes cambiar el idioma a inglés arriba a la derecha.",
-    "startCta": "Darse de alta ahora"
+    "startCta": "Darse de alta ahora",
+    "formStepsIntro": "En la solicitud indicas, paso a paso:",
+    "formSteps": [
+      "Datos personales",
+      "Datos de nacimiento",
+      "Situación laboral",
+      "Seguro anterior",
+      "Firma digital"
+    ],
+    "heroPoints": [
+      "Cumple el seguro obligatorio",
+      "Multilingüe – incl. inglés",
+      "Listo en minutos"
+    ],
+    "stepLabel": "Paso",
+    "partnerStripLabel": "Socio de seguro médico",
+    "marquee": [
+      "Seguro médico público",
+      "Servicio multilingüe",
+      "Alta rápida en línea",
+      "Certificado para la embajada disponible",
+      "Para empleados internacionales",
+      "Un socio fuerte para tu comienzo"
+    ]
   }
 }

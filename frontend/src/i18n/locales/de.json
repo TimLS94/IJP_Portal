@@ -2435,6 +2435,29 @@
       }
     ],
     "processLangNote": "Tipp: Im BARMER-Antrag kannst du oben rechts die Sprache auf Englisch umstellen.",
-    "startCta": "Jetzt anmelden"
+    "startCta": "Jetzt anmelden",
+    "formStepsIntro": "Im Antrag gibst du Schritt für Schritt an:",
+    "formSteps": [
+      "Persönliche Daten",
+      "Geburtsdetails",
+      "Berufliche Situation",
+      "Bisherige Versicherung",
+      "Digitale Unterschrift"
+    ],
+    "heroPoints": [
+      "Pflichtversicherung erfüllt",
+      "Mehrsprachig – auch Englisch",
+      "In wenigen Minuten"
+    ],
+    "stepLabel": "Schritt",
+    "partnerStripLabel": "Krankenkassen-Partner",
+    "marquee": [
+      "Gesetzliche Krankenkasse",
+      "Mehrsprachiger Service",
+      "Schnelle Online-Anmeldung",
+      "Nachweis für die Botschaft möglich",
+      "Für internationale Arbeitnehmer",
+      "Starker Partner für deinen Start"
+    ]
   }
 }
