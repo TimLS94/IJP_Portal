@@ -2375,6 +2375,8 @@
       "Certificado para la embajada disponible",
       "Para empleados internacionales",
       "Un socio fuerte para tu comienzo"
-    ]
+    ],
+    "legalTitle": "Aviso importante – sin asesoramiento",
+    "legalBody": "No somos mediadores ni asesores de seguros y no ofrecemos asesoramiento sobre seguros. Esta página ofrece información general y solo pone en contacto con nuestro socio. El asesoramiento personal y la contratación se realizan directamente con {{name}} o a través de my-insurance24."
   }
 }

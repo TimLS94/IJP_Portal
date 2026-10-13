@@ -17,6 +17,7 @@ import {
   FileText,
   CheckCircle2,
   Languages,
+  Info,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { insuranceAPI } from "@/lib/api";
@@ -143,9 +144,8 @@ export default function KrankenkassePage() {
     <div className="bg-slate-50 min-h-screen">
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-primary-900 to-primary-800 text-white">
-        <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] [background-size:44px_44px]" />
-        <div className="absolute -top-28 -right-16 h-80 w-80 rounded-full bg-primary-400/25 blur-3xl kk-float" />
-        <div className="absolute top-20 -left-24 h-72 w-72 rounded-full bg-emerald-400/15 blur-3xl kk-float-slow" />
+        <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] [background-size:60px_60px]" />
+        <div className="absolute -top-40 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
         <div className="relative max-w-5xl mx-auto px-4 py-16 md:py-28">
           <Reveal>
             <Link
@@ -383,7 +383,7 @@ export default function KrankenkassePage() {
                     {/* content card */}
                     <div className={`flex-1 ${isLast ? "pb-0" : "pb-8"}`}>
                       <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
-                        <span className="pointer-events-none absolute -top-5 right-3 text-[86px] leading-none font-black text-slate-100 select-none">
+                        <span className="pointer-events-none absolute top-2 right-4 text-6xl leading-none font-black text-slate-100 select-none">
                           {i + 1}
                         </span>
                         <div className="relative">
@@ -429,6 +429,19 @@ export default function KrankenkassePage() {
             })}
           </div>
         </section>
+
+        {/* Rechtlicher Hinweis: keine Beratung */}
+        <Reveal>
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <Info className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5" />
+            <div>
+              <p className="font-semibold text-amber-900">{t("krankenkasse.legalTitle")}</p>
+              <p className="mt-1 text-sm text-amber-800 leading-relaxed">
+                {t("krankenkasse.legalBody", { name: partnerName })}
+              </p>
+            </div>
+          </div>
+        </Reveal>
 
         {/* Signup */}
         <Reveal>
