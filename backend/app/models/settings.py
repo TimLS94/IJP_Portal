@@ -85,6 +85,42 @@ DEFAULT_SETTINGS = {
         "value": "true",
         "value_type": "boolean",
         "description": "CV immer analysieren (nicht nur als Fallback wenn Profil leer ist)"
+    },
+    # Krankenkasse / BARMER-Partner (Seite 'Für Arbeitnehmer')
+    "barmer_signup_url": {
+        "value": "https://www.my-insurance24.com/application/2LPyWmBlwuXEFsxt",
+        "value_type": "string",
+        "description": "Externer BARMER-Anmelde-Link. Nach Klick auf 'Anmelden' wird der Nutzer hierhin weitergeleitet. Leer = Button zeigt Hinweis 'bald verfügbar'."
+    },
+    "insurance_partner_name": {
+        "value": "BARMER",
+        "value_type": "string",
+        "description": "Name des Krankenkassen-Partners (wird auf der Krankenkassen-Seite angezeigt)."
+    },
+    "insurance_partner_url": {
+        "value": "https://www.barmer.de",
+        "value_type": "string",
+        "description": "Homepage des Krankenkassen-Partners (Logo verlinkt dorthin – lt. Vertrag erforderlich)."
+    },
+    "arbeitnehmer_hub_tag": {
+        "value": "arbeitnehmer",
+        "value_type": "string",
+        "description": "Blog-Tag, dessen Artikel auf der Seite 'Für Arbeitnehmer' automatisch verlinkt werden."
+    },
+    "krankenkasse_tag": {
+        "value": "krankenkasse",
+        "value_type": "string",
+        "description": "Blog-Tag, dessen Artikel auf der Krankenkassen-Seite automatisch verlinkt werden."
+    },
+    "arbeitnehmer_manual_links": {
+        "value": "[]",
+        "value_type": "json",
+        "description": "Zusätzliche manuelle Links auf der Seite 'Für Arbeitnehmer'. Liste von {title_de,title_en,title_es,title_ru,url,description_de,...}."
+    },
+    "krankenkasse_manual_links": {
+        "value": "[]",
+        "value_type": "json",
+        "description": "Zusätzliche manuelle Links auf der Krankenkassen-Seite. Gleiches Format wie arbeitnehmer_manual_links."
     }
 }
 
