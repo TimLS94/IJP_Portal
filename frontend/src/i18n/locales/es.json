@@ -2418,6 +2418,130 @@
       "tipTitle": "Bueno saber",
       "tipBody": "El salario mínimo se aplica a casi todos: en 2027 es de 14,60 € por hora (2026: 13,90 €). Un salario inferior en el contrato no es válido.",
       "articlesTitle": "Artículos relacionados"
+    },
+    "steuern": {
+      "badge": "Impuestos y cotizaciones",
+      "title": "Impuestos y cotizaciones en Alemania",
+      "subtitle": "Por qué se descuenta parte de tu salario bruto y qué puedes recuperar.",
+      "keyPointsTitle": "Qué se descuenta de tu bruto",
+      "keyPoints": [
+        "Impuesto sobre la renta (Lohnsteuer), según ingresos y clase fiscal",
+        "Recargo de solidaridad y, en su caso, impuesto eclesiástico",
+        "Seguro médico y seguro de dependencia",
+        "Seguro de pensiones y de desempleo",
+        "Tu empleador paga aproximadamente la mitad de las cotizaciones",
+        "Neto = bruto menos impuestos y cotizaciones"
+      ],
+      "sections": [
+        {
+          "heading": "Impuesto y clase fiscal",
+          "body": "Tu empleador descuenta el impuesto sobre la renta directamente del salario. Cuánto depende de tu clase fiscal (I–VI). Hasta el mínimo exento (2026: unos 12.350 € al año) no pagas impuesto."
+        },
+        {
+          "heading": "Seguridad social",
+          "body": "De tu salario se descuentan cotizaciones de salud, dependencia, pensiones y desempleo: en total alrededor del 20 % de tu bruto. Tu empleador aporta aproximadamente la misma cantidad."
+        },
+        {
+          "heading": "La declaración suele compensar",
+          "body": "Muchos empleados recuperan dinero con la declaración anual, p. ej. por desplazamientos, mudanza o material de trabajo. Es voluntaria, salvo en ciertos casos."
+        }
+      ],
+      "tipTitle": "Bueno saber",
+      "tipBody": "Sin número de identificación fiscal, tu empleador te asigna la cara clase fiscal VI. Dale tu Steuer-ID cuanto antes.",
+      "articlesTitle": "Artículos relacionados"
+    },
+    "anmeldung": {
+      "badge": "Empadronamiento y vivienda",
+      "title": "Empadronamiento y vivienda en Alemania",
+      "subtitle": "Cómo registrar tu domicilio y en qué fijarte al buscar piso.",
+      "keyPointsTitle": "Qué necesitas para empadronarte",
+      "keyPoints": [
+        "Empadronarte en el Bürgeramt en 14 días tras la mudanza",
+        "Confirmación del arrendador (Wohnungsgeberbestätigung)",
+        "Pasaporte o DNI válido",
+        "Formulario de registro cumplimentado",
+        "Recibes un certificado de empadronamiento (Meldebescheinigung)",
+        "Después tu Steuer-ID llega automáticamente por correo"
+      ],
+      "sections": [
+        {
+          "heading": "Por qué es tan importante",
+          "body": "Sin empadronamiento (Meldebescheinigung) casi nada funciona: lo necesitas para la cuenta bancaria, el Steuer-ID, el seguro médico y muchos trámites. Empadrónate pronto tras mudarte."
+        },
+        {
+          "heading": "Encontrar piso",
+          "body": "Encuentras pisos por portales online, anuncios o contactos. Para que te acepten suelen pedir una autodeclaración y un justificante de ingresos. Cuidado con ofertas que piden dinero antes de la visita."
+        },
+        {
+          "heading": "Fianza y contrato",
+          "body": "La fianza es como máximo tres meses de alquiler sin gastos. Lee bien el contrato (alquiler, gastos, preaviso) y pide que la entrega se confirme por escrito (acta de entrega)."
+        }
+      ],
+      "tipTitle": "Bueno saber",
+      "tipBody": "Evita estafas: nunca transfieras dinero ni fianza antes de haber visto el piso y firmado un contrato.",
+      "articlesTitle": "Artículos relacionados"
+    },
+    "bankkonto": {
+      "badge": "Cuenta bancaria y Steuer-ID",
+      "title": "Cuenta bancaria y Steuer-ID en Alemania",
+      "subtitle": "Necesitas ambas para que llegue tu salario y se tribute correctamente.",
+      "keyPointsTitle": "Qué necesitas",
+      "keyPoints": [
+        "Una cuenta corriente alemana (Girokonto) para tu salario",
+        "DNI/pasaporte para abrir la cuenta",
+        "A menudo el certificado de empadronamiento (Anmeldung)",
+        "Tu número de identificación fiscal (11 dígitos)",
+        "El Steuer-ID llega por correo tras empadronarte",
+        "Da tu número de cuenta (IBAN) y tu Steuer-ID al empleador"
+      ],
+      "sections": [
+        {
+          "heading": "Abrir una cuenta corriente",
+          "body": "Puedes abrir una cuenta en un banco físico u online. Normalmente necesitas un documento de identidad y tu empadronamiento. En Alemania todos tienen derecho a una cuenta básica, incluso sin domicilio fijo."
+        },
+        {
+          "heading": "¿Qué es el Steuer-ID?",
+          "body": "El número de identificación fiscal es un número de 11 dígitos para toda la vida. Lo recibes automáticamente por carta tras empadronarte. Tu empleador lo necesita para calcular bien tu impuesto."
+        },
+        {
+          "heading": "Sin Steuer-ID sale caro",
+          "body": "Si tu empleador no tiene tu Steuer-ID, aplica la clase fiscal más alta (VI). Cuando lo aportas, normalmente recuperas el impuesto pagado de más."
+        }
+      ],
+      "tipTitle": "Bueno saber",
+      "tipBody": "¿Perdiste tu Steuer-ID? Lo encuentras en tu declaración de la renta o puedes solicitarlo de nuevo a la Oficina Central Federal de Impuestos.",
+      "articlesTitle": "Artículos relacionados"
+    },
+    "rechte": {
+      "badge": "Tus derechos",
+      "title": "Tus derechos como empleado en Alemania",
+      "subtitle": "Salario mínimo, vacaciones, protección por enfermedad y trato justo: te corresponden.",
+      "keyPointsTitle": "A qué tienes derecho",
+      "keyPoints": [
+        "Salario mínimo: al menos 14,60 € por hora en 2027",
+        "Al menos 20 días de vacaciones al año (semana de 5 días)",
+        "Pago continuado por enfermedad: hasta 6 semanas",
+        "Jornada regulada (normalmente máx. 8 h/día)",
+        "Protección contra la discriminación (AGG)",
+        "Protección frente al despido y plazos de preaviso"
+      ],
+      "sections": [
+        {
+          "heading": "Salario y jornada",
+          "body": "El salario mínimo legal se aplica a casi todos (2027: 14,60 €/h). Tu jornada suele ser de máximo 8 horas diarias, con pausas y descansos. Las horas extra deben compensarse o pagarse."
+        },
+        {
+          "heading": "Vacaciones y enfermedad",
+          "body": "Tienes derecho a vacaciones pagadas: al menos 20 días con semana de 5 días. Si enfermas, tu empleador sigue pagando tu salario hasta seis semanas (con baja médica)."
+        },
+        {
+          "heading": "Protección e igualdad",
+          "body": "Nadie puede perjudicarte por origen, sexo, religión o edad (AGG). Rigen normas de prevención, y un despido debe respetar plazos y reglas. El comité de empresa o el sindicato pueden ayudarte."
+        }
+      ],
+      "tipTitle": "Bueno saber",
+      "tipBody": "Estos derechos se aplican aunque no estén en el contrato. Un acuerdo peor que la ley no es válido.",
+      "articlesTitle": "Artículos relacionados"
     }
   }
 }

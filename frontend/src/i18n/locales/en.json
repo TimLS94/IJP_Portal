@@ -2501,6 +2501,130 @@
       "tipTitle": "Good to know",
       "tipBody": "The minimum wage applies to almost everyone: in 2027 it is €14.60 per hour (2026: €13.90). A lower wage in the contract is invalid.",
       "articlesTitle": "Related articles"
+    },
+    "steuern": {
+      "badge": "Taxes & social contributions",
+      "title": "Taxes & social contributions in Germany",
+      "subtitle": "Why part of your gross pay is deducted – and what you can get back.",
+      "keyPointsTitle": "What comes off your gross pay",
+      "keyPoints": [
+        "Income tax (Lohnsteuer) – based on income and tax class",
+        "Solidarity surcharge and, if applicable, church tax",
+        "Health insurance and long-term care insurance",
+        "Pension and unemployment insurance",
+        "Your employer pays about half of the social contributions",
+        "Net = gross minus taxes and social contributions"
+      ],
+      "sections": [
+        {
+          "heading": "Income tax & tax class",
+          "body": "Your employer deducts income tax directly from your salary. How much depends on your tax class (I–VI). Up to the basic allowance (2026: around €12,350 per year) you pay no income tax."
+        },
+        {
+          "heading": "Social insurance",
+          "body": "Contributions for health, long-term care, pension and unemployment insurance are deducted from your pay – together around 20% of your gross salary. Your employer pays roughly the same amount on top."
+        },
+        {
+          "heading": "A tax return often pays off",
+          "body": "Many employees get money back with the annual tax return – e.g. for commuting, moving or work equipment. It is voluntary, except in certain cases."
+        }
+      ],
+      "tipTitle": "Good to know",
+      "tipBody": "Without a tax identification number, your employer puts you in the expensive tax class VI. So give them your tax ID early.",
+      "articlesTitle": "Related articles"
+    },
+    "anmeldung": {
+      "badge": "Registration & housing",
+      "title": "Registration & housing in Germany",
+      "subtitle": "How to register your address and what to watch for when looking for a flat.",
+      "keyPointsTitle": "What you need to register",
+      "keyPoints": [
+        "Register at the Bürgeramt within 14 days of moving in",
+        "Confirmation from your landlord (Wohnungsgeberbestätigung)",
+        "Valid passport or ID card",
+        "Completed registration form",
+        "You receive a registration certificate (Meldebescheinigung)",
+        "Your tax ID then arrives automatically by post"
+      ],
+      "sections": [
+        {
+          "heading": "Why registration matters so much",
+          "body": "Without registration (Meldebescheinigung) almost nothing works: you need it for a bank account, tax ID, health insurance and many official matters. So register quickly after moving in."
+        },
+        {
+          "heading": "Finding a flat",
+          "body": "You can find flats via online portals, notices or contacts. To be accepted you often need a self-disclosure form and proof of income. Be careful with offers that ask for money before a viewing."
+        },
+        {
+          "heading": "Deposit & rental contract",
+          "body": "The deposit is at most three months' cold rent. Read the contract carefully (rent, utilities, notice period) and get the handover confirmed in writing (handover protocol)."
+        }
+      ],
+      "tipTitle": "Good to know",
+      "tipBody": "Avoid scams: never transfer money or a deposit before you have seen the flat and signed a contract.",
+      "articlesTitle": "Related articles"
+    },
+    "bankkonto": {
+      "badge": "Bank account & tax ID",
+      "title": "Bank account & tax ID in Germany",
+      "subtitle": "You need both so your salary arrives and is taxed correctly.",
+      "keyPointsTitle": "What you need",
+      "keyPoints": [
+        "A German current account (Girokonto) for your salary",
+        "ID/passport to open the account",
+        "Often the registration certificate (Anmeldung)",
+        "Your tax identification number (11 digits)",
+        "The tax ID arrives by post after you register",
+        "Give your account number (IBAN) and tax ID to your employer"
+      ],
+      "sections": [
+        {
+          "heading": "Opening a current account",
+          "body": "You can open a current account at a branch or online bank. You usually need an ID and your registration. In Germany everyone has the right to a basic account – even without a fixed address."
+        },
+        {
+          "heading": "What is the tax ID?",
+          "body": "The tax identification number is a lifelong 11-digit number. You receive it automatically by letter after you register. Your employer needs it to calculate your income tax correctly."
+        },
+        {
+          "heading": "Without a tax ID it gets expensive",
+          "body": "If your employer doesn't have your tax ID, they deduct the highest tax class (VI). Once you provide it, you usually get the overpaid tax back."
+        }
+      ],
+      "tipTitle": "Good to know",
+      "tipBody": "Lost your tax ID? You can find it on your tax assessment or request it again from the Federal Central Tax Office.",
+      "articlesTitle": "Related articles"
+    },
+    "rechte": {
+      "badge": "Your rights",
+      "title": "Your rights as an employee in Germany",
+      "subtitle": "Minimum wage, holiday, protection when sick and fair treatment – you're entitled to these.",
+      "keyPointsTitle": "What you're entitled to",
+      "keyPoints": [
+        "Minimum wage: at least €14.60 per hour in 2027",
+        "At least 20 days of holiday per year (5-day week)",
+        "Continued pay when sick – up to 6 weeks",
+        "Regulated working hours (usually max. 8 hrs/day)",
+        "Protection against discrimination (AGG)",
+        "Protection against dismissal and notice periods"
+      ],
+      "sections": [
+        {
+          "heading": "Pay & working hours",
+          "body": "The statutory minimum wage applies to almost everyone (2027: €14.60/h). Your working time is usually at most 8 hours a day, with breaks and rest periods. Overtime must be compensated or paid."
+        },
+        {
+          "heading": "Holiday & sickness",
+          "body": "You are entitled to paid holiday – at least 20 days on a 5-day week. If you get sick, your employer continues to pay your salary for up to six weeks (with a doctor's note)."
+        },
+        {
+          "heading": "Protection & equal treatment",
+          "body": "No one may disadvantage you because of origin, gender, religion or age (AGG). Health & safety rules apply, and a dismissal must follow notice periods and rules. A works council or union can help with problems."
+        }
+      ],
+      "tipTitle": "Good to know",
+      "tipBody": "These rights apply even if they are not in your contract. Any agreement worse than the law is invalid.",
+      "articlesTitle": "Related articles"
     }
   }
 }

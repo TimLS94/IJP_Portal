@@ -224,12 +224,12 @@ export default function KrankenkassePage() {
               </span>
             )}
           </a>
-          <div className="kk-marquee-mask relative flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_6%,black_94%,transparent)]">
+          <div className="kk-marquee-mask relative flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]">
             <div className="kk-marquee-track">
               {[...marquee, ...marquee].map((m, i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-2 px-5 text-sm font-medium text-slate-600"
+                  className="inline-flex items-center gap-2 px-4 sm:px-5 text-sm font-medium text-slate-600 whitespace-nowrap"
                 >
                   <CheckCircle2 className="h-4 w-4 text-primary-500 flex-shrink-0" />
                   {m}
@@ -245,7 +245,7 @@ export default function KrankenkassePage() {
         {/* What is */}
         <Reveal>
           <section className="group rounded-3xl bg-white border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow p-6 sm:p-8">
-            <div className="flex items-start gap-4">
+            <div className="flex flex-col sm:flex-row items-start gap-4">
               <div className="p-3 rounded-2xl bg-primary-50 text-primary-600 flex-shrink-0 ring-1 ring-primary-100 group-hover:scale-105 transition-transform">
                 <Stethoscope className="h-6 w-6" />
               </div>
@@ -398,7 +398,7 @@ export default function KrankenkassePage() {
 
                           {isFormStep && (
                             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
-                              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                                 {t("krankenkasse.formStepsIntro")}
                               </p>
                               <div className="mt-3 flex flex-wrap gap-2">

@@ -32,10 +32,10 @@ const ICONS: Record<string, React.ElementType> = {
 const TOPIC_HREFS: (string | undefined)[] = [
   "/arbeitnehmer/krankenkasse",
   "/arbeitnehmer/arbeitsvertrag",
-  undefined,
-  undefined,
-  undefined,
-  undefined,
+  "/arbeitnehmer/steuern",
+  "/arbeitnehmer/anmeldung",
+  "/arbeitnehmer/bankkonto",
+  "/arbeitnehmer/rechte",
 ];
 
 interface Topic {

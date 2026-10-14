@@ -2501,6 +2501,130 @@
       "tipTitle": "Gut zu wissen",
       "tipBody": "Der Mindestlohn gilt für fast alle: 2027 sind das 14,60 € pro Stunde (2026: 13,90 €). Ein niedrigerer Lohn im Vertrag ist unwirksam.",
       "articlesTitle": "Passende Artikel"
+    },
+    "steuern": {
+      "badge": "Steuern & Sozialabgaben",
+      "title": "Steuern & Sozialabgaben in Deutschland",
+      "subtitle": "Warum von deinem Bruttolohn etwas abgeht – und was du davon zurückholen kannst.",
+      "keyPointsTitle": "Was von deinem Brutto abgeht",
+      "keyPoints": [
+        "Lohnsteuer – richtet sich nach Einkommen und Steuerklasse",
+        "Solidaritätszuschlag & ggf. Kirchensteuer",
+        "Krankenversicherung und Pflegeversicherung",
+        "Renten- und Arbeitslosenversicherung",
+        "Dein Arbeitgeber zahlt die Sozialabgaben etwa zur Hälfte mit",
+        "Netto = Brutto minus Steuern und Sozialabgaben"
+      ],
+      "sections": [
+        {
+          "heading": "Lohnsteuer & Steuerklasse",
+          "body": "Die Lohnsteuer zieht dein Arbeitgeber direkt vom Gehalt ab. Wie viel, hängt von deiner Steuerklasse ab (I–VI). Bis zum Grundfreibetrag (2026: rund 12.350 € im Jahr) zahlst du keine Lohnsteuer."
+        },
+        {
+          "heading": "Sozialversicherung",
+          "body": "Von deinem Lohn gehen Beiträge für Kranken-, Pflege-, Renten- und Arbeitslosenversicherung ab – zusammen rund 20 % deines Bruttolohns. Dein Arbeitgeber zahlt noch einmal etwa denselben Betrag dazu."
+        },
+        {
+          "heading": "Steuererklärung lohnt sich oft",
+          "body": "Viele Arbeitnehmer bekommen mit der jährlichen Steuererklärung Geld zurück – z. B. für Fahrtkosten, Umzug oder Arbeitsmittel. Sie ist freiwillig, außer in bestimmten Fällen."
+        }
+      ],
+      "tipTitle": "Gut zu wissen",
+      "tipBody": "Ohne Steuer-Identifikationsnummer stuft dich dein Arbeitgeber in die teure Steuerklasse VI ein. Gib ihm deine Steuer-ID also früh.",
+      "articlesTitle": "Passende Artikel"
+    },
+    "anmeldung": {
+      "badge": "Anmeldung & Wohnung",
+      "title": "Anmeldung & Wohnung in Deutschland",
+      "subtitle": "Wie du deinen Wohnsitz anmeldest und worauf du bei der Wohnungssuche achtest.",
+      "keyPointsTitle": "Das brauchst du für die Anmeldung",
+      "keyPoints": [
+        "Anmeldung beim Bürgeramt innerhalb von 14 Tagen nach Einzug",
+        "Wohnungsgeberbestätigung von deinem Vermieter",
+        "Gültiger Reisepass oder Personalausweis",
+        "Ausgefülltes Anmeldeformular",
+        "Du bekommst eine Meldebescheinigung",
+        "Danach kommt automatisch deine Steuer-ID per Post"
+      ],
+      "sections": [
+        {
+          "heading": "Warum die Anmeldung so wichtig ist",
+          "body": "Ohne Anmeldung (Meldebescheinigung) geht fast nichts: Du brauchst sie für Bankkonto, Steuer-ID, Krankenversicherung und viele Behördengänge. Melde dich daher schnell nach dem Einzug an."
+        },
+        {
+          "heading": "Wohnung finden",
+          "body": "Wohnungen findest du über Online-Portale, Aushänge oder Kontakte. Für die Zusage brauchst du oft eine Selbstauskunft und einen Einkommensnachweis. Sei bei Angeboten vorsichtig, die Geld vor der Besichtigung verlangen."
+        },
+        {
+          "heading": "Kaution & Mietvertrag",
+          "body": "Die Kaution beträgt höchstens drei Kaltmieten. Lies den Mietvertrag genau (Miete, Nebenkosten, Kündigungsfrist) und lass dir die Wohnungsübergabe schriftlich bestätigen (Übergabeprotokoll)."
+        }
+      ],
+      "tipTitle": "Gut zu wissen",
+      "tipBody": "Betrug vermeiden: Überweise niemals Geld oder Kaution, bevor du die Wohnung gesehen und einen Vertrag unterschrieben hast.",
+      "articlesTitle": "Passende Artikel"
+    },
+    "bankkonto": {
+      "badge": "Bankkonto & Steuer-ID",
+      "title": "Bankkonto & Steuer-ID in Deutschland",
+      "subtitle": "Beides brauchst du, damit dein Gehalt ankommt und richtig besteuert wird.",
+      "keyPointsTitle": "Das brauchst du",
+      "keyPoints": [
+        "Ein deutsches Girokonto für dein Gehalt",
+        "Ausweis/Reisepass zur Konto-Eröffnung",
+        "Oft die Meldebescheinigung (Anmeldung)",
+        "Deine Steuer-Identifikationsnummer (11-stellig)",
+        "Die Steuer-ID kommt nach der Anmeldung per Post",
+        "Gib Kontonummer (IBAN) und Steuer-ID deinem Arbeitgeber"
+      ],
+      "sections": [
+        {
+          "heading": "Girokonto eröffnen",
+          "body": "Ein Girokonto eröffnest du bei einer Filial- oder Onlinebank. Du brauchst meist einen Ausweis und deine Anmeldung. Jeder hat in Deutschland das Recht auf ein Basiskonto – auch ohne festen Wohnsitz."
+        },
+        {
+          "heading": "Was ist die Steuer-ID?",
+          "body": "Die Steuer-Identifikationsnummer ist eine lebenslange 11-stellige Nummer. Du bekommst sie nach deiner Anmeldung automatisch per Brief. Dein Arbeitgeber braucht sie, um deine Lohnsteuer korrekt zu berechnen."
+        },
+        {
+          "heading": "Ohne Steuer-ID wird es teuer",
+          "body": "Fehlt deinem Arbeitgeber die Steuer-ID, zieht er die höchste Steuerklasse (VI) ab. Reichst du sie nach, bekommst du zu viel gezahlte Steuer in der Regel zurück."
+        }
+      ],
+      "tipTitle": "Gut zu wissen",
+      "tipBody": "Hast du deine Steuer-ID verlegt? Du findest sie auf deinem Steuerbescheid oder kannst sie beim Bundeszentralamt für Steuern neu anfordern.",
+      "articlesTitle": "Passende Artikel"
+    },
+    "rechte": {
+      "badge": "Deine Rechte",
+      "title": "Deine Rechte als Arbeitnehmer in Deutschland",
+      "subtitle": "Mindestlohn, Urlaub, Schutz bei Krankheit und faire Behandlung – darauf hast du Anspruch.",
+      "keyPointsTitle": "Darauf hast du Anspruch",
+      "keyPoints": [
+        "Mindestlohn: 2027 mindestens 14,60 € pro Stunde",
+        "Mindestens 20 Urlaubstage im Jahr (bei 5-Tage-Woche)",
+        "Lohnfortzahlung im Krankheitsfall – bis zu 6 Wochen",
+        "Geregelte Arbeitszeiten (in der Regel max. 8 Std./Tag)",
+        "Schutz vor Diskriminierung (AGG)",
+        "Kündigungsschutz und Kündigungsfristen"
+      ],
+      "sections": [
+        {
+          "heading": "Lohn & Arbeitszeit",
+          "body": "Der gesetzliche Mindestlohn gilt für fast alle (2027: 14,60 €/h). Deine Arbeitszeit beträgt in der Regel höchstens 8 Stunden am Tag, mit Pausen und Ruhezeiten. Überstunden müssen ausgeglichen oder bezahlt werden."
+        },
+        {
+          "heading": "Urlaub & Krankheit",
+          "body": "Du hast Anspruch auf bezahlten Urlaub – mindestens 20 Tage bei einer 5-Tage-Woche. Wirst du krank, zahlt dein Arbeitgeber dein Gehalt bis zu sechs Wochen weiter (mit ärztlicher Krankmeldung)."
+        },
+        {
+          "heading": "Schutz & Gleichbehandlung",
+          "body": "Niemand darf dich wegen Herkunft, Geschlecht, Religion oder Alter benachteiligen (AGG). Es gelten Arbeitsschutzregeln, und eine Kündigung muss Fristen und Regeln einhalten. Bei Problemen helfen Betriebsrat oder Gewerkschaft."
+        }
+      ],
+      "tipTitle": "Gut zu wissen",
+      "tipBody": "Diese Rechte gelten auch, wenn sie nicht im Vertrag stehen. Eine Vereinbarung, die schlechter ist als das Gesetz, ist unwirksam.",
+      "articlesTitle": "Passende Artikel"
     }
   }
 }
