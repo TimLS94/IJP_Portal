@@ -184,6 +184,12 @@
       "description": "Register as a company or applicant and connect directly. Optional: hire IJP as a recruiter.",
       "employer": "Register as company",
       "applicant": "Register as applicant"
+    },
+    "partners": {
+      "label": "Partner",
+      "title": "Strong partners at your side",
+      "desc": "Together with BARMER we support you with health insurance in Germany – clearly explained and set up in minutes.",
+      "cta": "More about health insurance"
     }
   },
   "auth": {
@@ -2463,5 +2469,38 @@
     "legalBody": "We are not an insurance intermediary or insurance adviser and we do not provide insurance advice. This page offers general information and only establishes contact with our partner. Personal advice and the conclusion of membership take place directly with {{name}} or via my-insurance24.",
     "privacyConsent": "I agree that my details are stored to process my sign-up and passed on to our partner. Data I then enter on my-insurance24 is processed by them. More in our",
     "privacyPolicyLink": "privacy policy"
+  },
+  "arbeitnehmerTopics": {
+    "arbeitsvertrag": {
+      "badge": "Employment contract",
+      "title": "Your employment contract in Germany",
+      "subtitle": "What your contract must include, what to look out for, and the rights it gives you.",
+      "keyPointsTitle": "What your contract must contain",
+      "keyPoints": [
+        "Your and your employer's name and address",
+        "Start date and, if fixed-term, the end date",
+        "Place of work and a description of your duties",
+        "Salary, bonuses and payment date",
+        "Working hours and holiday entitlement",
+        "Notice periods"
+      ],
+      "sections": [
+        {
+          "heading": "It must be in writing",
+          "body": "Your employer must give you the essential terms in writing (Nachweisgesetz). Don't sign anything you don't understand – ask for a calm explanation first."
+        },
+        {
+          "heading": "Probation period",
+          "body": "There is often a probation period of up to six months. During it, shorter notice periods apply (usually two weeks). After that you are better protected."
+        },
+        {
+          "heading": "Fixed-term or permanent",
+          "body": "A fixed-term contract ends automatically on the agreed date. A permanent contract runs until one side gives notice. Check the term and whether a fixed term is justified."
+        }
+      ],
+      "tipTitle": "Good to know",
+      "tipBody": "The minimum wage applies to almost everyone: in 2026 it is €13.90 per hour. A lower wage in the contract is invalid.",
+      "articlesTitle": "Related articles"
+    }
   }
 }

@@ -9,6 +9,7 @@ import { hrefForPositionType } from "./stellenangebote/filters";
 export default function HomeClient() {
   const { t } = useTranslation();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [logoError, setLogoError] = useState(false);
 
   const positionTypes = [
     { id: 'studentenferienjob', key: 'positionTypes.studentenferienjob', color: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200', icon: '🎓' },
@@ -272,6 +273,54 @@ export default function HomeClient() {
             → {t("home.faq.moreQuestions")}
           </Link>
         </p>
+      </section>
+
+      {/* Partner Section */}
+      <section className="mb-16">
+        <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0a9b4e] to-[#007a3d]" />
+          <div className="grid md:grid-cols-2">
+            <div className="relative p-8 md:p-12 flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50/60">
+              <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-emerald-200/40 blur-2xl" />
+              <a
+                href="https://www.barmer.de"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative bg-white rounded-2xl shadow-md ring-1 ring-slate-100 px-8 py-6 hover:-translate-y-0.5 transition-transform"
+                title="BARMER"
+              >
+                {!logoError ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src="/partners/barmer-logo.png"
+                    alt="BARMER"
+                    className="h-10 w-auto"
+                    onError={() => setLogoError(true)}
+                  />
+                ) : (
+                  <span className="text-[#0a9b4e] font-extrabold text-2xl tracking-tight">BARMER</span>
+                )}
+              </a>
+            </div>
+            <div className="p-8 md:p-12 flex flex-col justify-center">
+              <span className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-semibold uppercase tracking-widest mb-4">
+                <Handshake className="h-4 w-4" />
+                {t("home.partners.label")}
+              </span>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                {t("home.partners.title")}
+              </h2>
+              <p className="mt-3 text-gray-600 leading-relaxed">{t("home.partners.desc")}</p>
+              <Link
+                href="/arbeitnehmer/krankenkasse"
+                className="mt-6 inline-flex items-center gap-2 self-start bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-700 hover:-translate-y-0.5 transition-all shadow-sm"
+              >
+                {t("home.partners.cta")}
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Final CTA Section */}

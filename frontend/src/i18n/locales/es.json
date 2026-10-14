@@ -180,6 +180,12 @@
       "description": "Regístrate como empresa o candidato y conéctate directamente. Opcional: contratar a IJP como reclutador.",
       "employer": "Registrarse como empresa",
       "applicant": "Registrarse como candidato"
+    },
+    "partners": {
+      "label": "Socio",
+      "title": "Socios fuertes a tu lado",
+      "desc": "Junto con BARMER te ayudamos con el seguro médico en Alemania, explicado con claridad y en pocos minutos.",
+      "cta": "Más sobre el seguro médico"
     }
   },
   "auth": {
@@ -2380,5 +2386,38 @@
     "legalBody": "No somos mediadores ni asesores de seguros y no ofrecemos asesoramiento sobre seguros. Esta página ofrece información general y solo pone en contacto con nuestro socio. El asesoramiento personal y la contratación se realizan directamente con {{name}} o a través de my-insurance24.",
     "privacyConsent": "Acepto que mis datos se almacenen para tramitar mi alta y se transmitan a nuestro socio. Los datos que introduzca después en my-insurance24 son tratados por ellos. Más información en nuestra",
     "privacyPolicyLink": "política de privacidad"
+  },
+  "arbeitnehmerTopics": {
+    "arbeitsvertrag": {
+      "badge": "Contrato de trabajo",
+      "title": "Tu contrato de trabajo en Alemania",
+      "subtitle": "Qué debe incluir tu contrato, en qué fijarte y qué derechos te da.",
+      "keyPointsTitle": "Lo que debe incluir el contrato",
+      "keyPoints": [
+        "Nombre y dirección tuyos y de tu empleador",
+        "Fecha de inicio y, si es temporal, la de fin",
+        "Lugar de trabajo y descripción de tus tareas",
+        "Salario, complementos y fecha de pago",
+        "Jornada y derecho a vacaciones",
+        "Plazos de preaviso"
+      ],
+      "sections": [
+        {
+          "heading": "Debe ser por escrito",
+          "body": "Tu empleador debe entregarte por escrito las condiciones esenciales (Nachweisgesetz). No firmes nada que no entiendas: pide que te lo expliquen con calma."
+        },
+        {
+          "heading": "Periodo de prueba",
+          "body": "Suele haber un periodo de prueba de hasta seis meses. Durante él se aplican plazos de preaviso más cortos (normalmente dos semanas). Después estás mejor protegido."
+        },
+        {
+          "heading": "Temporal o indefinido",
+          "body": "Un contrato temporal termina automáticamente en la fecha acordada. Uno indefinido dura hasta que una parte lo rescinde. Revisa la duración y si la temporalidad está justificada."
+        }
+      ],
+      "tipTitle": "Bueno saber",
+      "tipBody": "El salario mínimo se aplica a casi todos: en 2026 es de 13,90 € por hora. Un salario inferior en el contrato no es válido.",
+      "articlesTitle": "Artículos relacionados"
+    }
   }
 }

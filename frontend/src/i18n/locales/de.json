@@ -184,6 +184,12 @@
       "description": "Registrieren Sie sich als Firma oder Bewerber und finden Sie direkt zusammen. Optional: IJP als Vermittler beauftragen.",
       "employer": "Als Firma registrieren",
       "applicant": "Als Bewerber registrieren"
+    },
+    "partners": {
+      "label": "Partner",
+      "title": "Starke Partner an deiner Seite",
+      "desc": "Gemeinsam mit der BARMER unterstützen wir dich bei der Krankenversicherung in Deutschland – verständlich erklärt und in wenigen Minuten angemeldet.",
+      "cta": "Mehr zur Krankenversicherung"
     }
   },
   "auth": {
@@ -2463,5 +2469,38 @@
     "legalBody": "Wir sind kein Versicherungsvermittler und keine Versicherungsberatung und beraten nicht zu Versicherungen. Diese Seite bietet allgemeine Informationen und stellt lediglich den Kontakt zu unserem Partner her. Die persönliche Beratung sowie der Abschluss der Mitgliedschaft erfolgen direkt bei {{name}} bzw. über my-insurance24.",
     "privacyConsent": "Ich bin einverstanden, dass meine Angaben zur Bearbeitung meiner Anmeldung gespeichert und an unseren Partner übermittelt werden. Daten, die ich anschließend bei my-insurance24 eingebe, werden von dort verarbeitet. Mehr dazu in unserer",
     "privacyPolicyLink": "Datenschutzerklärung"
+  },
+  "arbeitnehmerTopics": {
+    "arbeitsvertrag": {
+      "badge": "Arbeitsvertrag",
+      "title": "Dein Arbeitsvertrag in Deutschland",
+      "subtitle": "Was in deinem Vertrag stehen muss, worauf du achtest und welche Rechte er dir gibt.",
+      "keyPointsTitle": "Das muss im Arbeitsvertrag stehen",
+      "keyPoints": [
+        "Name und Anschrift von dir und deinem Arbeitgeber",
+        "Beginn und – bei Befristung – Ende des Arbeitsverhältnisses",
+        "Arbeitsort und Beschreibung deiner Tätigkeit",
+        "Gehalt, Zuschläge und Auszahlungstermin",
+        "Arbeitszeit und Urlaubsanspruch",
+        "Kündigungsfristen"
+      ],
+      "sections": [
+        {
+          "heading": "Schriftlich ist Pflicht",
+          "body": "Dein Arbeitgeber muss dir die wesentlichen Vertragsbedingungen schriftlich aushändigen (Nachweisgesetz). Unterschreibe nichts, was du nicht verstehst – lass dir alles in Ruhe erklären."
+        },
+        {
+          "heading": "Probezeit",
+          "body": "Oft gibt es eine Probezeit von bis zu sechs Monaten. In dieser Zeit gelten kürzere Kündigungsfristen (meist zwei Wochen). Danach bist du stärker geschützt."
+        },
+        {
+          "heading": "Befristet oder unbefristet",
+          "body": "Ein befristeter Vertrag endet automatisch zum vereinbarten Datum. Ein unbefristeter Vertrag läuft, bis eine Seite kündigt. Achte auf die Befristung und ob sie sachlich begründet ist."
+        }
+      ],
+      "tipTitle": "Gut zu wissen",
+      "tipBody": "Der Mindestlohn gilt für fast alle: 2026 sind das 13,90 € pro Stunde. Ein niedrigerer Lohn im Vertrag ist unwirksam.",
+      "articlesTitle": "Passende Artikel"
+    }
   }
 }
