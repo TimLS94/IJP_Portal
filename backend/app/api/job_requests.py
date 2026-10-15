@@ -662,6 +662,21 @@ async def update_job_request_status(
         user = db.query(User).filter(User.id == applicant.user_id).first() if applicant else None
         
         if user:
+            # In-App-Benachrichtigung (Glocke) zusaetzlich zur E-Mail
+            import json as _json_notif
+            _status_label = JOB_REQUEST_STATUS_LABELS.get(email_status, "")
+            db.add(Notification(
+                user_id=user.id,
+                type="ijp_status",
+                reference_id=req.id,
+                reference_type="job_request",
+                title="Status aktualisiert",
+                message=f"Dein IJP-Auftrag hat einen neuen Status: {_status_label}",
+                notification_key="notifications.ijpStatus",
+                notification_params=_json_notif.dumps({"status": _status_label}),
+            ))
+            db.commit()
+
             # Position Type Label
             position_label = POSITION_TYPE_LABELS.get(req.position_type, "Allgemein") if req.position_type else "Allgemein"
             
