@@ -2310,6 +2310,14 @@
     "newJob": {
       "title": "New matching job: {{jobTitle}}",
       "message": "{{company}} in {{location}} – {{score}}% match"
+    },
+    "insuranceDocumentReady": {
+      "title": "Insurance certificate available",
+      "message": "Your proof for the embassy has been added to your documents."
+    },
+    "portalDocument": {
+      "title": "New document available",
+      "message": "{{document}} has been added to your documents."
     }
   },
   "arbeitnehmer": {

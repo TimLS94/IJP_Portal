@@ -65,6 +65,7 @@ export default function ArbeitnehmerPage() {
 
   useEffect(() => {
     setIsClient(true);
+    insuranceAPI.track("view_arbeitnehmer");
   }, []);
 
   useEffect(() => {

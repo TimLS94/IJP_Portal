@@ -297,10 +297,20 @@ export const insuranceAPI = {
   // Eingeloggt: zur Krankenkasse anmelden (gibt BARMER-Redirect-URL zurück)
   signup: (needs_embassy_proof, language = 'de') =>
     api.post('/insurance/signup', { needs_embassy_proof, language }),
+  // Tracking (öffentlich, anonym): Seitenaufrufe / Funktionsnutzung
+  track: (event) => api.post('/insurance/track', { event }).catch(() => {}),
   // Admin
   adminGetSignups: (params) => api.get('/insurance/admin/signups', { params }),
   adminUpdateSignup: (id, data) => api.patch(`/insurance/admin/signups/${id}`, data),
   adminDeleteSignup: (id) => api.delete(`/insurance/admin/signups/${id}`),
+  adminGetMetrics: () => api.get('/insurance/admin/metrics'),
+  adminUploadDocument: (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/insurance/admin/signups/${id}/document`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 // Notifications API
@@ -343,6 +353,14 @@ export const jobRequestsAPI = {
   updateStatus: (id, data) => api.put(`/job-requests/admin/${id}/status`, data),
   assignBetrieb: (id, betriebId) => api.put(`/job-requests/admin/${id}/assign-betrieb`, { betrieb_id: betriebId }),
   requestDocuments: (id, data) => api.post(`/job-requests/admin/${id}/request-documents`, data),
+  sendDocuments: (id, files, label) => {
+    const formData = new FormData();
+    Array.from(files).forEach((f) => formData.append('files', f));
+    if (label) formData.append('document_label', label);
+    return api.post(`/job-requests/admin/${id}/send-document`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   exportCSV: (params) => api.get('/job-requests/admin/export/csv', { params, responseType: 'blob' }),
   downloadDocuments: (id) => api.get(`/job-requests/admin/${id}/documents/download-all`, { responseType: 'blob' }),
 };

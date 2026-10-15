@@ -2310,6 +2310,14 @@
     "newJob": {
       "title": "Neue passende Stelle: {{jobTitle}}",
       "message": "{{company}} in {{location}} – {{score}}% Match"
+    },
+    "insuranceDocumentReady": {
+      "title": "Krankenversicherungsnachweis verfügbar",
+      "message": "Dein Nachweis für die Botschaft wurde in deinen Dokumenten hinterlegt."
+    },
+    "portalDocument": {
+      "title": "Neues Dokument verfügbar",
+      "message": "{{document}} wurde in deinen Dokumenten hinterlegt."
     }
   },
   "arbeitnehmer": {

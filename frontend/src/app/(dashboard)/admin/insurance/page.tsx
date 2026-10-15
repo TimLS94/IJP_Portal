@@ -13,6 +13,11 @@ import {
   ExternalLink,
   Settings as SettingsIcon,
   Users,
+  BarChart3,
+  Upload,
+  Eye,
+  MousePointerClick,
+  CheckCircle2,
 } from "lucide-react";
 
 interface Signup {
@@ -24,8 +29,29 @@ interface Signup {
   language: string | null;
   status: string;
   admin_note: string | null;
+  document_provided?: boolean;
   created_at: string | null;
 }
+
+interface Metrics {
+  page_views: Record<string, number>;
+  insurance: {
+    signup_clicks: number;
+    signups_completed: number;
+    embassy_needed: number;
+    documents_provided: number;
+  };
+}
+
+const PAGE_LABELS: Record<string, string> = {
+  view_arbeitnehmer: "Für Arbeitnehmer (Hub)",
+  view_krankenkasse: "Krankenversicherung",
+  view_arbeitsvertrag: "Arbeitsvertrag",
+  view_steuern: "Steuern & Sozialabgaben",
+  view_anmeldung: "Anmeldung & Wohnung",
+  view_bankkonto: "Bankkonto & Steuer-ID",
+  view_rechte: "Deine Rechte",
+};
 
 interface ManualLink {
   title?: string;
@@ -47,13 +73,46 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function AdminInsurancePage() {
-  const [tab, setTab] = useState<"signups" | "settings">("signups");
+  const [tab, setTab] = useState<"signups" | "stats" | "settings">("signups");
 
   // --- Signups ---
   const [signups, setSignups] = useState<Signup[]>([]);
   const [summary, setSummary] = useState({ total: 0, embassy_needed: 0 });
   const [loading, setLoading] = useState(true);
   const [onlyEmbassy, setOnlyEmbassy] = useState(false);
+  const [uploadingId, setUploadingId] = useState<number | null>(null);
+
+  // --- Metrics ---
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+
+  const loadMetrics = useCallback(async () => {
+    try {
+      const r = await insuranceAPI.adminGetMetrics();
+      setMetrics(r.data);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMetrics();
+  }, [loadMetrics]);
+
+  const uploadDocument = async (row: Signup, file: File) => {
+    setUploadingId(row.id);
+    try {
+      await insuranceAPI.adminUploadDocument(row.id, file);
+      toast.success("Dokument angehängt & Nutzer benachrichtigt");
+      setSignups((prev) =>
+        prev.map((s) => (s.id === row.id ? { ...s, document_provided: true, status: "done" } : s))
+      );
+      loadMetrics();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Upload fehlgeschlagen");
+    } finally {
+      setUploadingId(null);
+    }
+  };
 
   const loadSignups = useCallback(async () => {
     setLoading(true);
@@ -257,6 +316,16 @@ export default function AdminInsurancePage() {
           <Users className="h-4 w-4" /> Anmeldungen
         </button>
         <button
+          onClick={() => setTab("stats")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px ${
+            tab === "stats"
+              ? "border-rose-500 text-rose-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <BarChart3 className="h-4 w-4" /> Statistik
+        </button>
+        <button
           onClick={() => setTab("settings")}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px ${
             tab === "settings"
@@ -329,7 +398,40 @@ export default function AdminInsurancePage() {
                       className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm"
                     />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {s.needs_embassy_proof &&
+                      (s.document_provided ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
+                          <CheckCircle2 className="h-4 w-4" /> Dokument angehängt
+                        </span>
+                      ) : (
+                        <label
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer ${
+                            uploadingId === s.id
+                              ? "bg-gray-100 text-gray-400"
+                              : "bg-rose-600 text-white hover:bg-rose-700"
+                          }`}
+                          title="Krankenversicherungsnachweis (PDF) für diesen Nutzer hochladen"
+                        >
+                          {uploadingId === s.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                          Nachweis hochladen
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            className="hidden"
+                            disabled={uploadingId === s.id}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) uploadDocument(s, f);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      ))}
                     <select
                       value={s.status}
                       onChange={(e) => changeStatus(s, e.target.value)}
@@ -356,6 +458,61 @@ export default function AdminInsurancePage() {
             </div>
           )}
         </>
+      ) : tab === "stats" ? (
+        !metrics ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <div className="space-y-8">
+            <div>
+              <h2 className="font-semibold text-gray-900 mb-3">Krankenversicherung – Funktion</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="rounded-xl bg-white border border-gray-200 p-5">
+                  <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                    <Eye className="h-4 w-4" /> Seitenaufrufe (KV)
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900">{metrics.page_views.view_krankenkasse}</p>
+                </div>
+                <div className="rounded-xl bg-white border border-gray-200 p-5">
+                  <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                    <MousePointerClick className="h-4 w-4" /> „Zur Anmeldung" geklickt
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900">{metrics.insurance.signup_clicks}</p>
+                </div>
+                <div className="rounded-xl bg-white border border-gray-200 p-5">
+                  <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                    <Users className="h-4 w-4" /> Anmeldungen abgeschlossen
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900">{metrics.insurance.signups_completed}</p>
+                </div>
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-5">
+                  <p className="text-sm text-amber-700 flex items-center gap-1.5">
+                    <FileCheck2 className="h-4 w-4" /> Botschafts-Nachweis nötig
+                  </p>
+                  <p className="text-3xl font-bold text-amber-800">{metrics.insurance.embassy_needed}</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h2 className="font-semibold text-gray-900 mb-3">Seitenaufrufe „Für Arbeitnehmer"</h2>
+              <div className="rounded-xl bg-white border border-gray-200 divide-y divide-gray-100">
+                {Object.entries(metrics.page_views).map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between px-5 py-3">
+                    <span className="text-sm text-gray-700">{PAGE_LABELS[k] || k}</span>
+                    <span className="font-semibold text-gray-900">{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-400">
+              Einfache In-House-Zähler (Gesamtsumme seit Einführung). Für detaillierte Auswertungen
+              (Herkunft, Verlauf, Geräte) nutze Google Analytics.
+            </p>
+          </div>
+        )
       ) : cfgLoading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />

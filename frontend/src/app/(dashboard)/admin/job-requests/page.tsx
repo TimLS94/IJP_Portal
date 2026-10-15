@@ -132,6 +132,32 @@ export default function AdminJobRequests() {
   const [reqDocsTypes, setReqDocsTypes] = useState<string[]>([]);
   const [reqDocsMessage, setReqDocsMessage] = useState('');
   const [sendingReqDocs, setSendingReqDocs] = useState(false);
+  // Dokument(e) an Studenten senden (z.B. Arbeitsvertrag, Arbeitsgenehmigung)
+  const [showSendDoc, setShowSendDoc] = useState(false);
+  const [sendDocLabel, setSendDocLabel] = useState('Arbeitsgenehmigung');
+  const [sendDocFiles, setSendDocFiles] = useState<File[]>([]);
+  const [sendingDoc, setSendingDoc] = useState(false);
+
+  const handleSendDocuments = async () => {
+    if (!selectedRequest) return;
+    const label = sendDocLabel.trim() || 'Dokument';
+    if (sendDocFiles.length === 0) {
+      toast.error('Bitte mindestens eine PDF-Datei auswählen');
+      return;
+    }
+    setSendingDoc(true);
+    try {
+      const r = await jobRequestsAPI.sendDocuments(selectedRequest, sendDocFiles, label);
+      toast.success(`${r.data.count} Dokument(e) gesendet & Student benachrichtigt`);
+      setShowSendDoc(false);
+      setSendDocFiles([]);
+      loadRequestDetails(selectedRequest);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Senden fehlgeschlagen');
+    } finally {
+      setSendingDoc(false);
+    }
+  };
 
   const DOC_OPTIONS = ['Reisepass', 'Lebenslauf', 'Immatrikulationsbescheinigung', 'Immatrikulationsbescheinigung (Übersetzung)', 'Passfoto', 'Sprachzertifikat', 'BA-Erklärung', 'Sonstiges'];
 
@@ -976,6 +1002,13 @@ export default function AdminJobRequests() {
                             <FileText className="h-4 w-4" />
                             Unterlagen nachfordern
                           </button>
+                          <button
+                            onClick={() => setShowSendDoc((v) => !v)}
+                            className="text-sm text-green-700 hover:text-green-800 flex items-center gap-1"
+                          >
+                            <Upload className="h-4 w-4" />
+                            Dokument senden
+                          </button>
                           {requestDetails.documents.length > 0 && (
                             <button
                               onClick={() => handleDownloadDocuments(requestDetails.request.id, `${requestDetails.applicant.first_name}_${requestDetails.applicant.last_name}`)}
@@ -1019,6 +1052,51 @@ export default function AdminJobRequests() {
                             </button>
                             <button type="button" onClick={() => setShowReqDocs(false)} className="text-sm text-gray-500 hover:text-gray-700">Abbrechen</button>
                           </div>
+                        </div>
+                      )}
+
+                      {showSendDoc && (
+                        <div className="mb-3 p-3 rounded-lg border-2 border-green-200 bg-green-50">
+                          <p className="text-sm font-medium text-green-800 mb-2">Dokument(e) an den Studenten senden</p>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {['Arbeitsgenehmigung', 'Arbeitsvertrag', 'Sonstiges'].map((opt) => {
+                              const on = sendDocLabel === opt || (opt === 'Sonstiges' && !['Arbeitsgenehmigung', 'Arbeitsvertrag'].includes(sendDocLabel));
+                              return (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => setSendDocLabel(opt === 'Sonstiges' ? '' : opt)}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium border-2 ${on ? 'border-green-500 bg-green-100 text-green-800' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <input
+                            type="text"
+                            value={sendDocLabel}
+                            onChange={(e) => setSendDocLabel(e.target.value)}
+                            placeholder="Bezeichnung (z.B. Arbeitsvertrag)"
+                            className="w-full text-sm border border-gray-300 rounded-lg px-2 py-1.5 mb-2"
+                          />
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            multiple
+                            onChange={(e) => setSendDocFiles(Array.from(e.target.files || []))}
+                            className="w-full text-sm mb-2"
+                          />
+                          {sendDocFiles.length > 0 && (
+                            <p className="text-xs text-gray-600 mb-2">{sendDocFiles.length} Datei(en) ausgewählt</p>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <button type="button" disabled={sendingDoc} onClick={handleSendDocuments} className="bg-green-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 inline-flex items-center gap-1">
+                              {sendingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Senden
+                            </button>
+                            <button type="button" onClick={() => setShowSendDoc(false)} className="text-sm text-gray-500 hover:text-gray-700">Abbrechen</button>
+                          </div>
+                          <p className="text-[11px] text-gray-500 mt-2">Nur PDF. Landet in den Dokumenten des Studenten + Benachrichtigung &amp; E-Mail.</p>
                         </div>
                       )}
                       {requestDetails.documents.length === 0 ? (

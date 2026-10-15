@@ -2227,6 +2227,14 @@
     "newJob": {
       "title": "Nueva oferta compatible: {{jobTitle}}",
       "message": "{{company}} en {{location}} – {{score}}% de compatibilidad"
+    },
+    "insuranceDocumentReady": {
+      "title": "Certificado de seguro disponible",
+      "message": "Tu certificado para la embajada se ha añadido a tus documentos."
+    },
+    "portalDocument": {
+      "title": "Nuevo documento disponible",
+      "message": "{{document}} se ha añadido a tus documentos."
     }
   },
   "arbeitnehmer": {

@@ -2227,6 +2227,14 @@
     "newJob": {
       "title": "Новая подходящая вакансия: {{jobTitle}}",
       "message": "{{company}} в {{location}} – {{score}}% совпадение"
+    },
+    "insuranceDocumentReady": {
+      "title": "Справка о страховке доступна",
+      "message": "Ваша справка для посольства добавлена в ваши документы."
+    },
+    "portalDocument": {
+      "title": "Доступен новый документ",
+      "message": "{{document}} добавлен в ваши документы."
     }
   },
   "arbeitnehmer": {

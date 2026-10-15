@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight, Check, BookOpen, Lightbulb } from "lucide-react";
-import { blogAPI } from "@/lib/api";
+import { blogAPI, insuranceAPI } from "@/lib/api";
 import Reveal from "@/components/Reveal";
 
 interface Section {
@@ -40,7 +40,8 @@ export default function ArbeitnehmerTopic({
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    insuranceAPI.track(`view_${topicKey}`);
+  }, [topicKey]);
 
   useEffect(() => {
     if (!isClient || !tag) return;

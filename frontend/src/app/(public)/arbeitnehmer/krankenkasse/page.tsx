@@ -102,6 +102,7 @@ export default function KrankenkassePage() {
 
   useEffect(() => {
     setIsClient(true);
+    insuranceAPI.track("view_krankenkasse");
   }, []);
 
   useEffect(() => {
@@ -126,6 +127,7 @@ export default function KrankenkassePage() {
 
   const handleSignup = async () => {
     if (embassyChoice === null || !privacyAccepted) return;
+    insuranceAPI.track("click_insurance_signup");
     setSubmitting(true);
     try {
       const lang = (i18n.language || "de").split("-")[0];
