@@ -626,6 +626,53 @@ class EmailService:
         return self.send_email(to_email, subject, html_content, email_type="other")
 
     @_safe_email_call
+    def send_insurance_document_ready(self, to_email: str, applicant_name: str) -> bool:
+        """Admin hat den Krankenversicherungsnachweis (Botschaft) an den Nutzer angehaengt."""
+        from app.core.config import settings
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
+        subject = "Dein Krankenversicherungsnachweis für die Botschaft ist da"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #0a9b4e; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>✅ Dein Nachweis ist bereit</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {applicant_name},</p>
+                <p>wir haben deinen Krankenversicherungsnachweis für die Botschaft in deinem Konto hinterlegt.
+                Du findest ihn unter „Dokumente".</p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/applicant/documents" style="background: #2563eb; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Zu meinen Dokumenten</a>
+                </p>
+                <p>Mit freundlichen Grüßen,<br><strong>Dein IJP-Team</strong></p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content, email_type="other")
+
+    @_safe_email_call
+    def send_portal_document_ready(self, to_email: str, applicant_name: str, document_label: str = "Dokument") -> bool:
+        """Admin hat dem Studenten ein Dokument (z.B. Arbeitsgenehmigung) ins Portal hochgeladen."""
+        from app.core.config import settings
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
+        subject = f"Neues Dokument in deinem Konto: {document_label}"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>📄 Neues Dokument</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>Hallo {applicant_name},</p>
+                <p>wir haben <strong>{document_label}</strong> in deinem Konto hinterlegt. Du findest das Dokument unter „Dokumente".</p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/applicant/documents" style="background: #2563eb; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Zu meinen Dokumenten</a>
+                </p>
+                <p>Mit freundlichen Grüßen,<br><strong>Dein IJP-Team</strong></p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content, email_type="other")
+
+    @_safe_email_call
     def send_rejection_email(
         self, to_email: str, applicant_name: str, job_title: str, 
         company_name: str, custom_subject: str = None, custom_text: str = None,

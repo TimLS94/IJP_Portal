@@ -1,7 +1,7 @@
 """
 API Endpoints für IJP-Aufträge (Job Requests)
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as _sa_func
@@ -19,7 +19,9 @@ from app.core.config import settings
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant, PositionType
 from app.models.job_request import JobRequest, JobRequestStatus, JOB_REQUEST_STATUS_LABELS, JOB_REQUEST_STATUS_COLORS, INTERNAL_JOB_REQUEST_STATUSES
-from app.models.document import Document
+from app.models.document import Document, DocumentType
+from app.models.notification import Notification
+from app.services.document_service import DocumentService
 from app.services.email_service import email_service
 
 router = APIRouter(prefix="/job-requests", tags=["IJP-Aufträge"])
@@ -833,6 +835,58 @@ async def request_documents_for_job_request(
         message=msg,
     )
     return {"success": bool(ok), "email": user.email}
+
+
+@router.post("/admin/{request_id}/send-document")
+async def send_document_to_student(
+    request_id: int,
+    file: UploadFile = File(...),
+    document_label: Optional[str] = Form("Arbeitsgenehmigung"),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin haengt dem Studenten ein Dokument (z.B. Arbeitsgenehmigung) ueber das
+    Portal an und benachrichtigt ihn (In-App-Benachrichtigung + E-Mail)."""
+    import json as _json
+    req = db.query(JobRequest).filter(JobRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Auftrag nicht gefunden")
+    applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=400, detail="Kein Bewerberprofil gefunden")
+    user = db.query(User).filter(User.id == applicant.user_id).first()
+
+    label = (document_label or "Arbeitsgenehmigung").strip() or "Arbeitsgenehmigung"
+
+    document = await DocumentService.save_file(
+        file=file,
+        applicant_id=applicant.id,
+        document_type=DocumentType.OTHER,
+        description=label,
+        db=db,
+    )
+
+    db.add(Notification(
+        user_id=applicant.user_id,
+        type="portal_document",
+        reference_id=document.id,
+        reference_type="document",
+        title="Neues Dokument verfügbar",
+        message=f"{label} wurde in deinen Dokumenten hinterlegt.",
+        notification_key="notifications.portalDocument",
+        notification_params=_json.dumps({"document": label}),
+    ))
+    db.commit()
+
+    if user and user.email:
+        try:
+            email_service.send_portal_document_ready(
+                user.email, f"{applicant.first_name} {applicant.last_name}", label
+            )
+        except Exception:
+            pass
+
+    return {"success": True, "document_id": document.id, "label": label}
 
 
 @router.get("/admin/export/csv")

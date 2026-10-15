@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+import json as _json
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
 from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
+from typing import Optional
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -11,7 +10,12 @@ from app.models.user import User, UserRole
 from app.models.applicant import Applicant
 from app.models.blog import BlogPost
 from app.models.insurance import InsuranceSignup
+from app.models.site_metric import SiteMetric
+from app.models.document import Document, DocumentType
+from app.models.notification import Notification
+from app.services.document_service import DocumentService
 from app.services.settings_service import get_setting
+from app.services.email_service import email_service
 
 router = APIRouter(prefix="/insurance", tags=["Insurance / Arbeitnehmer-Infos"])
 
@@ -208,6 +212,7 @@ async def list_signups(
                 "language": r.language,
                 "status": r.status,
                 "admin_note": r.admin_note,
+                "document_provided": bool(getattr(r, "document_provided", False)),
                 "created_at": r.created_at,
                 "updated_at": r.updated_at,
             }
@@ -256,3 +261,114 @@ async def delete_signup(
     db.delete(signup)
     db.commit()
     return {"message": "Gelöscht"}
+
+
+# ---- Tracking (leichtgewichtig, zusaetzlich zu Google Analytics) -----------
+
+ALLOWED_EVENTS = {
+    "view_arbeitnehmer", "view_krankenkasse", "view_arbeitsvertrag",
+    "view_steuern", "view_anmeldung", "view_bankkonto", "view_rechte",
+    "click_insurance_signup",
+}
+
+
+class TrackRequest(BaseModel):
+    event: str
+
+
+@router.post("/track", status_code=204)
+async def track_event(data: TrackRequest, db: Session = Depends(get_db)):
+    """Oeffentliches, anonymes Zaehlen von Seitenaufrufen / Funktionsnutzung.
+    Nur Keys aus der Whitelist werden gezaehlt (verhindert Spam)."""
+    key = (data.event or "").strip()
+    if key not in ALLOWED_EVENTS:
+        return
+    try:
+        metric = db.query(SiteMetric).filter(SiteMetric.key == key).first()
+        if metric:
+            metric.count = (metric.count or 0) + 1
+        else:
+            db.add(SiteMetric(key=key, count=1))
+        db.commit()
+    except Exception:
+        db.rollback()
+    return
+
+
+@router.get("/admin/metrics")
+async def get_metrics(current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admin: einfache In-House-Statistik zu den Arbeitnehmer-Seiten + Krankenkassen-Funktion."""
+    rows = db.query(SiteMetric).all()
+    counts = {r.key: r.count for r in rows}
+
+    page_views = {k: counts.get(k, 0) for k in (
+        "view_arbeitnehmer", "view_krankenkasse", "view_arbeitsvertrag",
+        "view_steuern", "view_anmeldung", "view_bankkonto", "view_rechte",
+    )}
+
+    signups_completed = db.query(InsuranceSignup).count()
+    embassy_needed = db.query(InsuranceSignup).filter(InsuranceSignup.needs_embassy_proof == True).count()  # noqa: E712
+    documents_provided = db.query(InsuranceSignup).filter(InsuranceSignup.document_provided == True).count()  # noqa: E712
+
+    return {
+        "page_views": page_views,
+        "insurance": {
+            "signup_clicks": counts.get("click_insurance_signup", 0),
+            "signups_completed": signups_completed,
+            "embassy_needed": embassy_needed,
+            "documents_provided": documents_provided,
+        },
+    }
+
+
+@router.post("/admin/signups/{signup_id}/document")
+async def attach_signup_document(
+    signup_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin haengt dem Nutzer den Krankenversicherungsnachweis (Botschaft) an:
+    Dokument landet in seinen Dokumenten + In-App-Benachrichtigung + E-Mail."""
+    signup = db.query(InsuranceSignup).filter(InsuranceSignup.id == signup_id).first()
+    if not signup:
+        raise HTTPException(status_code=404, detail="Anmeldung nicht gefunden")
+
+    applicant = db.query(Applicant).filter(Applicant.user_id == signup.user_id).first()
+    if not applicant:
+        raise HTTPException(status_code=400, detail="Nutzer hat kein Bewerberprofil – Dokument kann nicht angehängt werden.")
+
+    document = await DocumentService.save_file(
+        file=file,
+        applicant_id=applicant.id,
+        document_type=DocumentType.OTHER,
+        description="Krankenversicherungsnachweis für die Botschaft",
+        db=db,
+    )
+
+    signup.document_provided = True
+    signup.document_id = document.id
+    signup.status = "done"
+
+    user = db.query(User).filter(User.id == signup.user_id).first()
+    name = signup.full_name or (f"{applicant.first_name or ''} {applicant.last_name or ''}".strip()) or (user.email if user else "")
+
+    db.add(Notification(
+        user_id=signup.user_id,
+        type="insurance_document",
+        reference_id=document.id,
+        reference_type="document",
+        title="Krankenversicherungsnachweis verfügbar",
+        message="Dein Krankenversicherungsnachweis für die Botschaft wurde in deinen Dokumenten hinterlegt.",
+        notification_key="notifications.insuranceDocumentReady",
+        notification_params=_json.dumps({}),
+    ))
+    db.commit()
+
+    if user and user.email:
+        try:
+            email_service.send_insurance_document_ready(user.email, name)
+        except Exception:
+            pass
+
+    return {"message": "Dokument angehängt und Nutzer benachrichtigt", "document_id": document.id}

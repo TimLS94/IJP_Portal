@@ -30,6 +30,10 @@ class InsuranceSignup(Base):
     status = Column(String(20), default="new", nullable=False, index=True)
     admin_note = Column(Text)
 
+    # Botschafts-Dokument: hat der Admin das Dokument bereits an den Nutzer angehaengt?
+    document_provided = Column(Boolean, default=False, nullable=False, server_default="false")
+    document_id = Column(Integer, nullable=True)  # Referenz auf das erstellte Document
+
     created_at = Column(DateTime(timezone=True), default=utc_now)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 

@@ -42,6 +42,11 @@ class JobRequestStatus(str, enum.Enum):
     CONTRACT_SENT = "contract_sent"         # Vertrag versendet
     CONTRACT_SIGNED = "contract_signed"     # Vertrag unterschrieben
 
+    # 7b. Arbeitsgenehmigung (Work Permit) - fuer Studenten sichtbar
+    WORK_PERMIT_REQUESTED = "work_permit_requested"   # Arbeitsgenehmigung beantragt
+    WORK_PERMIT_RECEIVED = "work_permit_received"     # Arbeitsgenehmigung erhalten
+    WORK_PERMIT_REJECTED = "work_permit_rejected"     # Arbeitsgenehmigung abgelehnt
+
     # 8. Abschluss
     PLACED = "placed"                       # Erfolgreich vermittelt
     COMPLETED = "completed"                 # Abgeschlossen
@@ -77,6 +82,9 @@ JOB_REQUEST_STATUS_LABELS = {
     JobRequestStatus.REJECTED: "Von Firma abgelehnt",
     JobRequestStatus.CONTRACT_SENT: "Vertrag versendet",
     JobRequestStatus.CONTRACT_SIGNED: "Vertrag unterschrieben",
+    JobRequestStatus.WORK_PERMIT_REQUESTED: "Arbeitsgenehmigung beantragt",
+    JobRequestStatus.WORK_PERMIT_RECEIVED: "Arbeitsgenehmigung erhalten",
+    JobRequestStatus.WORK_PERMIT_REJECTED: "Arbeitsgenehmigung abgelehnt",
     JobRequestStatus.PLACED: "Erfolgreich vermittelt",
     JobRequestStatus.COMPLETED: "Abgeschlossen",
     JobRequestStatus.DOCUMENTS_IN_GERMANY: "Studentenunterlagen in Deutschland",
@@ -107,6 +115,9 @@ JOB_REQUEST_STATUS_COLORS = {
     JobRequestStatus.REJECTED: "red",
     JobRequestStatus.CONTRACT_SENT: "orange",
     JobRequestStatus.CONTRACT_SIGNED: "green",
+    JobRequestStatus.WORK_PERMIT_REQUESTED: "blue",
+    JobRequestStatus.WORK_PERMIT_RECEIVED: "green",
+    JobRequestStatus.WORK_PERMIT_REJECTED: "red",
     JobRequestStatus.PLACED: "green",
     JobRequestStatus.COMPLETED: "gray",
     JobRequestStatus.DOCUMENTS_IN_GERMANY: "orange",

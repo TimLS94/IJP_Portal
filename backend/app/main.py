@@ -23,7 +23,7 @@ from app.api import auth, applicants, companies, jobs, applications, documents, 
 logger.info("API routers loaded")
 
 # Import Models für create_all
-from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request, facebook_post, ijp as ijp_model, contract as contract_model, job_promotion, telegram_subscriber, betrieb_access, email_suppression, insurance as insurance_model  # noqa: F401 (needed for create_all)
+from app.models import user, applicant, company, company_member, job_posting, application, document, blog as blog_model, password_reset, job_request, interview, company_request, facebook_post, ijp as ijp_model, contract as contract_model, job_promotion, telegram_subscriber, betrieb_access, email_suppression, insurance as insurance_model, site_metric as site_metric_model  # noqa: F401 (needed for create_all)
 logger.info("Models loaded")
 
 from app.core.seed_data import seed_database
@@ -215,6 +215,8 @@ def ensure_applicant_invite_columns():
             ("applicants", "portal", "VARCHAR(20) DEFAULT 'jobon'"),
             ("applicants", "partner_edit_override", "BOOLEAN DEFAULT FALSE"),
             ("applicant_invite_tokens", "portal_type", "VARCHAR(20) DEFAULT 'jobon'"),
+            ("insurance_signups", "document_provided", "BOOLEAN DEFAULT FALSE"),
+            ("insurance_signups", "document_id", "INTEGER"),
         ]
         allowed_tables = {t for t, _, _ in new_columns}
         allowed_cols = {c for _, c, _ in new_columns}
