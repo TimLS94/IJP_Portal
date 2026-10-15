@@ -840,13 +840,14 @@ async def request_documents_for_job_request(
 @router.post("/admin/{request_id}/send-document")
 async def send_document_to_student(
     request_id: int,
-    file: UploadFile = File(...),
-    document_label: Optional[str] = Form("Arbeitsgenehmigung"),
+    files: List[UploadFile] = File(...),
+    document_label: Optional[str] = Form("Dokument"),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Admin haengt dem Studenten ein Dokument (z.B. Arbeitsgenehmigung) ueber das
-    Portal an und benachrichtigt ihn (In-App-Benachrichtigung + E-Mail)."""
+    """Admin haengt dem Studenten ein oder mehrere Dokumente (z.B. Arbeitsvertrag,
+    Arbeitsgenehmigung) ueber das Portal an und benachrichtigt ihn (In-App + E-Mail).
+    Mehrere Dateien = eine Benachrichtigung + eine E-Mail."""
     import json as _json
     req = db.query(JobRequest).filter(JobRequest.id == request_id).first()
     if not req:
@@ -856,37 +857,46 @@ async def send_document_to_student(
         raise HTTPException(status_code=400, detail="Kein Bewerberprofil gefunden")
     user = db.query(User).filter(User.id == applicant.user_id).first()
 
-    label = (document_label or "Arbeitsgenehmigung").strip() or "Arbeitsgenehmigung"
+    label = (document_label or "Dokument").strip() or "Dokument"
+    file_list = [f for f in (files or []) if f is not None]
+    if not file_list:
+        raise HTTPException(status_code=400, detail="Bitte mindestens eine Datei auswählen")
 
-    document = await DocumentService.save_file(
-        file=file,
-        applicant_id=applicant.id,
-        document_type=DocumentType.OTHER,
-        description=label,
-        db=db,
-    )
+    saved_ids = []
+    for f in file_list:
+        document = await DocumentService.save_file(
+            file=f,
+            applicant_id=applicant.id,
+            document_type=DocumentType.OTHER,
+            description=label,
+            db=db,
+        )
+        saved_ids.append(document.id)
+
+    count = len(saved_ids)
+    label_display = label if count == 1 else f"{label} ({count} Dateien)"
 
     db.add(Notification(
         user_id=applicant.user_id,
         type="portal_document",
-        reference_id=document.id,
+        reference_id=saved_ids[0] if saved_ids else None,
         reference_type="document",
         title="Neues Dokument verfügbar",
-        message=f"{label} wurde in deinen Dokumenten hinterlegt.",
+        message=f"{label_display} wurde in deinen Dokumenten hinterlegt.",
         notification_key="notifications.portalDocument",
-        notification_params=_json.dumps({"document": label}),
+        notification_params=_json.dumps({"document": label_display}),
     ))
     db.commit()
 
     if user and user.email:
         try:
             email_service.send_portal_document_ready(
-                user.email, f"{applicant.first_name} {applicant.last_name}", label
+                user.email, f"{applicant.first_name} {applicant.last_name}", label_display
             )
         except Exception:
             pass
 
-    return {"success": True, "document_id": document.id, "label": label}
+    return {"success": True, "document_ids": saved_ids, "count": count, "label": label}
 
 
 @router.get("/admin/export/csv")
