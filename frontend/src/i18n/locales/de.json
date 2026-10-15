@@ -541,7 +541,9 @@
     "descriptionPlaceholder": "z.B. Seite 1-5 des Reisepasses",
     "selectFile": "Datei auswählen",
     "pdfOnly": "Nur PDF-Dateien • Max. 10 MB",
-    "uploading": "Wird hochgeladen..."
+    "uploading": "Wird hochgeladen...",
+    "download": "Herunterladen",
+    "downloadFailed": "Download fehlgeschlagen"
   },
   "applicantApplications": {
     "jobPosting": "Stellenangebot",
@@ -2318,6 +2320,10 @@
     "portalDocument": {
       "title": "Neues Dokument verfügbar",
       "message": "{{document}} wurde in deinen Dokumenten hinterlegt."
+    },
+    "ijpStatus": {
+      "title": "Status aktualisiert",
+      "message": "Dein IJP-Auftrag hat einen neuen Status: {{status}}."
     }
   },
   "arbeitnehmer": {

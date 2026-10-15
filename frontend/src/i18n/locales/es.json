@@ -537,7 +537,9 @@
     "descriptionPlaceholder": "p.ej. Páginas 1-5 del pasaporte",
     "selectFile": "Seleccionar archivo",
     "pdfOnly": "Solo archivos PDF • Máx. 10 MB",
-    "uploading": "Subiendo..."
+    "uploading": "Subiendo...",
+    "download": "Descargar",
+    "downloadFailed": "Error al descargar"
   },
   "applicantApplications": {
     "jobPosting": "Oferta de empleo",
@@ -2235,6 +2237,10 @@
     "portalDocument": {
       "title": "Nuevo documento disponible",
       "message": "{{document}} se ha añadido a tus documentos."
+    },
+    "ijpStatus": {
+      "title": "Estado actualizado",
+      "message": "Tu solicitud IJP tiene un nuevo estado: {{status}}."
     }
   },
   "arbeitnehmer": {

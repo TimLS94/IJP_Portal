@@ -541,7 +541,9 @@
     "descriptionPlaceholder": "e.g. Pages 1-5 of passport",
     "selectFile": "Select file",
     "pdfOnly": "PDF files only • Max. 10 MB",
-    "uploading": "Uploading..."
+    "uploading": "Uploading...",
+    "download": "Download",
+    "downloadFailed": "Download failed"
   },
   "applicantApplications": {
     "jobPosting": "Job Posting",
@@ -2318,6 +2320,10 @@
     "portalDocument": {
       "title": "New document available",
       "message": "{{document}} has been added to your documents."
+    },
+    "ijpStatus": {
+      "title": "Status updated",
+      "message": "Your IJP request has a new status: {{status}}."
     }
   },
   "arbeitnehmer": {

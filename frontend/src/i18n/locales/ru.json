@@ -537,7 +537,9 @@
     "descriptionPlaceholder": "напр. Страницы 1-5 паспорта",
     "selectFile": "Выбрать файл",
     "pdfOnly": "Только PDF-файлы • Макс. 10 МБ",
-    "uploading": "Загрузка..."
+    "uploading": "Загрузка...",
+    "download": "Скачать",
+    "downloadFailed": "Не удалось скачать"
   },
   "applicantApplications": {
     "jobPosting": "Вакансия",
@@ -2235,6 +2237,10 @@
     "portalDocument": {
       "title": "Доступен новый документ",
       "message": "{{document}} добавлен в ваши документы."
+    },
+    "ijpStatus": {
+      "title": "Статус обновлён",
+      "message": "У вашей заявки IJP новый статус: {{status}}."
     }
   },
   "arbeitnehmer": {

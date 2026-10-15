@@ -118,6 +118,27 @@ export default function ApplicantDocumentsPage() {
     }
   };
 
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+
+  const handleDownload = async (doc: Document) => {
+    setDownloadingId(doc.id);
+    try {
+      const res = await documentsAPI.download(doc.id);
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = doc.file_name || doc.original_name || "dokument.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(t('applicantDocuments.downloadFailed', 'Download fehlgeschlagen'));
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm(t('applicantDocuments.deleteConfirm'))) return;
     try {
@@ -275,6 +296,18 @@ export default function ApplicantDocumentsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 ml-4">
+                    <button
+                      onClick={() => handleDownload(doc)}
+                      disabled={downloadingId === doc.id}
+                      className="p-2 text-gray-500 hover:text-primary-600 hover:bg-white rounded-lg transition-all disabled:opacity-50"
+                      title={t('applicantDocuments.download', 'Herunterladen')}
+                    >
+                      {downloadingId === doc.id ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Download className="h-5 w-5" />
+                      )}
+                    </button>
                     <button
                       onClick={() => handleDelete(doc.id)}
                       className="p-2 text-gray-500 hover:text-red-600 hover:bg-white rounded-lg transition-all"
