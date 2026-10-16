@@ -194,7 +194,21 @@ export default function ProfileClient() {
         }
         setCommissionPrompt(missing);
       }
-    } catch (e: any) { toast.error(e.response?.data?.detail || t("common.error")); }
+    } catch (e: any) {
+      // Backend-Fehler lesbar anzeigen – auch FastAPI-422 (detail ist dann ein Array
+      // von {loc, msg}), damit der Student sieht, WELCHES Pflichtfeld fehlt.
+      const d = e?.response?.data?.detail;
+      let msg = t("common.error");
+      if (typeof d === "string") {
+        msg = d;
+      } else if (Array.isArray(d)) {
+        const parts = d
+          .map((x: any) => x?.msg || (Array.isArray(x?.loc) ? x.loc[x.loc.length - 1] : ""))
+          .filter(Boolean);
+        if (parts.length) msg = `Bitte prüfen: ${parts.join(", ")}`;
+      }
+      toast.error(msg);
+    }
     finally { setSaving(false); }
   };
 
@@ -483,24 +497,24 @@ export default function ProfileClient() {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="md:col-span-2 grid grid-cols-4 gap-4">
               <div className="col-span-3">
-                <label className="label">{t("applicant.street")}</label>
+                <label className="label">{t("applicant.street")}{isIjp && " *"}</label>
                 <input type="text" className="input-styled" placeholder={t("applicant.streetPlaceholder")} {...register("street")} />
               </div>
               <div>
-                <label className="label">{t("applicant.houseNumber")}</label>
+                <label className="label">{t("applicant.houseNumber")}{isIjp && " *"}</label>
                 <input type="text" className="input-styled" placeholder="123" {...register("house_number")} />
               </div>
             </div>
             <div>
-              <label className="label">{t("applicant.postalCode")}</label>
+              <label className="label">{t("applicant.postalCode")}{isIjp && " *"}</label>
               <input type="text" className="input-styled" placeholder="12345" {...register("postal_code")} />
             </div>
             <div>
-              <label className="label">{t("applicant.city")}</label>
+              <label className="label">{t("applicant.city")}{isIjp && " *"}</label>
               <input type="text" className="input-styled" placeholder={t("applicant.cityPlaceholder")} {...register("city")} />
             </div>
             <div className="md:col-span-2">
-              <label className="label">{t("applicant.country")}</label>
+              <label className="label">{t("applicant.country")}{isIjp && " *"}</label>
               <input type="text" className="input-styled" placeholder={t("applicant.countryPlaceholder")} {...register("country")} />
             </div>
           </div>
@@ -746,23 +760,23 @@ export default function ProfileClient() {
               </div>
               {/* Universität Adresse */}
               <div>
-                <label className="label">{t("applicant.universityStreet")}</label>
+                <label className="label">{t("applicant.universityStreet")}{isIjp && " *"}</label>
                 <input type="text" className="input-styled" placeholder={t("applicant.universityStreetPlaceholder")} {...register("university_street")} />
               </div>
               <div>
-                <label className="label">{t("applicant.universityHouseNumber")}</label>
+                <label className="label">{t("applicant.universityHouseNumber")}{isIjp && " *"}</label>
                 <input type="text" className="input-styled" placeholder="z.B. 12a" {...register("university_house_number")} />
               </div>
               <div>
-                <label className="label">{t("applicant.universityPostalCode")}</label>
+                <label className="label">{t("applicant.universityPostalCode")}{isIjp && " *"}</label>
                 <input type="text" className="input-styled" placeholder="z.B. 119991" {...register("university_postal_code")} />
               </div>
               <div>
-                <label className="label">{t("applicant.universityCity")}</label>
+                <label className="label">{t("applicant.universityCity")}{isIjp && " *"}</label>
                 <input type="text" className="input-styled" placeholder="z.B. Moskau" {...register("university_city")} />
               </div>
               <div className="md:col-span-2">
-                <label className="label">{t("applicant.universityCountry")}</label>
+                <label className="label">{t("applicant.universityCountry")}{isIjp && " *"}</label>
                 <input type="text" className="input-styled" placeholder="z.B. Russland" {...register("university_country")} />
               </div>
             </div>
