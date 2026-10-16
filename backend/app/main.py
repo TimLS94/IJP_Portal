@@ -540,6 +540,55 @@ def ensure_job_request_status_enum_values():
 ensure_job_request_status_enum_values()
 
 
+def backfill_privacy_consent():
+    """Einmaliges, idempotentes Nachtragen: Bewerber, die im IJP-Auftrag der
+    Datenschutz-Einwilligung zugestimmt haben (privacy_consent=True), deren
+    applicant.privacy_accepted aber noch nicht True ist, rueckwirkend setzen.
+    Laeuft bei jedem Start, findet aber nach dem ersten Mal nichts mehr."""
+    from sqlalchemy import or_
+    from app.models.applicant import Applicant
+    from app.models.job_request import JobRequest
+    db = SessionLocal()
+    try:
+        consent_exists = db.query(JobRequest).filter(
+            JobRequest.applicant_id == Applicant.id,
+            JobRequest.privacy_consent == True,  # noqa: E712
+        ).exists()
+        applicants = (
+            db.query(Applicant)
+            .filter(consent_exists)
+            .filter(or_(Applicant.privacy_accepted == False, Applicant.privacy_accepted.is_(None)))  # noqa: E712
+            .all()
+        )
+        count = 0
+        for a in applicants:
+            jr = (
+                db.query(JobRequest)
+                .filter(JobRequest.applicant_id == a.id, JobRequest.privacy_consent == True)  # noqa: E712
+                .order_by(JobRequest.privacy_consent_date.asc())
+                .first()
+            )
+            a.privacy_accepted = True
+            cd = jr.privacy_consent_date if jr else None
+            if cd is not None:
+                a.privacy_accepted_at = cd.date() if hasattr(cd, "date") else cd
+            count += 1
+        if count:
+            db.commit()
+            logger.info(f"Backfill privacy_accepted: {count} Bewerber aktualisiert")
+    except Exception as exc:
+        logger.error(f"Fehler im backfill_privacy_consent: {exc}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+    finally:
+        db.close()
+
+
+backfill_privacy_consent()
+
+
 def ensure_job_request_assigned_betrieb_column():
     """Fügt assigned_betrieb_id (intern zugeteilter Arbeitgeber) zu job_requests hinzu."""
     from sqlalchemy import text

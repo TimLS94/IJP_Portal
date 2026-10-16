@@ -271,7 +271,13 @@ async def create_job_requests(
         )
         db.add(job_request)
         created_requests.append(job_request)
-    
+
+    # Datenschutz-Einwilligung auch am Bewerber vermerken (wurde oben via
+    # data.privacy_consent bestätigt). Vorhandenes Datum nicht überschreiben.
+    if not applicant.privacy_accepted:
+        applicant.privacy_accepted = True
+        applicant.privacy_accepted_at = datetime.utcnow().date()
+
     db.commit()
     
     # E-Mail an Bewerber
