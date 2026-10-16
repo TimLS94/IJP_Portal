@@ -349,9 +349,10 @@ async def decline_interview(
     interview.status = InterviewStatus.DECLINED
     interview.notes_applicant = data.reason
     interview.updated_at = datetime.utcnow()
-    
-    # Setze Bewerbungsstatus zurück
-    application.status = ApplicationStatus.COMPANY_REVIEW
+
+    # Bewerbungsstatus bleibt auf "Vorstellungsgespräch geplant" (nicht automatisch
+    # auf "Firma prüft" zurücksetzen). Die Absage ist am Interview-Status (declined)
+    # erkennbar; die Firma kann neue Termine vorschlagen.
     application.updated_at = datetime.utcnow()
     
     db.commit()
@@ -419,9 +420,10 @@ async def cancel_interview(
     interview.notes_applicant = data.reason if is_applicant else interview.notes_applicant
     interview.notes_company = data.reason if is_company else interview.notes_company
     interview.updated_at = datetime.utcnow()
-    
-    # Status zurücksetzen
-    application.status = ApplicationStatus.COMPANY_REVIEW
+
+    # Bewerbungsstatus bleibt auf "Vorstellungsgespräch geplant" (nicht automatisch
+    # auf "Firma prüft" zurücksetzen). Die Absage ist am Interview-Status (cancelled)
+    # erkennbar.
     application.updated_at = datetime.utcnow()
     
     db.commit()
