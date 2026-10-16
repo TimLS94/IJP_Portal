@@ -673,6 +673,33 @@ class EmailService:
         return self.send_email(to_email, subject, html_content, email_type="other")
 
     @_safe_email_call
+    def send_admin_message(self, to_email: str, applicant_name: str, subject: str, body: str,
+                           cta_path: str = "/applicant/profile") -> bool:
+        """Admin schickt dem Studenten eine freie Nachricht/Info mit optionaler CTA-Verlinkung."""
+        from app.core.config import settings
+        import html as _html
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')
+        greeting = f"Hallo {applicant_name}," if applicant_name else "Hallo,"
+        body_html = _html.escape(body).replace("\n", "<br>")
+        cta_label = "Zum IJP-Auftrag" if "ijp-auftrag" in (cta_path or "") else "Zu meinem Profil"
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>✉️ Nachricht von IJP</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>{greeting}</p>
+                <p style="background: white; padding: 16px; border-radius: 8px; border-left: 4px solid #2563eb;">{body_html}</p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}{cta_path}" style="background: #2563eb; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">{cta_label}</a>
+                </p>
+                <p>Mit freundlichen Grüßen,<br><strong>Dein IJP-Team</strong></p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content, email_type="other")
+
+    @_safe_email_call
     def send_rejection_email(
         self, to_email: str, applicant_name: str, job_title: str, 
         company_name: str, custom_subject: str = None, custom_text: str = None,

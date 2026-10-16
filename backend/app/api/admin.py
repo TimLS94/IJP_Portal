@@ -2030,6 +2030,60 @@ async def update_partner_edit_override(
     return {"message": "Freigabe aktualisiert", "allowed": bool(data.allowed)}
 
 
+class AdminMessageRequest(BaseModel):
+    message: str
+    subject: Optional[str] = None
+    link: Optional[str] = "profile"  # profile | ijp | none
+
+
+@router.post("/applicants/{applicant_id}/message")
+async def send_admin_message_to_applicant(
+    applicant_id: int,
+    data: AdminMessageRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin schickt dem Studenten eine freie Nachricht (In-App-Benachrichtigung + E-Mail),
+    optional mit Verlinkung zu Profil oder IJP-Auftrag."""
+    from app.models.notification import Notification
+    from app.services.email_service import email_service
+
+    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
+    user = db.query(User).filter(User.id == applicant.user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Kein Nutzerkonto zum Bewerber gefunden")
+
+    msg = (data.message or "").strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="Bitte eine Nachricht eingeben")
+    subject = (data.subject or "").strip() or "Nachricht von IJP"
+
+    link = (data.link or "profile")
+    ref_map = {"profile": "profile", "ijp": "job_request", "none": "info"}
+    path_map = {"profile": "/applicant/profile", "ijp": "/applicant/ijp-auftrag", "none": "/applicant/profile"}
+    reference_type = ref_map.get(link, "profile")
+    cta_path = path_map.get(link, "/applicant/profile")
+
+    db.add(Notification(
+        user_id=user.id,
+        type="admin_message",
+        reference_type=reference_type,
+        title=subject,
+        message=msg,
+    ))
+    db.commit()
+
+    if user.email:
+        try:
+            email_service.send_admin_message(user.email, applicant.first_name or "", subject, msg, cta_path)
+        except Exception:
+            pass
+
+    return {"success": True}
+
+
 @router.post("/applicants/{applicant_id}/onbehalf")
 async def admin_onbehalf_access(
     applicant_id: int,
