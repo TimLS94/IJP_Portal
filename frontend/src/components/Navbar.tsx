@@ -474,6 +474,8 @@ export default function Navbar() {
                                     router.push("/applicant/documents");
                                   } else if (notif.reference_type === "job_request") {
                                     router.push("/applicant/ijp-auftrag");
+                                  } else if (notif.reference_type === "profile" || notif.reference_type === "info") {
+                                    router.push("/applicant/profile");
                                   } else {
                                     // Interview-/Bewerbungs-Benachrichtigungen -> Bewerbungen,
                                     // dort kann der Bewerber Termine bestätigen / reagieren.
@@ -700,6 +702,8 @@ export default function Navbar() {
                         router.push("/applicant/documents");
                       } else if (notif.reference_type === "job_request") {
                         router.push("/applicant/ijp-auftrag");
+                      } else if (notif.reference_type === "profile" || notif.reference_type === "info") {
+                        router.push("/applicant/profile");
                       }
                       setNotifMenuOpen(false);
                     }}

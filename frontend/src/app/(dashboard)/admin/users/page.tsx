@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { 
   Users, Search, UserCheck, UserX, Building2, 
   User, Shield, Filter, Plus, X, Trash2, Eye, EyeOff, Loader2,
-  Download, FileText, ShieldAlert, AlertTriangle, File, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, RotateCcw
+  Download, FileText, ShieldAlert, AlertTriangle, File, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, RotateCcw, MessageSquare
 } from "lucide-react";
 
 const roleLabels: Record<string, { label: string; icon: typeof User; color: string }> = {
@@ -64,6 +64,40 @@ export default function AdminUsersPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [gdprCompany, setGdprCompany] = useState<any>(null);
   const [gdprApplicant, setGdprApplicant] = useState<any>(null);
+
+  // Nachricht an Student
+  const [msgUser, setMsgUser] = useState<UserData | null>(null);
+  const [msgText, setMsgText] = useState("");
+  const [msgLink, setMsgLink] = useState<"profile" | "ijp" | "none">("profile");
+  const [sendingMsg, setSendingMsg] = useState(false);
+
+  const openMsgModal = (user: UserData) => {
+    setMsgUser(user);
+    setMsgText("");
+    setMsgLink("profile");
+  };
+
+  const sendMessage = async () => {
+    if (!msgUser?.applicant_id) {
+      toast.error("Kein Bewerberprofil – Nachricht nicht möglich");
+      return;
+    }
+    const text = msgText.trim();
+    if (!text) {
+      toast.error("Bitte eine Nachricht eingeben");
+      return;
+    }
+    setSendingMsg(true);
+    try {
+      await adminAPI.sendUserMessage(msgUser.applicant_id, { message: text, link: msgLink });
+      toast.success("Nachricht gesendet (Benachrichtigung + E-Mail)");
+      setMsgUser(null);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Senden fehlgeschlagen");
+    } finally {
+      setSendingMsg(false);
+    }
+  };
 
   // Partner-Quellen zum Auswählen/Speichern direkt in der Nutzerliste
   const [partnerLinks, setPartnerLinks] = useState<{ name: string; partner_source: string }[]>([]);
@@ -589,6 +623,15 @@ export default function AdminUsersPage() {
                             >
                               <Eye className="h-4 w-4" />
                             </button>
+                            {user.role === "applicant" && user.applicant_id && (
+                              <button
+                                onClick={() => openMsgModal(user)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Nachricht senden"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                              </button>
+                            )}
                             {/* DSGVO Button */}
                             <button
                               onClick={() => openGdprModal(user)}
@@ -995,6 +1038,73 @@ export default function AdminUsersPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Nachricht an Student */}
+      {msgUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-blue-600" />
+                Nachricht an Student
+              </h3>
+              <button onClick={() => setMsgUser(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4 truncate">An: {msgUser.email}</p>
+
+            <div className="flex flex-wrap gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => { setMsgText("Bitte trage noch fehlende Infos in deinem Profil nach, damit wir dich vermitteln können."); setMsgLink("profile"); }}
+                className="px-2.5 py-1 rounded-full text-xs font-medium border-2 border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:text-blue-700"
+              >
+                Infos nachtragen
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMsgText("Bitte beauftrage IJP für die Saison __.__.____ – __.__.____, damit wir mit der Vermittlung starten können."); setMsgLink("ijp"); }}
+                className="px-2.5 py-1 rounded-full text-xs font-medium border-2 border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:text-blue-700"
+              >
+                IJP beauftragen (Saison)
+              </button>
+            </div>
+
+            <textarea
+              value={msgText}
+              onChange={(e) => setMsgText(e.target.value)}
+              rows={5}
+              placeholder="Deine Nachricht an den Studenten…"
+              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none mb-3"
+            />
+
+            <label className="block text-sm font-medium text-gray-700 mb-1">Verlinkung (Button in der Nachricht)</label>
+            <select
+              value={msgLink}
+              onChange={(e) => setMsgLink(e.target.value as "profile" | "ijp" | "none")}
+              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm mb-5 bg-white"
+            >
+              <option value="profile">Zum Profil (Infos nachtragen)</option>
+              <option value="ijp">Zum IJP-Auftrag (beauftragen)</option>
+              <option value="none">Keine Verlinkung</option>
+            </select>
+
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => setMsgUser(null)} className="px-4 py-2 text-gray-500 hover:text-gray-700">Abbrechen</button>
+              <button
+                onClick={sendMessage}
+                disabled={sendingMsg}
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50"
+              >
+                {sendingMsg ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                Senden
+              </button>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-3">Der Student erhält eine Benachrichtigung (Glocke) und eine E-Mail.</p>
           </div>
         </div>
       )}

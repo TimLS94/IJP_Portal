@@ -426,6 +426,7 @@ export const adminAPI = {
   // Feature Flags & Einstellungen
   getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
   getSettings: () => api.get('/admin/settings'),
+  sendUserMessage: (applicantId, data) => api.post(`/admin/applicants/${applicantId}/message`, data),
   setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),
   setFeatureFlag: (key, value) => api.put(`/admin/settings/${key}`, { value }),
   getArchiveDeletionPreview: (days) => api.get('/admin/settings/archive-deletion-preview', { params: { days } }),
