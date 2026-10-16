@@ -102,10 +102,11 @@ async def update_my_profile(
                 detail="Für Studentenferienjobs sind die Semesterferien (Start und Ende) erforderlich."
             )
 
-    # Arbeitserlaubnis ist Pflichtangabe: Wird das Feld mitgesendet, muss es
-    # beantwortet sein (nicht null). Teil-Updates ohne das Feld bleiben unberührt
-    # -> Bestand (work_authorized = None) wird nicht gebrochen (abwärtskompatibel).
-    if "work_authorized" in update_data and update_data["work_authorized"] is None:
+    # Arbeitserlaubnis ist Pflichtangabe – aber NUR für JobOn-Bewerber. IJP-Studenten
+    # wird das Feld gar nicht gefragt (Visum läuft über IJP), daher darf ein mitgesendetes
+    # null sie nicht blockieren. Teil-Updates ohne das Feld bleiben ohnehin unberührt.
+    is_ijp = getattr(applicant, "portal", "jobon") == "ijp"
+    if not is_ijp and "work_authorized" in update_data and update_data["work_authorized"] is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Bitte gib an, ob du eine Arbeitserlaubnis für Deutschland hast (Pflichtangabe)."
