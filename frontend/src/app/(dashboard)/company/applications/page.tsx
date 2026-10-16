@@ -1001,6 +1001,9 @@ export default function CompanyApplicationsPage() {
                         {app.interview_status === "declined" && (
                           <span title="Termin abgelehnt"><XCircle className="h-5 w-5 text-red-500 mx-auto" /></span>
                         )}
+                        {app.interview_status === "cancelled" && (
+                          <span title="Termin abgesagt"><XCircle className="h-5 w-5 text-red-500 mx-auto" /></span>
+                        )}
                         {app.interview_status === "proposed" && (
                           <span title="Warte auf Antwort"><HelpCircle className="h-5 w-5 text-yellow-500 mx-auto" /></span>
                         )}
@@ -1098,6 +1101,9 @@ export default function CompanyApplicationsPage() {
                     )}
                     {app.interview_status === "proposed" && (
                       <span className="flex items-center gap-1 text-xs text-yellow-600"><HelpCircle className="h-4 w-4" /> Warte</span>
+                    )}
+                    {(app.interview_status === "cancelled" || app.interview_status === "declined") && (
+                      <span className="flex items-center gap-1 text-xs text-red-600"><XCircle className="h-4 w-4" /> Abgesagt</span>
                     )}
                   </div>
 
