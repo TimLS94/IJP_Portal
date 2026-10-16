@@ -1177,7 +1177,11 @@
       "question": "¿Le gustaría que IJP encontrara un trabajo adecuado para usted?",
       "yes": "Sí, solicitar IJP",
       "later": "Más tarde"
-    }
+    },
+    "howToTitle": "Solicita IJP ahora: así funciona",
+    "howToStep1": "Haz clic en «Solicitar ahora»",
+    "howToStep2": "Elige el tipo de empleo y acepta la privacidad",
+    "howToStep3": "Envía: empieza tu colocación"
   },
   "blog": {
     "title": "Blog y guía",

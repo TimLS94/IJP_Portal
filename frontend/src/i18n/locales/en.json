@@ -1182,7 +1182,11 @@
       "question": "Would you like IJP to find a suitable job for you?",
       "yes": "Yes, request IJP",
       "later": "Later"
-    }
+    },
+    "howToTitle": "Place your IJP order – here's how",
+    "howToStep1": "Click “Order now”",
+    "howToStep2": "Choose your job type & accept privacy",
+    "howToStep3": "Submit – your placement starts"
   },
   "blog": {
     "title": "Blog & Guide",

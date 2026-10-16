@@ -1182,7 +1182,11 @@
       "question": "Möchten Sie IJP beauftragen, einen passenden Job für Sie zu finden?",
       "yes": "Ja, IJP beauftragen",
       "later": "Später"
-    }
+    },
+    "howToTitle": "Jetzt IJP beauftragen – so geht's",
+    "howToStep1": "Auf „Jetzt beauftragen“ klicken",
+    "howToStep2": "Stellenart wählen & Datenschutz bestätigen",
+    "howToStep3": "Absenden – deine Vermittlung startet"
   },
   "blog": {
     "title": "Blog & Ratgeber",

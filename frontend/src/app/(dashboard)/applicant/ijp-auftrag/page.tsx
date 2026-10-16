@@ -269,6 +269,28 @@ export default function ApplicantJobRequestPage() {
         </div>
       </div>
 
+      {/* Deutlicher Handlungs-Hinweis: Beauftragung muss aktiv abgesendet werden */}
+      {canCreateMore && (
+        <div className="mb-8 rounded-2xl border-2 border-primary-300 bg-gradient-to-br from-primary-50 to-blue-50 p-5 md:p-6">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-primary-600" />
+            {t('jobRequest.howToTitle')}
+          </h2>
+          <div className="mt-4 grid sm:grid-cols-3 gap-3">
+            {[t('jobRequest.howToStep1'), t('jobRequest.howToStep2'), t('jobRequest.howToStep3')].map((step, i) => (
+              <div key={i} className="flex items-start gap-3 bg-white rounded-xl p-3 border border-primary-100">
+                <span className="h-6 w-6 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                <span className="text-sm text-gray-700">{step}</span>
+              </div>
+            ))}
+          </div>
+          <button onClick={openModal} className="btn-primary mt-5 text-base py-3 px-7">
+            <ClipboardList className="h-5 w-5 mr-2 inline" />
+            {requests.length > 0 ? t('jobRequest.createMoreOrders') : t('jobRequest.orderNow')}
+          </button>
+        </div>
+      )}
+
       {/* Konto-Box: Status des Zugangs + Link zum Profil */}
       <div className="mb-8 rounded-2xl border border-primary-100 bg-primary-50/60 p-5">
         <div className="flex items-start justify-between gap-3 flex-wrap">
