@@ -63,6 +63,7 @@ export default function AdminUsersPage() {
   const [exportLoading, setExportLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [gdprCompany, setGdprCompany] = useState<any>(null);
+  const [gdprApplicant, setGdprApplicant] = useState<any>(null);
 
   // Partner-Quellen zum Auswählen/Speichern direkt in der Nutzerliste
   const [partnerLinks, setPartnerLinks] = useState<{ name: string; partner_source: string }[]>([]);
@@ -264,6 +265,7 @@ export default function AdminUsersPage() {
     setShowGdprModal(true);
     setGdprLoading(true);
     setGdprCompany(null);
+    setGdprApplicant(null);
     setGdprDocuments([]);
 
     try {
@@ -272,7 +274,12 @@ export default function AdminUsersPage() {
         const exp = await adminAPI.gdprExportData(user.id);
         setGdprCompany(exp.data?.company || null);
       } else {
-        const response = await adminAPI.gdprGetDocuments(user.id);
+        // Profildaten + Dokumente inline anzeigen (kein JSON-Download nötig)
+        const [exp, response] = await Promise.all([
+          adminAPI.gdprExportData(user.id),
+          adminAPI.gdprGetDocuments(user.id),
+        ]);
+        setGdprApplicant(exp.data?.applicant || null);
         setGdprDocuments(response.data.documents || []);
       }
     } catch {
@@ -574,6 +581,14 @@ export default function AdminUsersPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {/* Daten ansehen */}
+                            <button
+                              onClick={() => openGdprModal(user)}
+                              className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                              title="Daten ansehen"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
                             {/* DSGVO Button */}
                             <button
                               onClick={() => openGdprModal(user)}
@@ -829,6 +844,76 @@ export default function AdminUsersPage() {
                     </div>
                   ) : (
                     <p className="text-gray-500 text-sm py-4">Keine Firmendaten hinterlegt.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Profildaten (nur Bewerber) */}
+              {gdprUser.role === "applicant" && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <User className="h-5 w-5 text-primary-600" />
+                    Profildaten
+                  </h3>
+                  {gdprLoading ? (
+                    <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+                  ) : gdprApplicant ? (
+                    <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                      {(() => {
+                        const a = gdprApplicant;
+                        const d = (v: any) => (v ? String(v).split("T")[0] : null);
+                        const join = (arr: any[], sep = " ") => arr.filter(Boolean).join(sep);
+                        const address = join([
+                          join([a.address?.street, a.address?.house_number]),
+                          join([a.address?.postal_code, a.address?.city]),
+                          a.address?.country,
+                        ], ", ");
+                        const uni = join([
+                          a.university?.name,
+                          a.university?.city,
+                          a.university?.field_of_study,
+                          a.university?.current_semester ? `${a.university.current_semester}. Semester` : null,
+                        ], ", ");
+                        const langs = join([
+                          a.languages?.german_level ? `Deutsch ${a.languages.german_level}` : null,
+                          a.languages?.english_level ? `Englisch ${a.languages.english_level}` : null,
+                          (a.languages?.other_languages || []).join(", ") || null,
+                        ], " · ");
+                        const positions = join([a.position_type, ...(a.position_types || [])].filter((v, i, arr) => v && arr.indexOf(v) === i), ", ");
+                        const rows: [string, any][] = [
+                          ["E-Mail", gdprUser?.email],
+                          ["Name", join([a.first_name, a.last_name])],
+                          ["Geschlecht", a.gender],
+                          ["Geburtsdatum", d(a.date_of_birth)],
+                          ["Geburtsort", a.place_of_birth],
+                          ["Nationalität", a.nationality],
+                          ["Telefon", a.phone],
+                          ["Adresse", address],
+                          ["Stellenart(en)", positions],
+                          ["Beruf", a.profession],
+                          ["Abschluss", join([a.degree, a.degree_year], " ")],
+                          ["Wunschberuf", a.desired_profession],
+                          ["Schulabschluss", a.school_degree],
+                          ["Universität", uni],
+                          ["Sprachen", langs],
+                          ["Berufserfahrung", join([a.work_experience_years ? `${a.work_experience_years} J.` : null, a.work_experience], " – ")],
+                          ["Verfügbar", join([d(a.available_from), d(a.available_until)], " – ")],
+                          ["Bevorzugter Bereich", a.preferred_work_area],
+                          ["Schon in Deutschland", a.been_to_germany ? join(["Ja", a.germany_details], ": ") : (a.been_to_germany === false ? "Nein" : null)],
+                          ["Zusatzinfo", a.additional_info],
+                          ["Datenschutz akzeptiert", a.privacy_accepted ? (d(a.privacy_accepted_at) || "Ja") : "Nein"],
+                          ["Registriert", d(gdprUser?.created_at)],
+                        ];
+                        return rows.map(([label, value]) => (
+                          <div key={label} className="flex gap-2">
+                            <span className="text-gray-400 shrink-0 min-w-[130px]">{label}:</span>
+                            <span className="text-gray-800 break-words">{value || "—"}</span>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm py-4">Keine Profildaten hinterlegt.</p>
                   )}
                 </div>
               )}
