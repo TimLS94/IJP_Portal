@@ -35,6 +35,7 @@ class CreateJobRequestSchema(BaseModel):
     preferred_start_date: Optional[datetime] = None
     notes: Optional[str] = None
     selected_position_types: Optional[List[str]] = None
+    language: Optional[str] = "de"  # Sprache, in der der Datenschutz-Text akzeptiert wurde
 
 
 class UpdateJobRequestStatusSchema(BaseModel):
@@ -51,37 +52,137 @@ class UpdateJobRequestStatusSchema(BaseModel):
 
 # ========== DATENSCHUTZ TEXT ==========
 
-PRIVACY_CONSENT_TEXT = """
+PRIVACY_CONSENT_TEXTS = {
+    "de": """
 DATENSCHUTZERKLÄRUNG - IJP Vermittlungsservice
 
 Mit Ihrer Zustimmung erklären Sie sich einverstanden, dass:
 
 1. DATENVERARBEITUNG
-IJP International Job Placement Ihre personenbezogenen Daten (Name, Kontaktdaten, 
+IJP International Job Placement Ihre personenbezogenen Daten (Name, Kontaktdaten,
 Qualifikationen, Dokumente) zum Zweck der Arbeitsvermittlung verarbeitet.
 
 2. DATENWEITERGABE AN PARTNERUNTERNEHMEN
-Ihre Daten und Dokumente an potenzielle Arbeitgeber (Partnerunternehmen) 
+Ihre Daten und Dokumente an potenzielle Arbeitgeber (Partnerunternehmen)
 weitergegeben werden dürfen, soweit dies für die Stellenvermittlung erforderlich ist.
 
 3. ZWECKBINDUNG
-Die Datenverarbeitung erfolgt ausschließlich zum Zweck der Arbeitsvermittlung 
+Die Datenverarbeitung erfolgt ausschließlich zum Zweck der Arbeitsvermittlung
 und damit verbundener Dienstleistungen.
 
 4. SPEICHERDAUER
-Ihre Daten werden für die Dauer des Vermittlungsprozesses sowie für einen 
+Ihre Daten werden für die Dauer des Vermittlungsprozesses sowie für einen
 angemessenen Zeitraum danach gespeichert (max. 2 Jahre nach Abschluss).
 
 5. WIDERRUF
-Sie können Ihre Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen. 
+Sie können Ihre Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen.
 Ein Widerruf berührt nicht die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung.
 
 6. IHRE RECHTE
-Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung 
+Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung
 der Verarbeitung Ihrer Daten gemäß DSGVO.
 
 Datum der Zustimmung: {date}
-"""
+""",
+    "en": """
+PRIVACY POLICY - IJP Placement Service
+
+By giving your consent, you agree that:
+
+1. DATA PROCESSING
+IJP International Job Placement processes your personal data (name, contact details,
+qualifications, documents) for the purpose of job placement.
+
+2. SHARING WITH PARTNER COMPANIES
+Your data and documents may be shared with potential employers (partner companies)
+insofar as this is necessary for job placement.
+
+3. PURPOSE LIMITATION
+Data processing is carried out exclusively for the purpose of job placement
+and related services.
+
+4. STORAGE PERIOD
+Your data will be stored for the duration of the placement process and for a
+reasonable period afterwards (max. 2 years after completion).
+
+5. WITHDRAWAL
+You can withdraw your consent at any time with effect for the future.
+A withdrawal does not affect the lawfulness of processing carried out until then.
+
+6. YOUR RIGHTS
+You have the right to information, rectification, erasure and restriction
+of the processing of your data in accordance with the GDPR.
+
+Date of consent: {date}
+""",
+    "es": """
+POLÍTICA DE PRIVACIDAD - Servicio de colocación IJP
+
+Al dar tu consentimiento, aceptas que:
+
+1. TRATAMIENTO DE DATOS
+IJP International Job Placement trata tus datos personales (nombre, datos de contacto,
+cualificaciones, documentos) con el fin de la intermediación laboral.
+
+2. CESIÓN A EMPRESAS COLABORADORAS
+Tus datos y documentos pueden cederse a posibles empleadores (empresas colaboradoras)
+en la medida en que sea necesario para la intermediación laboral.
+
+3. LIMITACIÓN DE LA FINALIDAD
+El tratamiento de datos se realiza exclusivamente con el fin de la intermediación
+laboral y los servicios relacionados.
+
+4. PLAZO DE CONSERVACIÓN
+Tus datos se conservarán durante el proceso de intermediación y durante un período
+razonable posterior (máx. 2 años tras su finalización).
+
+5. REVOCACIÓN
+Puedes revocar tu consentimiento en cualquier momento con efecto para el futuro.
+La revocación no afecta a la licitud del tratamiento realizado hasta entonces.
+
+6. TUS DERECHOS
+Tienes derecho de acceso, rectificación, supresión y limitación del tratamiento
+de tus datos conforme al RGPD.
+
+Fecha del consentimiento: {date}
+""",
+    "ru": """
+ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ - Служба трудоустройства IJP
+
+Давая согласие, вы соглашаетесь с тем, что:
+
+1. ОБРАБОТКА ДАННЫХ
+IJP International Job Placement обрабатывает ваши персональные данные (имя, контактные
+данные, квалификацию, документы) в целях трудоустройства.
+
+2. ПЕРЕДАЧА КОМПАНИЯМ-ПАРТНЁРАМ
+Ваши данные и документы могут передаваться потенциальным работодателям (компаниям-
+партнёрам) в той мере, в какой это необходимо для трудоустройства.
+
+3. ОГРАНИЧЕНИЕ ЦЕЛИ
+Обработка данных осуществляется исключительно в целях трудоустройства и связанных
+с ним услуг.
+
+4. СРОК ХРАНЕНИЯ
+Ваши данные хранятся в течение процесса трудоустройства и в течение разумного
+периода после него (макс. 2 года после завершения).
+
+5. ОТЗЫВ
+Вы можете отозвать согласие в любое время с действием на будущее. Отзыв не влияет
+на законность обработки, осуществлённой до этого момента.
+
+6. ВАШИ ПРАВА
+Вы имеете право на доступ, исправление, удаление и ограничение обработки ваших
+данных в соответствии с GDPR.
+
+Дата согласия: {date}
+""",
+}
+
+
+def get_privacy_consent_text(lang: str = "de") -> str:
+    tpl = PRIVACY_CONSENT_TEXTS.get((lang or "de").split("-")[0], PRIVACY_CONSENT_TEXTS["de"])
+    return tpl.format(date=datetime.now().strftime("%d.%m.%Y um %H:%M Uhr"))
 
 
 # ========== HELPER ==========
@@ -165,11 +266,9 @@ async def get_my_job_requests(
 
 
 @router.get("/privacy-text")
-async def get_privacy_text():
-    """Gibt den Datenschutz-Text zurück"""
-    return {
-        "text": PRIVACY_CONSENT_TEXT.format(date=datetime.now().strftime("%d.%m.%Y um %H:%M Uhr"))
-    }
+async def get_privacy_text(lang: str = "de"):
+    """Gibt den Datenschutz-Text in der gewünschten Sprache zurück (de/en/es/ru)."""
+    return {"text": get_privacy_consent_text(lang)}
 
 
 @router.post("")
@@ -255,7 +354,7 @@ async def create_job_requests(
         )
     
     created_requests = []
-    privacy_text = PRIVACY_CONSENT_TEXT.format(date=datetime.now().strftime("%d.%m.%Y um %H:%M Uhr"))
+    privacy_text = get_privacy_consent_text(data.language or "de")
     
     for position_type in new_position_types:
         job_request = JobRequest(
