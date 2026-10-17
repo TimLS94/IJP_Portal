@@ -342,7 +342,7 @@ export const accountAPI = {
 export const jobRequestsAPI = {
   // Bewerber
   getMyRequests: () => api.get('/job-requests/my'),
-  getPrivacyText: () => api.get('/job-requests/privacy-text'),
+  getPrivacyText: (lang) => api.get('/job-requests/privacy-text', { params: lang ? { lang } : {} }),
   createRequests: (data) => api.post('/job-requests', data),
   cancelRequest: (id) => api.delete(`/job-requests/my/${id}`),
   // Admin

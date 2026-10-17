@@ -1427,17 +1427,11 @@ export default function AdminJobRequests() {
                               value={newStatus}
                               onChange={(e) => setNewStatus(e.target.value)}
                             >
-                              {statusOptions
-                                .filter((status) =>
-                                  status.is_internal ||
-                                  ['on_hold', 'cancelled', 'withdrawn'].includes(status.value) ||
-                                  status.value === requestDetails.request.status
-                                )
-                                .map((status) => (
-                                  <option key={status.value} value={status.value}>
-                                    {status.is_internal ? `🔒 ${status.label}` : status.label}
-                                  </option>
-                                ))}
+                              {statusOptions.map((status) => (
+                                <option key={status.value} value={status.value}>
+                                  {status.is_internal ? `🔒 ${status.label}` : status.label}
+                                </option>
+                              ))}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
                           </div>

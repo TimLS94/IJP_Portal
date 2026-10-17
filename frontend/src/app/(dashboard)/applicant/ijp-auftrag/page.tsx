@@ -31,7 +31,7 @@ const positionTypeColors: Record<string, string> = {
 };
 
 export default function ApplicantJobRequestPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [showPwForm, setShowPwForm] = useState(false);
@@ -149,7 +149,7 @@ export default function ApplicantJobRequestPage() {
 
   const openModal = async () => {
     try {
-      const res = await jobRequestsAPI.getPrivacyText();
+      const res = await jobRequestsAPI.getPrivacyText(i18n.language);
       setPrivacyText(res.data.text);
       // Alle verfügbaren Typen vorauswählen
       setSelectedTypes(getAvailablePositionTypes());
@@ -181,7 +181,8 @@ export default function ApplicantJobRequestPage() {
         privacy_consent: true,
         preferred_location: preferredLocation || null,
         notes: notes || null,
-        selected_position_types: selectedTypes
+        selected_position_types: selectedTypes,
+        language: (i18n.language || 'de').split('-')[0]
       });
       toast.success(res.data.message || t('jobRequest.createSuccess'));
       setShowModal(false);
