@@ -1365,7 +1365,7 @@ export default function AdminJobRequests() {
                           </div>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Studentensicht:</p>
+                          <p className="text-xs text-gray-500 mb-1">{requestDetails.request.position_type === 'studentenferienjob' ? 'Studentensicht' : 'Bewerbersicht'}:</p>
                           {requestDetails.request.public_status ? (
                             <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
                               statusColors[statusOptions.find(s => s.value === requestDetails.request.public_status)?.color ?? 'blue'] || statusColors.blue
@@ -1374,9 +1374,12 @@ export default function AdminJobRequests() {
                             </span>
                           ) : (
                             <span className="text-xs text-gray-400 italic">
-                              {statusOptions.find(s => s.value === requestDetails.request.status)?.is_internal
-                                ? 'Student sieht: "In Bearbeitung"'
-                                : 'Student sieht den internen Status'}
+                              {(() => {
+                                const viewer = requestDetails.request.position_type === 'studentenferienjob' ? 'Student' : 'Bewerber';
+                                return statusOptions.find(s => s.value === requestDetails.request.status)?.is_internal
+                                  ? `${viewer} sieht: "In Bearbeitung"`
+                                  : `${viewer} sieht den internen Status`;
+                              })()}
                             </span>
                           )}
                         </div>
@@ -1440,7 +1443,7 @@ export default function AdminJobRequests() {
                         {/* Öffentlicher Status - was der Student sieht */}
                         <div className="border border-blue-200 rounded-lg p-3 bg-blue-50">
                           <label className="label text-sm text-blue-800 font-semibold">
-                            Öffentlicher Status (Studentensicht)
+                            Öffentlicher Status ({requestDetails.request.position_type === 'studentenferienjob' ? 'Studentensicht' : 'Bewerbersicht'})
                           </label>
                           <p className="text-xs text-blue-600 mb-2">
                             Wird dem Bewerber angezeigt – unabhängig vom internen Status.
@@ -1462,7 +1465,7 @@ export default function AdminJobRequests() {
                           </div>
                           {newPublicStatus && (
                             <p className="text-xs text-blue-700 mt-1">
-                              Student sieht: <strong>{statusOptions.find(s => s.value === newPublicStatus)?.label}</strong>
+                              {requestDetails.request.position_type === 'studentenferienjob' ? 'Student' : 'Bewerber'} sieht: <strong>{statusOptions.find(s => s.value === newPublicStatus)?.label}</strong>
                             </p>
                           )}
                         </div>
