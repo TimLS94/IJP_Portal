@@ -134,7 +134,7 @@ async def rate_limit_password_reset(request: Request, email: Optional[str] = Non
 async def rate_limit_registration(request: Request):
     """Rate Limit für Registrierung: 3 pro Stunde pro IP"""
     ip = get_client_ip(request)
-    await check_rate_limit(f"ip:{ip}", "registration", max_requests=3, window_seconds=3600)
+    await check_rate_limit(f"ip:{ip}", "registration", max_requests=10, window_seconds=3600)
 
 
 async def rate_limit_contact(request: Request):

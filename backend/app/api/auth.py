@@ -10,10 +10,11 @@ logger = logging.getLogger(__name__)
 
 from app.core.database import get_db
 from app.core.security import (
-    get_password_hash, 
-    verify_password, 
+    get_password_hash,
+    verify_password,
     create_access_token,
     get_current_user,
+    get_active_user_from_token,
     check_password_strength
 )
 from app.core.config import settings
@@ -130,8 +131,21 @@ async def register_applicant(
     db: Session = Depends(get_db)
 ):
     """Registriert einen neuen Bewerber"""
-    # Rate Limiting: 3 Registrierungen pro Stunde pro IP
-    await rate_limit_registration(request)
+    # Rate Limiting: greift NICHT, wenn ein eingeloggter Admin registriert
+    # (Admins legen oft mehrere Studenten hintereinander an). Sonst: Limit pro IP.
+    is_admin_request = False
+    try:
+        auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
+        if auth_header and auth_header.lower().startswith("bearer "):
+            token = auth_header.split(" ", 1)[1].strip()
+            u = get_active_user_from_token(token, db)
+            if u and u.role == UserRole.ADMIN:
+                is_admin_request = True
+    except Exception:
+        is_admin_request = False
+
+    if not is_admin_request:
+        await rate_limit_registration(request)
     
     # Passwort-Policy prüfen
     check_password_strength(user_data.password)
