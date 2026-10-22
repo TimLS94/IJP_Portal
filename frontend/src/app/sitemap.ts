@@ -56,6 +56,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: BASE_URL, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
     { url: `${BASE_URL}/jobs`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE_URL}/stellenarten`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    { url: `${BASE_URL}/arbeitgeber`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    // "Für Arbeitnehmer"-Infobereich (Hub + Themen)
+    { url: `${BASE_URL}/arbeitnehmer`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.75 },
+    { url: `${BASE_URL}/arbeitnehmer/krankenkasse`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/arbeitnehmer/arbeitsvertrag`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE_URL}/arbeitnehmer/steuern`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE_URL}/arbeitnehmer/anmeldung`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE_URL}/arbeitnehmer/bankkonto`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE_URL}/arbeitnehmer/rechte`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
     // SEO-Filter-Routen für Stellenangebote (Index + Kategorien)
     ...STELLEN_ROUTES.map((r) => ({
       url: `${BASE_URL}${stellenHref(r.slug)}`,
