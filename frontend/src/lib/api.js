@@ -139,6 +139,8 @@ export const companyAPI = {
 
   getNotificationSettings: () => api.get('/companies/me/notification-settings'),
   updateNotificationSettings: (data) => api.put('/companies/me/notification-settings', data),
+  getIjpManaged: () => api.get('/companies/me/ijp-managed'),
+  setIjpManaged: (allowed) => api.put('/companies/me/ijp-managed', { allowed }),
   // Score-Filter Einstellungen (ersetzt Auto-Ablehnung)
   getScoreFilterSettings: () => api.get('/companies/me/score-filter-settings'),
   updateScoreFilterSettings: (data) => api.put('/companies/me/score-filter-settings', data),
@@ -427,6 +429,10 @@ export const adminAPI = {
   getFeatureFlags: () => api.get('/admin/settings/feature-flags'),
   getSettings: () => api.get('/admin/settings'),
   sendUserMessage: (applicantId, data) => api.post(`/admin/applicants/${applicantId}/message`, data),
+  // Managed Service / Job-Import
+  listAllCompanies: () => api.get('/admin/companies/list'),
+  setCompanyIjpManaged: (companyId, allowed) => api.patch(`/admin/companies/${companyId}/ijp-managed`, { allowed }),
+  importJobFromUrl: (url, companyId) => api.post('/admin/jobs/import-from-url', { url, company_id: companyId }),
   setSetting: (key, value) => api.put(`/admin/settings/${key}`, { value }),
   setFeatureFlag: (key, value) => api.put(`/admin/settings/${key}`, { value }),
   getArchiveDeletionPreview: (days) => api.get('/admin/settings/archive-deletion-preview', { params: { days } }),

@@ -34,6 +34,8 @@ export default function CompanySettingsPage() {
   const [savingNotif, setSavingNotif] = useState(false);
   const [reportSettings, setReportSettings] = useState({ weekly_report_enabled: true, expiry_reminder_enabled: true });
   const [savingReport, setSavingReport] = useState(false);
+  const [ijpManaged, setIjpManaged] = useState(false);
+  const [savingIjp, setSavingIjp] = useState(false);
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -51,14 +53,16 @@ export default function CompanySettingsPage() {
 
   const loadData = async () => {
     try {
-      const [accountRes, notifRes, reportRes] = await Promise.all([
+      const [accountRes, notifRes, reportRes, ijpRes] = await Promise.all([
         accountAPI.getAccountInfo(),
         authAPI.getEmailPreferences().catch(() => ({ data: { email_notifications: true, email_job_alerts: true, email_newsletter: true } })),
         companyAPI.getNotificationSettings().catch(() => ({ data: { weekly_report_enabled: true, expiry_reminder_enabled: true } })),
+        companyAPI.getIjpManaged().catch(() => ({ data: { ijp_managed_posting: false } })),
       ]);
       setAccountInfo(accountRes.data);
       setNotifications(notifRes.data);
       setReportSettings(reportRes.data);
+      setIjpManaged(!!ijpRes.data?.ijp_managed_posting);
     } catch { toast.error("Fehler beim Laden"); }
     finally { setLoading(false); }
   };
@@ -80,6 +84,15 @@ export default function CompanySettingsPage() {
     try { await companyAPI.updateNotificationSettings({ [key]: value }); toast.success("Gespeichert"); }
     catch { setReportSettings(prev); toast.error("Fehler"); }
     finally { setSavingReport(false); }
+  };
+
+  const handleIjpManagedChange = async (value: boolean) => {
+    const prev = ijpManaged;
+    setIjpManaged(value);
+    setSavingIjp(true);
+    try { await companyAPI.setIjpManaged(value); toast.success("Gespeichert"); }
+    catch { setIjpManaged(prev); toast.error("Fehler"); }
+    finally { setSavingIjp(false); }
   };
 
   const handleChangePassword = async (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
@@ -175,6 +188,19 @@ export default function CompanySettingsPage() {
               </label>
             ))}
           </div>
+        </div>
+
+        {/* IJP Stellenservice (Managed) */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-2"><Building2 className="h-6 w-6 text-primary-600" /><h2 className="text-xl font-bold text-gray-900">IJP-Stellenservice</h2>{savingIjp && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}</div>
+          <p className="text-gray-600 mb-4 text-sm">Erlaube IJP (International Job Placement), nach Absprache Stellen für dich auf diesem Account zu erstellen und zu verwalten (z.&nbsp;B. aus euren bestehenden Stellen-Links). Du kannst die Einwilligung jederzeit widerrufen.</p>
+          <label className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+            <div className="flex items-center gap-3"><Building2 className="h-5 w-5 text-gray-500" /><div><p className="font-medium text-gray-900">IJP darf Stellen für uns schalten</p><p className="text-sm text-gray-500">IJP legt Stellen als Entwurf an; Veröffentlichung nach Absprache.</p></div></div>
+            <div className="relative"><input type="checkbox" checked={ijpManaged} onChange={(e) => handleIjpManagedChange(e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-300 peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div></div>
+          </label>
+          {ijpManaged && (
+            <p className="text-xs text-green-700 mt-3 flex items-center gap-1.5"><CheckCircle className="h-4 w-4" /> Einwilligung erteilt – IJP darf Stellen für euch verwalten.</p>
+          )}
         </div>
 
         {/* Firmen E-Mail-Einstellungen */}

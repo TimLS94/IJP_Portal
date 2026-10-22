@@ -254,6 +254,7 @@ export default function Navbar() {
         { to: "/admin/applications", icon: FileText, label: t("nav.adminApplications") },
         { to: "/admin/users", icon: Users, label: t("nav.adminUsers") },
         { to: "/admin/jobs", icon: Briefcase, label: t("nav.adminJobs") },
+        { to: "/admin/job-import", icon: Link2, label: "Stellen-Import" },
         { to: "/admin/reports", icon: Flag, label: "Meldungen" },
         { to: "/admin/blog", icon: BookOpen, label: t("nav.adminBlog") },
         { to: "/admin/invite-tokens", icon: Link2, label: t("nav.inviteTokens") },
