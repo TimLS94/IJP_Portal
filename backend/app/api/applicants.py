@@ -287,14 +287,26 @@ async def parse_cv(
     
     # ========== CV PARSING ==========
     from app.core.config import settings
-    from app.services.cv_parser_service import parse_cv_with_openai, parse_cv_with_gemini, sanitize_parsed_data, parse_cv_regex
+    from app.services.cv_parser_service import parse_cv_with_anthropic, parse_cv_with_openai, parse_cv_with_gemini, sanitize_parsed_data, parse_cv_regex
     from starlette.concurrency import run_in_threadpool
 
     ai_result = None
     parser_used = "none"
 
-    # 1. OpenAI bevorzugt (im Threadpool – blockierender LLM-Call darf den Event-Loop nicht einfrieren)
-    if settings.OPENAI_API_KEY:
+    # 0. Claude (bevorzugt – der konfigurierte Key)
+    if getattr(settings, "ANTHROPIC_API_KEY", ""):
+        logger.info("CV Parser: Trying Claude (Anthropic)")
+        try:
+            raw = await run_in_threadpool(parse_cv_with_anthropic, text, settings.ANTHROPIC_API_KEY)
+            if raw:
+                ai_result = sanitize_parsed_data(raw)
+                parser_used = "anthropic"
+                logger.info(f"CV Parser: Claude success, extracted {len(ai_result)} fields")
+        except Exception as e:
+            logger.warning(f"Anthropic CV parsing failed: {e}")
+
+    # 1. OpenAI (im Threadpool – blockierender LLM-Call darf den Event-Loop nicht einfrieren)
+    if not ai_result and settings.OPENAI_API_KEY:
         logger.info(f"CV Parser: Trying OpenAI (key present: {bool(settings.OPENAI_API_KEY)})")
         try:
             raw = await run_in_threadpool(parse_cv_with_openai, text, settings.OPENAI_API_KEY)

@@ -142,6 +142,27 @@ def parse_cv_with_gemini(text: str, api_key: str) -> Optional[dict]:
         return None
 
 
+def parse_cv_with_anthropic(text: str, api_key: str) -> Optional[dict]:
+    """Schickt den CV-Text an Claude (Anthropic)."""
+    if not text or len(text) < 50:
+        return None
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        truncated = text[:12000]
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=3000,
+            system="Du extrahierst strukturierte Daten aus Lebensläufen. Antworte immer mit validem JSON, ohne Erklärungen.",
+            messages=[{"role": "user", "content": EXTRACTION_PROMPT + truncated}],
+        )
+        raw = (message.content[0].text or "").strip()
+        return _extract_json(raw)
+    except Exception as e:
+        logger.error(f"Anthropic CV parsing failed: {e}")
+        return None
+
+
 def sanitize_parsed_data(data: dict) -> dict:
     """Bereinigt und validiert die geparsten Daten"""
     valid_levels = {"none", "a1", "a2", "b1", "b2", "c1", "c2", "native"}
@@ -497,8 +518,9 @@ def parse_cv_regex(text: str) -> dict:
     return result
 
 
-def parse_cv_sync(pdf_bytes: bytes, openai_key: str = "", gemini_key: str = "") -> Optional[dict]:
+def parse_cv_sync(pdf_bytes: bytes, anthropic_key: str = "", openai_key: str = "", gemini_key: str = "") -> Optional[dict]:
     """Synchrone Hauptfunktion: PDF → Text → AI → bereinigte Profildaten.
+    Reihenfolge: Claude → OpenAI → Gemini → Regex-Fallback.
     ACHTUNG: blockierend (PDF-Text + LLM-Call) – niemals direkt im Event-Loop
     aufrufen. Über parse_cv() (Threadpool) oder einen sync Background-Task nutzen."""
     text = extract_text_from_pdf(pdf_bytes)
@@ -507,25 +529,29 @@ def parse_cv_sync(pdf_bytes: bytes, openai_key: str = "", gemini_key: str = "") 
 
     raw_data = None
 
-    # 1. OpenAI (bevorzugt)
-    if openai_key:
+    # 1. Claude (bevorzugt – der konfigurierte Key)
+    if anthropic_key:
+        raw_data = parse_cv_with_anthropic(text, anthropic_key)
+
+    # 2. OpenAI
+    if not raw_data and openai_key:
         raw_data = parse_cv_with_openai(text, openai_key)
 
-    # 2. Gemini als Fallback
+    # 3. Gemini
     if not raw_data and gemini_key:
         raw_data = parse_cv_with_gemini(text, gemini_key)
 
     if raw_data:
         return sanitize_parsed_data(raw_data)
 
-    # 3. Starker Regex-Fallback (kein API-Key nötig)
+    # 4. Regex-Fallback (kein API-Key nötig, schwächer)
     logger.info("AI parsing unavailable, using regex fallback")
     result = parse_cv_regex(text)
     return result if result else None
 
 
-async def parse_cv(pdf_bytes: bytes, openai_key: str = "", gemini_key: str = "") -> Optional[dict]:
+async def parse_cv(pdf_bytes: bytes, anthropic_key: str = "", openai_key: str = "", gemini_key: str = "") -> Optional[dict]:
     """Async-Wrapper: führt das blockierende Parsing im Threadpool aus, damit der
     Event-Loop (und alle anderen Requests) nicht eingefroren wird."""
     from starlette.concurrency import run_in_threadpool
-    return await run_in_threadpool(parse_cv_sync, pdf_bytes, openai_key, gemini_key)
+    return await run_in_threadpool(parse_cv_sync, pdf_bytes, anthropic_key, openai_key, gemini_key)

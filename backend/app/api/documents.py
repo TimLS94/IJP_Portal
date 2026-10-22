@@ -213,8 +213,9 @@ def _enrich_profile_from_cv(applicant: Applicant, file_bytes: bytes, db: Session
 
     cv_data = parse_cv_sync(
         pdf_bytes=file_bytes,
+        anthropic_key=getattr(settings, "ANTHROPIC_API_KEY", ""),
         openai_key=getattr(settings, "OPENAI_API_KEY", ""),
-        gemini_key=getattr(settings, "GOOGLE_API_KEY", ""),
+        gemini_key=getattr(settings, "GOOGLE_AI_API_KEY", "") or getattr(settings, "GOOGLE_API_KEY", ""),
     )
     if not cv_data:
         return
