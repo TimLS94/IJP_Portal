@@ -17,9 +17,15 @@ ALLOWED_POSITION_TYPES = ["studentenferienjob", "saisonjob", "workandholiday", "
 ALLOWED_EMPLOYMENT = ["fulltime", "parttime", "minijob", "temporary"]
 ALLOWED_SALARY_TYPE = ["hourly", "monthly", "yearly"]
 
-_PROMPT = """Du extrahierst eine Stellenanzeige in striktes JSON. Antworte NUR mit JSON, ohne Erklärung.
-Nutze die Originalsprache der Anzeige für Freitext (title, description, tasks, requirements, benefits).
-Wenn ein Feld unbekannt ist, setze null (bzw. [] für Listen).
+_PROMPT = """Du extrahierst eine bestehende Stellenanzeige in striktes JSON. Antworte NUR mit JSON, ohne Erklärung.
+
+WICHTIG:
+- Übernimm die Texte WÖRTLICH 1:1 aus der Anzeige. Formuliere NICHTS um, kürze/fasse NICHTS zusammen, erfinde NICHTS hinzu.
+- Behalte Zeilenumbrüche und Aufzählungspunkte bei, wo vorhanden.
+- title: der EXAKTE Stellentitel wie in der Anzeige – inklusive Zusätzen wie (m/w/d), (w/m/d), (d/m/w), (gn) usw.
+- Ordne den Inhalt der richtigen Stelle zu: Aufgaben -> tasks, Anforderungen/Dein Profil -> requirements, "Wir bieten"/Benefits -> benefits, Einleitung/Über die Stelle -> description.
+- contact_email und contact_phone: falls auf der Seite eine E-Mail bzw. Telefonnummer angegeben ist, übernimm sie wörtlich (sonst null).
+- Wenn ein Feld nicht vorkommt, setze null (bzw. [] für Listen).
 
 Schema:
 {
