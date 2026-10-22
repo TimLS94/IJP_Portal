@@ -54,16 +54,70 @@ Stellenanzeige (Quelle: %(url)s):
 """
 
 
+_BLOCKED_HOSTS = {"localhost", "metadata", "metadata.google.internal"}
+
+
+def _host_is_safe(host: str):
+    """Prueft, ob der Host auf eine oeffentliche IP zeigt (SSRF-Schutz)."""
+    import socket
+    import ipaddress
+    h = (host or "").lower().strip(".")
+    if not h:
+        return False, "kein Host"
+    if h in _BLOCKED_HOSTS:
+        return False, f"geblockter Host ({h})"
+    try:
+        infos = socket.getaddrinfo(h, None)
+    except Exception:
+        return False, "DNS-Auflösung fehlgeschlagen"
+    for info in infos:
+        ip = info[4][0]
+        try:
+            obj = ipaddress.ip_address(ip)
+        except Exception:
+            continue
+        if (obj.is_private or obj.is_loopback or obj.is_link_local or obj.is_reserved
+                or obj.is_multicast or obj.is_unspecified):
+            return False, f"interne/gesperrte IP ({ip})"
+    return True, ""
+
+
+def _assert_safe_url(url: str):
+    from urllib.parse import urlparse
+    p = urlparse(url)
+    if p.scheme not in ("http", "https"):
+        raise ValueError("Nur http/https-URLs erlaubt.")
+    ok, reason = _host_is_safe(p.hostname or "")
+    if not ok:
+        raise ValueError(f"URL blockiert (SSRF-Schutz): {reason}")
+
+
 def fetch_page_text(url: str, max_chars: int = 14000) -> str:
-    """Lädt die Seite und gibt den sichtbaren Text zurück (gekürzt)."""
+    """Lädt die Seite und gibt den sichtbaren Text zurück (gekürzt).
+    SSRF-Schutz: validiert Host (inkl. Redirect-Ziele) gegen interne/Metadaten-IPs."""
     import requests
     from bs4 import BeautifulSoup
+    from urllib.parse import urljoin
 
     headers = {
         "User-Agent": "Mozilla/5.0 (compatible; JobOnImporter/1.0; +https://www.jobonportal.de)",
         "Accept-Language": "de,en;q=0.8",
     }
-    resp = requests.get(url, headers=headers, timeout=20)
+    # Redirects manuell verfolgen und jeden Hop validieren (kein Redirect auf interne Hosts)
+    current = url
+    resp = None
+    for _ in range(4):
+        _assert_safe_url(current)
+        resp = requests.get(current, headers=headers, timeout=20, allow_redirects=False)
+        if resp.status_code in (301, 302, 303, 307, 308):
+            loc = resp.headers.get("Location")
+            if not loc:
+                break
+            current = urljoin(current, loc)
+            continue
+        break
+    if resp is None:
+        raise ValueError("Seite konnte nicht geladen werden.")
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
     for tag in soup(["script", "style", "noscript", "header", "footer", "nav", "svg"]):
