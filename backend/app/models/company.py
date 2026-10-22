@@ -81,7 +81,11 @@ class Company(Base):
     auto_reject_enabled = Column(Boolean, default=False)  # Score-Filter aktiviert?
     auto_reject_threshold = Column(Integer, default=50)  # Schwellenwert (0-100) - unter diesem Score wird gefiltert
     auto_reject_delay_days = Column(Integer, default=7)  # NICHT MEHR VERWENDET (Legacy)
-    
+
+    # Managed-Service: Firma erlaubt IJP, Stellen fuer sie zu schalten (nach Absprache)
+    ijp_managed_posting = Column(Boolean, default=False, server_default="false", nullable=False)
+    ijp_managed_consent_at = Column(DateTime, nullable=True)  # Zeitpunkt der Einwilligung (Nachweis)
+
     # Relationships
     user = relationship("User", back_populates="company")
     job_postings = relationship("JobPosting", back_populates="company")

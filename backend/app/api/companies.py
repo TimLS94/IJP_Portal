@@ -375,6 +375,46 @@ async def update_notification_settings(
     }
 
 
+# ============ Managed Service: IJP darf Stellen schalten ============
+
+class IjpManagedUpdate(BaseModel):
+    allowed: bool
+
+
+@router.get("/me/ijp-managed")
+async def get_ijp_managed(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+    company = get_company_or_404(current_user, db)
+    consent = getattr(company, "ijp_managed_consent_at", None)
+    return {
+        "ijp_managed_posting": bool(getattr(company, "ijp_managed_posting", False)),
+        "ijp_managed_consent_at": consent.isoformat() if consent else None,
+    }
+
+
+@router.put("/me/ijp-managed")
+async def update_ijp_managed(
+    data: IjpManagedUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Firma erlaubt/entzieht IJP das Schalten von Stellen (Managed Service)."""
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(status_code=403, detail="Nur Firmen")
+    company = get_company_or_404(current_user, db)
+    company.ijp_managed_posting = bool(data.allowed)
+    if data.allowed and not company.ijp_managed_consent_at:
+        from datetime import datetime as _dt
+        company.ijp_managed_consent_at = _dt.utcnow()
+    db.commit()
+    db.refresh(company)
+    return {"message": "Gespeichert", "ijp_managed_posting": company.ijp_managed_posting}
+
+
 # ============ Score-Filter Einstellungen ============
 # Bewerbungen unter dem Schwellenwert werden gefiltert (in separatem Tab angezeigt)
 # und keine E-Mail-Benachrichtigung an die Firma gesendet

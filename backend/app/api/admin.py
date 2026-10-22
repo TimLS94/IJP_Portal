@@ -2084,6 +2084,134 @@ async def send_admin_message_to_applicant(
     return {"success": True}
 
 
+class AdminIjpManagedRequest(BaseModel):
+    allowed: bool
+
+
+class ImportJobRequest(BaseModel):
+    url: str
+    company_id: int
+
+
+@router.patch("/companies/{company_id}/ijp-managed")
+async def admin_set_company_ijp_managed(
+    company_id: int,
+    data: AdminIjpManagedRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin schaltet eine Firma fuer den Managed Service frei (IJP darf Stellen schalten)."""
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firma nicht gefunden")
+    company.ijp_managed_posting = bool(data.allowed)
+    if data.allowed and not company.ijp_managed_consent_at:
+        company.ijp_managed_consent_at = datetime.utcnow()
+    db.commit()
+    return {"message": "Gespeichert", "ijp_managed_posting": company.ijp_managed_posting}
+
+
+@router.get("/companies/ijp-managed")
+async def admin_list_ijp_managed_companies(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    rows = (
+        db.query(Company)
+        .filter(Company.ijp_managed_posting == True)  # noqa: E712
+        .order_by(Company.company_name.asc())
+        .all()
+    )
+    return [
+        {
+            "id": c.id,
+            "company_name": c.company_name,
+            "consent_at": c.ijp_managed_consent_at.isoformat() if c.ijp_managed_consent_at else None,
+        }
+        for c in rows
+    ]
+
+
+@router.get("/companies/list")
+async def admin_list_all_companies(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Alle registrierten Firmen (fuer Admin-Auswahl/Freischaltung)."""
+    rows = db.query(Company).order_by(Company.company_name.asc()).all()
+    out = []
+    for c in rows:
+        u = db.query(User).filter(User.id == c.user_id).first()
+        out.append({
+            "id": c.id,
+            "company_name": c.company_name or (u.email if u else f"Firma {c.id}"),
+            "email": u.email if u else None,
+            "ijp_managed_posting": bool(getattr(c, "ijp_managed_posting", False)),
+        })
+    return out
+
+
+@router.post("/jobs/import-from-url")
+async def admin_import_job_from_url(
+    data: ImportJobRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Importiert eine Stelle aus einer URL (KI) und legt sie als Entwurf unter der Firma an."""
+    import re as _re
+    from starlette.concurrency import run_in_threadpool
+    from app.models.job_posting import JobPosting
+    from app.services.job_import_service import import_job_from_url
+    from app.core.config import settings as _cfg
+
+    company = db.query(Company).filter(Company.id == data.company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Firma nicht gefunden")
+    if not getattr(company, "ijp_managed_posting", False):
+        raise HTTPException(status_code=400, detail="Diese Firma hat IJP das Schalten nicht erlaubt.")
+
+    url = (data.url or "").strip()
+    if not url.startswith("http"):
+        raise HTTPException(status_code=400, detail="Bitte eine gültige URL angeben (http/https).")
+
+    openai_key = getattr(_cfg, "OPENAI_API_KEY", "") or ""
+    gemini_key = getattr(_cfg, "GOOGLE_API_KEY", "") or ""
+    try:
+        extracted = await run_in_threadpool(import_job_from_url, url, openai_key, gemini_key)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Import fehlgeschlagen: {e}")
+
+    title = (extracted.get("title") or "Importierte Stelle").strip()[:255]
+    job = JobPosting(
+        company_id=company.id,
+        title=title,
+        description=extracted.get("description"),
+        tasks=extracted.get("tasks"),
+        requirements=extracted.get("requirements"),
+        benefits=extracted.get("benefits"),
+        location=extracted.get("location"),
+        postal_code=extracted.get("postal_code"),
+        country=extracted.get("country") or "DE",
+        position_types=extracted.get("position_types") or [],
+        salary_min=extracted.get("salary_min"),
+        salary_max=extracted.get("salary_max"),
+        salary_type=extracted.get("salary_type"),
+        contact_email=extracted.get("contact_email"),
+        contact_phone=extracted.get("contact_phone"),
+        is_active=False,
+        is_draft=True,
+    )
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    # Slug fuer spaetere Veroeffentlichung setzen
+    base = _re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "stelle"
+    job.slug = f"{base[:80]}-{job.id}"
+    db.commit()
+
+    return {"job_id": job.id, "title": job.title, "company": company.company_name, "extracted": extracted}
+
+
 @router.post("/applicants/{applicant_id}/onbehalf")
 async def admin_onbehalf_access(
     applicant_id: int,

@@ -217,6 +217,8 @@ def ensure_applicant_invite_columns():
             ("applicant_invite_tokens", "portal_type", "VARCHAR(20) DEFAULT 'jobon'"),
             ("insurance_signups", "document_provided", "BOOLEAN DEFAULT FALSE"),
             ("insurance_signups", "document_id", "INTEGER"),
+            ("companies", "ijp_managed_posting", "BOOLEAN DEFAULT FALSE"),
+            ("companies", "ijp_managed_consent_at", "TIMESTAMP"),
         ]
         allowed_tables = {t for t, _, _ in new_columns}
         allowed_cols = {c for _, c, _ in new_columns}
