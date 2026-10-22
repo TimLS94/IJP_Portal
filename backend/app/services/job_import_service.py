@@ -48,7 +48,7 @@ Stellenanzeige (Quelle: %(url)s):
 """
 
 
-def fetch_page_text(url: str, max_chars: int = 9000) -> str:
+def fetch_page_text(url: str, max_chars: int = 14000) -> str:
     """Lädt die Seite und gibt den sichtbaren Text zurück (gekürzt)."""
     import requests
     from bs4 import BeautifulSoup
@@ -87,7 +87,8 @@ def _extract_json(raw: str) -> Optional[dict]:
     return None
 
 
-def extract_job_with_openai(text: str, url: str, api_key: str) -> Optional[dict]:
+def extract_job_with_openai(text: str, url: str, api_key: str):
+    """Gibt (dict|None, error_str|None) zurück."""
     try:
         from openai import OpenAI
         client = OpenAI(api_key=api_key, timeout=30.0, max_retries=1)
@@ -97,17 +98,25 @@ def extract_job_with_openai(text: str, url: str, api_key: str) -> Optional[dict]
         }
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": "Du extrahierst strukturierte Stellendaten. Antworte immer mit validem JSON, ohne Erklärungen."},
+                {"role": "user", "content": prompt},
+            ],
             temperature=0.1,
-            response_format={"type": "json_object"},
+            max_tokens=3000,
         )
-        return _extract_json(resp.choices[0].message.content)
+        raw = (resp.choices[0].message.content or "").strip()
+        data = _extract_json(raw)
+        if data is None:
+            return None, "Antwort war kein gültiges JSON"
+        return data, None
     except Exception as e:
         logger.error(f"OpenAI Job-Import fehlgeschlagen: {e}")
-        return None
+        return None, f"{type(e).__name__}: {e}"
 
 
-def extract_job_with_gemini(text: str, url: str, api_key: str) -> Optional[dict]:
+def extract_job_with_gemini(text: str, url: str, api_key: str):
+    """Gibt (dict|None, error_str|None) zurück."""
     try:
         from google import genai
         client = genai.Client(api_key=api_key, http_options={"timeout": 30000})
@@ -116,10 +125,13 @@ def extract_job_with_gemini(text: str, url: str, api_key: str) -> Optional[dict]
             "sal": ALLOWED_SALARY_TYPE, "url": url, "text": text,
         }
         resp = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-        return _extract_json(getattr(resp, "text", "") or "")
+        data = _extract_json(getattr(resp, "text", "") or "")
+        if data is None:
+            return None, "Antwort war kein gültiges JSON"
+        return data, None
     except Exception as e:
         logger.error(f"Gemini Job-Import fehlgeschlagen: {e}")
-        return None
+        return None, f"{type(e).__name__}: {e}"
 
 
 def _sanitize(data: dict) -> dict:
@@ -149,11 +161,19 @@ def import_job_from_url(url: str, openai_key: str = "", gemini_key: str = "") ->
         raise ValueError("Seite enthielt keinen lesbaren Text (evtl. JavaScript-Seite oder Zugriff blockiert).")
 
     data = None
+    errors = []
     if openai_key:
-        data = extract_job_with_openai(text, url, openai_key)
+        data, err = extract_job_with_openai(text, url, openai_key)
+        if err:
+            errors.append(f"OpenAI: {err}")
+    else:
+        errors.append("Kein OPENAI_API_KEY konfiguriert")
     if not data and gemini_key:
-        data = extract_job_with_gemini(text, url, gemini_key)
+        data, err = extract_job_with_gemini(text, url, gemini_key)
+        if err:
+            errors.append(f"Gemini: {err}")
     if not data:
-        raise ValueError("KI-Extraktion fehlgeschlagen. Bitte manuell anlegen.")
+        detail = f" ({'; '.join(errors)})" if errors else ""
+        raise ValueError(f"KI-Extraktion fehlgeschlagen{detail}. Bitte manuell anlegen.")
 
     return _sanitize(data)
