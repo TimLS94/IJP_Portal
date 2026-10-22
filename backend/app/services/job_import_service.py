@@ -134,6 +134,31 @@ def extract_job_with_gemini(text: str, url: str, api_key: str):
         return None, f"{type(e).__name__}: {e}"
 
 
+def extract_job_with_anthropic(text: str, url: str, api_key: str):
+    """Claude (Anthropic). Gibt (dict|None, error_str|None) zurück."""
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        prompt = _PROMPT % {
+            "emp": ALLOWED_EMPLOYMENT, "pos": ALLOWED_POSITION_TYPES,
+            "sal": ALLOWED_SALARY_TYPE, "url": url, "text": text,
+        }
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2000,
+            system="Du extrahierst strukturierte Stellendaten. Antworte NUR mit validem JSON, ohne Erklärungen.",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = (message.content[0].text or "").strip()
+        data = _extract_json(raw)
+        if data is None:
+            return None, "Antwort war kein gültiges JSON"
+        return data, None
+    except Exception as e:
+        logger.error(f"Anthropic Job-Import fehlgeschlagen: {e}")
+        return None, f"{type(e).__name__}: {e}"
+
+
 def _sanitize(data: dict) -> dict:
     out = dict(data or {})
     # Listen/Enums säubern
@@ -154,24 +179,29 @@ def _sanitize(data: dict) -> dict:
     return out
 
 
-def import_job_from_url(url: str, openai_key: str = "", gemini_key: str = "") -> dict:
-    """Lädt die URL + extrahiert die Stellenfelder. Wirft bei Lade-/Parsefehlern."""
+def import_job_from_url(url: str, anthropic_key: str = "", openai_key: str = "", gemini_key: str = "") -> dict:
+    """Lädt die URL + extrahiert die Stellenfelder (Claude -> OpenAI -> Gemini).
+    Wirft bei Lade-/Parsefehlern."""
     text = fetch_page_text(url)
     if not text or len(text.strip()) < 40:
         raise ValueError("Seite enthielt keinen lesbaren Text (evtl. JavaScript-Seite oder Zugriff blockiert).")
 
     data = None
     errors = []
-    if openai_key:
+    if anthropic_key:
+        data, err = extract_job_with_anthropic(text, url, anthropic_key)
+        if err:
+            errors.append(f"Claude: {err}")
+    if not data and openai_key:
         data, err = extract_job_with_openai(text, url, openai_key)
         if err:
             errors.append(f"OpenAI: {err}")
-    else:
-        errors.append("Kein OPENAI_API_KEY konfiguriert")
     if not data and gemini_key:
         data, err = extract_job_with_gemini(text, url, gemini_key)
         if err:
             errors.append(f"Gemini: {err}")
+    if not data and not (anthropic_key or openai_key or gemini_key):
+        errors.append("Kein KI-Key konfiguriert (ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_AI_API_KEY)")
     if not data:
         detail = f" ({'; '.join(errors)})" if errors else ""
         raise ValueError(f"KI-Extraktion fehlgeschlagen{detail}. Bitte manuell anlegen.")

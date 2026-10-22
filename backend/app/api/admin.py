@@ -2174,10 +2174,11 @@ async def admin_import_job_from_url(
     if not url.startswith("http"):
         raise HTTPException(status_code=400, detail="Bitte eine gültige URL angeben (http/https).")
 
+    anthropic_key = getattr(_cfg, "ANTHROPIC_API_KEY", "") or ""
     openai_key = getattr(_cfg, "OPENAI_API_KEY", "") or ""
-    gemini_key = getattr(_cfg, "GOOGLE_API_KEY", "") or ""
+    gemini_key = getattr(_cfg, "GOOGLE_AI_API_KEY", "") or getattr(_cfg, "GOOGLE_API_KEY", "") or ""
     try:
-        extracted = await run_in_threadpool(import_job_from_url, url, openai_key, gemini_key)
+        extracted = await run_in_threadpool(import_job_from_url, url, anthropic_key, openai_key, gemini_key)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Import fehlgeschlagen: {e}")
 
