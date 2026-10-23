@@ -103,6 +103,9 @@ interface Job {
 interface Props {
   initialJob: Job;
   slug: string;
+  // Erzwingt eine feste Anzeige-Sprache (z.B. "en" auf /en/jobs/...).
+  // Gesetzt -> initialer SSR-Render in dieser Sprache, keine Kopplung an i18n/Navbar.
+  forceLang?: string;
 }
 
 const positionTypeLabelsByLang: Record<string, Record<string, string>> = {
@@ -159,7 +162,7 @@ const positionTypeColors: Record<string, string> = {
   ausbildung: "bg-green-100 text-green-800 border-green-200",
 };
 
-export default function JobDetailClient({ initialJob, slug }: Props) {
+export default function JobDetailClient({ initialJob, slug, forceLang }: Props) {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { isAuthenticated, isApplicant } = useAuth();
@@ -200,7 +203,9 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
     return available.includes(code) ? code : "de";
   };
 
-  const [displayLanguage, setDisplayLanguage] = useState(() => resolveDisplayLang(i18n.language || "de"));
+  const [displayLanguage, setDisplayLanguage] = useState(() =>
+    forceLang ? resolveDisplayLang(forceLang) : resolveDisplayLang(i18n.language || "de")
+  );
 
   // Label-Helfer richten sich nach der angezeigten Job-Sprache (displayLanguage)
   const posLabel = (key: string) =>
@@ -217,6 +222,16 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
   // Sprache (z.B. über die Navbar), folgt die angezeigte Job-Sprache – und umgekehrt
   // ruft der Job-Umschalter i18n.changeLanguage auf.
   useEffect(() => {
+    // Auf /en/jobs/... ist die Job-Sprache fest (forceLang) und folgt NICHT der Navbar,
+    // damit die URL-Sprache und der SSR-Inhalt konsistent bleiben. Wir setzen stattdessen
+    // die globale UI-Sprache einmalig passend zur URL.
+    if (forceLang) {
+      const code = forceLang.split("-")[0];
+      if ((i18n.language || "de").split("-")[0] !== code) {
+        i18n.changeLanguage(code);
+      }
+      return;
+    }
     setDisplayLanguage(resolveDisplayLang(i18n.language || "de"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i18n.language]);
@@ -375,7 +390,20 @@ export default function JobDetailClient({ initialJob, slug }: Props) {
                         return (
                           <button
                             key={langCode}
-                            onClick={() => { setDisplayLanguage(langCode); i18n.changeLanguage(langCode); }}
+                            onClick={() => {
+                              // Auf sprach-spezifischen URLs (/en/jobs/...) navigieren wir zur
+                              // passenden URL, damit Inhalt, URL und Canonical konsistent bleiben.
+                              // Aktuell existiert nur eine englische URL-Variante (/en/jobs/...),
+                              // alle anderen Sprachen liegen unter der deutschen URL (/jobs/...).
+                              if (forceLang) {
+                                i18n.changeLanguage(langCode);
+                                if (langCode === "en") router.push(`/en/jobs/${slug}`);
+                                else router.push(`/jobs/${slug}`);
+                                return;
+                              }
+                              setDisplayLanguage(langCode);
+                              i18n.changeLanguage(langCode);
+                            }}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                               displayLanguage === langCode
                                 ? "bg-white text-gray-900 shadow-sm"

@@ -13,6 +13,7 @@ interface SitemapJob {
   lastmod: string; // "2026-05-28"
   title: string;
   id: number;
+  has_en?: boolean; // eigene Stelle mit echter EN-Übersetzung -> /en/jobs/<slug> existiert
 }
 
 interface SitemapBlogPost {
@@ -90,6 +91,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  // Englische URL-Varianten für eigene Stellen mit EN-Übersetzung (/en/jobs/<slug>).
+  // job.url ist "/jobs/<slug>" -> daraus "/en/jobs/<slug>".
+  const enJobPages: MetadataRoute.Sitemap = jobs
+    .filter((job) => job.has_en)
+    .map((job) => ({
+      url: `${BASE_URL}/en${job.url}`,
+      lastModified: new Date(job.lastmod),
+      changeFrequency: "daily" as const,
+      priority: 0.75,
+    }));
+
   const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
     url: `${BASE_URL}${post.path}`,
     lastModified: new Date(post.lastmod),
@@ -97,5 +109,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...jobPages, ...blogPages];
+  return [...staticPages, ...jobPages, ...enJobPages, ...blogPages];
 }
