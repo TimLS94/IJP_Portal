@@ -851,7 +851,7 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
 
 // ── Arbeitgeber-Formular Tab ──────────────────────────────────────────────────
 
-interface EmployerDoc { id: number; company_id: number; name: string; original_filename: string; created_at: string; }
+interface EmployerDoc { id: number; company_id: number; company_name?: string | null; name: string; original_filename: string; created_at: string; }
 interface ApplicantOpt { id: number; first_name: string; last_name: string; email: string; }
 
 function ArbeitgeberFormularTab() {
@@ -919,7 +919,7 @@ function ArbeitgeberFormularTab() {
               setSelectedDoc(d);
             }}>
               <option value="">— Formular wählen —</option>
-              {docs.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.original_filename})</option>)}
+              {docs.map((d) => <option key={d.id} value={d.id}>{d.company_name ? `${d.company_name} — ` : ""}{d.name} ({d.original_filename})</option>)}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
           </div>

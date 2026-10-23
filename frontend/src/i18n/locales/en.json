@@ -702,6 +702,8 @@
     "studyInfo": "Studies",
     "fieldOfStudy": "Field of Study",
     "currentSemester": "Current Semester",
+    "studyingSince": "Studying since (start of studies)",
+    "studyingSinceRequired": "Please indicate since when you have been studying (start of studies).",
     "semesterBreak": "Semester Break",
     "semesterBreakStart": "Start of Semester Break",
     "semesterBreakEnd": "End of Semester Break",

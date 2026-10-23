@@ -697,6 +697,8 @@
     "studyInfo": "Estudios",
     "fieldOfStudy": "Campo de estudio",
     "currentSemester": "Semestre actual",
+    "studyingSince": "Estudiando desde (inicio de los estudios)",
+    "studyingSinceRequired": "Indica desde cuándo estudias (inicio de los estudios).",
     "semesterBreak": "Vacaciones del semestre",
     "semesterBreakStart": "Inicio de vacaciones",
     "semesterBreakEnd": "Fin de vacaciones",

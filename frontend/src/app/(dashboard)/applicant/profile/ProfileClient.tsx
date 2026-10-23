@@ -155,25 +155,31 @@ export default function ProfileClient() {
       data.position_types = ["studentenferienjob"];
       data.position_type = "studentenferienjob";
     }
-    // Bei Studentenferienjob sind die Semesterferien Pflicht
+    // Pflichtangaben für Studenten (Studentenferienjob): Semesterferien, Studienbeginn
+    // und vollständige Uni-Anschrift. Abwärtskompatibel: bestehende Datensätze bleiben
+    // unangetastet; Pflicht greift beim Speichern des Formulars (künftige Einträge).
     if ((data.position_types || []).includes("studentenferienjob")) {
       if (!data.semester_break_start || !data.semester_break_end) {
         toast.error(t("applicant.semesterBreakRequired", "Bitte gib deine Semesterferien an (Start und Ende) – das ist für Studentenferienjobs erforderlich."));
         return;
       }
+      if (!data.studying_since) {
+        toast.error(t("applicant.studyingSinceRequired", "Bitte gib an, seit wann du studierst (Studienbeginn)."));
+        return;
+      }
+      const missingUni = ["university_name", "university_street", "university_house_number", "university_postal_code", "university_city", "university_country"]
+        .filter((f) => !String(data[f] || "").trim());
+      if (missingUni.length > 0) {
+        toast.error("Bitte gib den Namen und die vollständige Adresse deiner Universität an (Name, Straße, Hausnummer, PLZ, Ort, Land).");
+        return;
+      }
     }
-    // IJP-Studenten: eigene Adresse UND Uni-Adresse sind Pflicht.
+    // IJP-Studenten: zusätzlich die eigene Wohnadresse Pflicht.
     if (isIjp) {
       const missingOwn = ["street", "house_number", "postal_code", "city", "country"]
         .filter((f) => !String(data[f] || "").trim());
       if (missingOwn.length > 0) {
         toast.error("Bitte gib deine vollständige Adresse an (Straße, Hausnummer, PLZ, Ort, Land).");
-        return;
-      }
-      const missingUni = ["university_street", "university_house_number", "university_postal_code", "university_city", "university_country"]
-        .filter((f) => !String(data[f] || "").trim());
-      if (missingUni.length > 0) {
-        toast.error("Bitte gib die vollständige Adresse deiner Universität an (Straße, Hausnummer, PLZ, Ort, Land).");
         return;
       }
     }
@@ -760,23 +766,23 @@ export default function ProfileClient() {
               </div>
               {/* Universität Adresse */}
               <div>
-                <label className="label">{t("applicant.universityStreet")}{isIjp && " *"}</label>
+                <label className="label">{t("applicant.universityStreet")} *</label>
                 <input type="text" className="input-styled" placeholder={t("applicant.universityStreetPlaceholder")} {...register("university_street")} />
               </div>
               <div>
-                <label className="label">{t("applicant.universityHouseNumber")}{isIjp && " *"}</label>
+                <label className="label">{t("applicant.universityHouseNumber")} *</label>
                 <input type="text" className="input-styled" placeholder="z.B. 12a" {...register("university_house_number")} />
               </div>
               <div>
-                <label className="label">{t("applicant.universityPostalCode")}{isIjp && " *"}</label>
+                <label className="label">{t("applicant.universityPostalCode")} *</label>
                 <input type="text" className="input-styled" placeholder="z.B. 119991" {...register("university_postal_code")} />
               </div>
               <div>
-                <label className="label">{t("applicant.universityCity")}{isIjp && " *"}</label>
+                <label className="label">{t("applicant.universityCity")} *</label>
                 <input type="text" className="input-styled" placeholder="z.B. Moskau" {...register("university_city")} />
               </div>
               <div className="md:col-span-2">
-                <label className="label">{t("applicant.universityCountry")}{isIjp && " *"}</label>
+                <label className="label">{t("applicant.universityCountry")} *</label>
                 <input type="text" className="input-styled" placeholder="z.B. Russland" {...register("university_country")} />
               </div>
             </div>
@@ -791,6 +797,10 @@ export default function ProfileClient() {
               <div>
                 <label className="label">{t("applicant.currentSemester")} *</label>
                 <input type="number" min="1" max="20" className="input-styled" placeholder="z.B. 4" {...register("current_semester")} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="label">{t("applicant.studyingSince", "Studium seit (Studienbeginn)")} *</label>
+                <input type="date" className="input-styled" {...register("studying_since")} />
               </div>
             </div>
 

@@ -697,6 +697,8 @@
     "studyInfo": "Обучение",
     "fieldOfStudy": "Направление обучения",
     "currentSemester": "Текущий семестр",
+    "studyingSince": "Учусь с (начало обучения)",
+    "studyingSinceRequired": "Укажите, с какого времени вы учитесь (начало обучения).",
     "semesterBreak": "Каникулы",
     "semesterBreakStart": "Начало каникул",
     "semesterBreakEnd": "Конец каникул",

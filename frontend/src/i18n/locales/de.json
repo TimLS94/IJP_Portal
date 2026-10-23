@@ -702,6 +702,8 @@
     "studyInfo": "Studium",
     "fieldOfStudy": "Studienfach",
     "currentSemester": "Aktuelles Semester",
+    "studyingSince": "Studium seit (Studienbeginn)",
+    "studyingSinceRequired": "Bitte gib an, seit wann du studierst (Studienbeginn).",
     "semesterBreak": "Semesterferien",
     "semesterBreakStart": "Beginn der Semesterferien",
     "semesterBreakEnd": "Ende der Semesterferien",

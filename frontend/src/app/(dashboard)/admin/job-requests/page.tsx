@@ -549,9 +549,13 @@ export default function AdminJobRequests() {
                 onChange={(e) => { setInviteSourceFilter(e.target.value); setPage(0); }}
               >
                 <option value="">Alle Partner</option>
-                {inviteSources.map((src) => (
-                  <option key={src} value={src}>{src}</option>
-                ))}
+                {inviteSources.map((src) => {
+                  // Partner-Namen anzeigen (via partner_source → name), Wert bleibt die Quelle.
+                  // Fallback: rohe Quelle, falls kein Partner-Link dazu existiert (z.B. manuell gesetzt).
+                  const link = partnerLinks.find((l) => l.partner_source === src);
+                  const label = link && link.name && link.name !== src ? `${link.name} (${src})` : src;
+                  return <option key={src} value={src}>{label}</option>;
+                })}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             </div>
