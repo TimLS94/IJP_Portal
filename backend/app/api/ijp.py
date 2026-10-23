@@ -258,6 +258,8 @@ class ApplicantOption(BaseModel):
     last_name: str
     email: str
     gender: Optional[str] = None
+    city: Optional[str] = None       # Wohnort (fuer Vorbelegung "Ort" an der Unterschrift)
+    country: Optional[str] = None
 
 
 class TemplateVar(BaseModel):
@@ -486,7 +488,8 @@ def list_applicants_for_ijp(search: Optional[str] = None, db: Session = Depends(
     rows = query.order_by(Applicant.last_name, Applicant.first_name).limit(100).all()
     return [
         ApplicantOption(id=a.id, first_name=a.first_name or "", last_name=a.last_name or "",
-                        email=u.email, gender=a.gender.value if a.gender else None)
+                        email=u.email, gender=a.gender.value if a.gender else None,
+                        city=a.city or None, country=a.country or None)
         for a, u in rows
     ]
 
@@ -1457,7 +1460,7 @@ def _fill_pdf_fragebogen_englisch(pdf_bytes: bytes, context: dict) -> bytes:
     # ── S.4: P4 Schulbesuch Ja + Details ─────────────────────────────────────
     p = doc[3]
     X(p, 163, 190)                                              # P4 Ja
-    T(p, 225, 208, context.get("UNI_SEIT", ""), 8)             # seit dem (leer wenn nicht vorhanden)
+    T(p, 225, 208, context.get("STUDIUM_SEIT") or context.get("UNI_SEIT", ""), 8)  # seit dem (Studienbeginn)
     T(p, 365, 208, context.get("UNI_NAME", ""), 7)             # Uni-Name
     T(p, 290, 308, context.get("SEMESTERFERIEN_BIS", ""), 8)   # Schulentlassung
     X(p, 332, 408)                                              # Semesterferien Ja
@@ -1472,9 +1475,25 @@ def _fill_pdf_fragebogen_englisch(pdf_bytes: bytes, context: dict) -> bytes:
     X(p, 85,  558)    # P6 Hausfrau Nein
     T(p, 72,  710, context.get("LEBENSUNTERHALT", ""), 10)
 
-    # ── S.6: P8 Bisherige Beschäftigungen Nein ────────────────────────────────
+    # ── S.6: P8 Bisherige Beschäftigungen Nein + Unterschrift Arbeitnehmer ────
     p = doc[5]
     X(p, 84, 164)
+    # "Ort, Datum / Place, Date" an der Erklärung/Unterschrift des Arbeitnehmers.
+    # Robuste Platzierung: Label im PDF suchen und den Wert knapp über die
+    # darunterliegende Unterschriftslinie setzen (keine festen Koordinaten nötig).
+    ort = context.get("UNTERSCHRIFT_ORT", "")
+    datum = context.get("UNTERSCHRIFT_DATUM", "")
+    if ort or datum:
+        place_date = ", ".join([x for x in [ort, datum] if x])
+        try:
+            hits = p.search_for("Ort, Datum")
+        except Exception:
+            hits = []
+        if hits:
+            r = hits[-1]  # auf der letzten Seite gibt es genau diese eine Instanz
+            T(p, r.x0, r.y1 + 26, place_date, 10)
+        else:
+            T(p, 110, 1035, place_date, 10)  # Fallback, falls Textsuche scheitert
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -1520,6 +1539,7 @@ def fill_employer_doc(
     doc_id: int,
     applicant_id: int,
     sign_date: Optional[str] = None,
+    sign_place: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_admin),
 ):
@@ -1543,6 +1563,9 @@ def fill_employer_doc(
             sign_date_fmt = sign_date.strip()
     context["UNTERSCHRIFT_DATUM"] = sign_date_fmt
     context["DATUM"] = sign_date_fmt
+    # Unterschrift-Ort: Eingabe des Admins, sonst Herkunftsort des Bewerbers (Wohnort, sonst Land).
+    sign_place_val = (sign_place or "").strip() or (applicant.city or "").strip() or (applicant.country or "").strip()
+    context["UNTERSCHRIFT_ORT"] = sign_place_val
     safe_name = f"{applicant.first_name}_{applicant.last_name}".replace(" ", "_")
 
     if _is_pdf(doc.original_filename):
