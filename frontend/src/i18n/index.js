@@ -47,9 +47,12 @@ if (!i18n.isInitialized) {
       escapeValue: false
     },
     ...(inBrowser && {
+      // 'querystring' zuerst: Deep-Links wie /arbeitnehmer/krankenkasse?lang=es
+      // erzwingen die Sprache zuverlaessig (z.B. aus einem spanischen Blogartikel),
+      // unabhaengig von der zuvor gespeicherten Sprache. Param-Name: ?lang=
       detection: canUseLocalStorage
-        ? { order: ['localStorage', 'navigator'], caches: ['localStorage'] }
-        : { order: ['navigator'], caches: [] } // Speicher blockiert -> localStorage meiden
+        ? { order: ['querystring', 'localStorage', 'navigator'], caches: ['localStorage'], lookupQuerystring: 'lang' }
+        : { order: ['querystring', 'navigator'], caches: [], lookupQuerystring: 'lang' } // Speicher blockiert -> localStorage meiden
     })
   });
 }
