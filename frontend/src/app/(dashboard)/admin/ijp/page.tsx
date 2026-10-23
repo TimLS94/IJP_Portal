@@ -862,6 +862,7 @@ function ArbeitgeberFormularTab() {
   const [applicants, setApplicants] = useState<ApplicantOpt[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantOpt | null>(null);
+  const [signDate, setSignDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [filling, setFilling] = useState(false);
 
   useEffect(() => {
@@ -885,7 +886,7 @@ function ArbeitgeberFormularTab() {
       const isPdf = selectedDoc.original_filename.toLowerCase().endsWith(".pdf");
       const ext = isPdf ? "pdf" : "docx";
       const mimeType = isPdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-      const res = await crmAPI.fillEmployerDoc(selectedDoc.id, selectedApplicant.id);
+      const res = await crmAPI.fillEmployerDoc(selectedDoc.id, selectedApplicant.id, signDate || undefined);
       const url = window.URL.createObjectURL(new Blob([res.data], { type: mimeType }));
       const link = document.createElement("a");
       link.href = url;
@@ -946,6 +947,16 @@ function ArbeitgeberFormularTab() {
             </div>
           )}
           {selectedApplicant && <p className="text-xs text-green-600 mt-1">✓ {selectedApplicant.first_name} {selectedApplicant.last_name}</p>}
+        </div>
+
+        {/* Unterschreibdatum: wird an der Unterschrift platziert (Vorlage: {{ UNTERSCHRIFT_DATUM }} bzw. {{ DATUM }}) */}
+        <div>
+          <label className="label">Unterschreibdatum</label>
+          <input type="date" className="input" value={signDate} onChange={(e) => setSignDate(e.target.value)} />
+          <p className="text-xs text-gray-400 mt-1">
+            Wird an der Unterschrift eingesetzt. In der Word-Vorlage Platzhalter{" "}
+            <code>{"{{ UNTERSCHRIFT_DATUM }}"}</code> oder <code>{"{{ DATUM }}"}</code> verwenden.
+          </p>
         </div>
 
         <button onClick={handleFill} disabled={!selectedDoc || !selectedApplicant || filling}
