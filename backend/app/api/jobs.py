@@ -247,12 +247,17 @@ async def get_sitemap_urls(db: Session = Depends(get_db)):
             db.commit()
         
         url_slug = f"{job.slug}-{job.id}"
+        # has_en: echte englische Übersetzung vorhanden -> /en/jobs/<slug> existiert
+        _tr = job.translations if isinstance(job.translations, dict) else {}
+        _en = _tr.get("en") if isinstance(_tr, dict) else None
+        has_en = bool(_en and (str(_en.get("title") or "").strip() or str(_en.get("description") or "").strip()))
         urls.append({
             "url": f"/jobs/{url_slug}",
             "lastmod": job.updated_at.strftime("%Y-%m-%d") if job.updated_at else job.created_at.strftime("%Y-%m-%d"),
             "title": job.title,
             "location": job.location,
-            "id": job.id
+            "id": job.id,
+            "has_en": has_en,
         })
     
     return {"urls": urls, "count": len(urls)}
@@ -801,6 +806,7 @@ async def get_job(job_id: int, db: Session = Depends(get_db)):
 @router.post("", response_model=JobPostingResponse)
 async def create_job(
     job_data: JobPostingCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -884,7 +890,12 @@ async def create_job(
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning(f"Google Indexing request failed: {e}")
-    
+
+        # SEO: eigene Stelle automatisch nach Englisch übersetzen (-> /en/jobs/<slug>)
+        if not getattr(job, "is_external", False):
+            from app.services.translation_service import auto_translate_job_to_english
+            background_tasks.add_task(auto_translate_job_to_english, job.id)
+
     return job
 
 
@@ -892,6 +903,7 @@ async def create_job(
 async def update_job(
     job_id: int,
     job_data: JobPostingUpdate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -968,6 +980,12 @@ async def update_job(
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"Job-Benachrichtigung (Entwurf veröffentlicht) fehlgeschlagen: {e}")
+
+    # SEO: fehlende EN-Übersetzung für eigene, veröffentlichte Stellen nachziehen
+    # (-> /en/jobs/<slug>). Der Task ist idempotent: vorhandene EN-Texte bleiben erhalten.
+    if job.is_active and not job.is_draft and not getattr(job, "is_external", False):
+        from app.services.translation_service import auto_translate_job_to_english
+        background_tasks.add_task(auto_translate_job_to_english, job.id)
 
     return job
 
@@ -1072,6 +1090,7 @@ async def delete_job(
 @router.post("/{job_id}/reactivate", response_model=JobPostingResponse)
 async def reactivate_job(
     job_id: int,
+    background_tasks: BackgroundTasks,
     new_deadline: Optional[date] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -1142,7 +1161,12 @@ async def reactivate_job(
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f"Google Indexing request failed: {e}")
-    
+
+    # SEO: fehlende EN-Übersetzung nachziehen (idempotent), falls eigene Stelle
+    if not getattr(job, "is_external", False):
+        from app.services.translation_service import auto_translate_job_to_english
+        background_tasks.add_task(auto_translate_job_to_english, job.id)
+
     return job
 
 
