@@ -852,7 +852,7 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
 // ── Arbeitgeber-Formular Tab ──────────────────────────────────────────────────
 
 interface EmployerDoc { id: number; company_id: number; company_name?: string | null; name: string; original_filename: string; created_at: string; }
-interface ApplicantOpt { id: number; first_name: string; last_name: string; email: string; }
+interface ApplicantOpt { id: number; first_name: string; last_name: string; email: string; city?: string | null; country?: string | null; }
 
 function ArbeitgeberFormularTab() {
   const [docs, setDocs] = useState<EmployerDoc[]>([]);
@@ -863,6 +863,7 @@ function ArbeitgeberFormularTab() {
   const [searching, setSearching] = useState(false);
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantOpt | null>(null);
   const [signDate, setSignDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [signPlace, setSignPlace] = useState<string>("");
   const [filling, setFilling] = useState(false);
 
   useEffect(() => {
@@ -886,7 +887,7 @@ function ArbeitgeberFormularTab() {
       const isPdf = selectedDoc.original_filename.toLowerCase().endsWith(".pdf");
       const ext = isPdf ? "pdf" : "docx";
       const mimeType = isPdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-      const res = await crmAPI.fillEmployerDoc(selectedDoc.id, selectedApplicant.id, signDate || undefined);
+      const res = await crmAPI.fillEmployerDoc(selectedDoc.id, selectedApplicant.id, signDate || undefined, signPlace.trim() || undefined);
       const url = window.URL.createObjectURL(new Blob([res.data], { type: mimeType }));
       const link = document.createElement("a");
       link.href = url;
@@ -938,7 +939,7 @@ function ArbeitgeberFormularTab() {
           {applicants.length > 0 && !selectedApplicant && (
             <div className="mt-1 border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-auto bg-white">
               {applicants.map((a) => (
-                <button key={a.id} type="button" onClick={() => { setSelectedApplicant(a); setSearch(`${a.first_name} ${a.last_name}`); setApplicants([]); }}
+                <button key={a.id} type="button" onClick={() => { setSelectedApplicant(a); setSearch(`${a.first_name} ${a.last_name}`); setApplicants([]); setSignPlace(a.city || a.country || ""); }}
                   className="w-full px-4 py-2.5 text-left hover:bg-primary-50 text-sm border-b border-gray-100 last:border-0">
                   <span className="font-medium">{a.first_name} {a.last_name}</span>
                   <span className="text-gray-400 ml-2 text-xs">{a.email}</span>
@@ -949,15 +950,24 @@ function ArbeitgeberFormularTab() {
           {selectedApplicant && <p className="text-xs text-green-600 mt-1">✓ {selectedApplicant.first_name} {selectedApplicant.last_name}</p>}
         </div>
 
-        {/* Unterschreibdatum: wird an der Unterschrift platziert (Vorlage: {{ UNTERSCHRIFT_DATUM }} bzw. {{ DATUM }}) */}
-        <div>
-          <label className="label">Unterschreibdatum</label>
-          <input type="date" className="input" value={signDate} onChange={(e) => setSignDate(e.target.value)} />
-          <p className="text-xs text-gray-400 mt-1">
-            Wird an der Unterschrift eingesetzt. In der Word-Vorlage Platzhalter{" "}
-            <code>{"{{ UNTERSCHRIFT_DATUM }}"}</code> oder <code>{"{{ DATUM }}"}</code> verwenden.
-          </p>
+        {/* Ort + Unterschreibdatum: landen an "Ort, Datum" bei der Unterschrift */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Ort (Unterschrift)</label>
+            <input type="text" className="input" placeholder="z.B. Ulaanbaatar" value={signPlace} onChange={(e) => setSignPlace(e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Unterschreibdatum</label>
+            <input type="date" className="input" value={signDate} onChange={(e) => setSignDate(e.target.value)} />
+          </div>
         </div>
+        <p className="text-xs text-gray-400 -mt-1">
+          Beim PDF-Fragebogen werden Ort + Datum an „Ort, Datum / Place, Date" (Unterschrift des
+          Arbeitnehmers, letzte Seite) eingesetzt. Der Ort ist mit dem Wohnort des Bewerbers
+          vorbelegt und editierbar. In Word-Vorlagen Platzhalter{" "}
+          <code>{"{{ UNTERSCHRIFT_ORT }}"}</code>, <code>{"{{ UNTERSCHRIFT_DATUM }}"}</code> bzw.{" "}
+          <code>{"{{ DATUM }}"}</code> verwenden.
+        </p>
 
         <button onClick={handleFill} disabled={!selectedDoc || !selectedApplicant || filling}
           className="btn-primary flex items-center gap-2 disabled:opacity-50">
