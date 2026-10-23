@@ -1112,7 +1112,8 @@ def _smart_fill_docx_bytes(file_bytes: bytes, context: dict) -> bytes:
     sf_bis = context.get("SEMESTERFERIEN_BIS") or XX
     context["SEMESTER_RANGE"] = f"vom {sf_von} bis {sf_bis}"
     context["SCHULENTLASSUNG"] = context.get("SEMESTERFERIEN_BIS") or XX
-    context["SEIT_STUDIUM"] = XX  # Immatrikulationsdatum nicht im System → Platzhalter
+    # Studienbeginn aus dem Profil (applicant.studying_since). Fallback XX, falls (noch) leer.
+    context["SEIT_STUDIUM"] = context.get("STUDIUM_SEIT") or XX
 
     gender = context.get("GESCHLECHT", "")
 
@@ -1518,6 +1519,7 @@ def list_all_employer_docs(
 def fill_employer_doc(
     doc_id: int,
     applicant_id: int,
+    sign_date: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_admin),
 ):
@@ -1530,6 +1532,17 @@ def fill_employer_doc(
         raise HTTPException(status_code=404, detail="Bewerber nicht gefunden")
 
     context = _applicant_context(applicant, db)
+    # Unterschreibdatum: wird vom Admin eingegeben und an der Unterschrift platziert.
+    # In der Word-Vorlage per Platzhalter {{ UNTERSCHRIFT_DATUM }} bzw. {{ DATUM }}.
+    # Eingabe "YYYY-MM-DD" (Date-Input) -> "DD.MM.YYYY"; Freitext wird 1:1 uebernommen.
+    sign_date_fmt = ""
+    if sign_date:
+        try:
+            sign_date_fmt = datetime.fromisoformat(sign_date).strftime("%d.%m.%Y")
+        except ValueError:
+            sign_date_fmt = sign_date.strip()
+    context["UNTERSCHRIFT_DATUM"] = sign_date_fmt
+    context["DATUM"] = sign_date_fmt
     safe_name = f"{applicant.first_name}_{applicant.last_name}".replace(" ", "_")
 
     if _is_pdf(doc.original_filename):
