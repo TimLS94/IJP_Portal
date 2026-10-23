@@ -70,10 +70,11 @@ class ApplicantBase(BaseModel):
     university_country: Optional[str] = None
     field_of_study: Optional[str] = None
     current_semester: Optional[int] = None
+    studying_since: Optional[date] = None  # Studienbeginn ("seit wann studieren Sie")
     semester_break_start: Optional[date] = None
     semester_break_end: Optional[date] = None
     continue_studying: Optional[bool] = None
-    
+
     # ========== AUSBILDUNG-SPEZIFISCH ==========
     desired_profession: Optional[str] = None
     school_degree: Optional[str] = None
@@ -136,10 +137,11 @@ class ApplicantUpdate(BaseModel):
     university_country: Optional[str] = None
     field_of_study: Optional[str] = None
     current_semester: Optional[int] = None
+    studying_since: Optional[date] = None  # Studienbeginn ("seit wann studieren Sie")
     semester_break_start: Optional[date] = None
     semester_break_end: Optional[date] = None
     continue_studying: Optional[bool] = None
-    
+
     # Ausbildung
     desired_profession: Optional[str] = None
     school_degree: Optional[str] = None

@@ -99,6 +99,7 @@ class Applicant(Base):
     # Studium
     field_of_study = Column(String(255))  # Studienfach
     current_semester = Column(Integer)  # Fachsemester
+    studying_since = Column(Date)  # Seit wann studiert die Person (Studienbeginn)
     
     # Semesterferien
     semester_break_start = Column(Date)

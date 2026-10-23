@@ -116,6 +116,29 @@ def ensure_new_application_columns():
 ensure_new_application_columns()
 
 
+def ensure_applicant_study_columns():
+    """Fügt neue Studien-Spalten zur applicants Tabelle hinzu, falls nicht vorhanden.
+    Abwärtskompatibel: bestehende Datensätze bleiben NULL (im Formular aber künftig Pflicht)."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        # studying_since: Studienbeginn ("seit wann studieren Sie")
+        try:
+            db.execute(text("ALTER TABLE applicants ADD COLUMN studying_since DATE"))
+            db.commit()
+            logger.info("'studying_since' column added to applicants table")
+        except Exception:
+            db.rollback()  # Spalte existiert bereits oder anderer Fehler - OK
+    except Exception as e:
+        logger.error(f"Error in ensure_applicant_study_columns: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+ensure_applicant_study_columns()
+
+
 def ensure_external_job_columns():
     """Fügt Spalten für externe Jobs (BA-Scraper) hinzu, falls noch nicht vorhanden."""
     from sqlalchemy import text

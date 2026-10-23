@@ -846,6 +846,7 @@ def crm_meta(db: Session = Depends(get_db), current_user: User = Depends(_requir
 class CompanyDocumentResponse(BaseModel):
     id: int
     company_id: int
+    company_name: Optional[str] = None  # Firmenname (für selbsterklärendes Dropdown)
     name: str
     original_filename: str
     kind: str = "template"
@@ -860,6 +861,7 @@ def _applicant_context(applicant: Applicant, db: Session) -> dict:
     dob = applicant.date_of_birth.strftime("%d.%m.%Y") if applicant.date_of_birth else ""
     sb_start = applicant.semester_break_start.strftime("%d.%m.%Y") if applicant.semester_break_start else ""
     sb_end = applicant.semester_break_end.strftime("%d.%m.%Y") if applicant.semester_break_end else ""
+    study_since = applicant.studying_since.strftime("%d.%m.%Y") if getattr(applicant, "studying_since", None) else ""
     gender_val = applicant.gender.value if applicant.gender else ""
     return {
         "VORNAME":             applicant.first_name or "",
@@ -881,6 +883,7 @@ def _applicant_context(applicant: Applicant, db: Session) -> dict:
         "UNI_LAND":            applicant.university_country or "",
         "STUDIENGANG":         applicant.field_of_study or "",
         "SEMESTER":            str(applicant.current_semester) if applicant.current_semester else "",
+        "STUDIUM_SEIT":        study_since,
         "SEMESTERFERIEN_VON":  sb_start,
         "SEMESTERFERIEN_BIS":  sb_end,
         "GESCHLECHT":          "weiblich" if gender_val == "female" else ("männlich" if gender_val == "male" else ""),
@@ -1489,13 +1492,26 @@ def list_all_employer_docs(
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_admin),
 ):
-    """Alle befüllbaren Dokumentenservice-Vorlagen für den IJP-Dokumente-Tab (ohne reine Anhänge)."""
-    return (
+    """Alle befüllbaren Dokumentenservice-Vorlagen für den IJP-Dokumente-Tab (ohne reine Anhänge).
+    Inkl. Firmenname, damit das Formular-Dropdown selbsterklärend ist."""
+    docs = (
         db.query(CompanyDocument)
         .filter(CompanyDocument.kind == "template")
         .order_by(CompanyDocument.company_id, CompanyDocument.name)
         .all()
     )
+    return [
+        CompanyDocumentResponse(
+            id=d.id,
+            company_id=d.company_id,
+            company_name=d.company.name if d.company else None,
+            name=d.name,
+            original_filename=d.original_filename,
+            kind=d.kind,
+            created_at=d.created_at,
+        )
+        for d in docs
+    ]
 
 
 @router.post("/employer-docs/{doc_id}/fill")
