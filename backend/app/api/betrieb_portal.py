@@ -155,3 +155,63 @@ async def portal_download(
         media_type=doc.mime_type or "application/octet-stream",
         headers={"Content-Disposition": f'inline; filename="{safe_name}"'},
     )
+
+
+@router.get("/students/{request_id}/documents.zip")
+async def portal_download_all(
+    request_id: int,
+    betrieb_id: int = Depends(get_current_betrieb),
+    db: Session = Depends(get_db),
+):
+    """Alle freigegebenen Dokumente EINES zugeteilten Studenten als ZIP.
+    Nur Studenten, die genau diesem Betrieb zugeteilt sind, und nur freigegebene Dokumente."""
+    import io
+    import zipfile
+
+    req = (
+        db.query(JobRequest)
+        .filter(
+            JobRequest.id == request_id,
+            JobRequest.assigned_betrieb_id == betrieb_id,
+        )
+        .first()
+    )
+    if not req or req.applicant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student nicht gefunden")
+
+    a = req.applicant
+    docs = (
+        db.query(Document)
+        .filter(Document.applicant_id == a.id, Document.shared_with_betrieb == True)
+        .all()
+    )
+    if not docs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Keine freigegebenen Dokumente")
+
+    zip_buffer = io.BytesIO()
+    files_added = 0
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for d in docs:
+            content = None
+            try:
+                ok, content, _err = await storage_service.download_file(d.file_path)
+                if not ok:
+                    content = None
+            except Exception:
+                content = None
+            if content:
+                dtype = d.document_type.value if d.document_type else "dok"
+                archive_name = f"{d.id}_{dtype}_{d.original_name or 'dokument'}"
+                zf.writestr(archive_name, content)
+                files_added += 1
+
+    if files_added == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Keine Dateien verfügbar")
+
+    zip_buffer.seek(0)
+    safe = (f"{a.first_name or ''}_{a.last_name or ''}".strip("_").replace(" ", "_").replace('"', "")) or "student"
+    return Response(
+        content=zip_buffer.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{safe}_dokumente.zip"'},
+    )
