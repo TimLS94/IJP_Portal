@@ -688,6 +688,10 @@ export const betriebPortalAPI = {
     fetch(`${_PORTAL_BASE}/betrieb-portal/documents/${id}`, {
       headers: { Authorization: `Bearer ${betriebToken}` },
     }),
+  downloadStudentZip: (requestId, betriebToken) =>
+    fetch(`${_PORTAL_BASE}/betrieb-portal/students/${requestId}/documents.zip`, {
+      headers: { Authorization: `Bearer ${betriebToken}` },
+    }),
 };
 
 // Auth API Erweiterung für Einladungs-Token-Prüfung

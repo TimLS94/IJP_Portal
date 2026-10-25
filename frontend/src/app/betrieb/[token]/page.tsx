@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { betriebPortalAPI } from "@/lib/api";
 import { getNationalityLabel } from "@/data/nationalities";
-import { Lock, Loader2, FileText, Download, Users, AlertCircle, ShieldCheck } from "lucide-react";
+import { Lock, Loader2, FileText, Download, Users, AlertCircle, ShieldCheck, ChevronDown, FileDown, FileSpreadsheet } from "lucide-react";
 
 interface PortalDoc { id: number; type: string | null; name: string; size: number | null; }
 interface Student {
@@ -136,6 +136,67 @@ export default function BetriebPortalPage() {
     }
   };
 
+  // Karten ein-/ausklappen (standardmäßig eingeklappt)
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const toggleStudent = (id: number) =>
+    setExpanded((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+
+  // Alle freigegebenen Dokumente eines Studenten als ZIP herunterladen
+  const [zipLoading, setZipLoading] = useState<Set<number>>(new Set());
+  const downloadStudentZip = async (s: Student) => {
+    if (!betriebToken) return;
+    setZipLoading((prev) => new Set(prev).add(s.request_id));
+    try {
+      const r = await betriebPortalAPI.downloadStudentZip(s.request_id, betriebToken);
+      if (!r.ok) throw new Error();
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${s.name}_dokumente.zip`.replace(/\s+/g, "_");
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      alert("Download fehlgeschlagen.");
+    } finally {
+      setZipLoading((prev) => { const n = new Set(prev); n.delete(s.request_id); return n; });
+    }
+  };
+
+  // CSV-Export der Kandidatenliste (clientseitig aus den geladenen Daten)
+  const exportCsv = () => {
+    const rows = data?.students || [];
+    if (rows.length === 0) return;
+    const headers = ["Name", "Staatsangehörigkeit", "Status", "Stellenart", "Wunschregion", "Semesterferien", "Verfügbar", "Dokumente"];
+    const esc = (v: string | null | undefined) => {
+      const s = (v ?? "").toString().replace(/"/g, '""');
+      return /[";\n]/.test(s) ? `"${s}"` : s;
+    };
+    const lines = rows.map((s) => [
+      s.name,
+      s.nationality != null ? (getNationalityLabel(s.nationality, "de") || s.nationality) : "",
+      s.status_label || "",
+      s.position_type || "",
+      s.preferred_location || "",
+      fmtRange(s.semester_break_start, s.semester_break_end) || "",
+      fmtRange(s.available_from, s.available_until) || "",
+      String(s.documents.length),
+    ].map(esc).join(";"));
+    // BOM, damit Excel UTF-8 korrekt erkennt
+    const csv = "﻿" + [headers.join(";"), ...lines].join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `kandidaten_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -202,9 +263,20 @@ export default function BetriebPortalPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-          <Users className="h-4 w-4" />
-          {students.length} {students.length === 1 ? "Kandidat" : "Kandidaten"}
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Users className="h-4 w-4" />
+            {students.length} {students.length === 1 ? "Kandidat" : "Kandidaten"}
+          </div>
+          {students.length > 0 && (
+            <button
+              onClick={exportCsv}
+              className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-primary-400 hover:bg-primary-50 transition text-gray-700"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-green-600" />
+              CSV-Export
+            </button>
+          )}
         </div>
 
         {students.length === 0 ? (
@@ -213,41 +285,75 @@ export default function BetriebPortalPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {students.map((s) => (
-              <div key={s.request_id} className="bg-white rounded-xl border p-5">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <h2 className="font-semibold text-gray-900">{s.name}</h2>
-                  <span className={`text-xs px-2.5 py-1 rounded-full border ${statusPill(s.status)}`}>
+            {students.map((s) => {
+              const isOpen = expanded.has(s.request_id);
+              return (
+              <div key={s.request_id} className="bg-white rounded-xl border overflow-hidden">
+                {/* Kopf – anklickbar zum Auf-/Zuklappen */}
+                <button
+                  onClick={() => toggleStudent(s.request_id)}
+                  className="w-full flex items-center justify-between gap-3 p-5 text-left hover:bg-gray-50 transition"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <ChevronDown className={`h-5 w-5 text-gray-400 shrink-0 transition-transform ${isOpen ? "" : "-rotate-90"}`} />
+                    <div className="min-w-0">
+                      <h2 className="font-semibold text-gray-900 truncate">{s.name}</h2>
+                      <p className="text-xs text-gray-500 truncate">
+                        {[
+                          s.nationality != null ? getNationalityLabel(s.nationality, "de") : null,
+                          s.documents.length > 0 ? `${s.documents.length} Dokument(e)` : null,
+                        ].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`text-xs px-2.5 py-1 rounded-full border shrink-0 ${statusPill(s.status)}`}>
                     {s.status_label || "—"}
                   </span>
-                </div>
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
-                  <InfoRow label="Staatsangehörigkeit" value={s.nationality != null ? (getNationalityLabel(s.nationality, "de") || null) : null} />
-                  <InfoRow label="Wunschregion" value={s.preferred_location} />
-                  <InfoRow label="Semesterferien" value={fmtRange(s.semester_break_start, s.semester_break_end)} highlight />
-                  <InfoRow label="Verfügbar" value={fmtRange(s.available_from, s.available_until)} />
-                </div>
+                </button>
 
-                {s.documents.length > 0 && (
-                  <div className="mt-4 border-t pt-3">
-                    <p className="text-xs font-medium text-gray-500 mb-2">Freigegebene Dokumente</p>
-                    <div className="flex flex-wrap gap-2">
-                      {s.documents.map((d) => (
-                        <button
-                          key={d.id}
-                          onClick={() => openDoc(d.id)}
-                          className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition"
-                        >
-                          <FileText className="h-4 w-4 text-gray-500" />
-                          <span className="truncate max-w-[200px]">{d.name}</span>
-                          <Download className="h-4 w-4 text-gray-400" />
-                        </button>
-                      ))}
+                {/* Details – nur wenn aufgeklappt */}
+                {isOpen && (
+                  <div className="px-5 pb-5 pt-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+                      <InfoRow label="Staatsangehörigkeit" value={s.nationality != null ? (getNationalityLabel(s.nationality, "de") || null) : null} />
+                      <InfoRow label="Wunschregion" value={s.preferred_location} />
+                      <InfoRow label="Semesterferien" value={fmtRange(s.semester_break_start, s.semester_break_end)} highlight />
+                      <InfoRow label="Verfügbar" value={fmtRange(s.available_from, s.available_until)} />
                     </div>
+
+                    {s.documents.length > 0 && (
+                      <div className="mt-4 border-t pt-3">
+                        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                          <p className="text-xs font-medium text-gray-500">Freigegebene Dokumente</p>
+                          <button
+                            onClick={() => downloadStudentZip(s)}
+                            disabled={zipLoading.has(s.request_id)}
+                            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition text-gray-700 disabled:opacity-50"
+                          >
+                            {zipLoading.has(s.request_id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                            Alle als ZIP
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {s.documents.map((d) => (
+                            <button
+                              key={d.id}
+                              onClick={() => openDoc(d.id)}
+                              className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition"
+                            >
+                              <FileText className="h-4 w-4 text-gray-500" />
+                              <span className="truncate max-w-[200px]">{d.name}</span>
+                              <Download className="h-4 w-4 text-gray-400" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>

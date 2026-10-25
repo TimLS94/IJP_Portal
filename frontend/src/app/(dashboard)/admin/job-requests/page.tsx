@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect } from 'react';
 import { jobRequestsAPI, adminAPI, adminPartnerLinksAPI, contractsAPI, ijpAPI, betriebAccessAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 import {
@@ -113,31 +113,6 @@ export default function AdminJobRequests() {
   // Status-Optionen vom Backend
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
   
-  // Aufklappbare Zeilen in der Liste (Inline-Details, lazy geladen)
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [rowDetails, setRowDetails] = useState<Record<number, any>>({});
-  const [rowDetailsLoading, setRowDetailsLoading] = useState<Set<number>>(new Set());
-
-  const toggleRow = async (reqId: number) => {
-    const isOpen = expandedRows.has(reqId);
-    setExpandedRows((prev) => {
-      const n = new Set(prev);
-      if (isOpen) n.delete(reqId); else n.add(reqId);
-      return n;
-    });
-    if (!isOpen && !rowDetails[reqId]) {
-      setRowDetailsLoading((prev) => new Set(prev).add(reqId));
-      try {
-        const res = await jobRequestsAPI.getRequestDetails(reqId);
-        setRowDetails((prev) => ({ ...prev, [reqId]: res.data }));
-      } catch {
-        toast.error('Details konnten nicht geladen werden');
-      } finally {
-        setRowDetailsLoading((prev) => { const n = new Set(prev); n.delete(reqId); return n; });
-      }
-    }
-  };
-
   // Detail Modal
   const [selectedRequest, setSelectedRequest] = useState<number | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -755,26 +730,14 @@ export default function AdminJobRequests() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {requests.map((req) => (
-                    <Fragment key={req.id}>
-                    <tr className="hover:bg-gray-50">
+                    <tr key={req.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <div className="flex items-start gap-2">
-                          <button
-                            onClick={() => toggleRow(req.id)}
-                            title={expandedRows.has(req.id) ? 'Details einklappen' : 'Details aufklappen'}
-                            className="mt-0.5 p-0.5 text-gray-400 hover:text-primary-600 shrink-0"
-                          >
-                            <ChevronDown className={`h-4 w-4 transition-transform ${expandedRows.has(req.id) ? '' : '-rotate-90'}`} />
-                          </button>
-                          <div className="min-w-0">
-                            <div className="font-medium text-gray-900">{req.applicant_name}</div>
-                            {req.assigned_betrieb_name && (
-                              <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                                <Building2 className="h-3 w-3" />{req.assigned_betrieb_name}
-                              </div>
-                            )}
+                        <div className="font-medium text-gray-900">{req.applicant_name}</div>
+                        {req.assigned_betrieb_name && (
+                          <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                            <Building2 className="h-3 w-3" />{req.assigned_betrieb_name}
                           </div>
-                        </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex flex-col gap-1">
@@ -851,65 +814,6 @@ export default function AdminJobRequests() {
                         </div>
                       </td>
                     </tr>
-                    {expandedRows.has(req.id) && (
-                      <tr className="bg-gray-50/70">
-                        <td colSpan={9} className="px-6 py-4">
-                          {rowDetailsLoading.has(req.id) && !rowDetails[req.id] ? (
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <Loader2 className="h-4 w-4 animate-spin" /> Details werden geladen…
-                            </div>
-                          ) : rowDetails[req.id] ? (() => {
-                            const rd = rowDetails[req.id];
-                            const a = rd.applicant || {};
-                            const addr = a.address || {};
-                            const addrLine = [
-                              [addr.street, addr.house_number].filter(Boolean).join(' '),
-                              [addr.postal_code, addr.city].filter(Boolean).join(' '),
-                              addr.country,
-                            ].filter(Boolean).join(', ');
-                            return (
-                              <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Kontakt</p>
-                                  {a.email && <p className="truncate">✉ {a.email}</p>}
-                                  {a.phone && <p>☎ {a.phone}</p>}
-                                  {addrLine && <p className="text-gray-600 mt-1">{addrLine}</p>}
-                                  {a.date_of_birth && <p className="text-gray-600">Geb.: {formatDate(a.date_of_birth)}</p>}
-                                </div>
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Auftrag</p>
-                                  <p>Stellenart: {positionTypeLabels[rd.request?.position_type] || rd.request?.position_type || '—'}</p>
-                                  <p>Quelle: {a.invite_source || 'Direkt'}</p>
-                                  {a.german_level && <p className="text-gray-600">Deutsch: {a.german_level}</p>}
-                                  {a.english_level && <p className="text-gray-600">Englisch: {a.english_level}</p>}
-                                </div>
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Dokumente ({rd.documents?.length || 0})</p>
-                                  {(rd.documents || []).length === 0 ? (
-                                    <p className="text-gray-400">Keine</p>
-                                  ) : (
-                                    <ul className="space-y-0.5">
-                                      {rd.documents.map((d: Document) => (
-                                        <li key={d.id} className="flex items-center gap-1.5">
-                                          {d.shared_with_betrieb ? <Eye className="h-3 w-3 text-green-600 shrink-0" /> : <EyeOff className="h-3 w-3 text-gray-300 shrink-0" />}
-                                          <span className="truncate">{DOC_TYPE_LABELS[d.document_type] || d.document_type}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  )}
-                                  <button onClick={() => loadRequestDetails(req.id)} className="text-primary-600 hover:underline text-xs mt-2">
-                                    Vollständige Details öffnen →
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })() : (
-                            <p className="text-sm text-gray-400">Keine Details</p>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -1133,7 +1037,7 @@ export default function AdminJobRequests() {
                           <FileText className="h-5 w-5 text-primary-600" />
                           Dokumente ({requestDetails.documents.length})
                         </h3>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                           <button
                             onClick={() => setShowReqDocs((v) => !v)}
                             className="text-sm text-amber-700 hover:text-amber-800 flex items-center gap-1"
