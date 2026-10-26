@@ -19,7 +19,39 @@ interface Student {
   semester_break_end: string | null;
   available_from: string | null;
   available_until: string | null;
+  date_of_birth: string | null;
+  field_of_study: string | null;
+  current_semester: number | null;
+  studying_since: string | null;
+  profession: string | null;
+  work_experience_years: number | null;
+  german_level: string | null;
+  english_level: string | null;
   documents: PortalDoc[];
+}
+
+const POSITION_LABELS: Record<string, string> = {
+  studentenferienjob: "Studentenferienjob",
+  saisonjob: "Saisonjob",
+  fachkraft: "Fachkraft",
+  ausbildung: "Ausbildung",
+  workandholiday: "Work & Holiday",
+  general: "Stelle",
+};
+function langLabel(v: string | null): string | null {
+  if (!v) return null;
+  if (v === "native") return "Muttersprachlich";
+  return v.toUpperCase();
+}
+function ageFrom(iso: string | null): number | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age >= 0 && age < 120 ? age : null;
 }
 interface PortalData { betrieb_name: string | null; students: Student[]; }
 
@@ -171,21 +203,32 @@ export default function BetriebPortalPage() {
   const exportCsv = () => {
     const rows = data?.students || [];
     if (rows.length === 0) return;
-    const headers = ["Name", "Staatsangehörigkeit", "Status", "Stellenart", "Wunschregion", "Semesterferien", "Verfügbar", "Dokumente"];
+    const headers = ["Name", "Staatsangehörigkeit", "Alter", "Status", "Stellenart", "Wunschregion", "Studienfach", "Fachsemester", "Studium seit", "Beruf/Qualifikation", "Berufserfahrung (Jahre)", "Deutsch", "Englisch", "Semesterferien", "Verfügbar", "Dokumente"];
     const esc = (v: string | null | undefined) => {
       const s = (v ?? "").toString().replace(/"/g, '""');
       return /[";\n]/.test(s) ? `"${s}"` : s;
     };
-    const lines = rows.map((s) => [
-      s.name,
-      s.nationality != null ? (getNationalityLabel(s.nationality, "de") || s.nationality) : "",
-      s.status_label || "",
-      s.position_type || "",
-      s.preferred_location || "",
-      fmtRange(s.semester_break_start, s.semester_break_end) || "",
-      fmtRange(s.available_from, s.available_until) || "",
-      String(s.documents.length),
-    ].map(esc).join(";"));
+    const lines = rows.map((s) => {
+      const age = ageFrom(s.date_of_birth);
+      return [
+        s.name,
+        s.nationality != null ? (getNationalityLabel(s.nationality, "de") || s.nationality) : "",
+        age != null ? String(age) : "",
+        s.status_label || "",
+        s.position_type ? (POSITION_LABELS[s.position_type] || s.position_type) : "",
+        s.preferred_location || "",
+        s.field_of_study || "",
+        s.current_semester != null ? String(s.current_semester) : "",
+        fmtDate(s.studying_since) || "",
+        s.profession || "",
+        s.work_experience_years != null ? String(s.work_experience_years) : "",
+        langLabel(s.german_level) || "",
+        langLabel(s.english_level) || "",
+        fmtRange(s.semester_break_start, s.semester_break_end) || "",
+        fmtRange(s.available_from, s.available_until) || "",
+        String(s.documents.length),
+      ].map(esc).join(";");
+    });
     // BOM, damit Excel UTF-8 korrekt erkennt
     const csv = "﻿" + [headers.join(";"), ...lines].join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -312,14 +355,33 @@ export default function BetriebPortalPage() {
                 </button>
 
                 {/* Details – nur wenn aufgeklappt */}
-                {isOpen && (
+                {isOpen && (() => {
+                  const age = ageFrom(s.date_of_birth);
+                  const rows: { label: string; value: string | null; highlight?: boolean }[] = [
+                    { label: "Staatsangehörigkeit", value: s.nationality != null ? (getNationalityLabel(s.nationality, "de") || null) : null },
+                    { label: "Stellenart", value: s.position_type ? (POSITION_LABELS[s.position_type] || s.position_type) : null },
+                    { label: "Alter", value: age != null ? `${age} Jahre` : null },
+                    { label: "Wunschregion", value: s.preferred_location },
+                    { label: "Studienfach", value: s.field_of_study },
+                    { label: "Fachsemester", value: s.current_semester != null ? String(s.current_semester) : null },
+                    { label: "Studium seit", value: fmtDate(s.studying_since) },
+                    { label: "Beruf/Qualifikation", value: s.profession },
+                    { label: "Berufserfahrung", value: s.work_experience_years ? `${s.work_experience_years} Jahre` : null },
+                    { label: "Deutsch", value: langLabel(s.german_level) },
+                    { label: "Englisch", value: langLabel(s.english_level) },
+                    { label: "Semesterferien", value: fmtRange(s.semester_break_start, s.semester_break_end), highlight: true },
+                    { label: "Verfügbar", value: fmtRange(s.available_from, s.available_until) },
+                  ];
+                  const hasAny = rows.some((r) => r.value);
+                  return (
                   <div className="px-5 pb-5 pt-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
-                      <InfoRow label="Staatsangehörigkeit" value={s.nationality != null ? (getNationalityLabel(s.nationality, "de") || null) : null} />
-                      <InfoRow label="Wunschregion" value={s.preferred_location} />
-                      <InfoRow label="Semesterferien" value={fmtRange(s.semester_break_start, s.semester_break_end)} highlight />
-                      <InfoRow label="Verfügbar" value={fmtRange(s.available_from, s.available_until)} />
-                    </div>
+                    {hasAny ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+                        {rows.map((r) => <InfoRow key={r.label} label={r.label} value={r.value} highlight={r.highlight} />)}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">Keine weiteren Angaben hinterlegt.</p>
+                    )}
 
                     {s.documents.length > 0 && (
                       <div className="mt-4 border-t pt-3">
@@ -350,7 +412,8 @@ export default function BetriebPortalPage() {
                       </div>
                     )}
                   </div>
-                )}
+                  );
+                })()}
               </div>
               );
             })}
