@@ -91,6 +91,15 @@ def _student_entry(req: JobRequest, db: Session) -> dict:
         "semester_break_end": _iso(a.semester_break_end),
         "available_from": _iso(a.available_from),
         "available_until": _iso(a.available_until),
+        # Matching-relevante Angaben (keine Kontaktdaten – Vermittlung läuft über IJP)
+        "date_of_birth": _iso(a.date_of_birth),
+        "field_of_study": a.field_of_study,
+        "current_semester": a.current_semester,
+        "studying_since": _iso(a.studying_since),
+        "profession": a.profession,
+        "work_experience_years": a.work_experience_years,
+        "german_level": a.german_level.value if a.german_level and a.german_level.value != "none" else None,
+        "english_level": a.english_level.value if a.english_level and a.english_level.value != "none" else None,
         "documents": [
             {
                 "id": d.id,
