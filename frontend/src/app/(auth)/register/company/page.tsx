@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "@/lib/errors";
 import { 
   Building2, Mail, Lock, User, Phone, MapPin, 
   Loader2, Eye, EyeOff, CheckCircle, AlertTriangle, Link2, ArrowLeft
@@ -98,7 +99,7 @@ function CompanyRegisterContent() {
       }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || "Registrierung fehlgeschlagen");
+      toast.error(getErrorMessage(err, "Registrierung fehlgeschlagen"));
     } finally {
       setLoading(false);
     }

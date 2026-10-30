@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { Lock, CheckCircle, XCircle } from "lucide-react";
 import { accountAPI } from "@/lib/api";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "@/lib/errors";
 
 interface ResetPasswordForm {
   password: string;
@@ -49,7 +50,7 @@ function ResetPasswordContent() {
       setIsSuccess(true);
       setTimeout(() => router.push("/login"), 3000);
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Fehler beim Zurücksetzen");
+      toast.error(getErrorMessage(error, "Fehler beim Zurücksetzen"));
     } finally {
       setIsLoading(false);
     }

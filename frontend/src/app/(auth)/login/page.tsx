@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "@/lib/errors";
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 
@@ -53,13 +54,14 @@ export default function LoginPage() {
         router.push("/");
       }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
+      const err = error as { response?: { data?: { detail?: unknown } } };
       const errorDetail = err.response?.data?.detail;
 
       if (errorDetail === "Benutzer ist deaktiviert") {
         toast.error(t("auth.accountNotActivated"), { duration: 6000 });
       } else {
-        toast.error(errorDetail || t("auth.loginFailed"));
+        // 422 liefert ein Array von Objekten – niemals direkt rendern (React #31).
+        toast.error(getErrorMessage(error, t("auth.loginFailed")));
       }
     } finally {
       setLoading(false);

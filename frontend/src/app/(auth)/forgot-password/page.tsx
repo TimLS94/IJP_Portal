@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import { accountAPI } from "@/lib/api";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "@/lib/errors";
 
 interface ForgotPasswordForm {
   email: string;
@@ -25,7 +26,7 @@ export default function ForgotPasswordPage() {
       await accountAPI.forgotPassword(data.email);
       setIsSubmitted(true);
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || t('forgotPassword.sendError'));
+      toast.error(getErrorMessage(error, t('forgotPassword.sendError')));
     } finally {
       setIsLoading(false);
     }

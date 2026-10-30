@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "@/lib/errors";
 import { Mail, Lock, Loader2, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { getStoredSource, clearStoredSource } from "@/lib/sourceTracking";
 
@@ -61,7 +62,7 @@ function IjpRegisterPageInner() {
       router.push("/applicant/profile");
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || t("auth.registerFailed"));
+      toast.error(getErrorMessage(err, t("auth.registerFailed")));
     } finally {
       setLoading(false);
     }

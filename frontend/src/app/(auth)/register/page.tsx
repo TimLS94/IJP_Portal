@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import { Mail, Lock, User, Building2, Loader2, Eye, EyeOff, CheckCircle } from "lucide-react";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import { getStoredSource, clearStoredSource } from "@/lib/sourceTracking";
+import { getErrorMessage } from "@/lib/errors";
 
 interface RegisterForm {
   email: string;
@@ -62,8 +63,8 @@ function RegisterPageInner() {
         router.push("/login");
       }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || t("auth.registerFailed"));
+      // 422 liefert ein Array von Objekten – niemals direkt rendern (React #31).
+      toast.error(getErrorMessage(error, t("auth.registerFailed")));
     } finally {
       setLoading(false);
     }
