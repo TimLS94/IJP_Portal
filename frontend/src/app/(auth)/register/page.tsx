@@ -105,7 +105,10 @@ function RegisterPageInner() {
             </button>
             <button
               type="button"
-              onClick={() => setUserType("company")}
+              // Firmen brauchen die vollständige Registrierung (Rechtsform, Adresse, Telefon …).
+              // Direkt zur dedizierten Firmen-Seite leiten – die einfache Variante hier
+              // konnte die Pflichtfelder gar nicht liefern.
+              onClick={() => router.push("/register/company")}
               className={`relative p-4 rounded-xl border-2 transition-all ${
                 userType === "company"
                   ? "border-primary-500 bg-primary-50"
