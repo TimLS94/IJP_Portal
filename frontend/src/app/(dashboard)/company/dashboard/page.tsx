@@ -148,17 +148,23 @@ export default function CompanyDashboardPage() {
                 In unserem Nutzerhandbuch zeigen wir Ihnen Schritt für Schritt, wie Sie Stellen schalten und Bewerbungen verwalten.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Link
-                  href="/hilfe"
+                <a
+                  href="/nutzerhandbuch-unternehmen.pdf"
+                  download
                   onClick={dismissHandbookBanner}
                   className="inline-flex items-center gap-1.5 text-sm bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700"
                 >
                   <Download className="h-4 w-4" />
                   Nutzerhandbuch herunterladen
+                </a>
+                <Link
+                  href="/hilfe"
+                  onClick={dismissHandbookBanner}
+                  className="inline-flex items-center gap-1.5 text-sm text-primary-700 hover:text-primary-900 px-2 py-1.5"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  Hilfe & Support
                 </Link>
-                <button onClick={dismissHandbookBanner} className="text-sm text-primary-700 hover:text-primary-900 px-2 py-1.5">
-                  Später
-                </button>
               </div>
             </div>
           </div>

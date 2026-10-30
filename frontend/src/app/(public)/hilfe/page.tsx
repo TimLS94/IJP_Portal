@@ -128,20 +128,8 @@ const SECTIONS: Section[] = [
 ];
 
 export default function HilfePage() {
-  const handlePrint = () => { if (typeof window !== "undefined") window.print(); };
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Druck-Stile: App-Navigation und Buttons im PDF ausblenden */}
-      <style>{`
-        @media print {
-          nav, footer { display: none !important; }
-          .no-print { display: none !important; }
-          body { background: #fff !important; }
-          .help-card { break-inside: avoid; box-shadow: none !important; border-color: #e5e7eb !important; }
-        }
-      `}</style>
-
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Kopf */}
         <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
@@ -152,13 +140,14 @@ export default function HilfePage() {
             </h1>
             <p className="text-gray-600 mt-1">Nutzerhandbuch für Unternehmen – alles Wichtige auf einen Blick.</p>
           </div>
-          <button
-            onClick={handlePrint}
-            className="no-print inline-flex items-center gap-2 btn-primary"
+          <a
+            href="/nutzerhandbuch-unternehmen.pdf"
+            download
+            className="inline-flex items-center gap-2 btn-primary"
           >
             <Download className="h-4 w-4" />
-            Als PDF herunterladen
-          </button>
+            Nutzerhandbuch herunterladen (PDF)
+          </a>
         </div>
 
         {/* Schnellhilfe-Karten */}
@@ -173,16 +162,36 @@ export default function HilfePage() {
             <p className="font-semibold text-gray-900">Kontakt & Support</p>
             <p className="text-sm text-gray-500">Persönliche Unterstützung anfragen</p>
           </Link>
-          <a href="#handbuch" className="help-card bg-white rounded-xl border p-5 hover:border-primary-300 hover:shadow-sm transition">
+          <a href="/nutzerhandbuch-unternehmen.pdf" download className="help-card bg-white rounded-xl border p-5 hover:border-primary-300 hover:shadow-sm transition">
             <FileText className="h-6 w-6 text-primary-600 mb-2" />
-            <p className="font-semibold text-gray-900">Nutzerhandbuch</p>
-            <p className="text-sm text-gray-500">Schritt für Schritt zur ersten Stelle</p>
+            <p className="font-semibold text-gray-900">Nutzerhandbuch (PDF)</p>
+            <p className="text-sm text-gray-500">Ausführlich mit Screenshots – zum Herunterladen</p>
           </a>
         </div>
 
         {/* Handbuch */}
         <div id="handbuch" className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 scroll-mt-24">Nutzerhandbuch</h2>
+          {/* Vollständiges PDF-Handbuch mit Screenshots */}
+          <div className="help-card bg-primary-600 text-white rounded-xl p-5 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-3 min-w-0">
+              <FileText className="h-7 w-7 shrink-0" />
+              <div>
+                <p className="font-semibold">Vollständiges Nutzerhandbuch (PDF)</p>
+                <p className="text-sm text-white/80">Ausführliche Schritt-für-Schritt-Anleitung mit Screenshots.</p>
+              </div>
+            </div>
+            <a
+              href="/nutzerhandbuch-unternehmen.pdf"
+              download
+              className="inline-flex items-center gap-2 bg-white text-primary-700 font-medium px-4 py-2 rounded-lg hover:bg-primary-50 shrink-0"
+            >
+              <Download className="h-4 w-4" />
+              Herunterladen
+            </a>
+          </div>
+
+          <h2 className="text-xl font-bold text-gray-900 scroll-mt-24 pt-2">Schnellüberblick</h2>
+          <p className="text-sm text-gray-500 -mt-2">Das Wichtigste auf einen Blick – Details stehen im PDF-Handbuch oben.</p>
           {SECTIONS.map((s) => {
             const Icon = s.icon;
             return (
