@@ -5,6 +5,7 @@ import Link from "next/link";
 import { companyAPI, jobsAPI, applicationsAPI } from "@/lib/api";
 import { Building2, Briefcase, Users, Plus, FileText, Languages, X, AlertCircle, HelpCircle, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { trackHandbookDownload } from "@/lib/analytics";
 
 interface Company {
   company_name: string;
@@ -151,7 +152,7 @@ export default function CompanyDashboardPage() {
                 <a
                   href="/nutzerhandbuch-unternehmen.pdf"
                   download
-                  onClick={dismissHandbookBanner}
+                  onClick={() => { trackHandbookDownload("dashboard_banner"); dismissHandbookBanner(); }}
                   className="inline-flex items-center gap-1.5 text-sm bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700"
                 >
                   <Download className="h-4 w-4" />

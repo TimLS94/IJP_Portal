@@ -98,3 +98,13 @@ export function trackJobContactClick(
     company_name: companyName ?? "",
   });
 }
+
+/** Hilfe-&-Support-Seite geöffnet (egal über welchen Einstieg). */
+export function trackHelpOpen(source: string = "unknown") {
+  sendGAEvent("event", "help_open", { source });
+}
+
+/** Nutzerhandbuch (PDF) heruntergeladen. source = wo der Klick ausgelöst wurde. */
+export function trackHandbookDownload(source: string = "unknown") {
+  sendGAEvent("event", "handbook_download", { source });
+}

@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import {
   HelpCircle, Download, HelpCircle as FaqIcon, Mail, Building2, Briefcase,
   FileText, Calendar, Users, Crown, Settings, ShieldCheck, Languages, Rocket,
 } from "lucide-react";
+import { trackHelpOpen, trackHandbookDownload } from "@/lib/analytics";
 
 // Hilfe & Support für Unternehmen inkl. vollständigem Nutzerhandbuch.
 // Druckbar / als PDF speicherbar über den Button (window.print).
@@ -128,6 +130,9 @@ const SECTIONS: Section[] = [
 ];
 
 export default function HilfePage() {
+  // Seitenaufruf (= Hilfe & Support geöffnet) tracken
+  useEffect(() => { trackHelpOpen("hilfe_page"); }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -143,6 +148,7 @@ export default function HilfePage() {
           <a
             href="/nutzerhandbuch-unternehmen.pdf"
             download
+            onClick={() => trackHandbookDownload("hilfe_header")}
             className="inline-flex items-center gap-2 btn-primary"
           >
             <Download className="h-4 w-4" />
@@ -162,7 +168,7 @@ export default function HilfePage() {
             <p className="font-semibold text-gray-900">Kontakt & Support</p>
             <p className="text-sm text-gray-500">Persönliche Unterstützung anfragen</p>
           </Link>
-          <a href="/nutzerhandbuch-unternehmen.pdf" download className="help-card bg-white rounded-xl border p-5 hover:border-primary-300 hover:shadow-sm transition">
+          <a href="/nutzerhandbuch-unternehmen.pdf" download onClick={() => trackHandbookDownload("hilfe_card")} className="help-card bg-white rounded-xl border p-5 hover:border-primary-300 hover:shadow-sm transition">
             <FileText className="h-6 w-6 text-primary-600 mb-2" />
             <p className="font-semibold text-gray-900">Nutzerhandbuch (PDF)</p>
             <p className="text-sm text-gray-500">Ausführlich mit Screenshots – zum Herunterladen</p>
@@ -183,6 +189,7 @@ export default function HilfePage() {
             <a
               href="/nutzerhandbuch-unternehmen.pdf"
               download
+              onClick={() => trackHandbookDownload("hilfe_box")}
               className="inline-flex items-center gap-2 bg-white text-primary-700 font-medium px-4 py-2 rounded-lg hover:bg-primary-50 shrink-0"
             >
               <Download className="h-4 w-4" />
