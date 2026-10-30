@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { getErrorMessage } from "@/lib/errors";
@@ -28,7 +28,6 @@ interface CompanyRegisterForm {
 }
 
 function CompanyRegisterContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
   
@@ -38,6 +37,8 @@ function CompanyRegisterContent() {
   const [tokenName, setTokenName] = useState<string | null>(null);
   const [tokenMessage, setTokenMessage] = useState<string | null>(null);
   const [checkingToken, setCheckingToken] = useState(!!inviteToken);
+  // Erfolgs-Bestätigung (persistent, statt flüchtigem Toast)
+  const [success, setSuccess] = useState<{ pending: boolean; message: string } | null>(null);
 
   const {
     register,
@@ -72,7 +73,7 @@ function CompanyRegisterContent() {
   const onSubmit = async (data: CompanyRegisterForm) => {
     setLoading(true);
     try {
-      await api.post("/auth/register/company", {
+      const res = await api.post("/auth/register/company", {
         user_data: {
           email: data.email,
           password: data.password,
@@ -90,13 +91,17 @@ function CompanyRegisterContent() {
         invite_token: inviteToken || undefined,
       });
 
-      if (inviteToken && tokenValid) {
-        toast.success("Registrierung erfolgreich! Sie können sich jetzt einloggen.");
-        router.push("/login");
-      } else {
-        toast.success("Registrierung erfolgreich! Ihr Konto wird geprüft und freigeschaltet.");
-        router.push("/login");
-      }
+      // Status vom Backend ("active" bei gültigem Token, sonst "pending_activation").
+      const status = res?.data?.status;
+      const pending = status !== "active";
+      // Persistente Bestätigungs-Seite statt flüchtigem Toast (+ sofort Redirect),
+      // damit der Prüf-Hinweis nicht untergeht.
+      setSuccess({
+        pending,
+        message: res?.data?.message || (pending
+          ? "Ihr Unternehmen wird von JobOn geprüft und in Kürze freigeschaltet. Sie erhalten eine E-Mail, sobald Ihr Konto aktiv ist."
+          : "Registrierung erfolgreich! Sie können sich jetzt einloggen."),
+      });
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(getErrorMessage(err, "Registrierung fehlgeschlagen"));
@@ -116,6 +121,34 @@ function CompanyRegisterContent() {
     { value: "ev", label: "e.V." },
     { value: "sonstige", label: "Sonstige" },
   ];
+
+  if (success) {
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="card text-center py-10">
+          <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="h-9 w-9 text-green-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            {success.pending ? "Registrierung eingegangen" : "Registrierung erfolgreich"}
+          </h2>
+          <p className="text-gray-600">{success.message}</p>
+          {success.pending && (
+            <div className="mt-5 flex items-start gap-3 text-left bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <Mail className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-800">
+                Wir haben Ihre Angaben erhalten. JobOn prüft Ihr Unternehmen – das kann einen
+                Moment dauern. Sie bekommen eine <strong>E-Mail</strong>, sobald Ihr Konto
+                freigeschaltet ist. Danach können Sie sich anmelden. (Bitte auch den
+                Spam-Ordner prüfen.)
+              </p>
+            </div>
+          )}
+          <Link href="/login" className="btn-primary block mt-6">Zur Anmeldung</Link>
+        </div>
+      </div>
+    );
+  }
 
   if (checkingToken) {
     return (
