@@ -14,7 +14,7 @@ const CSP = [
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://js.stripe.com",
-  "connect-src 'self' https://ijp-portal.onrender.com https://api.jobonportal.de https://accounts.google.com https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://*.r2.dev https://*.r2.cloudflarestorage.com",
+  "connect-src 'self' https://ijp-portal.onrender.com https://api.jobonportal.de https://accounts.google.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://www.googletagmanager.com https://*.r2.dev https://*.r2.cloudflarestorage.com",
   "frame-src 'self' https://accounts.google.com https://js.stripe.com https://checkout.stripe.com",
   "upgrade-insecure-requests",
 ].join("; ");
