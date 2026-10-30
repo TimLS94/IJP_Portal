@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { companyAPI, jobsAPI, applicationsAPI } from "@/lib/api";
-import { Building2, Briefcase, Users, Plus, FileText, Languages, X, AlertCircle } from "lucide-react";
+import { Building2, Briefcase, Users, Plus, FileText, Languages, X, AlertCircle, HelpCircle, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface Company {
@@ -47,6 +47,19 @@ export default function CompanyDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [translatedJobs, setTranslatedJobs] = useState<Job[]>([]);
   const [showTranslationBanner, setShowTranslationBanner] = useState(false);
+  // Einmaliger Willkommens-Hinweis mit Nutzerhandbuch (pro Browser gemerkt)
+  const [showHandbookBanner, setShowHandbookBanner] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("company_handbook_seen")) setShowHandbookBanner(true);
+    } catch { /* localStorage blockiert (Safari Privat) – Banner einfach nicht zeigen */ }
+  }, []);
+
+  const dismissHandbookBanner = () => {
+    setShowHandbookBanner(false);
+    try { localStorage.setItem("company_handbook_seen", "1"); } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     loadDashboard();
@@ -120,6 +133,38 @@ export default function CompanyDashboardPage() {
 
   return (
     <>
+      {showHandbookBanner && (
+        <div className="bg-gradient-to-r from-primary-50 to-indigo-50 border border-primary-200 rounded-xl p-4 mb-6 relative">
+          <button onClick={dismissHandbookBanner} className="absolute top-3 right-3 text-primary-400 hover:text-primary-600" aria-label="Hinweis schließen">
+            <X className="h-5 w-5" />
+          </button>
+          <div className="flex items-start gap-3">
+            <div className="bg-primary-100 p-2 rounded-lg shrink-0">
+              <HelpCircle className="h-6 w-6 text-primary-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-primary-800">👋 Willkommen bei JobOn!</p>
+              <p className="text-sm text-primary-700 mt-1">
+                In unserem Nutzerhandbuch zeigen wir Ihnen Schritt für Schritt, wie Sie Stellen schalten und Bewerbungen verwalten.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href="/hilfe"
+                  onClick={dismissHandbookBanner}
+                  className="inline-flex items-center gap-1.5 text-sm bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700"
+                >
+                  <Download className="h-4 w-4" />
+                  Nutzerhandbuch herunterladen
+                </Link>
+                <button onClick={dismissHandbookBanner} className="text-sm text-primary-700 hover:text-primary-900 px-2 py-1.5">
+                  Später
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showTranslationBanner && translatedJobs.length > 0 && (
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4 mb-6 relative">
           <button onClick={dismissTranslationBanner} className="absolute top-3 right-3 text-indigo-400 hover:text-indigo-600">

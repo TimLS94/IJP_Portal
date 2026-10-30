@@ -33,6 +33,7 @@ import {
   Crown,
   BarChart3,
   Send,
+  HelpCircle,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -235,6 +236,7 @@ export default function Navbar() {
         { to: "/company/premium", icon: Crown, label: "Premium" },
         { divider: true },
         { to: "/company/settings", icon: Settings, label: t("nav.settings") },
+        { to: "/hilfe", icon: HelpCircle, label: "Hilfe & Support" },
       ];
     }
     if (isAdmin) {
