@@ -5,6 +5,7 @@ Telegram-Bot-Endpunkte.
 - Admin-Endpunkte        : Status, Webhook setzen, Testnachricht, Gruppen-Sprache.
 """
 import logging
+import os
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from pydantic import BaseModel
@@ -75,19 +76,29 @@ def _handle_message(db: Session, message: dict) -> None:
             db.commit()
             group_lang = tg._norm_lang(get_setting(db, tg.GROUP_LANG_SETTING, tg.DEFAULT_LANGUAGE))
             tg.send_message(chat_id, tg.t(group_lang, "group_registered"))
-        elif command == "/alerts_hier":
-            # Diese Gruppe als Ziel für Fehler-Alerts (500er) registrieren.
-            set_setting(db, tg.ALERT_CHAT_SETTING, chat_id)
-            db.commit()
-            tg.send_message(
-                chat_id,
-                "\U0001F6A8 Diese Gruppe erhält ab jetzt automatische Fehler-Alerts "
-                "(HTTP 500) von JobOn. Mit /alerts_aus wieder abschalten.",
-            )
-        elif command == "/alerts_aus":
-            set_setting(db, tg.ALERT_CHAT_SETTING, "")
-            db.commit()
-            tg.send_message(chat_id, "Fehler-Alerts für diese Gruppe deaktiviert.")
+        elif command in ("/alerts_hier", "/alerts_aus"):
+            # Absicherung: nur mit korrektem Code (Env TELEGRAM_ALERT_SECRET).
+            # Verhindert, dass jemand den Bot in seine eigene Gruppe holt und die
+            # Fehler-Alerts (inkl. Tracebacks) zu sich umleitet.
+            secret = os.getenv("TELEGRAM_ALERT_SECRET", "").strip()
+            parts = text.split(maxsplit=1)
+            provided = parts[1].strip() if len(parts) > 1 else ""
+            if not secret:
+                tg.send_message(chat_id, "Fehler-Alerts sind noch nicht eingerichtet (Code fehlt serverseitig).")
+            elif provided != secret:
+                tg.send_message(chat_id, "\U0001F512 Falscher oder fehlender Code. Nutzung: " + command + " <Code>")
+            elif command == "/alerts_hier":
+                set_setting(db, tg.ALERT_CHAT_SETTING, chat_id)
+                db.commit()
+                tg.send_message(
+                    chat_id,
+                    "\U0001F6A8 Diese Gruppe erhält ab jetzt automatische Fehler-Alerts "
+                    "(HTTP 500) von JobOn. Mit \"/alerts_aus <Code>\" wieder abschalten.",
+                )
+            else:  # /alerts_aus
+                set_setting(db, tg.ALERT_CHAT_SETTING, "")
+                db.commit()
+                tg.send_message(chat_id, "Fehler-Alerts deaktiviert.")
         return
 
     # --- Privat-Chat: Abo-Dialog ---
