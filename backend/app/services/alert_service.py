@@ -45,6 +45,25 @@ def _allowed(signature: str) -> bool:
     return True
 
 
+def _resolve_alert_chat_id() -> str:
+    """Ziel-Chat-ID fuer Alerts: zuerst DB-Setting (per /alerts_hier gesetzt),
+    sonst Env TELEGRAM_ALERT_CHAT_ID. Darf nie werfen."""
+    try:
+        from app.core.database import SessionLocal
+        from app.services.settings_service import get_setting
+        from app.services.telegram_service import ALERT_CHAT_SETTING
+        db = SessionLocal()
+        try:
+            val = (get_setting(db, ALERT_CHAT_SETTING, "") or "").strip()
+            if val:
+                return val
+        finally:
+            db.close()
+    except Exception:
+        pass
+    return os.getenv("TELEGRAM_ALERT_CHAT_ID", "").strip()
+
+
 def notify_exception(method: str, path: str, exc: BaseException) -> None:
     """Best effort: Telegram-Alert zu einem 500er. Darf selbst NIE werfen."""
     try:
@@ -54,7 +73,7 @@ def notify_exception(method: str, path: str, exc: BaseException) -> None:
         if not _allowed(signature):
             return
 
-        chat_id = os.getenv("TELEGRAM_ALERT_CHAT_ID", "").strip()
+        chat_id = _resolve_alert_chat_id()
         if not chat_id:
             logger.error(
                 "500 %s %s -> %s: %s (kein TELEGRAM_ALERT_CHAT_ID gesetzt)",

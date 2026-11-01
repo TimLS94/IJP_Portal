@@ -75,6 +75,19 @@ def _handle_message(db: Session, message: dict) -> None:
             db.commit()
             group_lang = tg._norm_lang(get_setting(db, tg.GROUP_LANG_SETTING, tg.DEFAULT_LANGUAGE))
             tg.send_message(chat_id, tg.t(group_lang, "group_registered"))
+        elif command == "/alerts_hier":
+            # Diese Gruppe als Ziel für Fehler-Alerts (500er) registrieren.
+            set_setting(db, tg.ALERT_CHAT_SETTING, chat_id)
+            db.commit()
+            tg.send_message(
+                chat_id,
+                "\U0001F6A8 Diese Gruppe erhält ab jetzt automatische Fehler-Alerts "
+                "(HTTP 500) von JobOn. Mit /alerts_aus wieder abschalten.",
+            )
+        elif command == "/alerts_aus":
+            set_setting(db, tg.ALERT_CHAT_SETTING, "")
+            db.commit()
+            tg.send_message(chat_id, "Fehler-Alerts für diese Gruppe deaktiviert.")
         return
 
     # --- Privat-Chat: Abo-Dialog ---
