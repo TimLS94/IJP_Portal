@@ -145,60 +145,56 @@ export default function ProfileClient() {
   };
 
   const onSubmit = async (data: any) => {
-    // Arbeitserlaubnis ist Pflichtangabe (Ja/Nein) – NICHT für IJP-Studenten (kein Visum-Thema).
-    if (!isIjp && data.work_authorized !== true && data.work_authorized !== false) {
-      toast.error(t("applicant.workAuthRequired", "Bitte gib an, ob du eine Arbeitserlaubnis für Deutschland hast (Pflichtangabe)."));
-      return;
-    }
     // IJP-Unterportal: Stellenart bleibt fest Studentenferienjob
     if (isIjp) {
       data.position_types = ["studentenferienjob"];
       data.position_type = "studentenferienjob";
     }
-    // Pflichtangaben für Studenten (Studentenferienjob): Semesterferien, Studienbeginn
-    // und vollständige Uni-Anschrift. Abwärtskompatibel: bestehende Datensätze bleiben
-    // unangetastet; Pflicht greift beim Speichern des Formulars (künftige Einträge).
+
+    // Fehlende Pflichtangaben werden NUR gesammelt – das Speichern wird NICHT blockiert.
+    // So kann man Zwischenstände sichern und sieht danach, was noch fehlt.
+    const missingFields: string[] = [];
+    if (!isIjp && data.work_authorized !== true && data.work_authorized !== false) {
+      missingFields.push("Angabe zur Arbeitserlaubnis");
+    }
     if ((data.position_types || []).includes("studentenferienjob")) {
-      if (!data.semester_break_start || !data.semester_break_end) {
-        toast.error(t("applicant.semesterBreakRequired", "Bitte gib deine Semesterferien an (Start und Ende) – das ist für Studentenferienjobs erforderlich."));
-        return;
-      }
-      if (!data.studying_since) {
-        toast.error(t("applicant.studyingSinceRequired", "Bitte gib an, seit wann du studierst (Studienbeginn)."));
-        return;
-      }
+      if (!data.semester_break_start || !data.semester_break_end) missingFields.push("Semesterferien (Start und Ende)");
+      if (!data.studying_since) missingFields.push(t("applicant.studyingSince", "Studium seit (Studienbeginn)"));
       const missingUni = ["university_name", "university_street", "university_house_number", "university_postal_code", "university_city", "university_country"]
         .filter((f) => !String(data[f] || "").trim());
-      if (missingUni.length > 0) {
-        toast.error("Bitte gib den Namen und die vollständige Adresse deiner Universität an (Name, Straße, Hausnummer, PLZ, Ort, Land).");
-        return;
-      }
+      if (missingUni.length > 0) missingFields.push("vollständige Uni-Anschrift (Name, Straße, Hausnummer, PLZ, Ort, Land)");
     }
-    // IJP-Studenten: zusätzlich die eigene Wohnadresse Pflicht.
     if (isIjp) {
       const missingOwn = ["street", "house_number", "postal_code", "city", "country"]
         .filter((f) => !String(data[f] || "").trim());
-      if (missingOwn.length > 0) {
-        toast.error("Bitte gib deine vollständige Adresse an (Straße, Hausnummer, PLZ, Ort, Land).");
-        return;
-      }
+      if (missingOwn.length > 0) missingFields.push("vollständige Wohnadresse (Straße, Hausnummer, PLZ, Ort, Land)");
     }
+
     setSaving(true);
     try {
       data.other_languages = otherLanguages;
       data.work_experiences = workExperiences;
       await applicantAPI.updateProfile(data);
-      toast.success(t("applicant.profileSaved"));
-      // Nur bei Studenten: Erinnerung "IJP beauftragen" + was noch fehlt.
+
+      // Fehlende Pflicht-Dokumente (nur IJP) ergänzen
+      const missingDocs: string[] = [];
       if (isIjp) {
-        const missing: string[] = [];
         const reqDocs = (requirements?.documents || []).filter((r: any) => r.is_required);
         for (const r of reqDocs) {
           if (!hasDoc(r.document_type)) {
-            missing.push(t(`applicant.documentTypes.${r.document_type}`, { defaultValue: r.type_label || r.document_type }));
+            missingDocs.push(t(`applicant.documentTypes.${r.document_type}`, { defaultValue: r.type_label || r.document_type }));
           }
         }
-        setCommissionPrompt(missing);
+      }
+
+      const allMissing = [...missingFields, ...missingDocs];
+      toast.success(t("applicant.profileSaved"));
+      if (isIjp) {
+        // Übersicht/Erinnerung "IJP beauftragen": fehlende Angaben + Dokumente (leer = vollständig)
+        setCommissionPrompt(allMissing);
+      } else if (missingFields.length > 0) {
+        // Nicht-IJP: gespeichert, aber Hinweis auf offene Pflichtangaben
+        toast("Gespeichert. Noch offen: " + missingFields.join(", "), { icon: "⚠️", duration: 7000 });
       }
     } catch (e: any) {
       // Backend-Fehler lesbar anzeigen – auch FastAPI-422 (detail ist dann ein Array
@@ -304,7 +300,7 @@ export default function ProfileClient() {
                 <ul className="list-disc list-inside text-sm text-amber-900 space-y-1">
                   {commissionPrompt.map((m, i) => <li key={i}>{m}</li>)}
                 </ul>
-                <p className="text-xs text-amber-700 mt-2">Lade die fehlenden Dokumente unten auf dieser Seite hoch.</p>
+                <p className="text-xs text-amber-700 mt-2">Trage die fehlenden Angaben oben ein bzw. lade die fehlenden Dokumente unten auf dieser Seite hoch. Dein Zwischenstand ist bereits gespeichert.</p>
               </div>
             ) : (
               <div className="mb-4 rounded-xl border-2 border-green-200 bg-green-50 p-4 text-sm text-green-800">
