@@ -1687,6 +1687,23 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],  # Für Datei-Downloads
 )
 
+# Globaler Handler fuer unbehandelte Fehler (HTTP 500):
+# schickt einen gedrosselten Telegram-Alert und liefert eine generische 500-Antwort.
+# HTTPException/Validierungsfehler haben eigene Handler und loesen KEINEN Alert aus.
+from fastapi.responses import JSONResponse
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_alert(request: StarletteRequest, exc: Exception):
+    try:
+        from app.services.alert_service import notify_exception
+        notify_exception(request.method, request.url.path, exc)
+    except Exception:
+        pass
+    logger.error("Unhandled exception on %s %s", request.method, request.url.path, exc_info=exc)
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
+
 # Upload-Verzeichnis erstellen
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
