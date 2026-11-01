@@ -565,6 +565,32 @@ def ensure_job_request_status_enum_values():
 ensure_job_request_status_enum_values()
 
 
+def ensure_documenttype_enum_values():
+    """Ergänzt fehlende Werte im Postgres-Enum 'documenttype'.
+
+    Neue Dokumenttypen (z.B. 'enrollment_trans', 'ba_declaration', 'cover_letter')
+    wurden im Python-Enum DocumentType ergänzt, der DB-Enum-Typ kannte sie aber
+    nicht -> Upload/Abfrage schlug mit 'invalid input value for enum documenttype'
+    fehl. ALTER TYPE ... ADD VALUE IF NOT EXISTS ist idempotent (Postgres 12+).
+    Auf SQLite/lokal gibt es keinen Enum-Typ -> Fehler wird ignoriert.
+    """
+    from sqlalchemy import text
+    from app.models.document import DocumentType
+    db = SessionLocal()
+    try:
+        for dt in DocumentType:
+            try:
+                db.execute(text(f"ALTER TYPE documenttype ADD VALUE IF NOT EXISTS '{dt.value}'"))
+                db.commit()
+            except Exception:
+                db.rollback()
+    finally:
+        db.close()
+
+
+ensure_documenttype_enum_values()
+
+
 def backfill_privacy_consent():
     """Einmaliges, idempotentes Nachtragen: Bewerber, die im IJP-Auftrag der
     Datenschutz-Einwilligung zugestimmt haben (privacy_consent=True), deren
