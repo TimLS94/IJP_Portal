@@ -412,6 +412,8 @@ export const interviewsAPI = interviewAPI;
 
 export const adminAPI = {
   getStats: (days = 7) => api.get('/admin/stats', { params: { days } }),
+  // Loest absichtlich einen 500er aus, um den Telegram-Fehler-Alert zu testen.
+  testAlert: () => api.post('/admin/_test-alert'),
   listEmailSuppressions: () => api.get('/admin/email-suppressions'),
   addEmailSuppression: (email, reason) => api.post('/admin/email-suppressions', { email, reason }),
   deleteEmailSuppression: (id) => api.delete(`/admin/email-suppressions/${id}`),

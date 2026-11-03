@@ -79,7 +79,6 @@ IJP International Job Placement, c/o Schäfer, Husemannstr. 9, 10435 Berlin.
 Diese Vollmacht gilt bis auf Widerruf und kann jederzeit schriftlich von {{betrieb_name}}, vertreten durch {{contact_person}}, widerrufen werden.
 
 
-[[SPALTEN_START]]
 {{city}}, den {{date}}
 Unterschrift des Bevollmächtigenden
 
@@ -175,6 +174,10 @@ def seed_ijp_templates(db: Session) -> None:
                     .replace("Lichtenberger Straße 34", "Husemannstr. 9")
                     .replace("10179 Berlin", "10435 Berlin")
                 )
+            # Verwaisten Spalten-Marker aus der Vollmacht entfernen (ohne MITTE/ENDE wirkungslos
+            # und wurde frueher woertlich gedruckt).
+            if exists.doc_type == "vollmacht" and exists.template_text and "[[SPALTEN_START]]" in exists.template_text and "[[SPALTEN_MITTE]]" not in exists.template_text:
+                exists.template_text = exists.template_text.replace("[[SPALTEN_START]]\n", "").replace("[[SPALTEN_START]]", "")
     db.commit()
 
 
@@ -641,7 +644,10 @@ def _build_pdf_from_filled_text(filled_text: str) -> bytes:
         story.append(table)
         story.extend(_lines_to_story(segments[3]))
     else:
-        story.extend(_lines_to_story(filled_text))
+        # Unvollständige/verwaiste Spalten-Marker entfernen, damit sie nicht
+        # wörtlich im PDF erscheinen (z.B. nur [[SPALTEN_START]] ohne MITTE/ENDE).
+        cleaned = re.sub(r'\[\[SPALTEN_(START|MITTE|ENDE)\]\]', '', filled_text)
+        story.extend(_lines_to_story(cleaned))
 
     doc.build(story)
     return buf.getvalue()

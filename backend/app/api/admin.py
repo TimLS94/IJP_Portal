@@ -40,6 +40,13 @@ def require_admin(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.post("/_test-alert")
+async def trigger_test_alert(current_user: User = Depends(require_admin)):
+    """Loest absichtlich einen 500er aus, um den Fehler-Alert (Telegram) zu testen.
+    Der globale Exception-Handler schickt dann die Alert-Nachricht."""
+    raise RuntimeError("Test-Alert: absichtlich ausgeloeste Ausnahme zum Pruefen der Fehler-Benachrichtigung (ausgeloest von Admin).")
+
+
 @router.get("/promotions")
 async def list_promotions(
     kind: Optional[str] = Query(None, description="'boost' oder 'feature'"),
