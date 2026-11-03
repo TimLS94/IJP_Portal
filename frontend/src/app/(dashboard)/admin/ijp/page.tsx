@@ -839,7 +839,7 @@ function DokumentTab({ betriebe, templates }: { betriebe: Betrieb[]; templates: 
         </div>
       </div>
 
-      <button onClick={handleGenerate} disabled={generating || !selectedApplicant || !selectedBetriebId}
+      <button onClick={handleGenerate} disabled={generating || !selectedBetriebId || (needsApplicant && !selectedApplicant)}
         className="btn-primary flex items-center gap-2 disabled:opacity-50">
         {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
         {generating ? "PDF wird erstellt..." : "PDF herunterladen"}
