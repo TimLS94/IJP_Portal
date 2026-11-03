@@ -59,8 +59,8 @@ Bevollmächtigender (Arbeitgeber):
 Bevollmächtigter:
 IJP International Job Placement UG
 Tim Schäfer
-Lichtenberger Straße 34
-10179 Berlin
+Husemannstr. 9
+10435 Berlin
 
 
 Gegenstand der Vollmacht:
@@ -166,6 +166,15 @@ def seed_ijp_templates(db: Session) -> None:
             missing = [v for v in seed["variables"] if v.get("key") not in existing_keys]
             if missing:
                 exists.variables = list(exists.variables or []) + missing
+            # Einmalige Korrektur der veralteten IJP-Adresse in der Vollmacht
+            # (ersetzt nur den alten Adress-String, lässt sonstige Anpassungen unberührt).
+            if exists.doc_type == "vollmacht" and exists.template_text and "Lichtenberger Straße 34" in exists.template_text:
+                exists.template_text = (
+                    exists.template_text
+                    .replace("Lichtenberger Straße 34\n10179 Berlin", "Husemannstr. 9\n10435 Berlin")
+                    .replace("Lichtenberger Straße 34", "Husemannstr. 9")
+                    .replace("10179 Berlin", "10435 Berlin")
+                )
     db.commit()
 
 

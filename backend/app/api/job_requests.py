@@ -859,7 +859,7 @@ async def update_job_request_status(
                         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
                             <p style="color: #9ca3af; font-size: 12px; margin: 0;">
                                 IJP International Job Placement UG (haftungsbeschränkt)<br>
-                                Oranienburger Straße 173, 13437 Berlin
+                                Husemannstr. 9, 10435 Berlin
                             </p>
                         </div>
                     </div>
