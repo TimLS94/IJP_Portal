@@ -601,26 +601,44 @@ def _build_pdf_from_filled_text(filled_text: str) -> bytes:
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=2.5*cm, rightMargin=2.5*cm, topMargin=2.5*cm, bottomMargin=2.5*cm)
     styles = getSampleStyleSheet()
     normal = ParagraphStyle("ijp_normal", parent=styles["Normal"], fontName="Helvetica", fontSize=11, leading=16, spaceAfter=2, alignment=TA_LEFT)
+    title_style = ParagraphStyle("ijp_title", parent=normal, fontName="Helvetica-Bold", fontSize=16, leading=22, spaceAfter=16)
+    label_style = ParagraphStyle("ijp_label", parent=normal, fontName="Helvetica-Bold", spaceBefore=4)
 
     def _safe(text: str) -> str:
         return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
-    def _lines_to_story(text: str) -> list:
+    def _lines_to_story(text: str, heading: bool = False) -> list:
         items = []
         consecutive_blanks = 0
+        title_pending = heading
         for line in text.split("\n"):
             stripped = line.strip()
             if not stripped:
                 consecutive_blanks += 1
                 if consecutive_blanks <= 2:
                     items.append(Spacer(1, 0.45 * cm))
+                continue
+            consecutive_blanks = 0
+            # Leeres "Ort" am Zeilenanfang -> fuehrendes ", den" bereinigen
+            if stripped.startswith(", den "):
+                stripped = stripped[2:]
+            safe = _safe(stripped)
+            # Titel (erste nicht-leere Zeile des Dokuments) gross/fett
+            if title_pending:
+                items.append(Paragraph(safe, title_style))
+                title_pending = False
+            elif stripped.startswith("Unterschrift"):
+                # Unterschriftslinie oberhalb der Bezeichnung
+                items.append(Spacer(1, 0.7 * cm))
+                items.append(Paragraph("______________________________", normal))
+                items.append(Paragraph(safe, normal))
+            elif stripped.startswith("Betreff:"):
+                items.append(Paragraph(f"<b>{safe}</b>", normal))
+            elif stripped.endswith(":") and not stripped[:1].isdigit() and len(stripped) <= 60:
+                # Abschnitts-Label (z.B. "Bevollmaechtigter:") fett
+                items.append(Paragraph(safe, label_style))
             else:
-                consecutive_blanks = 0
-                safe = _safe(stripped)
-                if stripped.startswith("Betreff:"):
-                    items.append(Paragraph(f"<b>{safe}</b>", normal))
-                else:
-                    items.append(Paragraph(safe, normal))
+                items.append(Paragraph(safe, normal))
         return items
 
     # Split text into segments; [[SPALTEN_START]]...[[SPALTEN_MITTE]]...[[SPALTEN_ENDE]] creates two-column tables
@@ -629,7 +647,7 @@ def _build_pdf_from_filled_text(filled_text: str) -> bytes:
 
     if len(segments) == 4:
         # before, left_col, right_col, after
-        story.extend(_lines_to_story(segments[0]))
+        story.extend(_lines_to_story(segments[0], heading=True))
         left_items = _lines_to_story(segments[1])
         right_items = _lines_to_story(segments[2])
         col_width = (A4[0] - 5*cm) / 2
@@ -647,7 +665,7 @@ def _build_pdf_from_filled_text(filled_text: str) -> bytes:
         # Unvollständige/verwaiste Spalten-Marker entfernen, damit sie nicht
         # wörtlich im PDF erscheinen (z.B. nur [[SPALTEN_START]] ohne MITTE/ENDE).
         cleaned = re.sub(r'\[\[SPALTEN_(START|MITTE|ENDE)\]\]', '', filled_text)
-        story.extend(_lines_to_story(cleaned))
+        story.extend(_lines_to_story(cleaned, heading=True))
 
     doc.build(story)
     return buf.getvalue()
