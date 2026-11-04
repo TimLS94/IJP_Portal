@@ -1,7 +1,12 @@
 import json as _json
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+import os
+import re
+import secrets
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 from app.core.database import get_db
@@ -16,6 +21,8 @@ from app.models.notification import Notification
 from app.services.document_service import DocumentService
 from app.services.settings_service import get_setting
 from app.services.email_service import email_service
+from app.core.config import settings
+from app.core.rate_limiter import rate_limit_insurance
 
 router = APIRouter(prefix="/insurance", tags=["Insurance / Arbeitnehmer-Infos"])
 
@@ -177,6 +184,92 @@ async def create_signup(
     }
 
 
+def _frontend_url() -> str:
+    url = getattr(settings, "FRONTEND_URL", "") or ""
+    if not url or "localhost" in url or "127.0.0.1" in url:
+        url = "https://www.jobonportal.de"
+    return url.rstrip("/")
+
+
+class EmailSignupRequest(BaseModel):
+    email: EmailStr
+    needs_embassy_proof: bool = False
+    language: Optional[str] = "de"
+    website: Optional[str] = ""  # Honeypot – im Formular versteckt, muss leer bleiben
+
+
+@router.post("/signup-email")
+async def create_signup_email(data: EmailSignupRequest, request: Request, db: Session = Depends(get_db)):
+    """Anonyme Krankenkassen-Anmeldung nur per E-Mail (ohne Konto).
+
+    Bot-Schutz: Honeypot (verstecktes Feld) + Rate-Limit (IP & E-Mail) + Double-Opt-In.
+    Die Anmeldung zaehlt erst, nachdem der Bestaetigungslink angeklickt wurde.
+    Die Antwort ist bewusst generisch (keine Auskunft, ob eine E-Mail schon existiert).
+    """
+    generic_ok = {"ok": True, "message": "Fast geschafft! Bitte bestätige deine E-Mail über den Link, den wir dir gerade geschickt haben."}
+
+    # Honeypot: nur Bots fuellen das versteckte Feld 'website'.
+    if (data.website or "").strip():
+        return generic_ok
+
+    email = str(data.email).strip().lower()
+    await rate_limit_insurance(request, email)
+
+    language = data.language if data.language in ("de", "en", "es", "ru") else "de"
+    token = secrets.token_urlsafe(32)
+
+    signup = InsuranceSignup(
+        user_id=None,
+        full_name=None,
+        email=email,
+        needs_embassy_proof=bool(data.needs_embassy_proof),
+        language=language,
+        status="pending",
+        email_verified=False,
+        verify_token=token,
+        verify_token_expires=datetime.utcnow() + timedelta(hours=48),
+    )
+    db.add(signup)
+    db.commit()
+
+    verify_link = f"{_frontend_url()}/versicherung/bestaetigen?token={token}"
+    try:
+        email_service.send_insurance_verify_email(email, verify_link, language)
+    except Exception:
+        pass  # Zustellung best effort – Antwort bleibt generisch
+
+    return generic_ok
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+@router.post("/verify-email")
+async def verify_signup_email(data: VerifyEmailRequest, db: Session = Depends(get_db)):
+    """Bestaetigt eine anonyme E-Mail-Anmeldung (Double-Opt-In). Danach landet sie
+    in der Admin-Liste (status 'new')."""
+    token = (data.token or "").strip()
+    if not token:
+        return {"ok": False, "reason": "missing_token"}
+    signup = db.query(InsuranceSignup).filter(InsuranceSignup.verify_token == token).first()
+    if not signup:
+        return {"ok": False, "reason": "invalid"}
+    if signup.email_verified:
+        return {"ok": True, "already": True}
+    exp = signup.verify_token_expires
+    if exp is not None and getattr(exp, "tzinfo", None) is not None:
+        exp = exp.replace(tzinfo=None)
+    if exp is not None and exp < datetime.utcnow():
+        return {"ok": False, "reason": "expired"}
+    signup.email_verified = True
+    signup.status = "new"
+    signup.verify_token = None
+    signup.verify_token_expires = None
+    db.commit()
+    return {"ok": True}
+
+
 # ---- Admin-Endpoints -------------------------------------------------------
 
 @router.get("/admin/signups")
@@ -191,6 +284,9 @@ async def list_signups(
     q = db.query(InsuranceSignup)
     if status_filter:
         q = q.filter(InsuranceSignup.status == status_filter)
+    else:
+        # Unbestaetigte Double-Opt-In-Anmeldungen (noch kein E-Mail-Klick) ausblenden
+        q = q.filter(InsuranceSignup.status != "pending")
     if needs_embassy_proof is not None:
         q = q.filter(InsuranceSignup.needs_embassy_proof == needs_embassy_proof)
 

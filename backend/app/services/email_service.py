@@ -626,6 +626,60 @@ class EmailService:
         return self.send_email(to_email, subject, html_content, email_type="other")
 
     @_safe_email_call
+    def send_insurance_verify_email(self, to_email: str, verify_link: str, language: str = "de") -> bool:
+        """Double-Opt-In: Bestaetigungslink fuer die anonyme Krankenkassen-Anmeldung."""
+        texts = {
+            "de": {
+                "subject": "Bitte bestätige deine Krankenkassen-Anmeldung",
+                "head": "Nur noch ein Schritt",
+                "body": "Danke für deine Anmeldung zur Krankenversicherung. Bitte bestätige deine E-Mail-Adresse, damit wir dir weiterhelfen und ggf. den Nachweis für die Botschaft bereitstellen können.",
+                "button": "E-Mail bestätigen",
+                "ignore": "Wenn du das nicht angefordert hast, ignoriere diese E-Mail einfach.",
+                "closing": "Dein IJP-Team",
+            },
+            "en": {
+                "subject": "Please confirm your health insurance sign-up",
+                "head": "Just one more step",
+                "body": "Thanks for signing up for health insurance. Please confirm your email address so we can help you and, if needed, provide the proof for the embassy.",
+                "button": "Confirm email",
+                "ignore": "If you didn't request this, you can safely ignore this email.",
+                "closing": "Your IJP team",
+            },
+            "es": {
+                "subject": "Confirma tu registro de seguro médico",
+                "head": "Solo un paso más",
+                "body": "Gracias por registrarte para el seguro médico. Confirma tu correo electrónico para que podamos ayudarte y, si es necesario, preparar el justificante para la embajada.",
+                "button": "Confirmar correo",
+                "ignore": "Si no solicitaste esto, ignora este correo.",
+                "closing": "Tu equipo de IJP",
+            },
+            "ru": {
+                "subject": "Подтвердите регистрацию медицинской страховки",
+                "head": "Остался один шаг",
+                "body": "Спасибо за регистрацию медицинской страховки. Подтвердите свой адрес электронной почты, чтобы мы могли помочь и при необходимости подготовить справку для посольства.",
+                "button": "Подтвердить e-mail",
+                "ignore": "Если вы этого не запрашивали, просто проигнорируйте это письмо.",
+                "closing": "Команда IJP",
+            },
+        }
+        tx = texts.get(language, texts["de"])
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #0a9b4e; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>✅ {tx['head']}</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p>{tx['body']}</p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{verify_link}" style="background: #2563eb; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">{tx['button']}</a>
+                </p>
+                <p style="color:#6b7280; font-size: 13px;">{tx['ignore']}</p>
+                <p>{tx['closing']}</p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, tx["subject"], html_content, email_type="other")
+
     def send_insurance_document_ready(self, to_email: str, applicant_name: str) -> bool:
         """Admin hat den Krankenversicherungsnachweis (Botschaft) an den Nutzer angehaengt."""
         from app.core.config import settings

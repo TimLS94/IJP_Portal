@@ -144,3 +144,12 @@ async def rate_limit_contact(request: Request):
     """Rate Limit für Kontaktformular: 5 pro Stunde"""
     ip = get_client_ip(request)
     await check_rate_limit(f"ip:{ip}", "contact", max_requests=5, window_seconds=3600)
+
+
+async def rate_limit_insurance(request: Request, email: Optional[str] = None):
+    """Rate Limit für die anonyme Versicherungs-Anmeldung: 5 pro Stunde pro IP
+    und zusätzlich pro E-Mail (Bot-/Spam-Schutz)."""
+    ip = get_client_ip(request)
+    await check_rate_limit(f"ip:{ip}", "insurance_signup", max_requests=5, window_seconds=3600)
+    if email:
+        await check_rate_limit(f"email:{email.lower()}", "insurance_signup", max_requests=3, window_seconds=3600)

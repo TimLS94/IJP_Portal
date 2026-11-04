@@ -14,11 +14,18 @@ class InsuranceSignup(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    # Nullable: anonyme Anmeldungen (nur E-Mail, ohne Konto) haben keinen user_id.
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Snapshot der Kontaktdaten zum Zeitpunkt der Anmeldung
     full_name = Column(String(255))
     email = Column(String(255))
+
+    # Double-Opt-In fuer anonyme E-Mail-Anmeldungen (Bot-/Tippfehler-Schutz):
+    # Anmeldung zaehlt erst nach Klick auf den Bestaetigungslink.
+    email_verified = Column(Boolean, default=True, nullable=False, server_default="true")
+    verify_token = Column(String(64), nullable=True, index=True)
+    verify_token_expires = Column(DateTime(timezone=True), nullable=True)
 
     # Braucht der Nutzer einen Versicherungsnachweis fuer die Botschaft (Visum)?
     needs_embassy_proof = Column(Boolean, default=False, nullable=False)

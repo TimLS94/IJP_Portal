@@ -139,6 +139,33 @@ def ensure_applicant_study_columns():
 ensure_applicant_study_columns()
 
 
+def ensure_insurance_signup_columns():
+    """insurance_signups: Double-Opt-In-Spalten + user_id nullable (fuer anonyme
+    E-Mail-Anmeldungen ohne Konto)."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        for stmt in (
+            "ALTER TABLE insurance_signups ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT TRUE",
+            "ALTER TABLE insurance_signups ADD COLUMN verify_token VARCHAR(64)",
+            "ALTER TABLE insurance_signups ADD COLUMN verify_token_expires TIMESTAMP",
+            "ALTER TABLE insurance_signups ALTER COLUMN user_id DROP NOT NULL",
+        ):
+            try:
+                db.execute(text(stmt))
+                db.commit()
+            except Exception:
+                db.rollback()  # Spalte existiert bereits / SQLite - OK
+    except Exception as e:
+        logger.error(f"Error in ensure_insurance_signup_columns: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+ensure_insurance_signup_columns()
+
+
 def ensure_external_job_columns():
     """Fügt Spalten für externe Jobs (BA-Scraper) hinzu, falls noch nicht vorhanden."""
     from sqlalchemy import text
