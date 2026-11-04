@@ -10,6 +10,8 @@ function BestaetigenInner() {
   const params = useSearchParams();
   const token = params.get("token") || "";
   const [state, setState] = useState<"loading" | "ok" | "already" | "error">("loading");
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+  const [needsEmbassy, setNeedsEmbassy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -18,8 +20,13 @@ function BestaetigenInner() {
       try {
         const res = await insuranceAPI.verifyEmail(token);
         if (!active) return;
-        if (res.data?.ok) setState(res.data?.already ? "already" : "ok");
-        else setState("error");
+        if (res.data?.ok) {
+          setRedirectUrl(res.data?.redirect_url || null);
+          setNeedsEmbassy(!!res.data?.needs_embassy_proof);
+          setState(res.data?.already ? "already" : "ok");
+        } else {
+          setState("error");
+        }
       } catch {
         if (active) setState("error");
       }
@@ -43,13 +50,24 @@ function BestaetigenInner() {
             </div>
             <h1 className="text-xl font-bold text-slate-900 mb-2">E-Mail bestätigt ✅</h1>
             <p className="text-slate-600">
-              {state === "already"
-                ? "Deine E-Mail war bereits bestätigt. Wir kümmern uns um deine Anmeldung."
-                : "Danke! Deine Anmeldung ist jetzt bestätigt. Wir melden uns bzw. stellen – falls benötigt – den Nachweis für die Botschaft bereit."}
+              {needsEmbassy
+                ? "Danke! Deine Anmeldung ist bestätigt. Wir stellen dir den Versicherungsnachweis für die Botschaft bereit und melden uns."
+                : "Danke! Deine Anmeldung ist bestätigt. Du kannst jetzt direkt mit dem Anmeldeformular fortfahren."}
             </p>
-            <Link href="/arbeitnehmer/krankenkasse" className="inline-block mt-6 px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold hover:bg-primary-700 transition">
-              Zur Krankenkassen-Seite
-            </Link>
+            {redirectUrl && !needsEmbassy ? (
+              <a
+                href={redirectUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-6 px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold hover:bg-primary-700 transition"
+              >
+                Zum Anmeldeformular →
+              </a>
+            ) : (
+              <Link href="/arbeitnehmer/krankenkasse" className="inline-block mt-6 px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold hover:bg-primary-700 transition">
+                Zur Krankenkassen-Seite
+              </Link>
+            )}
           </>
         )}
         {state === "error" && (

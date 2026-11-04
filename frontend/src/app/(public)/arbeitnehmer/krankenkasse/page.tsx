@@ -21,6 +21,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { insuranceAPI } from "@/lib/api";
+import TurnstileWidget from "@/components/TurnstileWidget";
+
+// Cloudflare-Turnstile-Site-Key (optional). Gesetzt -> Captcha aktiv.
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
 interface Article {
   id: number;
@@ -103,6 +107,7 @@ export default function KrankenkassePage() {
   const [email, setEmail] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
 
   useEffect(() => {
     setIsClient(true);
@@ -141,16 +146,27 @@ export default function KrankenkassePage() {
         setEmailError(t("krankenkasse.emailInvalid", "Bitte gib eine gültige E-Mail-Adresse an."));
         return;
       }
+      if (TURNSTILE_SITE_KEY && !captchaToken) {
+        setEmailError(t("krankenkasse.captchaRequired", "Bitte schließe die Bot-Prüfung ab."));
+        return;
+      }
       insuranceAPI.track("click_insurance_signup_email");
       setSubmitting(true);
       try {
-        await insuranceAPI.signupEmail({
+        const res = await insuranceAPI.signupEmail({
           email: mail,
           needs_embassy_proof: embassyChoice,
           language: lang,
           website: honeypot, // Honeypot – muss leer sein
+          turnstile_token: captchaToken,
         });
-        setDone({ redirect_url: null, embassy: embassyChoice, emailSent: true });
+        const emailSent = res.data?.email_sent !== false;
+        const redirect = emailSent ? null : (res.data?.redirect_url || null);
+        setDone({ redirect_url: redirect, embassy: embassyChoice, emailSent });
+        // Captcha-Weg (kein E-Mail-Umweg): direkt zum Formular, wenn kein Botschafts-Nachweis
+        if (redirect && !embassyChoice) {
+          setTimeout(() => { window.location.href = redirect; }, 1800);
+        }
       } catch {
         setSubmitting(false);
       }
@@ -596,6 +612,11 @@ export default function KrankenkassePage() {
                           onChange={(e) => setHoneypot(e.target.value)}
                           className="hidden"
                         />
+                        {TURNSTILE_SITE_KEY && (
+                          <div className="mt-3">
+                            <TurnstileWidget siteKey={TURNSTILE_SITE_KEY} onToken={setCaptchaToken} />
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -618,7 +639,7 @@ export default function KrankenkassePage() {
                     <button
                       type="button"
                       onClick={handleSignup}
-                      disabled={embassyChoice === null || !privacyAccepted || submitting || (!isAuthenticated && !email.trim())}
+                      disabled={embassyChoice === null || !privacyAccepted || submitting || (!isAuthenticated && (!email.trim() || (!!TURNSTILE_SITE_KEY && !captchaToken)))}
                       className="kk-sheen relative overflow-hidden inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-all shadow-sm enabled:hover:-translate-y-0.5"
                     >
                       {submitting ? t("krankenkasse.signupLoading") : t("krankenkasse.signupButton")}
