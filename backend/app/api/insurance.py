@@ -22,7 +22,7 @@ from app.services.document_service import DocumentService
 from app.services.settings_service import get_setting
 from app.services.email_service import email_service
 from app.core.config import settings
-from app.core.rate_limiter import rate_limit_insurance
+from app.core.rate_limiter import rate_limit_insurance, get_client_ip
 
 router = APIRouter(prefix="/insurance", tags=["Insurance / Arbeitnehmer-Infos"])
 
@@ -195,39 +195,75 @@ class EmailSignupRequest(BaseModel):
     email: EmailStr
     needs_embassy_proof: bool = False
     language: Optional[str] = "de"
-    website: Optional[str] = ""  # Honeypot – im Formular versteckt, muss leer bleiben
+    website: Optional[str] = ""           # Honeypot – im Formular versteckt, muss leer bleiben
+    turnstile_token: Optional[str] = ""   # Cloudflare-Turnstile-Token (falls aktiviert)
+
+
+async def _verify_turnstile(secret: str, token: str, remoteip: str = "") -> bool:
+    """Prueft ein Cloudflare-Turnstile-Token serverseitig. Gibt False bei Fehler/leer."""
+    if not token:
+        return False
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.post(
+                "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                data={"secret": secret, "response": token, "remoteip": remoteip or ""},
+            )
+            return bool(r.json().get("success"))
+    except Exception:
+        return False
 
 
 @router.post("/signup-email")
 async def create_signup_email(data: EmailSignupRequest, request: Request, db: Session = Depends(get_db)):
     """Anonyme Krankenkassen-Anmeldung nur per E-Mail (ohne Konto).
 
-    Bot-Schutz: Honeypot (verstecktes Feld) + Rate-Limit (IP & E-Mail) + Double-Opt-In.
-    Die Anmeldung zaehlt erst, nachdem der Bestaetigungslink angeklickt wurde.
-    Die Antwort ist bewusst generisch (keine Auskunft, ob eine E-Mail schon existiert).
+    Bot-Schutz & Ablauf:
+    - Honeypot + Rate-Limit – immer.
+    - MIT Cloudflare Turnstile (TURNSTILE_SECRET_KEY gesetzt): Captcha stoppt Bots beim
+      Absenden -> Anmeldung ist SOFORT aktiv und wir geben direkt die Formular-URL
+      (BARMER) zurueck. Kein E-Mail-Umweg.
+    - OHNE Turnstile: Double-Opt-In (Bestaetigungslink). Nach dem Klick erhaelt der
+      Nutzer auf der Bestaetigungsseite die Formular-URL.
     """
-    generic_ok = {"ok": True, "message": "Fast geschafft! Bitte bestätige deine E-Mail über den Link, den wir dir gerade geschickt haben."}
-
     # Honeypot: nur Bots fuellen das versteckte Feld 'website'.
     if (data.website or "").strip():
-        return generic_ok
+        return {"ok": True, "email_sent": False}
 
     email = str(data.email).strip().lower()
     await rate_limit_insurance(request, email)
-
     language = data.language if data.language in ("de", "en", "es", "ru") else "de"
-    token = secrets.token_urlsafe(32)
+    barmer_url = (get_setting(db, "barmer_signup_url", "") or "").strip()
 
+    # --- Weg A: Captcha konfiguriert -> sofortige Anmeldung, direkt zum Formular ---
+    turnstile_secret = os.getenv("TURNSTILE_SECRET_KEY", "").strip()
+    if turnstile_secret:
+        ok = await _verify_turnstile(turnstile_secret, (data.turnstile_token or "").strip(), get_client_ip(request))
+        if not ok:
+            raise HTTPException(status_code=400, detail="Bitte bestätige, dass du kein Bot bist, und versuche es erneut.")
+        signup = InsuranceSignup(
+            user_id=None, full_name=None, email=email,
+            needs_embassy_proof=bool(data.needs_embassy_proof), language=language,
+            status="new", email_verified=True,
+        )
+        db.add(signup)
+        db.commit()
+        return {
+            "ok": True,
+            "email_sent": False,
+            "redirect_url": barmer_url or None,
+            "needs_embassy_proof": bool(data.needs_embassy_proof),
+            "message": "Danke! Deine Anmeldung ist eingegangen.",
+        }
+
+    # --- Weg B: ohne Captcha -> Double-Opt-In (Bestaetigungslink per E-Mail) ---
+    token = secrets.token_urlsafe(32)
     signup = InsuranceSignup(
-        user_id=None,
-        full_name=None,
-        email=email,
-        needs_embassy_proof=bool(data.needs_embassy_proof),
-        language=language,
-        status="pending",
-        email_verified=False,
-        verify_token=token,
-        verify_token_expires=datetime.utcnow() + timedelta(hours=48),
+        user_id=None, full_name=None, email=email,
+        needs_embassy_proof=bool(data.needs_embassy_proof), language=language,
+        status="pending", email_verified=False,
+        verify_token=token, verify_token_expires=datetime.utcnow() + timedelta(hours=48),
     )
     db.add(signup)
     db.commit()
@@ -238,7 +274,7 @@ async def create_signup_email(data: EmailSignupRequest, request: Request, db: Se
     except Exception:
         pass  # Zustellung best effort – Antwort bleibt generisch
 
-    return generic_ok
+    return {"ok": True, "email_sent": True, "message": "Fast geschafft! Bitte bestätige deine E-Mail über den Link, den wir dir gerade geschickt haben."}
 
 
 class VerifyEmailRequest(BaseModel):
@@ -250,13 +286,14 @@ async def verify_signup_email(data: VerifyEmailRequest, db: Session = Depends(ge
     """Bestaetigt eine anonyme E-Mail-Anmeldung (Double-Opt-In). Danach landet sie
     in der Admin-Liste (status 'new')."""
     token = (data.token or "").strip()
+    barmer_url = (get_setting(db, "barmer_signup_url", "") or "").strip()
     if not token:
         return {"ok": False, "reason": "missing_token"}
     signup = db.query(InsuranceSignup).filter(InsuranceSignup.verify_token == token).first()
     if not signup:
         return {"ok": False, "reason": "invalid"}
     if signup.email_verified:
-        return {"ok": True, "already": True}
+        return {"ok": True, "already": True, "redirect_url": barmer_url or None, "needs_embassy_proof": bool(signup.needs_embassy_proof)}
     exp = signup.verify_token_expires
     if exp is not None and getattr(exp, "tzinfo", None) is not None:
         exp = exp.replace(tzinfo=None)
@@ -267,7 +304,7 @@ async def verify_signup_email(data: VerifyEmailRequest, db: Session = Depends(ge
     signup.verify_token = None
     signup.verify_token_expires = None
     db.commit()
-    return {"ok": True}
+    return {"ok": True, "redirect_url": barmer_url or None, "needs_embassy_proof": bool(signup.needs_embassy_proof)}
 
 
 # ---- Admin-Endpoints -------------------------------------------------------
