@@ -98,7 +98,11 @@ export default function KrankenkassePage() {
   const [embassyChoice, setEmbassyChoice] = useState<null | boolean>(null);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<null | { redirect_url: string | null; embassy: boolean }>(null);
+  const [done, setDone] = useState<null | { redirect_url: string | null; embassy: boolean; emailSent?: boolean }>(null);
+  // Anonymer Weg (ohne Konto): E-Mail + Honeypot (Bot-Schutz)
+  const [email, setEmail] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [emailError, setEmailError] = useState("");
 
   useEffect(() => {
     setIsClient(true);
@@ -127,10 +131,36 @@ export default function KrankenkassePage() {
 
   const handleSignup = async () => {
     if (embassyChoice === null || !privacyAccepted) return;
+    const lang = (i18n.language || "de").split("-")[0];
+
+    // Nicht eingeloggt -> anonymer E-Mail-Weg mit Double-Opt-In
+    if (!isAuthenticated) {
+      setEmailError("");
+      const mail = email.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) {
+        setEmailError(t("krankenkasse.emailInvalid", "Bitte gib eine gültige E-Mail-Adresse an."));
+        return;
+      }
+      insuranceAPI.track("click_insurance_signup_email");
+      setSubmitting(true);
+      try {
+        await insuranceAPI.signupEmail({
+          email: mail,
+          needs_embassy_proof: embassyChoice,
+          language: lang,
+          website: honeypot, // Honeypot – muss leer sein
+        });
+        setDone({ redirect_url: null, embassy: embassyChoice, emailSent: true });
+      } catch {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // Eingeloggt -> bisheriger Konto-Weg
     insuranceAPI.track("click_insurance_signup");
     setSubmitting(true);
     try {
-      const lang = (i18n.language || "de").split("-")[0];
       const res = await insuranceAPI.signup(embassyChoice, lang);
       setDone({ redirect_url: res.data.redirect_url || null, embassy: embassyChoice });
       if (res.data.redirect_url && !embassyChoice) {
@@ -468,9 +498,15 @@ export default function KrankenkassePage() {
                   <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-6">
                     <div className="flex items-center gap-2 text-emerald-700 font-semibold text-lg">
                       <CheckCircle2 className="h-6 w-6" />
-                      {t("krankenkasse.successTitle")}
+                      {done.emailSent
+                        ? t("krankenkasse.emailSentTitle", "Fast geschafft – bitte E-Mail bestätigen")
+                        : t("krankenkasse.successTitle")}
                     </div>
-                    <p className="mt-2 text-slate-600">{t("krankenkasse.successBody")}</p>
+                    <p className="mt-2 text-slate-600">
+                      {done.emailSent
+                        ? t("krankenkasse.emailSentBody", "Wir haben dir einen Bestätigungslink an deine E-Mail geschickt. Bitte öffne die Mail und klicke auf den Link, damit wir deine Anmeldung bearbeiten können. (Schau ggf. auch im Spam-Ordner.)")
+                        : t("krankenkasse.successBody")}
+                    </p>
                     {done.embassy && (
                       <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 p-4 text-amber-800 text-sm">
                         <FileCheck2 className="h-5 w-5 flex-shrink-0" />
@@ -491,28 +527,6 @@ export default function KrankenkassePage() {
                   </div>
                 ) : !isClient ? (
                   <div className="h-24 animate-pulse bg-slate-100 rounded-xl" />
-                ) : !isAuthenticated ? (
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6">
-                    <h3 className="font-semibold text-lg text-slate-900 flex items-center gap-2">
-                      <LogIn className="h-5 w-5 text-primary-600" />
-                      {t("krankenkasse.loginRequiredTitle")}
-                    </h3>
-                    <p className="mt-2 text-slate-600">{t("krankenkasse.loginRequiredBody")}</p>
-                    <div className="mt-5 flex flex-wrap gap-3">
-                      <Link
-                        href="/login"
-                        className="kk-sheen relative overflow-hidden px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-all shadow-sm hover:-translate-y-0.5"
-                      >
-                        {t("krankenkasse.loginButton")}
-                      </Link>
-                      <Link
-                        href="/register"
-                        className="px-6 py-3 rounded-xl bg-white border border-slate-300 text-slate-700 font-semibold hover:border-primary-300 hover:text-primary-700 transition-colors"
-                      >
-                        {t("krankenkasse.registerButton")}
-                      </Link>
-                    </div>
-                  </div>
                 ) : !partner.signup_available ? (
                   <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6">
                     <h3 className="font-semibold text-lg text-slate-900">
@@ -554,6 +568,37 @@ export default function KrankenkassePage() {
                       })}
                     </div>
 
+                    {!isAuthenticated && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          {t("krankenkasse.emailLabel", "Deine E-Mail-Adresse")}
+                        </label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
+                          placeholder="name@example.com"
+                          autoComplete="email"
+                          className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none transition"
+                        />
+                        {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
+                        <p className="text-xs text-slate-500 mt-1">
+                          {t("krankenkasse.emailHint", "Wir senden dir einen Bestätigungslink – erst nach dem Klick bearbeiten wir deine Anmeldung.")}
+                        </p>
+                        {/* Honeypot gegen Bots – für Menschen unsichtbar, muss leer bleiben */}
+                        <input
+                          type="text"
+                          name="website"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          aria-hidden="true"
+                          value={honeypot}
+                          onChange={(e) => setHoneypot(e.target.value)}
+                          className="hidden"
+                        />
+                      </div>
+                    )}
+
                     <label className="flex items-start gap-3 cursor-pointer select-none rounded-xl border border-slate-200 bg-slate-50/70 p-4">
                       <input
                         type="checkbox"
@@ -573,12 +618,22 @@ export default function KrankenkassePage() {
                     <button
                       type="button"
                       onClick={handleSignup}
-                      disabled={embassyChoice === null || !privacyAccepted || submitting}
+                      disabled={embassyChoice === null || !privacyAccepted || submitting || (!isAuthenticated && !email.trim())}
                       className="kk-sheen relative overflow-hidden inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-all shadow-sm enabled:hover:-translate-y-0.5"
                     >
                       {submitting ? t("krankenkasse.signupLoading") : t("krankenkasse.signupButton")}
                       {!submitting && <ArrowRight className="h-5 w-5" />}
                     </button>
+
+                    {!isAuthenticated && (
+                      <p className="text-sm text-slate-500 flex items-center gap-1">
+                        <LogIn className="h-4 w-4 text-slate-400" />
+                        {t("krankenkasse.orHaveAccount", "Schon ein Konto?")}{" "}
+                        <Link href="/login" className="text-primary-600 underline hover:text-primary-700">{t("krankenkasse.loginButton")}</Link>
+                        <span className="text-slate-300">·</span>
+                        <Link href="/register" className="text-primary-600 underline hover:text-primary-700">{t("krankenkasse.registerButton")}</Link>
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

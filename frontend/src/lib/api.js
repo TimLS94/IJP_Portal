@@ -299,6 +299,10 @@ export const insuranceAPI = {
   // Eingeloggt: zur Krankenkasse anmelden (gibt BARMER-Redirect-URL zurück)
   signup: (needs_embassy_proof, language = 'de') =>
     api.post('/insurance/signup', { needs_embassy_proof, language }),
+  // Anonym (nur E-Mail, Double-Opt-In). 'website' = Honeypot (muss leer sein).
+  signupEmail: (payload) => api.post('/insurance/signup-email', payload),
+  // Double-Opt-In: E-Mail-Token bestätigen
+  verifyEmail: (token) => api.post('/insurance/verify-email', { token }),
   // Tracking (öffentlich, anonym): Seitenaufrufe / Funktionsnutzung
   track: (event) => api.post('/insurance/track', { event }).catch(() => {}),
   // Admin
