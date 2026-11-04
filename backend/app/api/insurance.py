@@ -219,15 +219,14 @@ async def _verify_turnstile(secret: str, token: str, remoteip: str = "") -> bool
 async def create_signup_email(data: EmailSignupRequest, request: Request, db: Session = Depends(get_db)):
     """Anonyme Krankenkassen-Anmeldung nur per E-Mail (ohne Konto).
 
-    Bot-Schutz & Ablauf:
-    - Honeypot + Rate-Limit – immer.
-    - MIT Cloudflare Turnstile (TURNSTILE_SECRET_KEY gesetzt): Captcha stoppt Bots beim
-      Absenden -> Anmeldung ist SOFORT aktiv und wir geben direkt die Formular-URL
-      (BARMER) zurueck. Kein E-Mail-Umweg.
-    - OHNE Turnstile: Double-Opt-In (Bestaetigungslink). Nach dem Klick erhaelt der
-      Nutzer auf der Bestaetigungsseite die Formular-URL.
+    Ablauf: E-Mail wird erfasst und die Anmeldung ist SOFORT aktiv (kein E-Mail-Umweg).
+    Danach kann der Nutzer – falls eine Formular-URL (BARMER) hinterlegt ist und er
+    keinen Botschafts-Nachweis braucht – direkt zum Formular weiter.
+
+    Bot-Schutz: Honeypot + Rate-Limit (immer) + Cloudflare Turnstile, falls
+    TURNSTILE_SECRET_KEY gesetzt ist (dann wird das Token geprueft).
     """
-    # Honeypot: nur Bots fuellen das versteckte Feld 'website'.
+    # Honeypot: nur Bots fuellen das versteckte Feld 'website'. Still "ok", aber nichts tun.
     if (data.website or "").strip():
         return {"ok": True, "email_sent": False}
 
@@ -236,45 +235,28 @@ async def create_signup_email(data: EmailSignupRequest, request: Request, db: Se
     language = data.language if data.language in ("de", "en", "es", "ru") else "de"
     barmer_url = (get_setting(db, "barmer_signup_url", "") or "").strip()
 
-    # --- Weg A: Captcha konfiguriert -> sofortige Anmeldung, direkt zum Formular ---
+    # Captcha-Tor nur, wenn konfiguriert
     turnstile_secret = os.getenv("TURNSTILE_SECRET_KEY", "").strip()
     if turnstile_secret:
         ok = await _verify_turnstile(turnstile_secret, (data.turnstile_token or "").strip(), get_client_ip(request))
         if not ok:
             raise HTTPException(status_code=400, detail="Bitte bestätige, dass du kein Bot bist, und versuche es erneut.")
-        signup = InsuranceSignup(
-            user_id=None, full_name=None, email=email,
-            needs_embassy_proof=bool(data.needs_embassy_proof), language=language,
-            status="new", email_verified=True,
-        )
-        db.add(signup)
-        db.commit()
-        return {
-            "ok": True,
-            "email_sent": False,
-            "redirect_url": barmer_url or None,
-            "needs_embassy_proof": bool(data.needs_embassy_proof),
-            "message": "Danke! Deine Anmeldung ist eingegangen.",
-        }
 
-    # --- Weg B: ohne Captcha -> Double-Opt-In (Bestaetigungslink per E-Mail) ---
-    token = secrets.token_urlsafe(32)
     signup = InsuranceSignup(
         user_id=None, full_name=None, email=email,
         needs_embassy_proof=bool(data.needs_embassy_proof), language=language,
-        status="pending", email_verified=False,
-        verify_token=token, verify_token_expires=datetime.utcnow() + timedelta(hours=48),
+        status="new", email_verified=True,
     )
     db.add(signup)
     db.commit()
 
-    verify_link = f"{_frontend_url()}/versicherung/bestaetigen?token={token}"
-    try:
-        email_service.send_insurance_verify_email(email, verify_link, language)
-    except Exception:
-        pass  # Zustellung best effort – Antwort bleibt generisch
-
-    return {"ok": True, "email_sent": True, "message": "Fast geschafft! Bitte bestätige deine E-Mail über den Link, den wir dir gerade geschickt haben."}
+    return {
+        "ok": True,
+        "email_sent": False,
+        "redirect_url": barmer_url or None,
+        "needs_embassy_proof": bool(data.needs_embassy_proof),
+        "message": "Danke! Deine Anmeldung ist eingegangen – wir melden uns.",
+    }
 
 
 class VerifyEmailRequest(BaseModel):
