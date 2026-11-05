@@ -2341,6 +2341,10 @@
     "ijpStatus": {
       "title": "Status updated",
       "message": "Your IJP request has a new status: {{status}}."
+    },
+    "profileIncomplete": {
+      "title": "Complete your profile",
+      "message": "Complete your profile so you can apply."
     }
   },
   "arbeitnehmer": {

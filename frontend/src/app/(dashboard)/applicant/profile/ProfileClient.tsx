@@ -153,25 +153,28 @@ export default function ProfileClient() {
 
     // Fehlende Pflichtangaben werden NUR gesammelt – das Speichern wird NICHT blockiert.
     // So kann man Zwischenstände sichern und sieht danach, was noch fehlt.
+    // Dieselben Pflichtfelder wie beim Bewerben (siehe Backend
+    // check_application_requirements) – damit das Profil vorab zeigt, was zum
+    // Bewerben noch fehlt.
     const missingFields: string[] = [];
     if (!String(data.first_name || "").trim()) missingFields.push(t("applicant.firstName"));
     if (!String(data.last_name || "").trim()) missingFields.push(t("applicant.lastName"));
     if (!data.date_of_birth) missingFields.push(t("applicant.dateOfBirth"));
+    if (!String(data.nationality ?? "").trim()) missingFields.push(t("applicant.nationality"));
     if (!String(data.phone || "").trim()) missingFields.push(t("applicant.phone"));
+    if (!String(data.street || "").trim()) missingFields.push(t("applicant.street"));
+    if (!String(data.city || "").trim()) missingFields.push(t("applicant.city"));
+    if (!String(data.country || "").trim()) missingFields.push(t("applicant.country"));
     if (!isIjp && data.work_authorized !== true && data.work_authorized !== false) {
       missingFields.push(t("applicant.missingWorkAuth", "Angabe zur Arbeitserlaubnis"));
     }
+    // IJP-Studenten: zusätzliche Pflichtangaben
     if ((data.position_types || []).includes("studentenferienjob")) {
       if (!data.semester_break_start || !data.semester_break_end) missingFields.push(t("applicant.semesterBreak"));
       if (!data.studying_since) missingFields.push(t("applicant.studyingSince", "Studium seit (Studienbeginn)"));
       const missingUni = ["university_name", "university_street", "university_house_number", "university_postal_code", "university_city", "university_country"]
         .filter((f) => !String(data[f] || "").trim());
       if (missingUni.length > 0) missingFields.push(t("applicant.missingUniAddress", "Vollständige Uni-Anschrift"));
-    }
-    if (isIjp) {
-      const missingOwn = ["street", "house_number", "postal_code", "city", "country"]
-        .filter((f) => !String(data[f] || "").trim());
-      if (missingOwn.length > 0) missingFields.push(t("applicant.missingHomeAddress", "Vollständige Wohnadresse"));
     }
 
     setSaving(true);
@@ -503,7 +506,7 @@ export default function ProfileClient() {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="md:col-span-2 grid grid-cols-4 gap-4">
               <div className="col-span-3">
-                <label className="label">{t("applicant.street")}{isIjp && " *"}</label>
+                <label className="label">{t("applicant.street")} *</label>
                 <input type="text" className="input-styled" placeholder={t("applicant.streetPlaceholder")} {...register("street")} />
               </div>
               <div>
@@ -516,11 +519,11 @@ export default function ProfileClient() {
               <input type="text" className="input-styled" placeholder="12345" {...register("postal_code")} />
             </div>
             <div>
-              <label className="label">{t("applicant.city")}{isIjp && " *"}</label>
+              <label className="label">{t("applicant.city")} *</label>
               <input type="text" className="input-styled" placeholder={t("applicant.cityPlaceholder")} {...register("city")} />
             </div>
             <div className="md:col-span-2">
-              <label className="label">{t("applicant.country")}{isIjp && " *"}</label>
+              <label className="label">{t("applicant.country")} *</label>
               <input type="text" className="input-styled" placeholder={t("applicant.countryPlaceholder")} {...register("country")} />
             </div>
           </div>

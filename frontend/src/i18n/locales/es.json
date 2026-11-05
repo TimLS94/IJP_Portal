@@ -2258,6 +2258,10 @@
     "ijpStatus": {
       "title": "Estado actualizado",
       "message": "Tu solicitud IJP tiene un nuevo estado: {{status}}."
+    },
+    "profileIncomplete": {
+      "title": "Completa tu perfil",
+      "message": "Completa tu perfil para poder postularte."
     }
   },
   "arbeitnehmer": {

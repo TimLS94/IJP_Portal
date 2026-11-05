@@ -469,7 +469,9 @@ export default function Navbar() {
                               <div
                                 key={notif.id}
                                 onClick={async () => {
-                                  if (!notif.is_read) await handleMarkAsRead(notif.id);
+                                  // id 0 = synthetischer "Profil vervollständigen"-Hinweis:
+                                  // nicht als gelesen markieren (existiert nicht in der DB).
+                                  if (notif.id > 0 && !notif.is_read) await handleMarkAsRead(notif.id);
                                   setNotifMenuOpen(false);
                                   if (notif.reference_type === "job" && notif.reference_id) {
                                     router.push(`/jobs/${notif.reference_id}`);

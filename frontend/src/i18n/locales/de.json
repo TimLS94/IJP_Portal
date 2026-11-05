@@ -2341,6 +2341,10 @@
     "ijpStatus": {
       "title": "Status aktualisiert",
       "message": "Dein IJP-Auftrag hat einen neuen Status: {{status}}."
+    },
+    "profileIncomplete": {
+      "title": "Profil vervollständigen",
+      "message": "Vervollständige dein Profil, um dich bewerben zu können."
     }
   },
   "arbeitnehmer": {
