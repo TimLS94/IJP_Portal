@@ -9,11 +9,34 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
+from app.models.applicant import Applicant
 from app.models.notification import Notification
 from app.api.auth import get_current_user
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
+
+
+def _applicant_profile_incomplete(db: Session, user: User) -> bool:
+    """True, wenn das Bewerberprofil fuer eine Bewerbung noch unvollstaendig ist.
+    Steuert die synthetische 'Profil vervollstaendigen'-Benachrichtigung."""
+    if not user or user.role != UserRole.APPLICANT:
+        return False
+    a = db.query(Applicant).filter(Applicant.user_id == user.id).first()
+    if not a:
+        return True
+    # Pflichtfelder wie beim Bewerben (check_application_requirements):
+    # Vorname, Nachname, Geburtsdatum, Nationalitaet, Telefon, Strasse, Stadt, Land
+    if not (a.first_name and a.last_name and a.date_of_birth and a.nationality
+            and a.phone and a.street and a.city and a.country):
+        return True
+    # IJP-Studenten: zusaetzliche Pflichtangaben
+    if (getattr(a, "portal", "") or "") == "ijp":
+        if not a.studying_since:
+            return True
+        if not (a.university_city and a.university_street):
+            return True
+    return False
 
 
 class NotificationResponse(BaseModel):
@@ -51,7 +74,13 @@ async def get_notification_count(
     total = db.query(func.count(Notification.id)).filter(
         Notification.user_id == current_user.id
     ).scalar() or 0
-    
+
+    # Synthetischer "Profil vervollstaendigen"-Hinweis (zaehlt als 1 ungelesen,
+    # solange das Profil unvollstaendig ist – verschwindet automatisch danach).
+    if _applicant_profile_incomplete(db, current_user):
+        unread += 1
+        total += 1
+
     return {"unread_count": unread, "total_count": total}
 
 
@@ -69,6 +98,24 @@ async def get_notifications(
         query = query.filter(Notification.is_read == False)
     
     notifications = query.order_by(Notification.created_at.desc()).limit(limit).all()
+
+    # Synthetischer "Profil vervollstaendigen"-Hinweis (oben, nicht in der DB).
+    # id=0 kennzeichnet ihn -> das Frontend markiert ihn nicht als gelesen, sondern
+    # navigiert nur zum Profil. Text kommt ueber notification_key (mehrsprachig).
+    if _applicant_profile_incomplete(db, current_user):
+        synthetic = {
+            "id": 0,
+            "type": "profile_incomplete",
+            "reference_id": None,
+            "reference_type": "profile",
+            "title": "Profil vervollständigen",
+            "message": "Vervollständige dein Profil, um dich bewerben zu können.",
+            "notification_key": "notifications.profileIncomplete",
+            "notification_params": None,
+            "is_read": False,
+            "created_at": datetime.utcnow(),
+        }
+        return [synthetic, *notifications]
     return notifications
 
 
