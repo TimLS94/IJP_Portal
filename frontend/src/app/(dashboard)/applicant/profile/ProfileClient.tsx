@@ -154,20 +154,24 @@ export default function ProfileClient() {
     // Fehlende Pflichtangaben werden NUR gesammelt – das Speichern wird NICHT blockiert.
     // So kann man Zwischenstände sichern und sieht danach, was noch fehlt.
     const missingFields: string[] = [];
+    if (!String(data.first_name || "").trim()) missingFields.push(t("applicant.firstName"));
+    if (!String(data.last_name || "").trim()) missingFields.push(t("applicant.lastName"));
+    if (!data.date_of_birth) missingFields.push(t("applicant.dateOfBirth"));
+    if (!String(data.phone || "").trim()) missingFields.push(t("applicant.phone"));
     if (!isIjp && data.work_authorized !== true && data.work_authorized !== false) {
-      missingFields.push("Angabe zur Arbeitserlaubnis");
+      missingFields.push(t("applicant.missingWorkAuth", "Angabe zur Arbeitserlaubnis"));
     }
     if ((data.position_types || []).includes("studentenferienjob")) {
-      if (!data.semester_break_start || !data.semester_break_end) missingFields.push("Semesterferien (Start und Ende)");
+      if (!data.semester_break_start || !data.semester_break_end) missingFields.push(t("applicant.semesterBreak"));
       if (!data.studying_since) missingFields.push(t("applicant.studyingSince", "Studium seit (Studienbeginn)"));
       const missingUni = ["university_name", "university_street", "university_house_number", "university_postal_code", "university_city", "university_country"]
         .filter((f) => !String(data[f] || "").trim());
-      if (missingUni.length > 0) missingFields.push("vollständige Uni-Anschrift (Name, Straße, Hausnummer, PLZ, Ort, Land)");
+      if (missingUni.length > 0) missingFields.push(t("applicant.missingUniAddress", "Vollständige Uni-Anschrift"));
     }
     if (isIjp) {
       const missingOwn = ["street", "house_number", "postal_code", "city", "country"]
         .filter((f) => !String(data[f] || "").trim());
-      if (missingOwn.length > 0) missingFields.push("vollständige Wohnadresse (Straße, Hausnummer, PLZ, Ort, Land)");
+      if (missingOwn.length > 0) missingFields.push(t("applicant.missingHomeAddress", "Vollständige Wohnadresse"));
     }
 
     setSaving(true);
@@ -194,7 +198,7 @@ export default function ProfileClient() {
         setCommissionPrompt(allMissing);
       } else if (missingFields.length > 0) {
         // Nicht-IJP: gespeichert, aber Hinweis auf offene Pflichtangaben
-        toast("Gespeichert. Noch offen: " + missingFields.join(", "), { icon: "⚠️", duration: 7000 });
+        toast(t("applicant.savedStillOpen", { list: missingFields.join(", "), defaultValue: `Gespeichert. Noch offen: ${missingFields.join(", ")}` }), { icon: "⚠️", duration: 7000 });
       }
     } catch (e: any) {
       // Backend-Fehler lesbar anzeigen – auch FastAPI-422 (detail ist dann ein Array
@@ -292,24 +296,24 @@ export default function ProfileClient() {
       {commissionPrompt !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setCommissionPrompt(null)}>
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Profil gespeichert ✅</h3>
-            <p className="text-gray-600 mb-4">Um deine Vermittlung zu starten, musst du IJP noch beauftragen.</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{t("applicant.profileSavedTitle", "Profil gespeichert ✅")}</h3>
+            <p className="text-gray-600 mb-4">{t("applicant.commissionNeeded", "Um deine Vermittlung zu starten, musst du IJP noch beauftragen.")}</p>
             {commissionPrompt.length > 0 ? (
               <div className="mb-4 rounded-xl border-2 border-amber-200 bg-amber-50 p-4">
-                <p className="font-medium text-amber-800 mb-2">Dafür fehlt noch:</p>
+                <p className="font-medium text-amber-800 mb-2">{t("applicant.stillMissing", "Dafür fehlt noch:")}</p>
                 <ul className="list-disc list-inside text-sm text-amber-900 space-y-1">
                   {commissionPrompt.map((m, i) => <li key={i}>{m}</li>)}
                 </ul>
-                <p className="text-xs text-amber-700 mt-2">Trage die fehlenden Angaben oben ein bzw. lade die fehlenden Dokumente unten auf dieser Seite hoch. Dein Zwischenstand ist bereits gespeichert.</p>
+                <p className="text-xs text-amber-700 mt-2">{t("applicant.fillMissingHint", "Trage die fehlenden Angaben oben ein bzw. lade die fehlenden Dokumente unten auf dieser Seite hoch. Dein Zwischenstand ist bereits gespeichert.")}</p>
               </div>
             ) : (
               <div className="mb-4 rounded-xl border-2 border-green-200 bg-green-50 p-4 text-sm text-green-800">
-                Alles vollständig – du kannst IJP jetzt beauftragen.
+                {t("applicant.allComplete", "Alles vollständig – du kannst IJP jetzt beauftragen.")}
               </div>
             )}
             <div className="flex gap-2">
-              <button type="button" onClick={() => router.push("/applicant/ijp-auftrag")} className="btn-primary flex-1">IJP beauftragen →</button>
-              <button type="button" onClick={() => setCommissionPrompt(null)} className="px-4 py-2 text-gray-600 hover:text-gray-800">Später</button>
+              <button type="button" onClick={() => router.push("/applicant/ijp-auftrag")} className="btn-primary flex-1">{t("applicant.commissionIjp", "IJP beauftragen →")}</button>
+              <button type="button" onClick={() => setCommissionPrompt(null)} className="px-4 py-2 text-gray-600 hover:text-gray-800">{t("applicant.later", "Später")}</button>
             </div>
           </div>
         </div>
@@ -425,7 +429,7 @@ export default function ProfileClient() {
                 type="text"
                 className="input-styled"
                 placeholder={t("applicant.firstNamePlaceholder")}
-                {...register("first_name", { required: t("applicant.firstNameRequired") })}
+                {...register("first_name")}
               />
               {errors.first_name && <p className="text-red-500 text-sm mt-1">{String(errors.first_name.message)}</p>}
             </div>
@@ -435,7 +439,7 @@ export default function ProfileClient() {
                 type="text"
                 className="input-styled"
                 placeholder={t("applicant.lastNamePlaceholder")}
-                {...register("last_name", { required: t("applicant.lastNameRequired") })}
+                {...register("last_name")}
               />
               {errors.last_name && <p className="text-red-500 text-sm mt-1">{String(errors.last_name.message)}</p>}
             </div>
@@ -444,7 +448,7 @@ export default function ProfileClient() {
               <input
                 type="date"
                 className="input-styled"
-                {...register("date_of_birth", { required: t("applicant.dateOfBirthRequired") })}
+                {...register("date_of_birth")}
               />
             </div>
             <div>
@@ -484,7 +488,7 @@ export default function ProfileClient() {
                 type="tel"
                 className="input-styled"
                 placeholder="+49 123 456789"
-                {...register("phone", { required: t("applicant.phoneRequired") })}
+                {...register("phone")}
               />
             </div>
           </div>
