@@ -105,8 +105,15 @@ async def get_file(
         if not user:
             raise HTTPException(status_code=401, detail="Nicht autorisiert")
 
-        # SICHERHEIT: Dokument-Dateien nur für Berechtigte (kein Zugriff über fremde Pfade).
-        if file_path.startswith("documents/") and not _may_access_document(user, file_path, db):
+        from app.models.user import UserRole
+        # SICHERHEIT (Default-Deny): nicht-öffentliche Pfade nur über bekannte,
+        # besitzgeprüfte Prefixe. Dokument-Dateien -> Ownership-Check. Jeder andere
+        # nicht-öffentliche Pfad ist nur für Admins erreichbar – so kann ein künftig
+        # hinzugefügter Prefix (z.B. contracts/) nicht versehentlich für alle offen sein.
+        if file_path.startswith("documents/"):
+            if not _may_access_document(user, file_path, db):
+                raise HTTPException(status_code=403, detail="Keine Berechtigung")
+        elif user.role != UserRole.ADMIN:
             raise HTTPException(status_code=403, detail="Keine Berechtigung")
 
     # Datei herunterladen (R2 / S3 Storage)

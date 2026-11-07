@@ -1735,6 +1735,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        # Das Backend liefert nur JSON und Dateien (Bilder/PDF) – NIE Inline-Skripte.
+        # Eine strikte CSP verhindert u.a. Script-Ausführung in hochgeladenen SVGs,
+        # ohne JSON-Antworten zu beeinflussen.
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; "
+            "font-src 'self'; script-src 'none'; object-src 'none'; "
+            "base-uri 'none'; frame-ancestors 'none'"
+        )
         if not settings.DEBUG:
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response

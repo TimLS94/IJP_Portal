@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.security import get_current_user
 from app.models.user import User, UserRole
 from app.models.applicant import Applicant
@@ -343,7 +344,13 @@ async def sign_contract(
     if not (fname.endswith(".pdf") or fname.endswith(".jpg") or fname.endswith(".jpeg") or fname.endswith(".png")):
         raise HTTPException(status_code=400, detail="Nur PDF, JPG oder PNG erlaubt")
 
-    contract.signed_content = await file.read()
+    signed_bytes = await file.read()
+    if len(signed_bytes) > settings.MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Datei zu groß. Maximum: {settings.MAX_FILE_SIZE // (1024 * 1024)} MB",
+        )
+    contract.signed_content = signed_bytes
     contract.signed_filename = file.filename
     contract.status = "signed"
     contract.signed_at = datetime.utcnow()

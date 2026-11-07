@@ -473,7 +473,8 @@ async def download_document(
         raise
     except Exception as e:
         _log.error(f"Download-Fehler Dokument {document_id}: {e}\n{_traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Download fehlgeschlagen: {e}")
+        # Keine internen Fehlerdetails an den Client leaken – nur generische Meldung.
+        raise HTTPException(status_code=500, detail="Download fehlgeschlagen")
 
 
 def _friendly_filename(document, db: Session) -> str:
