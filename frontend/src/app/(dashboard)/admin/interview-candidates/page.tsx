@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Calendar, Plus, Trash2, Loader2, CheckCircle2, Clock,
-  Pencil, X, Save, Users,
+  Pencil, X, Save, Users, FileText, Upload,
 } from "lucide-react";
 import { adminInterviewCandidatesAPI } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -17,6 +17,8 @@ interface Candidate {
   notes?: string | null;
   interview_done: boolean;
   interview_date?: string | null;
+  has_cv?: boolean;
+  cv_filename?: string | null;
   partner_source?: string | null;
   partner_name?: string | null;
   created_at: string;
@@ -41,6 +43,7 @@ export default function AdminInterviewCandidatesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [cvFile, setCvFile] = useState<File | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ ...EMPTY_FORM });
 
@@ -67,18 +70,63 @@ export default function AdminInterviewCandidatesPage() {
     }
     setSaving(true);
     try {
-      await adminInterviewCandidatesAPI.create({
+      const res = await adminInterviewCandidatesAPI.create({
         ...form,
         interview_date: form.interview_date || null,
       });
+      // Optional direkt ausgewählten Lebenslauf anhängen
+      if (cvFile && res?.data?.id) {
+        const fd = new FormData();
+        fd.append("file", cvFile);
+        try { await adminInterviewCandidatesAPI.uploadCv(res.data.id, fd); }
+        catch { toast.error("Kandidat angelegt, aber Lebenslauf-Upload fehlgeschlagen"); }
+      }
       toast.success("Kandidat angelegt");
       setForm({ ...EMPTY_FORM });
+      setCvFile(null);
       setShowCreate(false);
       load();
     } catch {
       toast.error("Fehler beim Anlegen");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openCv = async (id: number) => {
+    try {
+      const res = await adminInterviewCandidatesAPI.downloadCv(id);
+      const url = URL.createObjectURL(res.data);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      toast.error("Lebenslauf konnte nicht geladen werden");
+    }
+  };
+
+  const uploadCvFor = async (id: number, file: File) => {
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Nur PDF-Dateien sind erlaubt");
+      return;
+    }
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      await adminInterviewCandidatesAPI.uploadCv(id, fd);
+      toast.success("Lebenslauf angehängt");
+      load();
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Upload fehlgeschlagen");
+    }
+  };
+
+  const removeCv = async (id: number) => {
+    if (!confirm("Lebenslauf entfernen?")) return;
+    try {
+      await adminInterviewCandidatesAPI.deleteCv(id);
+      load();
+    } catch {
+      toast.error("Fehler beim Entfernen");
     }
   };
 
@@ -230,6 +278,13 @@ export default function AdminInterviewCandidatesPage() {
               <input type="date" className="input-styled" value={form.interview_date}
                 onChange={(e) => setForm({ ...form, interview_date: e.target.value })} />
             </div>
+            <div className="md:col-span-2">
+              <label className="label">Lebenslauf (PDF, optional)</label>
+              <input type="file" accept="application/pdf"
+                onChange={(e) => setCvFile(e.target.files?.[0] || null)}
+                className="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-primary-100 file:text-primary-700 hover:file:bg-primary-200" />
+              {cvFile && <p className="text-xs text-gray-500 mt-1">Ausgewählt: {cvFile.name}</p>}
+            </div>
             <div className="md:col-span-2 flex gap-3">
               <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -311,6 +366,24 @@ export default function AdminInterviewCandidatesPage() {
                       <span>Englisch: <strong>{c.english_level || "–"}</strong></span>
                     </div>
                     {c.notes && <p className="text-sm text-gray-500 mt-1 whitespace-pre-wrap">{c.notes}</p>}
+                    <div className="mt-2">
+                      {c.has_cv ? (
+                        <span className="inline-flex items-center gap-3 text-sm">
+                          <button onClick={() => openCv(c.id)} className="text-blue-600 hover:underline inline-flex items-center gap-1">
+                            <FileText className="h-4 w-4" /> Lebenslauf ansehen
+                          </button>
+                          <button onClick={() => removeCv(c.id)} className="text-red-400 hover:text-red-600 inline-flex items-center gap-1" title="Lebenslauf entfernen">
+                            <X className="h-3.5 w-3.5" /> entfernen
+                          </button>
+                        </span>
+                      ) : (
+                        <label className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-700 cursor-pointer">
+                          <Upload className="h-4 w-4" /> Lebenslauf (PDF) anhängen
+                          <input type="file" accept="application/pdf" className="hidden"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCvFor(c.id, f); e.target.value = ""; }} />
+                        </label>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => toggleDone(c)}

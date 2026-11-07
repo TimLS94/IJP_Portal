@@ -6,7 +6,7 @@ import { partnerAPI } from "@/lib/api";
 import {
   CheckCircle2, XCircle, Clock, Users, FileText,
   Filter, Loader2, AlertCircle, ChevronDown, ChevronUp,
-  ClipboardList, Shield, Lock, Calendar, Plus, Trash2, Pencil, Save, X
+  ClipboardList, Shield, Lock, Calendar, Plus, Trash2, Pencil, Save, X, Upload
 } from "lucide-react";
 
 interface DocCheck {
@@ -59,6 +59,8 @@ interface InterviewCandidate {
   notes?: string | null;
   interview_done: boolean;
   interview_date?: string | null;
+  has_cv?: boolean;
+  cv_filename?: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -249,6 +251,7 @@ function InterviewCandidatesSection({ token }: { token: string }) {
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...EMPTY_CAND });
+  const [cvFile, setCvFile] = useState<File | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -263,7 +266,7 @@ function InterviewCandidatesSection({ token }: { token: string }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const resetForm = () => { setForm({ ...EMPTY_CAND }); setEditId(null); setShowForm(false); };
+  const resetForm = () => { setForm({ ...EMPTY_CAND }); setEditId(null); setShowForm(false); setCvFile(null); };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,8 +274,13 @@ function InterviewCandidatesSection({ token }: { token: string }) {
     setSaving(true);
     try {
       const payload = { ...form, interview_date: form.interview_date || "" };
-      if (editId) await partnerAPI.updateInterviewCandidate(token, editId, payload);
-      else await partnerAPI.createInterviewCandidate(token, payload);
+      if (editId) {
+        await partnerAPI.updateInterviewCandidate(token, editId, payload);
+        if (cvFile) await uploadCvFor(editId, cvFile);
+      } else {
+        const res = await partnerAPI.createInterviewCandidate(token, payload);
+        if (cvFile && res?.data?.id) await uploadCvFor(res.data.id, cvFile);
+      }
       resetForm();
       load();
     } catch (err: unknown) {
@@ -280,6 +288,28 @@ function InterviewCandidatesSection({ token }: { token: string }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const openCv = async (id: number) => {
+    try {
+      const res = await partnerAPI.downloadInterviewCandidateCv(token, id);
+      const url = URL.createObjectURL(res.data);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch { alert("Lebenslauf konnte nicht geladen werden."); }
+  };
+
+  const uploadCvFor = async (id: number, file: File) => {
+    if (!file.name.toLowerCase().endsWith(".pdf")) { alert("Nur PDF-Dateien sind erlaubt."); return; }
+    const fd = new FormData();
+    fd.append("file", file);
+    try { await partnerAPI.uploadInterviewCandidateCv(token, id, fd); load(); }
+    catch (err: unknown) { alert((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Upload fehlgeschlagen."); }
+  };
+
+  const removeCv = async (id: number) => {
+    if (!confirm("Lebenslauf entfernen?")) return;
+    try { await partnerAPI.deleteInterviewCandidateCv(token, id); load(); } catch { /* ignore */ }
   };
 
   const startEdit = (c: InterviewCandidate) => {
@@ -358,6 +388,13 @@ function InterviewCandidatesSection({ token }: { token: string }) {
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           <div className="sm:col-span-2">
+            <label className="text-xs text-gray-500 block mb-1">Lebenslauf (PDF, optional)</label>
+            <input type="file" accept="application/pdf"
+              onChange={(e) => setCvFile(e.target.files?.[0] || null)}
+              className="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200" />
+            {cvFile && <p className="text-xs text-gray-500 mt-1">Ausgewählt: {cvFile.name}</p>}
+          </div>
+          <div className="sm:col-span-2">
             <button type="submit" disabled={saving}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-2">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -395,6 +432,24 @@ function InterviewCandidatesSection({ token }: { token: string }) {
                     <span>Englisch: <strong>{c.english_level || "–"}</strong></span>
                   </div>
                   {c.notes && <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap">{c.notes}</p>}
+                  <div className="mt-1.5">
+                    {c.has_cv ? (
+                      <span className="inline-flex items-center gap-3 text-xs">
+                        <button onClick={() => openCv(c.id)} className="text-blue-600 hover:underline inline-flex items-center gap-1">
+                          <FileText className="h-3.5 w-3.5" /> Lebenslauf ansehen
+                        </button>
+                        <button onClick={() => removeCv(c.id)} className="text-red-400 hover:text-red-600 inline-flex items-center gap-1" title="Lebenslauf entfernen">
+                          <X className="h-3 w-3" /> entfernen
+                        </button>
+                      </span>
+                    ) : (
+                      <label className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-700 cursor-pointer">
+                        <Upload className="h-3.5 w-3.5" /> Lebenslauf (PDF) anhängen
+                        <input type="file" accept="application/pdf" className="hidden"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCvFor(c.id, f); e.target.value = ""; }} />
+                      </label>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button onClick={() => toggleDone(c)} title={c.interview_done ? "Als offen markieren" : "Als durchgeführt markieren"}

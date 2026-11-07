@@ -717,6 +717,9 @@ export const adminInterviewCandidatesAPI = {
   create: (data) => api.post('/admin/interview-candidates', data),
   update: (id, data) => api.patch(`/admin/interview-candidates/${id}`, data),
   delete: (id) => api.delete(`/admin/interview-candidates/${id}`),
+  uploadCv: (id, formData) => api.post(`/admin/interview-candidates/${id}/cv`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  downloadCv: (id) => api.get(`/admin/interview-candidates/${id}/cv`, { responseType: 'blob' }),
+  deleteCv: (id) => api.delete(`/admin/interview-candidates/${id}/cv`),
 };
 
 // Verträge (IJP-Auftrag)
@@ -763,6 +766,12 @@ export const partnerAPI = {
     axios.patch(`${partnerBase()}/partner/${token}/interview-candidates/${id}`, data, { headers: partnerHeaders(token) }),
   deleteInterviewCandidate: (token, id) =>
     axios.delete(`${partnerBase()}/partner/${token}/interview-candidates/${id}`, { headers: partnerHeaders(token) }),
+  uploadInterviewCandidateCv: (token, id, formData) =>
+    axios.post(`${partnerBase()}/partner/${token}/interview-candidates/${id}/cv`, formData, { headers: { ...partnerHeaders(token), 'Content-Type': 'multipart/form-data' } }),
+  downloadInterviewCandidateCv: (token, id) =>
+    axios.get(`${partnerBase()}/partner/${token}/interview-candidates/${id}/cv`, { responseType: 'blob', headers: partnerHeaders(token) }),
+  deleteInterviewCandidateCv: (token, id) =>
+    axios.delete(`${partnerBase()}/partner/${token}/interview-candidates/${id}/cv`, { headers: partnerHeaders(token) }),
 };
 
 export default api;
