@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { applicationsAPI, jobsAPI, documentsAPI, resolveFileUrl } from "@/lib/api";
 import { trackJobView, trackJobApply, trackJobLike, trackExternalJobClick, trackJobContactClick } from "@/lib/analytics";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import {
@@ -254,8 +255,11 @@ export default function JobDetailClient({ initialJob, slug, forceLang }: Props) 
 
   const textToHtml = (text: string): string => {
     if (!text) return "";
-    if (/<[a-z][\s\S]*>/i.test(text)) return text;
-    return text.replace(/\n/g, "<br>");
+    // Enthält der Text bereits HTML, wird er NUR bereinigt gerendert (Schutz vor
+    // Stored XSS – Stellen-Texte kommen u.a. von Firmen, Scraping und KI-Import).
+    // Reiner Text bekommt Zeilenumbrüche, wird dann ebenfalls bereinigt.
+    const html = /<[a-z][\s\S]*>/i.test(text) ? text : text.replace(/\n/g, "<br>");
+    return sanitizeHtml(html);
   };
 
   const getLabel = (key: string): string => t(`jobDetail.${key}`, key);

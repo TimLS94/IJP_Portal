@@ -8,6 +8,7 @@ import {
   Share2, Copy, Check
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   news: Newspaper,
@@ -170,8 +171,10 @@ export default function BlogDetailClient({ post, relatedPosts, language = "de" }
       .replace(/^\- (.*$)/gim, '<li class="ml-4">$1</li>')
       .replace(/\n\n/g, '</p><p class="mb-4">')
       .replace(/\n/g, "<br>");
-    
-    return `<p class="mb-4">${html}</p>`;
+
+    // Bereinigen vor dem Rendern (entfernt Scripts/Handler/javascript:-Links aus
+    // dem Markdown-Inhalt – Schutz vor XSS auch bei kompromittierten Inhalten).
+    return sanitizeHtml(`<p class="mb-4">${html}</p>`);
   };
 
   const Icon = categoryIcons[post.category] || BookOpen;
