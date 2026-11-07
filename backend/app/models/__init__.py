@@ -19,6 +19,8 @@ from app.models.notification import Notification
 from app.models.applicant_invite import ApplicantInviteToken
 from app.models.job_promotion import JobPromotion
 from app.models.telegram_subscriber import TelegramSubscriber
+from app.models.partner_link import PartnerLink
+from app.models.interview_candidate import InterviewCandidate
 
 __all__ = [
     "User", "Applicant", "Company", "CompanyMember", "CompanyRole", "JobPosting",
@@ -26,5 +28,6 @@ __all__ = [
     "Interview", "InterviewStatus", "GlobalSettings", "CompanyRequest",
     "CompanyRequestType", "CompanyRequestStatus", "JobTemplate", "InviteToken",
     "JobInteraction", "InteractionType", "ReportReason", "Notification",
-    "ApplicantInviteToken", "JobPromotion", "TelegramSubscriber"
+    "ApplicantInviteToken", "JobPromotion", "TelegramSubscriber",
+    "PartnerLink", "InterviewCandidate"
 ]

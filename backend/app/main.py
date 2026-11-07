@@ -203,6 +203,7 @@ def ensure_external_job_columns():
             ("partner_links", "send_onboarding_email", "BOOLEAN DEFAULT TRUE"),
             ("partner_links", "password_hash", "VARCHAR(255)"),
             ("partner_links", "password_plain", "VARCHAR(255)"),
+            ("partner_links", "can_add_interview_candidates", "BOOLEAN DEFAULT FALSE"),
         ]
         allowed_tables = {t for t, _, _ in new_columns}
         allowed_cols = {c for _, c, _ in new_columns}
@@ -719,6 +720,42 @@ def ensure_partner_links_table():
 
 
 ensure_partner_links_table()
+
+
+def ensure_interview_candidates_table():
+    """Erstellt die interview_candidates Tabelle falls sie noch nicht existiert."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS interview_candidates (
+                id SERIAL PRIMARY KEY,
+                first_name VARCHAR(255) NOT NULL,
+                last_name VARCHAR(255) NOT NULL,
+                german_level VARCHAR(50),
+                english_level VARCHAR(50),
+                notes TEXT,
+                interview_done BOOLEAN NOT NULL DEFAULT FALSE,
+                interview_date DATE,
+                partner_link_id INTEGER REFERENCES partner_links(id) ON DELETE SET NULL,
+                partner_source VARCHAR(255),
+                created_by_user_id INTEGER REFERENCES users(id),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        """))
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_interview_candidates_partner_source ON interview_candidates (partner_source)"))
+        db.execute(text("CREATE INDEX IF NOT EXISTS ix_interview_candidates_partner_link_id ON interview_candidates (partner_link_id)"))
+        db.commit()
+        logger.info("interview_candidates: Tabelle sichergestellt")
+    except Exception as e:
+        db.rollback()
+        logger.debug(f"interview_candidates: {e}")
+    finally:
+        db.close()
+
+
+ensure_interview_candidates_table()
 
 
 def ensure_company_premium_column():

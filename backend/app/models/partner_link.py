@@ -30,6 +30,10 @@ class PartnerLink(Base):
     can_add_students = Column(Boolean, default=True, server_default="true", nullable=False)
     can_edit_students = Column(Boolean, default=False, server_default="false", nullable=False)
 
+    # Darf dieser Partner Bewerbungsgespräch-Kandidaten anlegen/pflegen? (reine IJP-Thematik,
+    # standardmäßig aus – muss vom Admin explizit freigeschaltet werden)
+    can_add_interview_candidates = Column(Boolean, default=False, server_default="false", nullable=False)
+
     # Onboarding-Mail an den Studenten beim Anlegen (Passwort-Setzen-Link) senden?
     send_onboarding_email = Column(Boolean, default=True, server_default="true", nullable=False)
 

@@ -15,6 +15,7 @@ from app.core.database import get_db, utc_now
 from app.core.security import get_current_user, verify_password, get_password_hash, create_access_token, decode_token
 from app.models.user import User, UserRole
 from app.models.partner_link import PartnerLink
+from app.models.interview_candidate import InterviewCandidate
 from app.models.applicant import Applicant
 from app.models.document import Document, DocumentType, DOCUMENT_REQUIREMENTS
 from app.models.job_request import JobRequest, JobRequestStatus, JOB_REQUEST_STATUS_LABELS, JOB_REQUEST_STATUS_COLORS, INTERNAL_JOB_REQUEST_STATUSES
@@ -154,6 +155,7 @@ class CreatePartnerLinkSchema(BaseModel):
     notes: Optional[str] = None
     can_add_students: Optional[bool] = None
     can_edit_students: Optional[bool] = None
+    can_add_interview_candidates: Optional[bool] = None
     send_onboarding_email: Optional[bool] = None
     password: Optional[str] = None  # Klartext zum Setzen; leer/None = kein Passwort
 
@@ -165,6 +167,7 @@ class UpdatePartnerLinkSchema(BaseModel):
     notes: Optional[str] = None
     can_add_students: Optional[bool] = None
     can_edit_students: Optional[bool] = None
+    can_add_interview_candidates: Optional[bool] = None
     send_onboarding_email: Optional[bool] = None
     password: Optional[str] = None  # Klartext zum Setzen; "" = Passwortschutz entfernen
 
@@ -200,6 +203,7 @@ async def list_partner_links(
             "notes": link.notes,
             "can_add_students": bool(getattr(link, "can_add_students", True)),
             "can_edit_students": bool(getattr(link, "can_edit_students", False)),
+            "can_add_interview_candidates": bool(getattr(link, "can_add_interview_candidates", False)),
             "send_onboarding_email": bool(getattr(link, "send_onboarding_email", True)),
             "has_password": bool(getattr(link, "password_hash", None)),
             "password": getattr(link, "password_plain", None),  # Klartext (nur Admin) zum Wiederanzeigen
@@ -224,6 +228,7 @@ async def create_partner_link(
         notes=data.notes,
         can_add_students=True if data.can_add_students is None else data.can_add_students,
         can_edit_students=False if data.can_edit_students is None else data.can_edit_students,
+        can_add_interview_candidates=False if data.can_add_interview_candidates is None else data.can_add_interview_candidates,
         send_onboarding_email=True if data.send_onboarding_email is None else data.send_onboarding_email,
         password_hash=(get_password_hash(data.password) if (data.password or "").strip() else None),
         password_plain=((data.password or "").strip() or None),
@@ -257,6 +262,8 @@ async def update_partner_link(
         link.can_add_students = data.can_add_students
     if data.can_edit_students is not None:
         link.can_edit_students = data.can_edit_students
+    if data.can_add_interview_candidates is not None:
+        link.can_add_interview_candidates = data.can_add_interview_candidates
     if data.send_onboarding_email is not None:
         link.send_onboarding_email = data.send_onboarding_email
     if data.password is not None:
@@ -310,6 +317,7 @@ async def partner_meta(token: str, db: Session = Depends(get_db)):
         "partner_name": link.name,
         "is_active": bool(link.is_active),
         "requires_password": bool(getattr(link, "password_hash", None)),
+        "can_add_interview_candidates": bool(getattr(link, "can_add_interview_candidates", False)),
     }
 
 
@@ -409,6 +417,7 @@ async def get_partner_view(
         "docs_complete_count": docs_complete,
         "can_add_students": bool(getattr(link, "can_add_students", True)),
         "can_edit_students": can_edit,
+        "can_add_interview_candidates": bool(getattr(link, "can_add_interview_candidates", False)),
         "applicants": entries,
     }
 
@@ -549,3 +558,216 @@ async def partner_applicant_access(token: str, applicant_id: int, request: Reque
         "access_token": access_token,
         "user": {"id": user.id, "email": user.email, "role": user.role.value, "is_active": user.is_active, "portal": getattr(applicant, "portal", "ijp") or "ijp"},
     }
+
+
+# ── Bewerbungsgespräch-Kandidaten (reine IJP-Thematik) ─────────────────────────
+# Angelegt von IJP (Admin) ODER von einem freigeschalteten Partner.
+
+class InterviewCandidateSchema(BaseModel):
+    first_name: str
+    last_name: str
+    german_level: Optional[str] = None
+    english_level: Optional[str] = None
+    notes: Optional[str] = None
+    interview_done: Optional[bool] = False
+    interview_date: Optional[str] = None  # ISO (YYYY-MM-DD)
+
+
+class InterviewCandidateUpdateSchema(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    german_level: Optional[str] = None
+    english_level: Optional[str] = None
+    notes: Optional[str] = None
+    interview_done: Optional[bool] = None
+    interview_date: Optional[str] = None
+
+
+def _parse_iso_date(value: Optional[str]):
+    """'YYYY-MM-DD' -> date | None. Leerer String -> None (Datum löschen)."""
+    from datetime import date as _date
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    try:
+        return _date.fromisoformat(value[:10])
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungültiges Datum (Format: YYYY-MM-DD)")
+
+
+def _candidate_dict(c: "InterviewCandidate", partner_name: Optional[str] = None) -> dict:
+    return {
+        "id": c.id,
+        "first_name": c.first_name,
+        "last_name": c.last_name,
+        "german_level": c.german_level,
+        "english_level": c.english_level,
+        "notes": c.notes,
+        "interview_done": bool(c.interview_done),
+        "interview_date": c.interview_date.isoformat() if c.interview_date else None,
+        "partner_source": c.partner_source,
+        "partner_name": partner_name,
+        "created_at": c.created_at,
+        "updated_at": c.updated_at,
+    }
+
+
+def _apply_candidate_fields(c: "InterviewCandidate", data, *, partial: bool):
+    """Setzt die Felder aus dem Schema. partial=True -> nur gesetzte Felder (PATCH)."""
+    if not partial or data.first_name is not None:
+        if data.first_name is not None:
+            c.first_name = data.first_name.strip()
+    if not partial or data.last_name is not None:
+        if data.last_name is not None:
+            c.last_name = data.last_name.strip()
+    if not partial or data.german_level is not None:
+        c.german_level = (data.german_level or "").strip() or None
+    if not partial or data.english_level is not None:
+        c.english_level = (data.english_level or "").strip() or None
+    if not partial or data.notes is not None:
+        c.notes = (data.notes or "").strip() or None
+    if data.interview_done is not None:
+        c.interview_done = bool(data.interview_done)
+    if not partial or data.interview_date is not None:
+        c.interview_date = _parse_iso_date(data.interview_date)
+
+
+# ── Admin: Kandidaten verwalten (sieht ALLE, auch die der Partner) ─────────────
+
+@router.get("/admin/interview-candidates")
+async def admin_list_interview_candidates(
+    partner_source: Optional[str] = Query(None),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    q = db.query(InterviewCandidate)
+    if partner_source:
+        q = q.filter(InterviewCandidate.partner_source == partner_source)
+    candidates = q.order_by(InterviewCandidate.created_at.desc()).all()
+    # Partner-Namen (source -> name) für die Anzeige
+    source_to_name = {
+        l.partner_source: l.name
+        for l in db.query(PartnerLink).all()
+    }
+    return {
+        "candidates": [
+            _candidate_dict(c, source_to_name.get(c.partner_source) if c.partner_source else None)
+            for c in candidates
+        ]
+    }
+
+
+@router.post("/admin/interview-candidates")
+async def admin_create_interview_candidate(
+    data: InterviewCandidateSchema,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if not (data.first_name or "").strip() or not (data.last_name or "").strip():
+        raise HTTPException(status_code=400, detail="Vor- und Nachname erforderlich")
+    c = InterviewCandidate(created_by_user_id=current_user.id)
+    _apply_candidate_fields(c, data, partial=False)
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return _candidate_dict(c)
+
+
+@router.patch("/admin/interview-candidates/{candidate_id}")
+async def admin_update_interview_candidate(
+    candidate_id: int,
+    data: InterviewCandidateUpdateSchema,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    c = db.query(InterviewCandidate).filter(InterviewCandidate.id == candidate_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Kandidat nicht gefunden")
+    _apply_candidate_fields(c, data, partial=True)
+    db.commit()
+    db.refresh(c)
+    return _candidate_dict(c)
+
+
+@router.delete("/admin/interview-candidates/{candidate_id}")
+async def admin_delete_interview_candidate(
+    candidate_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    c = db.query(InterviewCandidate).filter(InterviewCandidate.id == candidate_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Kandidat nicht gefunden")
+    db.delete(c)
+    db.commit()
+    return {"message": "Gelöscht"}
+
+
+# ── Partner: eigene Kandidaten (nur wenn freigeschaltet) ───────────────────────
+
+def _partner_candidate_link(token: str, request: Request, db: Session) -> "PartnerLink":
+    """Validiert den Partner-Link + die Freischaltung für Kandidaten und gibt ihn zurück."""
+    link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
+    if not link or not link.is_active:
+        raise HTTPException(status_code=404, detail="Link nicht gefunden oder deaktiviert")
+    if not _partner_authorized(link, request):
+        raise HTTPException(status_code=401, detail="Passwort erforderlich")
+    if not getattr(link, "can_add_interview_candidates", False):
+        raise HTTPException(status_code=403, detail="Das Anlegen von Gesprächs-Kandidaten ist für diesen Link nicht freigegeben.")
+    return link
+
+
+@router.get("/partner/{token}/interview-candidates")
+async def partner_list_interview_candidates(token: str, request: Request, db: Session = Depends(get_db)):
+    link = _partner_candidate_link(token, request, db)
+    candidates = (
+        db.query(InterviewCandidate)
+        .filter(InterviewCandidate.partner_link_id == link.id)
+        .order_by(InterviewCandidate.created_at.desc())
+        .all()
+    )
+    return {"candidates": [_candidate_dict(c, link.name) for c in candidates]}
+
+
+@router.post("/partner/{token}/interview-candidates")
+async def partner_create_interview_candidate(token: str, data: InterviewCandidateSchema, request: Request, db: Session = Depends(get_db)):
+    link = _partner_candidate_link(token, request, db)
+    if not (data.first_name or "").strip() or not (data.last_name or "").strip():
+        raise HTTPException(status_code=400, detail="Vor- und Nachname erforderlich")
+    c = InterviewCandidate(partner_link_id=link.id, partner_source=link.partner_source)
+    _apply_candidate_fields(c, data, partial=False)
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return _candidate_dict(c, link.name)
+
+
+@router.patch("/partner/{token}/interview-candidates/{candidate_id}")
+async def partner_update_interview_candidate(token: str, candidate_id: int, data: InterviewCandidateUpdateSchema, request: Request, db: Session = Depends(get_db)):
+    link = _partner_candidate_link(token, request, db)
+    c = db.query(InterviewCandidate).filter(
+        InterviewCandidate.id == candidate_id,
+        InterviewCandidate.partner_link_id == link.id,
+    ).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Kandidat nicht gefunden")
+    _apply_candidate_fields(c, data, partial=True)
+    db.commit()
+    db.refresh(c)
+    return _candidate_dict(c, link.name)
+
+
+@router.delete("/partner/{token}/interview-candidates/{candidate_id}")
+async def partner_delete_interview_candidate(token: str, candidate_id: int, request: Request, db: Session = Depends(get_db)):
+    link = _partner_candidate_link(token, request, db)
+    c = db.query(InterviewCandidate).filter(
+        InterviewCandidate.id == candidate_id,
+        InterviewCandidate.partner_link_id == link.id,
+    ).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Kandidat nicht gefunden")
+    db.delete(c)
+    db.commit()
+    return {"message": "Gelöscht"}
