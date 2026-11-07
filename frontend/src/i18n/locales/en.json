@@ -788,7 +788,8 @@
     "workAuthRequired": "Please indicate whether you have a work permit for Germany (required).",
     "additionalDocuments": "Additional documents",
     "addDocument": "Add document",
-    "noAdditionalDocuments": "No additional documents yet. You can upload any extra PDFs."
+    "noAdditionalDocuments": "No additional documents yet. You can upload any extra PDFs.",
+    "cvAutofillSaved": "{{count}} fields taken from the CV and saved."
   },
   "documents": {
     "title": "My Documents",

@@ -783,7 +783,8 @@
     "workAuthRequired": "Indica si tienes permiso de trabajo para Alemania (obligatorio).",
     "additionalDocuments": "Documentos adicionales",
     "addDocument": "Añadir documento",
-    "noAdditionalDocuments": "Aún no hay documentos adicionales. Puedes subir cualquier PDF adicional."
+    "noAdditionalDocuments": "Aún no hay documentos adicionales. Puedes subir cualquier PDF adicional.",
+    "cvAutofillSaved": "{{count}} campos tomados del CV y guardados."
   },
   "documents": {
     "title": "Mis documentos",

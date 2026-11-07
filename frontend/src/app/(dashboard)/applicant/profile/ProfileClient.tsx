@@ -98,7 +98,7 @@ export default function ProfileClient() {
   const cvFileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, watch, setValue, getValues, formState: { errors } } = useForm();
   const selectedPositionTypes = watch("position_types") || [];
   const beenToGermany = watch("been_to_germany");
   const workAuthorized = watch("work_authorized");
@@ -278,7 +278,18 @@ export default function ProfileClient() {
 
       try { trackCVParse(filled); } catch {}
       if (filled > 0) {
-        toast.success(t("applicant.fieldsAutofilled", { count: filled }));
+        // Auto-Speichern: damit die aus dem Lebenslauf übernommenen Daten NICHT
+        // verloren gehen, falls der Nutzer nicht manuell auf "Speichern" klickt.
+        try {
+          const values: any = getValues();
+          values.other_languages = d.other_languages?.length ? d.other_languages : otherLanguages;
+          values.work_experiences = d.work_experiences?.length ? d.work_experiences : workExperiences;
+          await applicantAPI.updateProfile(values);
+          toast.success(t("applicant.cvAutofillSaved", { count: filled, defaultValue: `${filled} Felder aus dem Lebenslauf übernommen und gespeichert.` }));
+        } catch {
+          // Speichern fehlgeschlagen -> zumindest Felder sind ausgefüllt (manuell speichern)
+          toast.success(t("applicant.fieldsAutofilled", { count: filled }));
+        }
       } else {
         toast.success(t("applicant.cvParsed"));
       }

@@ -944,7 +944,7 @@ export default function AdminUsersPage() {
                           ["Bevorzugter Bereich", a.preferred_work_area],
                           ["Schon in Deutschland", a.been_to_germany ? join(["Ja", a.germany_details], ": ") : (a.been_to_germany === false ? "Nein" : null)],
                           ["Zusatzinfo", a.additional_info],
-                          ["Datenschutz akzeptiert", a.privacy_accepted ? (d(a.privacy_accepted_at) || "Ja") : "Nein"],
+                          ["Einwilligung Vermittlung (IJP)", a.privacy_accepted ? (d(a.privacy_accepted_at) || "Ja") : "Nein"],
                           ["Registriert", d(gdprUser?.created_at)],
                         ];
                         return rows.map(([label, value]) => (

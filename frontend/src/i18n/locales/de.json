@@ -788,7 +788,8 @@
     "workAuthRequired": "Bitte gib an, ob du eine Arbeitserlaubnis für Deutschland hast (Pflichtangabe).",
     "additionalDocuments": "Weitere Dokumente",
     "addDocument": "Dokument hinzufügen",
-    "noAdditionalDocuments": "Noch keine weiteren Dokumente. Du kannst beliebige zusätzliche PDFs hochladen."
+    "noAdditionalDocuments": "Noch keine weiteren Dokumente. Du kannst beliebige zusätzliche PDFs hochladen.",
+    "cvAutofillSaved": "{{count}} Felder aus dem Lebenslauf übernommen und gespeichert."
   },
   "documents": {
     "title": "Meine Dokumente",
