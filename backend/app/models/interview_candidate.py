@@ -10,7 +10,7 @@ freigeschaltet ist (PartnerLink.can_add_interview_candidates).
 Bewusst eigenständig und NICHT mit `Application`/`Interview` verknüpft – das sind
 Vorab-Gespräche, noch ohne Bewerber-Konto oder Stelle.
 """
-from sqlalchemy import Column, Integer, String, Text, Boolean, Date, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Boolean, Date, DateTime, ForeignKey, LargeBinary
 from app.core.database import Base, utc_now
 
 
@@ -27,6 +27,12 @@ class InterviewCandidate(Base):
     english_level = Column(String(50), nullable=True)
 
     notes = Column(Text, nullable=True)                # Notizen
+
+    # Angehängter Lebenslauf (genau 1 PDF, direkt in der DB abgelegt wie bei Verträgen)
+    cv_content = Column(LargeBinary, nullable=True)
+    cv_filename = Column(String(255), nullable=True)
+    cv_mime = Column(String(100), nullable=True)
+    cv_uploaded_at = Column(DateTime(timezone=True), nullable=True)
 
     # Gespräch durchgeführt + an welchem Datum
     interview_done = Column(Boolean, default=False, server_default="false", nullable=False)

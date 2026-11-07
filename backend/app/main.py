@@ -737,6 +737,10 @@ def ensure_interview_candidates_table():
                 notes TEXT,
                 interview_done BOOLEAN NOT NULL DEFAULT FALSE,
                 interview_date DATE,
+                cv_content BYTEA,
+                cv_filename VARCHAR(255),
+                cv_mime VARCHAR(100),
+                cv_uploaded_at TIMESTAMP WITH TIME ZONE,
                 partner_link_id INTEGER REFERENCES partner_links(id) ON DELETE SET NULL,
                 partner_source VARCHAR(255),
                 created_by_user_id INTEGER REFERENCES users(id),
@@ -747,6 +751,18 @@ def ensure_interview_candidates_table():
         db.execute(text("CREATE INDEX IF NOT EXISTS ix_interview_candidates_partner_source ON interview_candidates (partner_source)"))
         db.execute(text("CREATE INDEX IF NOT EXISTS ix_interview_candidates_partner_link_id ON interview_candidates (partner_link_id)"))
         db.commit()
+        # Nachträgliche Spalten für bereits bestehende Tabelle (Lebenslauf-Anhang)
+        for stmt in (
+            "ALTER TABLE interview_candidates ADD COLUMN IF NOT EXISTS cv_content BYTEA",
+            "ALTER TABLE interview_candidates ADD COLUMN IF NOT EXISTS cv_filename VARCHAR(255)",
+            "ALTER TABLE interview_candidates ADD COLUMN IF NOT EXISTS cv_mime VARCHAR(100)",
+            "ALTER TABLE interview_candidates ADD COLUMN IF NOT EXISTS cv_uploaded_at TIMESTAMP WITH TIME ZONE",
+        ):
+            try:
+                db.execute(text(stmt))
+                db.commit()
+            except Exception:
+                db.rollback()  # Spalte existiert bereits / SQLite - OK
         logger.info("interview_candidates: Tabelle sichergestellt")
     except Exception as e:
         db.rollback()

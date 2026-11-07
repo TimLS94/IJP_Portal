@@ -4,7 +4,8 @@ Partner-Links API
 Öffentliche read-only Ansicht für externe Partner (Sprachschulen, Agenturen),
 die Bewerber an IJP vermitteln. Kein Login — nur Token-Validierung.
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
@@ -12,6 +13,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 
 from app.core.database import get_db, utc_now
+from app.core.config import settings
 from app.core.security import get_current_user, verify_password, get_password_hash, create_access_token, decode_token
 from app.models.user import User, UserRole
 from app.models.partner_link import PartnerLink
@@ -607,6 +609,8 @@ def _candidate_dict(c: "InterviewCandidate", partner_name: Optional[str] = None)
         "notes": c.notes,
         "interview_done": bool(c.interview_done),
         "interview_date": c.interview_date.isoformat() if c.interview_date else None,
+        "has_cv": bool(c.cv_content),
+        "cv_filename": c.cv_filename,
         "partner_source": c.partner_source,
         "partner_name": partner_name,
         "created_at": c.created_at,
@@ -632,6 +636,38 @@ def _apply_candidate_fields(c: "InterviewCandidate", data, *, partial: bool):
         c.interview_done = bool(data.interview_done)
     if not partial or data.interview_date is not None:
         c.interview_date = _parse_iso_date(data.interview_date)
+
+
+async def _store_cv(c: "InterviewCandidate", file: UploadFile, db: Session) -> None:
+    """Hängt genau 1 PDF als Lebenslauf an den Kandidaten (ersetzt ein vorhandenes)."""
+    fname = (file.filename or "").strip()
+    if not fname.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Nur PDF-Dateien sind erlaubt")
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Datei ist leer")
+    if len(content) > settings.MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Datei zu groß. Maximum: {settings.MAX_FILE_SIZE // (1024 * 1024)} MB",
+        )
+    c.cv_content = content
+    c.cv_filename = fname[:255]
+    c.cv_mime = "application/pdf"
+    c.cv_uploaded_at = utc_now()
+    db.commit()
+
+
+def _cv_response(c: "InterviewCandidate") -> Response:
+    """Liefert den angehängten Lebenslauf als PDF-Download (ASCII-sicherer Name)."""
+    if not c.cv_content:
+        raise HTTPException(status_code=404, detail="Kein Lebenslauf angehängt")
+    safe_name = (c.cv_filename or "lebenslauf.pdf").encode("ascii", "ignore").decode("ascii") or "lebenslauf.pdf"
+    return Response(
+        content=c.cv_content,
+        media_type=c.cv_mime or "application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{safe_name}"'},
+    )
 
 
 # ── Admin: Kandidaten verwalten (sieht ALLE, auch die der Partner) ─────────────
@@ -705,6 +741,50 @@ async def admin_delete_interview_candidate(
     return {"message": "Gelöscht"}
 
 
+@router.post("/admin/interview-candidates/{candidate_id}/cv")
+async def admin_upload_candidate_cv(
+    candidate_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    c = db.query(InterviewCandidate).filter(InterviewCandidate.id == candidate_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Kandidat nicht gefunden")
+    await _store_cv(c, file, db)
+    db.refresh(c)
+    return _candidate_dict(c)
+
+
+@router.get("/admin/interview-candidates/{candidate_id}/cv")
+async def admin_download_candidate_cv(
+    candidate_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    c = db.query(InterviewCandidate).filter(InterviewCandidate.id == candidate_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Kandidat nicht gefunden")
+    return _cv_response(c)
+
+
+@router.delete("/admin/interview-candidates/{candidate_id}/cv")
+async def admin_delete_candidate_cv(
+    candidate_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    c = db.query(InterviewCandidate).filter(InterviewCandidate.id == candidate_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Kandidat nicht gefunden")
+    c.cv_content = None
+    c.cv_filename = None
+    c.cv_mime = None
+    c.cv_uploaded_at = None
+    db.commit()
+    return {"message": "Lebenslauf entfernt"}
+
+
 # ── Partner: eigene Kandidaten (nur wenn freigeschaltet) ───────────────────────
 
 def _partner_candidate_link(token: str, request: Request, db: Session) -> "PartnerLink":
@@ -771,3 +851,40 @@ async def partner_delete_interview_candidate(token: str, candidate_id: int, requ
     db.delete(c)
     db.commit()
     return {"message": "Gelöscht"}
+
+
+def _partner_own_candidate(token: str, candidate_id: int, request: Request, db: Session):
+    """Validiert Link+Freigabe und gibt den Kandidaten dieses Partners zurück (404 sonst)."""
+    link = _partner_candidate_link(token, request, db)
+    c = db.query(InterviewCandidate).filter(
+        InterviewCandidate.id == candidate_id,
+        InterviewCandidate.partner_link_id == link.id,
+    ).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Kandidat nicht gefunden")
+    return link, c
+
+
+@router.post("/partner/{token}/interview-candidates/{candidate_id}/cv")
+async def partner_upload_candidate_cv(token: str, candidate_id: int, request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    link, c = _partner_own_candidate(token, candidate_id, request, db)
+    await _store_cv(c, file, db)
+    db.refresh(c)
+    return _candidate_dict(c, link.name)
+
+
+@router.get("/partner/{token}/interview-candidates/{candidate_id}/cv")
+async def partner_download_candidate_cv(token: str, candidate_id: int, request: Request, db: Session = Depends(get_db)):
+    _link, c = _partner_own_candidate(token, candidate_id, request, db)
+    return _cv_response(c)
+
+
+@router.delete("/partner/{token}/interview-candidates/{candidate_id}/cv")
+async def partner_delete_candidate_cv(token: str, candidate_id: int, request: Request, db: Session = Depends(get_db)):
+    _link, c = _partner_own_candidate(token, candidate_id, request, db)
+    c.cv_content = None
+    c.cv_filename = None
+    c.cv_mime = None
+    c.cv_uploaded_at = None
+    db.commit()
+    return {"message": "Lebenslauf entfernt"}
