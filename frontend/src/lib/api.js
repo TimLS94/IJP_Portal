@@ -711,6 +711,14 @@ export const adminPartnerLinksAPI = {
   delete: (id) => api.delete(`/admin/partner-links/${id}`),
 };
 
+// Admin: Bewerbungsgespräch-Kandidaten (reine IJP-Thematik)
+export const adminInterviewCandidatesAPI = {
+  list: (partnerSource) => api.get('/admin/interview-candidates', { params: partnerSource ? { partner_source: partnerSource } : {} }),
+  create: (data) => api.post('/admin/interview-candidates', data),
+  update: (id, data) => api.patch(`/admin/interview-candidates/${id}`, data),
+  delete: (id) => api.delete(`/admin/interview-candidates/${id}`),
+};
+
 // Verträge (IJP-Auftrag)
 export const contractsAPI = {
   // Admin
@@ -746,6 +754,15 @@ export const partnerAPI = {
     axios.post(`${partnerBase()}/partner/${token}/applicants`, data, { headers: partnerHeaders(token) }),
   getApplicantAccess: (token, applicantId) =>
     axios.post(`${partnerBase()}/partner/${token}/applicants/${applicantId}/access`, {}, { headers: partnerHeaders(token) }),
+  // Bewerbungsgespräch-Kandidaten (nur wenn der Link dafür freigeschaltet ist)
+  listInterviewCandidates: (token) =>
+    axios.get(`${partnerBase()}/partner/${token}/interview-candidates`, { headers: partnerHeaders(token) }),
+  createInterviewCandidate: (token, data) =>
+    axios.post(`${partnerBase()}/partner/${token}/interview-candidates`, data, { headers: partnerHeaders(token) }),
+  updateInterviewCandidate: (token, id, data) =>
+    axios.patch(`${partnerBase()}/partner/${token}/interview-candidates/${id}`, data, { headers: partnerHeaders(token) }),
+  deleteInterviewCandidate: (token, id) =>
+    axios.delete(`${partnerBase()}/partner/${token}/interview-candidates/${id}`, { headers: partnerHeaders(token) }),
 };
 
 export default api;

@@ -6,7 +6,7 @@ import { partnerAPI } from "@/lib/api";
 import {
   CheckCircle2, XCircle, Clock, Users, FileText,
   Filter, Loader2, AlertCircle, ChevronDown, ChevronUp,
-  ClipboardList, Shield, Lock
+  ClipboardList, Shield, Lock, Calendar, Plus, Trash2, Pencil, Save, X
 } from "lucide-react";
 
 interface DocCheck {
@@ -46,7 +46,19 @@ interface PartnerData {
   docs_complete_count: number;
   can_add_students?: boolean;
   can_edit_students?: boolean;
+  can_add_interview_candidates?: boolean;
   applicants: ApplicantEntry[];
+}
+
+interface InterviewCandidate {
+  id: number;
+  first_name: string;
+  last_name: string;
+  german_level?: string | null;
+  english_level?: string | null;
+  notes?: string | null;
+  interview_done: boolean;
+  interview_date?: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -223,6 +235,184 @@ function ApplicantRow({ entry, onFillProfile, canEditStudents }: { entry: Applic
             )}
         </div>
       )}
+    </div>
+  );
+}
+
+const LANG_LEVELS = ["", "A1", "A2", "B1", "B2", "C1", "C2", "Muttersprache"];
+const EMPTY_CAND = { first_name: "", last_name: "", german_level: "", english_level: "", notes: "", interview_done: false, interview_date: "" };
+
+function InterviewCandidatesSection({ token }: { token: string }) {
+  const [list, setList] = useState<InterviewCandidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [form, setForm] = useState({ ...EMPTY_CAND });
+
+  const load = useCallback(async () => {
+    try {
+      const res = await partnerAPI.listInterviewCandidates(token);
+      setList(res.data.candidates || []);
+    } catch {
+      /* Freigabe evtl. entzogen – Abschnitt bleibt leer */
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const resetForm = () => { setForm({ ...EMPTY_CAND }); setEditId(null); setShowForm(false); };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.first_name.trim() || !form.last_name.trim()) { alert("Vor- und Nachname erforderlich"); return; }
+    setSaving(true);
+    try {
+      const payload = { ...form, interview_date: form.interview_date || "" };
+      if (editId) await partnerAPI.updateInterviewCandidate(token, editId, payload);
+      else await partnerAPI.createInterviewCandidate(token, payload);
+      resetForm();
+      load();
+    } catch (err: unknown) {
+      alert((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Konnte nicht gespeichert werden.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEdit = (c: InterviewCandidate) => {
+    setEditId(c.id);
+    setForm({
+      first_name: c.first_name, last_name: c.last_name,
+      german_level: c.german_level || "", english_level: c.english_level || "",
+      notes: c.notes || "", interview_done: c.interview_done, interview_date: c.interview_date || "",
+    });
+    setShowForm(true);
+  };
+
+  const toggleDone = async (c: InterviewCandidate) => {
+    const next = !c.interview_done;
+    try {
+      await partnerAPI.updateInterviewCandidate(token, c.id, {
+        interview_done: next,
+        interview_date: next && !c.interview_date ? new Date().toISOString().slice(0, 10) : (c.interview_date || ""),
+      });
+      load();
+    } catch { /* ignore */ }
+  };
+
+  const remove = async (c: InterviewCandidate) => {
+    if (!confirm(`Kandidat "${c.first_name} ${c.last_name}" wirklich löschen?`)) return;
+    try { await partnerAPI.deleteInterviewCandidate(token, c.id); load(); } catch { /* ignore */ }
+  };
+
+  const fmt = (d?: string | null) => d ? new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }) : "";
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="font-semibold text-gray-900 flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-blue-600" /> Kandidaten für Bewerbungsgespräche
+          </p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Lege Kandidaten für Vorstellungsgespräche an: Name, Sprachkenntnisse und Notizen. Markiere, ob das Gespräch durchgeführt wurde.
+          </p>
+        </div>
+        <button type="button" onClick={() => (showForm ? resetForm() : setShowForm(true))}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shrink-0 inline-flex items-center gap-2">
+          {showForm ? <><X className="h-4 w-4" /> Schließen</> : <><Plus className="h-4 w-4" /> Kandidat hinzufügen</>}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={submit} className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-gray-100 pt-4">
+          <input required placeholder="Vorname" value={form.first_name}
+            onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          <input required placeholder="Name" value={form.last_name}
+            onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          <select value={form.german_level} onChange={(e) => setForm({ ...form, german_level: e.target.value })}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            {LANG_LEVELS.map((l) => <option key={l} value={l}>{l ? `Deutsch: ${l}` : "Deutsch: — keine Angabe —"}</option>)}
+          </select>
+          <select value={form.english_level} onChange={(e) => setForm({ ...form, english_level: e.target.value })}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            {LANG_LEVELS.map((l) => <option key={l} value={l}>{l ? `Englisch: ${l}` : "Englisch: — keine Angabe —"}</option>)}
+          </select>
+          <textarea placeholder="Notizen" rows={2} value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            className="sm:col-span-2 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" className="h-4 w-4" checked={form.interview_done}
+              onChange={(e) => setForm({ ...form, interview_done: e.target.checked })} />
+            Gespräch durchgeführt
+          </label>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Datum des Gesprächs</label>
+            <input type="date" value={form.interview_date}
+              onChange={(e) => setForm({ ...form, interview_date: e.target.value })}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          <div className="sm:col-span-2">
+            <button type="submit" disabled={saving}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {editId ? "Speichern" : "Kandidat anlegen"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Liste */}
+      <div className="mt-4">
+        {loading ? (
+          <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 text-blue-600 animate-spin" /></div>
+        ) : list.length === 0 ? (
+          <p className="text-sm text-gray-400 py-2">Noch keine Kandidaten angelegt.</p>
+        ) : (
+          <div className="space-y-2">
+            {list.map((c) => (
+              <div key={c.id} className="flex items-start justify-between gap-3 border border-gray-100 rounded-lg p-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-gray-900">{c.first_name} {c.last_name}</p>
+                    {c.interview_done ? (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Durchgeführt{c.interview_date ? ` am ${fmt(c.interview_date)}` : ""}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+                        <Clock className="h-3.5 w-3.5" /> Offen
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-4 mt-0.5 text-xs text-gray-500">
+                    <span>Deutsch: <strong>{c.german_level || "–"}</strong></span>
+                    <span>Englisch: <strong>{c.english_level || "–"}</strong></span>
+                  </div>
+                  {c.notes && <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap">{c.notes}</p>}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={() => toggleDone(c)} title={c.interview_done ? "Als offen markieren" : "Als durchgeführt markieren"}
+                    className={`p-1.5 rounded-lg ${c.interview_done ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}>
+                    <CheckCircle2 className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => startEdit(c)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100" title="Bearbeiten">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => remove(c)} className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50" title="Löschen">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -576,6 +766,9 @@ export default function PartnerViewPage() {
           )}
         </div>
         )}
+
+        {/* Bewerbungsgespräch-Kandidaten (nur wenn der Admin es freigegeben hat) */}
+        {data.can_add_interview_candidates && <InterviewCandidatesSection token={token} />}
 
         {/* Tabelle */}
         {data.applicants.length === 0 ? (

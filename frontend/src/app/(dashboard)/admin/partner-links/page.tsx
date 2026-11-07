@@ -24,6 +24,7 @@ interface PartnerLink {
   notes?: string;
   can_add_students?: boolean;
   can_edit_students?: boolean;
+  can_add_interview_candidates?: boolean;
   send_onboarding_email?: boolean;
   has_password?: boolean;
   password?: string | null;
@@ -110,9 +111,10 @@ export default function AdminPartnerLinksPage() {
     }
   };
 
-  const togglePermission = async (link: PartnerLink, field: "can_add_students" | "can_edit_students" | "send_onboarding_email") => {
+  const togglePermission = async (link: PartnerLink, field: "can_add_students" | "can_edit_students" | "can_add_interview_candidates" | "send_onboarding_email") => {
     const current = field === "can_add_students" ? link.can_add_students
       : field === "can_edit_students" ? link.can_edit_students
+      : field === "can_add_interview_candidates" ? link.can_add_interview_candidates
       : link.send_onboarding_email;
     const next = !current;
     try {
@@ -351,6 +353,15 @@ export default function AdminPartnerLinksPage() {
                         onChange={() => togglePermission(link, "can_edit_students")}
                       />
                       Daten nachträglich bearbeiten erlauben
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="accent-primary-600"
+                        checked={!!link.can_add_interview_candidates}
+                        onChange={() => togglePermission(link, "can_add_interview_candidates")}
+                      />
+                      Gesprächs-Kandidaten anlegen erlauben
                     </label>
                     <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                       <input
