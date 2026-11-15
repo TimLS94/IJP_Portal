@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Link2, Plus, Trash2, Copy, Check, X, Users,
-  Loader2, ToggleLeft, ToggleRight, ExternalLink, Shield, Lock, Eye, EyeOff
+  Loader2, ToggleLeft, ToggleRight, ExternalLink, Shield, Lock, Eye, EyeOff, Mail
 } from "lucide-react";
 import { adminPartnerLinksAPI, adminAPI } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -26,6 +26,7 @@ interface PartnerLink {
   can_edit_students?: boolean;
   can_add_interview_candidates?: boolean;
   send_onboarding_email?: boolean;
+  notification_emails?: string;
   has_password?: boolean;
   password?: string | null;
   applicant_count: number;
@@ -50,6 +51,7 @@ export default function AdminPartnerLinksPage() {
     name: "",
     partner_source: "",
     notes: "",
+    notification_emails: "",
   });
 
   useEffect(() => {
@@ -89,9 +91,10 @@ export default function AdminPartnerLinksPage() {
         name: form.name.trim(),
         partner_source: form.partner_source.trim(),
         notes: form.notes.trim() || null,
+        notification_emails: form.notification_emails.trim() || null,
       });
       toast.success("Partner-Link erstellt");
-      setForm({ name: "", partner_source: "", notes: "" });
+      setForm({ name: "", partner_source: "", notes: "", notification_emails: "" });
       setShowCreate(false);
       loadLinks();
     } catch {
@@ -140,6 +143,23 @@ export default function AdminPartnerLinksPage() {
       loadLinks();
     } catch {
       toast.error("Fehler beim Speichern des Passworts");
+    }
+  };
+
+  const setNotificationEmails = async (link: PartnerLink) => {
+    const current = link.notification_emails || "";
+    const value = window.prompt(
+      `Benachrichtigungs-E-Mails für "${link.name}" (durch Komma trennen, leer = keine).\n` +
+      `Diese Adressen werden bei jeder Status-Änderung eines Bewerbers informiert:`,
+      current
+    );
+    if (value === null) return; // Abbrechen
+    try {
+      await adminPartnerLinksAPI.update(link.id, { notification_emails: value.trim() });
+      toast.success(value.trim() ? "Benachrichtigungs-E-Mails gespeichert" : "Benachrichtigungen entfernt");
+      loadLinks();
+    } catch {
+      toast.error("Fehler beim Speichern der E-Mails");
     }
   };
 
@@ -259,6 +279,19 @@ export default function AdminPartnerLinksPage() {
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="label">Benachrichtigungs-E-Mails (optional)</label>
+              <textarea
+                className="input-styled"
+                rows={2}
+                placeholder="E-Mails durch Komma oder Zeilenumbruch trennen – z.B. kontakt@sprachschule.de, leitung@sprachschule.de"
+                value={form.notification_emails}
+                onChange={(e) => setForm({ ...form, notification_emails: e.target.value })}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Diese Adressen bekommen eine E-Mail, sobald IJP den Status eines Bewerbers dieses Partners ändert.
+              </p>
+            </div>
             <div className="md:col-span-2 flex gap-3">
               <button type="submit" disabled={creating} className="btn-primary flex items-center gap-2">
                 {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -372,6 +405,17 @@ export default function AdminPartnerLinksPage() {
                       />
                       Onboarding-Mail an Student senden
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => setNotificationEmails(link)}
+                      className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-primary-700"
+                      title="E-Mails für Status-Benachrichtigungen verwalten"
+                    >
+                      <Mail className="h-4 w-4" />
+                      {link.notification_emails && link.notification_emails.trim()
+                        ? `Benachrichtigungen (${link.notification_emails.split(/[,;\n]/).filter((e) => e.trim()).length})`
+                        : "Benachrichtigungs-E-Mails"}
+                    </button>
                     <button
                       type="button"
                       onClick={() => setLinkPassword(link)}
