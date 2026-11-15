@@ -3,7 +3,7 @@ Partner-Links für externe Partner (z.B. Sprachschulen, Agenturen),
 die Bewerber an IJP vermitteln. Jeder Link gibt read-only Einblick
 in die eigenen Bewerber – ohne Login, nur per Token.
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
 import secrets
 from app.core.database import Base, utc_now
 
@@ -46,6 +46,25 @@ class PartnerLink(Base):
 
     # Optionale Notiz für den Admin
     notes = Column(String(500), nullable=True)
+
+    # Benachrichtigungs-E-Mails des Partners: komma-/zeilengetrennte Adressen.
+    # Ändert IJP den (sichtbaren) Status eines Bewerbers dieses Partners, gehen an
+    # diese Adressen Status-Update-Mails. Vom Admin gepflegt.
+    notification_emails = Column(Text, nullable=True)
+
+    @property
+    def notification_email_list(self) -> list:
+        """Parst notification_emails in eine bereinigte Liste gültiger Adressen."""
+        raw = self.notification_emails or ""
+        parts = raw.replace(";", ",").replace("\n", ",").split(",")
+        seen, out = set(), []
+        for p in parts:
+            e = p.strip()
+            key = e.lower()
+            if e and "@" in e and "." in e.split("@")[-1] and key not in seen:
+                seen.add(key)
+                out.append(e)
+        return out
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=utc_now)

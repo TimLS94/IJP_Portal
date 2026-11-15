@@ -703,6 +703,57 @@ async def assign_betrieb_to_request(
     return {"assigned_betrieb_id": req.assigned_betrieb_id, "assigned_betrieb_name": name}
 
 
+def _notify_partner_status_change(db: Session, req: JobRequest, email_status) -> None:
+    """Schickt den am Partner-Link hinterlegten E-Mail-Adressen eine Status-Update-Mail,
+    wenn sich der (sichtbare) Status eines Bewerbers dieses Partners geändert hat.
+    Partner wird über applicant.invite_source == PartnerLink.partner_source gefunden."""
+    from app.models.partner_link import PartnerLink
+
+    applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+    if not applicant or not applicant.invite_source:
+        return
+    link = (
+        db.query(PartnerLink)
+        .filter(PartnerLink.partner_source == applicant.invite_source, PartnerLink.is_active == True)  # noqa: E712
+        .first()
+    )
+    if not link:
+        return
+    recipients = link.notification_email_list
+    if not recipients:
+        return
+
+    status_label = JOB_REQUEST_STATUS_LABELS.get(email_status, "")
+    position_label = POSITION_TYPE_LABELS.get(req.position_type, "Allgemein") if req.position_type else "Allgemein"
+    name = f"{applicant.first_name or ''} {applicant.last_name or ''}".strip() or f"Bewerber #{applicant.id}"
+    html = f"""
+    <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #2563eb; margin: 0 0 4px;">IJP – Status-Update</h2>
+        <p style="color:#6b7280; margin:0 0 20px;">Benachrichtigung für Partner „{link.name}"</p>
+        <p>Der Status eines Ihrer vermittelten Bewerber hat sich geändert:</p>
+        <div style="background:#f1f5f9; padding:16px; border-radius:10px; margin:16px 0;">
+          <p style="margin:0 0 6px;"><strong>Bewerber:</strong> {name}</p>
+          <p style="margin:0 0 6px;"><strong>Bereich:</strong> {position_label}</p>
+          <p style="margin:0;"><strong>Neuer Status:</strong> <span style="color:#1d4ed8; font-weight:bold;">{status_label}</span></p>
+        </div>
+        <p style="color:#6b7280; font-size:13px;">Sie erhalten diese E-Mail, weil Ihre Adresse am Partner-Zugang hinterlegt ist.</p>
+        <p style="color:#9ca3af; font-size:12px; margin-top:24px;">IJP International Job Placement UG (haftungsbeschränkt) · Husemannstr. 9, 10435 Berlin</p>
+      </div>
+    </body></html>
+    """
+    for addr in recipients:
+        try:
+            email_service.send_email(
+                to_email=addr,
+                subject=f"IJP Status-Update: {name} – {status_label}",
+                html_content=html,
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(f"Partner-Status-Mail an {addr} fehlgeschlagen")
+
+
 @router.put("/admin/{request_id}/status")
 async def update_job_request_status(
     request_id: int,
@@ -867,6 +918,15 @@ async def update_job_request_status(
                 </html>
                 """
             )
+
+    # Partner-Benachrichtigung: Ändert sich der (für den Studenten sichtbare) Status,
+    # bekommen die am Partner-Link hinterlegten E-Mail-Adressen eine Status-Update-Mail.
+    if email_status:
+        try:
+            _notify_partner_status_change(db, req, email_status)
+        except Exception as _e:
+            import logging
+            logging.getLogger(__name__).warning(f"Partner-Status-Mail fehlgeschlagen (Auftrag {req.id}): {_e}")
 
     # Interview-Link/-Termin nachträglich hinzugefügt/geändert (OHNE Status-Wechsel):
     # separate E-Mail an den Kandidaten – inkl. Link direkt in der Mail.

@@ -204,6 +204,7 @@ def ensure_external_job_columns():
             ("partner_links", "password_hash", "VARCHAR(255)"),
             ("partner_links", "password_plain", "VARCHAR(255)"),
             ("partner_links", "can_add_interview_candidates", "BOOLEAN DEFAULT FALSE"),
+            ("partner_links", "notification_emails", "TEXT"),
         ]
         allowed_tables = {t for t, _, _ in new_columns}
         allowed_cols = {c for _, c, _ in new_columns}
