@@ -664,6 +664,9 @@ export const betriebAccessAPI = {
   getStudents: (betriebId) => api.get(`/ijp/betriebe/${betriebId}/students`),
   setDocShare: (documentId, shared) =>
     api.patch(`/ijp/documents/${documentId}/share`, { shared_with_betrieb: shared }),
+  // Bestehendes Dokument nachträglich „an den Partner" freigeben / sperren
+  setPartnerShare: (documentId, shared) =>
+    api.patch(`/ijp/documents/${documentId}/share`, { shared_with_partner: shared }),
 };
 
 // Öffentliches Betrieb-Portal (Token + Passwort). WICHTIG: eigener Betrieb-Token,

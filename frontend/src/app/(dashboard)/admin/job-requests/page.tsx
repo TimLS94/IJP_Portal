@@ -135,6 +135,23 @@ export default function AdminJobRequests() {
     }
   };
 
+  // Bestehendes Dokument nachträglich „an den Partner" schalten (im Partner-Portal sichtbar)
+  const toggleDocPartnerShare = async (doc: Document) => {
+    const next = !doc.shared_with_partner;
+    const apply = (val: boolean) => setRequestDetails((prev: any) => prev ? {
+      ...prev,
+      documents: prev.documents.map((d: Document) => d.id === doc.id ? { ...d, shared_with_partner: val } : d),
+    } : prev);
+    apply(next);
+    try {
+      await betriebAccessAPI.setPartnerShare(doc.id, next);
+      toast.success(next ? 'Für den Partner freigegeben' : 'Partner-Freigabe entfernt');
+    } catch {
+      apply(!next);
+      toast.error('Partner-Freigabe fehlgeschlagen');
+    }
+  };
+
   // Alle Dokumente auf einmal freigeben / verbergen
   const [bulkSharing, setBulkSharing] = useState(false);
   const setAllDocShare = async (share: boolean) => {
@@ -1262,6 +1279,19 @@ export default function AdminJobRequests() {
                                 )}
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
+                                {requestDetails?.doc_routing?.has_partner && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleDocPartnerShare(doc)}
+                                    title={doc.shared_with_partner
+                                      ? 'Im Partner-Portal sichtbar – klicken zum Verbergen'
+                                      : 'Nachträglich an den Partner freigeben (im Partner-Portal zum Download)'}
+                                    className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border transition ${doc.shared_with_partner ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}
+                                  >
+                                    {doc.shared_with_partner ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                                    Partner
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => toggleDocShare(doc)}

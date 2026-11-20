@@ -473,18 +473,28 @@ def list_betrieb_students(betrieb_id: int, db: Session = Depends(get_db), curren
 
 
 class DocShareUpdate(BaseModel):
-    shared_with_betrieb: bool
+    shared_with_betrieb: Optional[bool] = None
+    # Dokument nachträglich „an den Partner" freigeben/sperren (im Partner-Portal sichtbar).
+    shared_with_partner: Optional[bool] = None
 
 
 @router.patch("/documents/{document_id}/share")
 def set_document_share(document_id: int, data: DocShareUpdate, db: Session = Depends(get_db), current_user: User = Depends(_require_admin)):
-    """Ein Dokument für den Betrieb-Zugang freigeben / sperren."""
+    """Ein Dokument für den Betrieb-Zugang und/oder den Partner freigeben / sperren.
+    Es wird nur geändert, was explizit mitgeschickt wird."""
     doc = db.query(Document).filter(Document.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
-    doc.shared_with_betrieb = data.shared_with_betrieb
+    if data.shared_with_betrieb is not None:
+        doc.shared_with_betrieb = data.shared_with_betrieb
+    if data.shared_with_partner is not None:
+        doc.shared_with_partner = data.shared_with_partner
     db.commit()
-    return {"id": doc.id, "shared_with_betrieb": doc.shared_with_betrieb}
+    return {
+        "id": doc.id,
+        "shared_with_betrieb": doc.shared_with_betrieb,
+        "shared_with_partner": bool(getattr(doc, "shared_with_partner", False)),
+    }
 
 
 # ── Bewerber ──────────────────────────────────────────────────────────────────
