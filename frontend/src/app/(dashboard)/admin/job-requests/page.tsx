@@ -173,7 +173,29 @@ export default function AdminJobRequests() {
       setBulkSharing(false);
     }
   };
-  
+
+  // Alle Dokumente auf einmal an den Partner freigeben / verbergen
+  const [bulkPartnerSharing, setBulkPartnerSharing] = useState(false);
+  const setAllDocPartnerShare = async (share: boolean) => {
+    const docs: Document[] = requestDetails?.documents || [];
+    if (docs.length === 0) return;
+    setBulkPartnerSharing(true);
+    // Optimistisch alle setzen
+    setRequestDetails((prev: any) => prev ? {
+      ...prev,
+      documents: prev.documents.map((d: Document) => ({ ...d, shared_with_partner: share })),
+    } : prev);
+    try {
+      await Promise.all(docs.map((d) => betriebAccessAPI.setPartnerShare(d.id, share)));
+      toast.success(share ? 'Alle Unterlagen an den Partner freigegeben' : 'Alle Partner-Freigaben entfernt');
+    } catch {
+      if (selectedRequest) loadRequestDetails(selectedRequest);
+      toast.error('Massen-Freigabe an den Partner fehlgeschlagen');
+    } finally {
+      setBulkPartnerSharing(false);
+    }
+  };
+
   // Status ändern
   const [changingStatus, setChangingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState('');
@@ -1119,6 +1141,20 @@ export default function AdminJobRequests() {
                               >
                                 {bulkSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : allShared ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 {allShared ? 'Alle verbergen' : 'Alle freigeben'}
+                              </button>
+                            );
+                          })()}
+                          {requestDetails.documents.length > 0 && requestDetails?.doc_routing?.has_partner && (() => {
+                            const allPartner = requestDetails.documents.every((d: Document) => d.shared_with_partner);
+                            return (
+                              <button
+                                onClick={() => setAllDocPartnerShare(!allPartner)}
+                                disabled={bulkPartnerSharing}
+                                title={allPartner ? 'Alle Unterlagen für den Partner verbergen' : 'Alle Unterlagen an den Partner freigeben'}
+                                className={`text-sm flex items-center gap-1 disabled:opacity-50 ${allPartner ? 'text-gray-600 hover:text-gray-800' : 'text-blue-700 hover:text-blue-800'}`}
+                              >
+                                {bulkPartnerSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : allPartner ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                {allPartner ? 'Alle vom Partner verbergen' : 'Alle an Partner'}
                               </button>
                             );
                           })()}
