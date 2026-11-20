@@ -119,6 +119,23 @@ def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
         status_label = None
         status_color = None
 
+    # Von IJP „an den Partner" geschickte Unterlagen (zum Download im Partner-Portal).
+    shared_docs = (
+        db.query(Document)
+        .filter(Document.applicant_id == applicant.id, Document.shared_with_partner == True)  # noqa: E712
+        .order_by(Document.uploaded_at.desc())
+        .all()
+    )
+    shared_documents = [
+        {
+            "id": d.id,
+            "label": d.description or DOC_TYPE_LABELS.get(d.document_type, "Dokument"),
+            "original_name": d.original_name,
+            "uploaded_at": d.uploaded_at,
+        }
+        for d in shared_docs
+    ]
+
     return {
         "applicant_id": applicant.id,
         "first_name": applicant.first_name,
@@ -146,6 +163,8 @@ def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
         "doc_checklist_required": doc_checklist_required,
         "doc_checklist_optional": doc_checklist_optional,
         "total_docs_uploaded": len(uploaded_types),
+        # Von IJP an den Partner bereitgestellte Unterlagen (Download im Partner-Portal)
+        "shared_documents": shared_documents,
     }
 
 
@@ -160,6 +179,7 @@ class CreatePartnerLinkSchema(BaseModel):
     can_add_interview_candidates: Optional[bool] = None
     send_onboarding_email: Optional[bool] = None
     notification_emails: Optional[str] = None
+    documents_to_partner: Optional[bool] = None
     password: Optional[str] = None  # Klartext zum Setzen; leer/None = kein Passwort
 
 
@@ -173,6 +193,7 @@ class UpdatePartnerLinkSchema(BaseModel):
     can_add_interview_candidates: Optional[bool] = None
     send_onboarding_email: Optional[bool] = None
     notification_emails: Optional[str] = None
+    documents_to_partner: Optional[bool] = None
     password: Optional[str] = None  # Klartext zum Setzen; "" = Passwortschutz entfernen
 
 
@@ -210,6 +231,7 @@ async def list_partner_links(
             "can_add_interview_candidates": bool(getattr(link, "can_add_interview_candidates", False)),
             "send_onboarding_email": bool(getattr(link, "send_onboarding_email", True)),
             "notification_emails": getattr(link, "notification_emails", None) or "",
+            "documents_to_partner": bool(getattr(link, "documents_to_partner", False)),
             "has_password": bool(getattr(link, "password_hash", None)),
             "password": getattr(link, "password_plain", None),  # Klartext (nur Admin) zum Wiederanzeigen
             "applicant_count": applicant_count,
@@ -236,6 +258,7 @@ async def create_partner_link(
         can_add_interview_candidates=False if data.can_add_interview_candidates is None else data.can_add_interview_candidates,
         send_onboarding_email=True if data.send_onboarding_email is None else data.send_onboarding_email,
         notification_emails=((data.notification_emails or "").strip() or None),
+        documents_to_partner=False if data.documents_to_partner is None else data.documents_to_partner,
         password_hash=(get_password_hash(data.password) if (data.password or "").strip() else None),
         password_plain=((data.password or "").strip() or None),
     )
@@ -274,6 +297,8 @@ async def update_partner_link(
         link.send_onboarding_email = data.send_onboarding_email
     if data.notification_emails is not None:
         link.notification_emails = data.notification_emails.strip() or None
+    if data.documents_to_partner is not None:
+        link.documents_to_partner = data.documents_to_partner
     if data.password is not None:
         # "" entfernt den Passwortschutz, sonst neues Passwort setzen.
         link.password_hash = get_password_hash(data.password) if data.password.strip() else None
@@ -428,6 +453,43 @@ async def get_partner_view(
         "can_add_interview_candidates": bool(getattr(link, "can_add_interview_candidates", False)),
         "applicants": entries,
     }
+
+
+@router.get("/partner/{token}/documents/{document_id}")
+async def partner_download_document(
+    token: str,
+    document_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Partner lädt ein von IJP „an den Partner" freigegebenes Dokument herunter.
+    Erlaubt nur, wenn das Dokument shared_with_partner=True ist UND zu einem
+    Studenten DIESES Partners (invite_source == partner_source) gehört."""
+    link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
+    if not link or not link.is_active:
+        raise HTTPException(status_code=404, detail="Link nicht gefunden oder deaktiviert")
+    if not _partner_authorized(link, request):
+        raise HTTPException(status_code=401, detail="Passwort erforderlich")
+
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document or not getattr(document, "shared_with_partner", False):
+        raise HTTPException(status_code=404, detail="Dokument nicht gefunden")
+
+    applicant = db.query(Applicant).filter(Applicant.id == document.applicant_id).first()
+    if not applicant or applicant.invite_source != link.partner_source:
+        raise HTTPException(status_code=403, detail="Keine Berechtigung für dieses Dokument")
+
+    from app.services.document_service import DocumentService
+    file_content = await DocumentService.get_file_content(document)
+    if file_content is None:
+        raise HTTPException(status_code=404, detail="Datei nicht gefunden")
+
+    safe_name = (document.original_name or "dokument.pdf").encode("ascii", "ignore").decode("ascii") or "dokument.pdf"
+    return Response(
+        content=file_content,
+        media_type=document.mime_type or "application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+    )
 
 
 class PartnerApplicantCreate(BaseModel):

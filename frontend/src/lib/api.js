@@ -359,14 +359,18 @@ export const jobRequestsAPI = {
   updateStatus: (id, data) => api.put(`/job-requests/admin/${id}/status`, data),
   assignBetrieb: (id, betriebId) => api.put(`/job-requests/admin/${id}/assign-betrieb`, { betrieb_id: betriebId }),
   requestDocuments: (id, data) => api.post(`/job-requests/admin/${id}/request-documents`, data),
-  sendDocuments: (id, files, label) => {
+  sendDocuments: (id, files, label, recipient) => {
     const formData = new FormData();
     Array.from(files).forEach((f) => formData.append('files', f));
     if (label) formData.append('document_label', label);
+    if (recipient) formData.append('recipient', recipient);
     return api.post(`/job-requests/admin/${id}/send-document`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  // Pro Student festlegen, wohin künftige Unterlagen gehen: 'partner' | 'student' | 'default'
+  setDocumentRecipient: (id, recipient) =>
+    api.post(`/job-requests/admin/${id}/document-recipient`, { recipient }),
   exportCSV: (params) => api.get('/job-requests/admin/export/csv', { params, responseType: 'blob' }),
   downloadDocuments: (id) => api.get(`/job-requests/admin/${id}/documents/download-all`, { responseType: 'blob' }),
 };
@@ -772,6 +776,9 @@ export const partnerAPI = {
     axios.get(`${partnerBase()}/partner/${token}/interview-candidates/${id}/cv`, { responseType: 'blob', headers: partnerHeaders(token) }),
   deleteInterviewCandidateCv: (token, id) =>
     axios.delete(`${partnerBase()}/partner/${token}/interview-candidates/${id}/cv`, { headers: partnerHeaders(token) }),
+  // Von IJP „an den Partner" bereitgestellte Unterlagen eines Studenten herunterladen
+  downloadSharedDocument: (token, documentId) =>
+    axios.get(`${partnerBase()}/partner/${token}/documents/${documentId}`, { responseType: 'blob', headers: partnerHeaders(token) }),
 };
 
 export default api;

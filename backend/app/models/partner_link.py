@@ -37,6 +37,12 @@ class PartnerLink(Base):
     # Onboarding-Mail an den Studenten beim Anlegen (Passwort-Setzen-Link) senden?
     send_onboarding_email = Column(Boolean, default=True, server_default="true", nullable=False)
 
+    # Standard-Routing für von IJP hochgeladene Unterlagen der Studenten dieses Partners:
+    #   True  = an den Partner (im Partner-Portal zum Download + Hinweis-E-Mail)
+    #   False = direkt an den Studenten
+    # Pro Student übersteuerbar (applicant.documents_recipient). Rückwirkend änderbar.
+    documents_to_partner = Column(Boolean, default=False, server_default="false", nullable=False)
+
     # Optionaler Passwortschutz des Links (vom Admin vorgegeben). Ist er gesetzt,
     # muss der Partner vor dem Zugriff das Passwort eingeben. NULL = offener Link.
     password_hash = Column(String(255), nullable=True)

@@ -148,6 +148,14 @@ class Applicant(Base):
     # Passwort hat (überschreibt die normale "nur passwortlose"-Regel).
     partner_edit_override = Column(Boolean, default=False, server_default="false", nullable=False)
 
+    # ========== DOKUMENT-ROUTING ==========
+    # Wohin gehen von IJP hochgeladene Unterlagen für diesen Studenten?
+    #   None      = Standard des Partners verwenden (PartnerLink.documents_to_partner)
+    #   "partner" = an den Partner (im Partner-Portal sichtbar + Hinweis-E-Mail)
+    #   "student" = direkt an den Studenten (Portal + Benachrichtigung + E-Mail)
+    # Nur relevant, wenn der Student über einen Partner kam (invite_source gesetzt).
+    documents_recipient = Column(String(16), nullable=True)
+
     # Relationships
     user = relationship("User", back_populates="applicant", foreign_keys=[user_id])
     applications = relationship("Application", back_populates="applicant", cascade="all, delete-orphan")

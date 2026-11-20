@@ -151,7 +151,9 @@ class Document(Base):
     is_verified = Column(Boolean, default=False)  # Von Admin geprüft?
     # Für den passwortgeschützten Betrieb-Zugang freigegeben (Admin steuert pro Dokument)
     shared_with_betrieb = Column(Boolean, default=False, nullable=False)
-    
+    # Von IJP bewusst „an den Partner" geschickt – im Partner-Portal zum Download sichtbar.
+    shared_with_partner = Column(Boolean, default=False, nullable=False)
+
     # Timestamps
     uploaded_at = Column(DateTime(timezone=True), default=utc_now)
     

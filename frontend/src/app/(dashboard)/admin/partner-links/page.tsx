@@ -27,6 +27,7 @@ interface PartnerLink {
   can_add_interview_candidates?: boolean;
   send_onboarding_email?: boolean;
   notification_emails?: string;
+  documents_to_partner?: boolean;
   has_password?: boolean;
   password?: string | null;
   applicant_count: number;
@@ -114,10 +115,11 @@ export default function AdminPartnerLinksPage() {
     }
   };
 
-  const togglePermission = async (link: PartnerLink, field: "can_add_students" | "can_edit_students" | "can_add_interview_candidates" | "send_onboarding_email") => {
+  const togglePermission = async (link: PartnerLink, field: "can_add_students" | "can_edit_students" | "can_add_interview_candidates" | "send_onboarding_email" | "documents_to_partner") => {
     const current = field === "can_add_students" ? link.can_add_students
       : field === "can_edit_students" ? link.can_edit_students
       : field === "can_add_interview_candidates" ? link.can_add_interview_candidates
+      : field === "documents_to_partner" ? link.documents_to_partner
       : link.send_onboarding_email;
     const next = !current;
     try {
@@ -404,6 +406,15 @@ export default function AdminPartnerLinksPage() {
                         onChange={() => togglePermission(link, "send_onboarding_email")}
                       />
                       Onboarding-Mail an Student senden
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer" title="Standard: Von IJP hochgeladene Unterlagen gehen an den Partner (Partner-Portal-Download) statt an den Studenten. Pro Student übersteuerbar.">
+                      <input
+                        type="checkbox"
+                        className="accent-primary-600"
+                        checked={!!link.documents_to_partner}
+                        onChange={() => togglePermission(link, "documents_to_partner")}
+                      />
+                      Unterlagen standardmäßig an Partner
                     </label>
                     <button
                       type="button"

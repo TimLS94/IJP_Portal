@@ -545,11 +545,24 @@ async def list_job_requests(
             .all()
         )
 
+    # Aktive Partner-Links gebündelt laden (für das Dokument-Routing je Student).
+    from app.models.partner_link import PartnerLink
+    partner_by_source = {
+        l.partner_source: l
+        for l in db.query(PartnerLink).filter(PartnerLink.is_active == True).all()  # noqa: E712
+    }
+
     result = []
     for req in requests:
         applicant = applicants_map.get(req.applicant_id)
         user = users_map.get(applicant.user_id) if applicant else None
         doc_count = doc_counts.get(applicant.id, 0) if applicant else 0
+
+        # Dokument-Routing: existiert ein Partner? Standard + Pro-Student-Übersteuerung.
+        _link = partner_by_source.get(applicant.invite_source) if (applicant and applicant.invite_source) else None
+        _override = (getattr(applicant, "documents_recipient", None) or None) if applicant else None
+        _partner_default = "partner" if (_link and bool(getattr(_link, "documents_to_partner", False))) else "student"
+        _effective = _override if _override in ("partner", "student") else (_partner_default if _link else "student")
 
         result.append({
             "id": req.id,
@@ -572,6 +585,12 @@ async def list_job_requests(
             "document_count": doc_count,
             "invite_source": applicant.invite_source if applicant else None,
             "invite_source_country": applicant.invite_source_country if applicant else None,
+            # Dokument-Routing (für den Umschalter im Senden-Dialog)
+            "has_partner": _link is not None,
+            "partner_name": _link.name if _link else None,
+            "partner_default_recipient": _partner_default,       # 'partner'|'student'
+            "documents_recipient": _override,                    # None = Standard
+            "effective_doc_recipient": _effective,               # 'partner'|'student'
             "assigned_betrieb_name": req.assigned_betrieb.name if req.assigned_betrieb else None,
             "created_at": req.created_at,
             "updated_at": req.updated_at,
@@ -667,9 +686,25 @@ async def get_job_request_details(
                 "file_path": doc.file_path,
                 "uploaded_at": doc.uploaded_at,
                 "shared_with_betrieb": bool(doc.shared_with_betrieb),
+                "shared_with_partner": bool(getattr(doc, "shared_with_partner", False)),
             }
             for doc in documents
-        ]
+        ],
+        "doc_routing": _doc_routing_info(db, applicant),
+    }
+
+
+def _doc_routing_info(db: Session, applicant) -> dict:
+    """Routing-Status für den Senden-Dialog: existiert ein Partner, was ist der
+    Standard, was die Pro-Student-Übersteuerung, und was gilt effektiv."""
+    link = _resolve_partner_link(db, applicant)
+    override = (getattr(applicant, "documents_recipient", None) or None) if applicant else None
+    return {
+        "has_partner": link is not None,
+        "partner_name": link.name if link else None,
+        "partner_default_recipient": "partner" if (link and bool(getattr(link, "documents_to_partner", False))) else "student",
+        "documents_recipient": override,                       # None = Standard
+        "effective_doc_recipient": _effective_doc_recipient(applicant, link),
     }
 
 
@@ -701,6 +736,29 @@ async def assign_betrieb_to_request(
         name = None
     db.commit()
     return {"assigned_betrieb_id": req.assigned_betrieb_id, "assigned_betrieb_name": name}
+
+
+def _resolve_partner_link(db: Session, applicant: Applicant):
+    """Aktiver PartnerLink des Studenten (über invite_source) oder None."""
+    from app.models.partner_link import PartnerLink
+    if not applicant or not applicant.invite_source:
+        return None
+    return (
+        db.query(PartnerLink)
+        .filter(PartnerLink.partner_source == applicant.invite_source, PartnerLink.is_active == True)  # noqa: E712
+        .first()
+    )
+
+
+def _effective_doc_recipient(applicant: Applicant, link) -> str:
+    """'partner' oder 'student'. Ohne Partner immer 'student'.
+    Reihenfolge: Pro-Student-Übersteuerung > Partner-Standard > 'student'."""
+    if not link:
+        return "student"
+    override = (getattr(applicant, "documents_recipient", None) or "").strip().lower()
+    if override in ("partner", "student"):
+        return override
+    return "partner" if bool(getattr(link, "documents_to_partner", False)) else "student"
 
 
 def _notify_partner_status_change(db: Session, req: JobRequest, email_status) -> None:
@@ -1022,11 +1080,15 @@ async def send_document_to_student(
     request_id: int,
     files: List[UploadFile] = File(...),
     document_label: Optional[str] = Form("Dokument"),
+    recipient: Optional[str] = Form(None),  # "partner"|"student"|None (= Standard)
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Admin haengt dem Studenten ein oder mehrere Dokumente (z.B. Arbeitsvertrag,
-    Arbeitsgenehmigung) ueber das Portal an und benachrichtigt ihn (In-App + E-Mail).
+    """Admin haengt ein oder mehrere Dokumente (z.B. Arbeitsvertrag,
+    Arbeitsgenehmigung) ueber das Portal an. Je nach Routing geht es
+      - an den Studenten (Portal + In-App-Benachrichtigung + E-Mail) oder
+      - an den Partner (im Partner-Portal zum Download + Hinweis-E-Mail; Student
+        bekommt nichts).
     Mehrere Dateien = eine Benachrichtigung + eine E-Mail."""
     import json as _json
     req = db.query(JobRequest).filter(JobRequest.id == request_id).first()
@@ -1036,6 +1098,16 @@ async def send_document_to_student(
     if not applicant:
         raise HTTPException(status_code=400, detail="Kein Bewerberprofil gefunden")
     user = db.query(User).filter(User.id == applicant.user_id).first()
+
+    # Routing bestimmen: expliziter Override dieses Sendevorgangs > Standard
+    # (Pro-Student-Einstellung bzw. Partner-Default). Ohne Partner immer "student".
+    link = _resolve_partner_link(db, applicant)
+    chosen = (recipient or "").strip().lower()
+    if chosen in ("partner", "student") and link:
+        effective = chosen
+    else:
+        effective = _effective_doc_recipient(applicant, link)
+    to_partner = (effective == "partner" and link is not None)
 
     label = (document_label or "Dokument").strip() or "Dokument"
     file_list = [f for f in (files or []) if f is not None]
@@ -1051,11 +1123,34 @@ async def send_document_to_student(
             description=label,
             db=db,
         )
+        # Fuer den Partner freigeben (nur dann im Partner-Portal sichtbar).
+        document.shared_with_partner = bool(to_partner)
         saved_ids.append(document.id)
 
     count = len(saved_ids)
     label_display = label if count == 1 else f"{label} ({count} Dateien)"
+    applicant_name = f"{applicant.first_name} {applicant.last_name}".strip()
 
+    if to_partner:
+        # NUR an den Partner: keine Studenten-Benachrichtigung/-E-Mail.
+        db.commit()
+        recipients = link.notification_email_list
+        if recipients:
+            portal_url = f"{getattr(settings, 'FRONTEND_URL', 'https://www.jobonportal.de')}/partner/{link.token}"
+            for addr in recipients:
+                try:
+                    email_service.send_partner_document_ready(
+                        addr, link.name, applicant_name, label_display, portal_url
+                    )
+                except Exception:
+                    pass
+        return {
+            "success": True, "document_ids": saved_ids, "count": count, "label": label,
+            "recipient": "partner", "partner_name": link.name,
+            "notified_emails": len(link.notification_email_list),
+        }
+
+    # An den Studenten (Standardverhalten).
     db.add(Notification(
         user_id=applicant.user_id,
         type="portal_document",
@@ -1070,13 +1165,55 @@ async def send_document_to_student(
 
     if user and user.email:
         try:
-            email_service.send_portal_document_ready(
-                user.email, f"{applicant.first_name} {applicant.last_name}", label_display
-            )
+            email_service.send_portal_document_ready(user.email, applicant_name, label_display)
         except Exception:
             pass
 
-    return {"success": True, "document_ids": saved_ids, "count": count, "label": label}
+    return {
+        "success": True, "document_ids": saved_ids, "count": count, "label": label,
+        "recipient": "student",
+    }
+
+
+class DocumentRecipientSchema(BaseModel):
+    recipient: Optional[str] = None  # "partner" | "student" | "default"/None
+
+
+@router.post("/admin/{request_id}/document-recipient")
+async def set_document_recipient(
+    request_id: int,
+    data: DocumentRecipientSchema,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Legt pro Student fest, wohin künftig hochgeladene Unterlagen gehen:
+    'partner', 'student' oder 'default' (= Standard des Partners verwenden).
+    Wirkt auf künftige Uploads; bereits gesendete Dokumente bleiben unberührt."""
+    req = db.query(JobRequest).filter(JobRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Auftrag nicht gefunden")
+    applicant = db.query(Applicant).filter(Applicant.id == req.applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=400, detail="Kein Bewerberprofil gefunden")
+
+    val = (data.recipient or "").strip().lower()
+    if val in ("", "default", "standard", "none"):
+        applicant.documents_recipient = None
+    elif val in ("partner", "student"):
+        applicant.documents_recipient = val
+    else:
+        raise HTTPException(status_code=400, detail="Ungültiger Wert")
+    db.commit()
+
+    link = _resolve_partner_link(db, applicant)
+    return {
+        "success": True,
+        "documents_recipient": applicant.documents_recipient,  # None = Standard
+        "effective": _effective_doc_recipient(applicant, link),
+        "has_partner": link is not None,
+        "partner_name": link.name if link else None,
+        "partner_default": "partner" if (link and bool(getattr(link, "documents_to_partner", False))) else "student",
+    }
 
 
 @router.get("/admin/export/csv")

@@ -726,6 +726,32 @@ class EmailService:
         """
         return self.send_email(to_email, subject, html_content, email_type="other")
 
+    def send_partner_document_ready(self, to_email: str, partner_name: str, applicant_name: str,
+                                    document_label: str = "Dokument", portal_url: str = "") -> bool:
+        """IJP hat für einen vom Partner vermittelten Studenten Unterlagen bereitgestellt.
+        Der Partner ruft sie in seinem Partner-Portal zum Download ab."""
+        subject = f"Neue Unterlagen für {applicant_name}"
+        cta = f"""
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{portal_url}" style="background: #2563eb; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Zum Partner-Portal</a>
+                </p>""" if portal_url else ""
+        html_content = f"""
+        <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1>📄 Neue Unterlagen</h1>
+            </div>
+            <div style="padding: 30px; background: #f9fafb;">
+                <p style="color:#6b7280; margin:0 0 16px;">Benachrichtigung für Partner „{partner_name}"</p>
+                <p>IJP hat für Ihren vermittelten Studenten <strong>{applicant_name}</strong>
+                   folgende Unterlagen bereitgestellt: <strong>{document_label}</strong>.</p>
+                <p>Sie können die Datei(en) in Ihrem Partner-Portal beim Studenten herunterladen.</p>
+                {cta}
+                <p>Mit freundlichen Grüßen,<br><strong>Ihr IJP-Team</strong></p>
+            </div>
+        </body></html>
+        """
+        return self.send_email(to_email, subject, html_content, email_type="other")
+
     @_safe_email_call
     def send_admin_message(self, to_email: str, applicant_name: str, subject: str, body: str,
                            cta_path: str = "/applicant/profile") -> bool:

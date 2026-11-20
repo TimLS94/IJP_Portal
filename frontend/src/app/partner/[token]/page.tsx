@@ -37,6 +37,14 @@ interface ApplicantEntry {
   doc_checklist_required: DocCheck[];
   doc_checklist_optional: DocCheck[];
   total_docs_uploaded: number;
+  shared_documents?: SharedDoc[];
+}
+
+interface SharedDoc {
+  id: number;
+  label: string;
+  original_name: string;
+  uploaded_at: string | null;
 }
 
 interface PartnerData {
@@ -93,8 +101,23 @@ function DocBadge({ doc }: { doc: DocCheck }) {
   );
 }
 
-function ApplicantRow({ entry, onFillProfile, canEditStudents }: { entry: ApplicantEntry; onFillProfile: (id: number) => void; canEditStudents?: boolean }) {
+function ApplicantRow({ entry, onFillProfile, canEditStudents, token }: { entry: ApplicantEntry; onFillProfile: (id: number) => void; canEditStudents?: boolean; token: string }) {
   const [expanded, setExpanded] = useState(false);
+
+  // Von IJP für den Partner bereitgestellte Unterlagen herunterladen.
+  const downloadSharedDoc = async (doc: SharedDoc) => {
+    try {
+      const res = await partnerAPI.downloadSharedDocument(token, doc.id);
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = doc.original_name || "dokument.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch { alert("Dokument konnte nicht geladen werden."); }
+  };
 
   const formatDate = (d: string | null) => {
     if (!d) return "–";
@@ -235,6 +258,30 @@ function ApplicantRow({ entry, onFillProfile, canEditStudents }: { entry: Applic
                 Keine Dokumentenanforderungen (Stellenart nicht gesetzt)
               </p>
             )}
+
+          {/* Von IJP bereitgestellte Unterlagen (Download) */}
+          {entry.shared_documents && entry.shared_documents.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-600 mb-2">📄 Von IJP bereitgestellte Unterlagen</p>
+              <div className="space-y-1.5">
+                {entry.shared_documents.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between gap-2 p-2 bg-blue-50 border border-blue-100 rounded-lg">
+                    <div className="min-w-0">
+                      <p className="text-sm text-gray-800 truncate">{doc.label}</p>
+                      <p className="text-xs text-gray-500 truncate">{doc.original_name}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => downloadSharedDoc(doc)}
+                      className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-1.5 rounded-lg"
+                    >
+                      Herunterladen
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -847,7 +894,7 @@ export default function PartnerViewPage() {
             </div>
 
             {data.applicants.map((entry) => (
-              <ApplicantRow key={entry.applicant_id} entry={entry} onFillProfile={fillProfile} canEditStudents={data.can_edit_students} />
+              <ApplicantRow key={entry.applicant_id} entry={entry} onFillProfile={fillProfile} canEditStudents={data.can_edit_students} token={token} />
             ))}
           </div>
         )}

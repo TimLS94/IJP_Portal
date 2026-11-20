@@ -81,6 +81,7 @@ interface Document {
   original_name: string;
   document_type: string;
   shared_with_betrieb: boolean;
+  shared_with_partner?: boolean;
 }
 
 export default function AdminJobRequests() {
@@ -176,6 +177,15 @@ export default function AdminJobRequests() {
   const [sendDocLabel, setSendDocLabel] = useState('Arbeitsgenehmigung');
   const [sendDocFiles, setSendDocFiles] = useState<File[]>([]);
   const [sendingDoc, setSendingDoc] = useState(false);
+  // Routing: an wen geht dieser Upload? ('partner' | 'student'). Standard = effektiver Wert.
+  const [sendDocRecipient, setSendDocRecipient] = useState<'partner' | 'student'>('student');
+  const [savingRouting, setSavingRouting] = useState(false);
+
+  // Beim Laden eines Auftrags das Routing auf den effektiven Standard setzen.
+  useEffect(() => {
+    const eff = requestDetails?.doc_routing?.effective_doc_recipient;
+    if (eff === 'partner' || eff === 'student') setSendDocRecipient(eff);
+  }, [requestDetails?.request?.id, requestDetails?.doc_routing?.effective_doc_recipient]);
 
   const handleSendDocuments = async () => {
     if (!selectedRequest) return;
@@ -184,10 +194,16 @@ export default function AdminJobRequests() {
       toast.error('Bitte mindestens eine PDF-Datei auswählen');
       return;
     }
+    const hasPartner = !!requestDetails?.doc_routing?.has_partner;
+    const recipient = hasPartner ? sendDocRecipient : 'student';
     setSendingDoc(true);
     try {
-      const r = await jobRequestsAPI.sendDocuments(selectedRequest, sendDocFiles, label);
-      toast.success(`${r.data.count} Dokument(e) gesendet & Student benachrichtigt`);
+      const r = await jobRequestsAPI.sendDocuments(selectedRequest, sendDocFiles, label, recipient);
+      if (r.data.recipient === 'partner') {
+        toast.success(`${r.data.count} Dokument(e) für Partner „${r.data.partner_name}" bereitgestellt`);
+      } else {
+        toast.success(`${r.data.count} Dokument(e) gesendet & Student benachrichtigt`);
+      }
       setShowSendDoc(false);
       setSendDocFiles([]);
       loadRequestDetails(selectedRequest);
@@ -195,6 +211,29 @@ export default function AdminJobRequests() {
       toast.error(err?.response?.data?.detail || 'Senden fehlgeschlagen');
     } finally {
       setSendingDoc(false);
+    }
+  };
+
+  // Pro Student festlegen, wohin künftige Unterlagen standardmäßig gehen.
+  const setStudentRouting = async (val: 'partner' | 'student' | 'default') => {
+    if (!selectedRequest) return;
+    setSavingRouting(true);
+    try {
+      const r = await jobRequestsAPI.setDocumentRecipient(selectedRequest, val);
+      setRequestDetails((prev: any) => prev ? {
+        ...prev,
+        doc_routing: {
+          ...prev.doc_routing,
+          documents_recipient: r.data.documents_recipient,
+          effective_doc_recipient: r.data.effective,
+        },
+      } : prev);
+      if (r.data.effective === 'partner' || r.data.effective === 'student') setSendDocRecipient(r.data.effective);
+      toast.success('Standard für diesen Studenten gespeichert');
+    } catch {
+      toast.error('Speichern fehlgeschlagen');
+    } finally {
+      setSavingRouting(false);
     }
   };
 
@@ -1114,7 +1153,52 @@ export default function AdminJobRequests() {
 
                       {showSendDoc && (
                         <div className="mb-3 p-3 rounded-lg border-2 border-green-200 bg-green-50">
-                          <p className="text-sm font-medium text-green-800 mb-2">Dokument(e) an den Studenten senden</p>
+                          <p className="text-sm font-medium text-green-800 mb-2">Unterlagen hochladen</p>
+
+                          {/* Routing: nur wenn der Student über einen Partner kam */}
+                          {requestDetails?.doc_routing?.has_partner && (
+                            <div className="mb-3 p-2.5 rounded-lg border border-green-300 bg-white">
+                              <p className="text-xs text-gray-600 mb-1.5">
+                                Student über Partner <span className="font-semibold">{requestDetails.doc_routing.partner_name}</span>. Empfänger dieses Uploads:
+                              </p>
+                              <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden mb-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setSendDocRecipient('partner')}
+                                  className={`px-3 py-1.5 text-xs font-medium ${sendDocRecipient === 'partner' ? 'bg-green-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                                >
+                                  An den Partner
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setSendDocRecipient('student')}
+                                  className={`px-3 py-1.5 text-xs font-medium border-l border-gray-200 ${sendDocRecipient === 'student' ? 'bg-green-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                                >
+                                  An den Student
+                                </button>
+                              </div>
+                              <p className="text-[11px] text-gray-500">
+                                {sendDocRecipient === 'partner'
+                                  ? 'Der Partner sieht die Datei(en) im Partner-Portal zum Download und bekommt eine Hinweis-E-Mail. Der Student wird nicht benachrichtigt.'
+                                  : 'Landet in den Dokumenten des Studenten + Benachrichtigung & E-Mail.'}
+                              </p>
+                              <div className="mt-2 pt-2 border-t border-gray-100 flex items-center gap-2 flex-wrap">
+                                <span className="text-[11px] text-gray-500">Standard für diesen Studenten:</span>
+                                <select
+                                  disabled={savingRouting}
+                                  value={requestDetails.doc_routing.documents_recipient || 'default'}
+                                  onChange={(e) => setStudentRouting(e.target.value as 'partner' | 'student' | 'default')}
+                                  className="text-[11px] border border-gray-300 rounded px-1.5 py-1 bg-white"
+                                >
+                                  <option value="default">Partner-Standard ({requestDetails.doc_routing.partner_default_recipient === 'partner' ? 'Partner' : 'Student'})</option>
+                                  <option value="partner">Immer an den Partner</option>
+                                  <option value="student">Immer an den Student</option>
+                                </select>
+                                <span className="text-[11px] text-gray-400">(jederzeit änderbar)</span>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="flex flex-wrap gap-2 mb-2">
                             {['Arbeitsgenehmigung', 'Arbeitsvertrag', 'Sonstiges'].map((opt) => {
                               const on = sendDocLabel === opt || (opt === 'Sonstiges' && !['Arbeitsgenehmigung', 'Arbeitsvertrag'].includes(sendDocLabel));
@@ -1153,7 +1237,11 @@ export default function AdminJobRequests() {
                             </button>
                             <button type="button" onClick={() => setShowSendDoc(false)} className="text-sm text-gray-500 hover:text-gray-700">Abbrechen</button>
                           </div>
-                          <p className="text-[11px] text-gray-500 mt-2">Nur PDF. Landet in den Dokumenten des Studenten + Benachrichtigung &amp; E-Mail.</p>
+                          <p className="text-[11px] text-gray-500 mt-2">
+                            Nur PDF. {requestDetails?.doc_routing?.has_partner && sendDocRecipient === 'partner'
+                              ? `Wird dem Partner „${requestDetails.doc_routing.partner_name}" im Partner-Portal bereitgestellt.`
+                              : 'Landet in den Dokumenten des Studenten + Benachrichtigung & E-Mail.'}
+                          </p>
                         </div>
                       )}
                       {requestDetails.documents.length === 0 ? (
@@ -1167,6 +1255,11 @@ export default function AdminJobRequests() {
                                 <span className="inline-block mt-0.5 text-[11px] font-medium text-primary-700 bg-primary-50 border border-primary-100 rounded px-1.5 py-0.5">
                                   {DOC_TYPE_LABELS[doc.document_type] || doc.document_type}
                                 </span>
+                                {doc.shared_with_partner && (
+                                  <span className="inline-block mt-0.5 ml-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5">
+                                    → Partner
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 <button
