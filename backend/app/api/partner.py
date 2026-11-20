@@ -492,6 +492,77 @@ async def partner_download_document(
     )
 
 
+@router.get("/partner/{token}/documents.zip")
+async def partner_export_documents(
+    token: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """ZIP-Export aller von IJP „an den Partner" bereitgestellten Unterlagen
+    (shared_with_partner) aller Studenten dieses Partners. Je Student ein Ordner."""
+    import io as _io
+    import zipfile as _zipfile
+    import re as _re
+
+    link = db.query(PartnerLink).filter(PartnerLink.token == token).first()
+    if not link or not link.is_active:
+        raise HTTPException(status_code=404, detail="Link nicht gefunden oder deaktiviert")
+    if not _partner_authorized(link, request):
+        raise HTTPException(status_code=401, detail="Passwort erforderlich")
+
+    applicants = (
+        db.query(Applicant)
+        .filter(Applicant.invite_source == link.partner_source)
+        .all()
+    )
+    name_by_id = {}
+    for a in applicants:
+        base = f"{a.last_name or ''}_{a.first_name or ''}".strip("_") or f"Student_{a.id}"
+        name_by_id[a.id] = _re.sub(r"[^A-Za-z0-9_\-]+", "_", base)
+    app_ids = list(name_by_id.keys())
+
+    docs = (
+        db.query(Document)
+        .filter(Document.applicant_id.in_(app_ids), Document.shared_with_partner == True)  # noqa: E712
+        .order_by(Document.applicant_id, Document.uploaded_at)
+        .all()
+    ) if app_ids else []
+
+    if not docs:
+        raise HTTPException(status_code=404, detail="Keine von IJP bereitgestellten Unterlagen vorhanden")
+
+    from app.services.document_service import DocumentService
+    buf = _io.BytesIO()
+    used = set()
+    added = 0
+    with _zipfile.ZipFile(buf, "w", _zipfile.ZIP_DEFLATED) as zf:
+        for doc in docs:
+            content = await DocumentService.get_file_content(doc)
+            if content is None:
+                continue
+            folder = name_by_id.get(doc.applicant_id, "Student")
+            fname = _re.sub(r"[^A-Za-z0-9_.\- ]+", "_", doc.original_name or f"dokument_{doc.id}.pdf")
+            arc = f"{folder}/{fname}"
+            n = 1
+            while arc in used:
+                n += 1
+                arc = f"{folder}/{n}_{fname}"
+            used.add(arc)
+            zf.writestr(arc, content)
+            added += 1
+
+    if added == 0:
+        raise HTTPException(status_code=404, detail="Keine Dateien gefunden")
+
+    buf.seek(0)
+    fname = f"unterlagen_{_re.sub(r'[^A-Za-z0-9_-]+', '_', link.name)}.zip"
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
+
+
 class PartnerApplicantCreate(BaseModel):
     first_name: str
     last_name: str

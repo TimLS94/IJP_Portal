@@ -779,6 +779,9 @@ export const partnerAPI = {
   // Von IJP „an den Partner" bereitgestellte Unterlagen eines Studenten herunterladen
   downloadSharedDocument: (token, documentId) =>
     axios.get(`${partnerBase()}/partner/${token}/documents/${documentId}`, { responseType: 'blob', headers: partnerHeaders(token) }),
+  // ZIP-Export aller von IJP bereitgestellten Unterlagen dieses Partners
+  exportDocuments: (token) =>
+    axios.get(`${partnerBase()}/partner/${token}/documents.zip`, { responseType: 'blob', headers: partnerHeaders(token) }),
 };
 
 export default api;

@@ -6,7 +6,8 @@ import { partnerAPI } from "@/lib/api";
 import {
   CheckCircle2, XCircle, Clock, Users, FileText,
   Filter, Loader2, AlertCircle, ChevronDown, ChevronUp,
-  ClipboardList, Shield, Lock, Calendar, Plus, Trash2, Pencil, Save, X, Upload
+  ClipboardList, Shield, Lock, Calendar, Plus, Trash2, Pencil, Save, X, Upload,
+  Search, Download
 } from "lucide-react";
 
 interface DocCheck {
@@ -219,6 +220,12 @@ function ApplicantRow({ entry, onFillProfile, canEditStudents, token }: { entry:
                   <XCircle className="h-4 w-4 text-red-400 shrink-0" />
                 )}
               </>
+            )}
+            {entry.shared_documents && entry.shared_documents.length > 0 && (
+              <span className="ml-1 inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-2 py-0.5 whitespace-nowrap">
+                <Download className="h-3 w-3" />
+                {entry.shared_documents.length} von IJP
+              </span>
             )}
           </div>
         </div>
@@ -535,6 +542,14 @@ export default function PartnerViewPage() {
   const [dateTo, setDateTo] = useState("");
   const [filtering, setFiltering] = useState(false);
 
+  // Tabellensuche + Filter (clientseitig, sofort)
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [posFilter, setPosFilter] = useState("all");
+  const [docsFilter, setDocsFilter] = useState("all"); // all | complete | incomplete
+  const [ijpDocsOnly, setIjpDocsOnly] = useState(false);
+  const [exportingZip, setExportingZip] = useState(false);
+
   // Student selbst eintragen (Partner)
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ first_name: "", last_name: "", email: "", phone: "" });
@@ -669,6 +684,97 @@ export default function PartnerViewPage() {
     setDateTo("");
     setFiltering(true);
     fetchData();
+  };
+
+  // ── Tabellensuche + Filter (clientseitig) ───────────────────────────────
+  const allApplicants = data?.applicants ?? [];
+
+  // Auswahllisten aus den vorhandenen Daten aufbauen
+  const statusOptionsList = Array.from(
+    new Map(
+      allApplicants
+        .filter((a) => a.job_request_status && a.job_request_status_label)
+        .map((a) => [a.job_request_status as string, a.job_request_status_label as string])
+    ).entries()
+  );
+  const posOptionsList = Array.from(
+    new Map(
+      allApplicants
+        .filter((a) => a.position_type && a.position_type_label)
+        .map((a) => [a.position_type as string, a.position_type_label as string])
+    ).entries()
+  );
+
+  const filteredApplicants = allApplicants.filter((a) => {
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const hay = `${a.first_name} ${a.last_name} ${a.email ?? ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (statusFilter !== "all" && a.job_request_status !== statusFilter) return false;
+    if (posFilter !== "all" && a.position_type !== posFilter) return false;
+    if (docsFilter === "complete" && !a.docs_complete) return false;
+    if (docsFilter === "incomplete" && a.docs_complete) return false;
+    if (ijpDocsOnly && !(a.shared_documents && a.shared_documents.length > 0)) return false;
+    return true;
+  });
+
+  const filtersActive = !!search.trim() || statusFilter !== "all" || posFilter !== "all" || docsFilter !== "all" || ijpDocsOnly;
+  const resetTableFilters = () => {
+    setSearch(""); setStatusFilter("all"); setPosFilter("all"); setDocsFilter("all"); setIjpDocsOnly(false);
+  };
+
+  // CSV-Export (clientseitig, berücksichtigt Suche + Filter; inkl. Status)
+  const exportCsv = () => {
+    const header = [
+      "Vorname", "Nachname", "E-Mail", "Stellenart", "IJP beauftragt am",
+      "Status", "Pflichtdokumente", "Dokumente vollständig", "Unterlagen von IJP",
+    ];
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString("de-DE") : "");
+    const rows = filteredApplicants.map((a) => [
+      a.first_name, a.last_name, a.email ?? "",
+      a.position_type_label ?? "",
+      a.has_job_request ? fmt(a.job_request_created_at) : "",
+      a.job_request_status_label ?? "",
+      a.docs_required_total > 0 ? `${a.docs_required_uploaded}/${a.docs_required_total}` : "",
+      a.docs_complete ? "Ja" : "Nein",
+      a.shared_documents ? a.shared_documents.length : 0,
+    ]);
+    const csv = [header, ...rows].map((r) => r.map(esc).join(";")).join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `bewerber_${(data?.partner_name || "partner").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  };
+
+  // Dokumenten-Export: ZIP aller von IJP bereitgestellten Unterlagen (Backend)
+  const exportDocuments = async () => {
+    setExportingZip(true);
+    try {
+      const res = await partnerAPI.exportDocuments(token);
+      const url = URL.createObjectURL(res.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `unterlagen_${(data?.partner_name || "partner").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      alert(status === 404 ? "Es sind noch keine Unterlagen von IJP bereitgestellt." : "Export fehlgeschlagen.");
+    } finally {
+      setExportingZip(false);
+    }
   };
 
   if (needPassword) {
@@ -883,20 +989,90 @@ export default function PartnerViewPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {/* Spaltenüberschriften */}
-            <div className="hidden md:flex items-center gap-4 px-4 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-              <div className="w-40 shrink-0">Name</div>
-              <div className="w-44 shrink-0">IJP beauftragt</div>
-              <div className="w-44 shrink-0">Status</div>
-              <div className="flex-1">Dokumente</div>
-              <div className="w-4 shrink-0" />
+          <>
+            {/* Suche, Filter & Export */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Suche nach Name oder E-Mail…"
+                    className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                  className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="all">Alle Status</option>
+                  {statusOptionsList.map(([val, label]) => (
+                    <option key={val} value={val}>{label}</option>
+                  ))}
+                </select>
+                {posOptionsList.length > 0 && (
+                  <select value={posFilter} onChange={(e) => setPosFilter(e.target.value)}
+                    className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="all">Alle Stellenarten</option>
+                    {posOptionsList.map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
+                )}
+                <select value={docsFilter} onChange={(e) => setDocsFilter(e.target.value)}
+                  className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="all">Alle Dokumente</option>
+                  <option value="complete">Dokumente vollständig</option>
+                  <option value="incomplete">Dokumente offen</option>
+                </select>
+                <label className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+                  <input type="checkbox" checked={ijpDocsOnly} onChange={(e) => setIjpDocsOnly(e.target.checked)} className="h-4 w-4 accent-blue-600" />
+                  Nur mit IJP-Unterlagen
+                </label>
+                {filtersActive && (
+                  <button type="button" onClick={resetTableFilters} className="text-sm text-gray-500 hover:text-gray-700 underline">
+                    Zurücksetzen
+                  </button>
+                )}
+                <div className="ml-auto flex items-center gap-2">
+                  <button type="button" onClick={exportCsv}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50">
+                    <Download className="h-4 w-4" /> CSV
+                  </button>
+                  <button type="button" onClick={exportDocuments} disabled={exportingZip}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg px-3 py-1.5 hover:bg-blue-700 disabled:opacity-50">
+                    {exportingZip ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Dokumente
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                {filteredApplicants.length} von {allApplicants.length} angezeigt
+              </p>
             </div>
 
-            {data.applicants.map((entry) => (
-              <ApplicantRow key={entry.applicant_id} entry={entry} onFillProfile={fillProfile} canEditStudents={data.can_edit_students} token={token} />
-            ))}
-          </div>
+            {filteredApplicants.length === 0 ? (
+              <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
+                <Search className="h-10 w-10 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-500">Keine Treffer für Suche/Filter.</p>
+                <button type="button" onClick={resetTableFilters} className="mt-2 text-sm text-blue-600 hover:underline">Filter zurücksetzen</button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {/* Spaltenüberschriften */}
+                <div className="hidden md:flex items-center gap-4 px-4 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  <div className="w-40 shrink-0">Name</div>
+                  <div className="w-44 shrink-0">IJP beauftragt</div>
+                  <div className="w-44 shrink-0">Status</div>
+                  <div className="flex-1">Dokumente</div>
+                  <div className="w-4 shrink-0" />
+                </div>
+
+                {filteredApplicants.map((entry) => (
+                  <ApplicantRow key={entry.applicant_id} entry={entry} onFillProfile={fillProfile} canEditStudents={data.can_edit_students} token={token} />
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {/* Footer */}
