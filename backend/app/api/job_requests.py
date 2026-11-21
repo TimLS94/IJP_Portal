@@ -650,6 +650,9 @@ async def get_job_request_details(
             "phone": applicant.phone if applicant else None,
             "date_of_birth": applicant.date_of_birth if applicant else None,
             "nationality": applicant.nationality if applicant else None,
+            # Quelle/Partner-Zuordnung (für die Quelle-Auswahl im Modal)
+            "invite_source": applicant.invite_source if applicant else None,
+            "invite_source_country": applicant.invite_source_country if applicant else None,
             # Profil-Stellenart (kann von Auftrags-Stellenart abweichen)
             "position_type": applicant.position_type.value if applicant and applicant.position_type else None,
             "address": {

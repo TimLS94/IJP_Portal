@@ -951,22 +951,25 @@ export default function AdminJobRequests() {
                       <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-lg px-2 py-1">
                         <Users className="h-4 w-4 text-purple-700 shrink-0" />
                         <label className="text-xs text-purple-800 font-medium shrink-0">Quelle:</label>
-                        <select
-                          value={sourceEdit}
-                          onChange={(e) => setSourceEdit(e.target.value)}
-                          className="text-sm bg-white border border-purple-200 rounded px-2 py-1 max-w-[220px]"
-                          title="Partner-Quelle nachträglich zuordnen"
-                        >
-                          <option value="">Direkt (keine Quelle)</option>
-                          {sourceEdit && !partnerLinks.some((l) => l.partner_source === sourceEdit) && (
-                            <option value={sourceEdit}>{sourceEdit} (aktuell)</option>
-                          )}
-                          {partnerLinks.map((l, idx) => (
-                            <option key={`${l.partner_source}-${idx}`} value={l.partner_source}>
-                              {l.name} ({l.partner_source})
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            value={sourceEdit}
+                            onChange={(e) => setSourceEdit(e.target.value)}
+                            className="appearance-none text-sm bg-white border border-purple-200 rounded pl-2 pr-7 py-1 max-w-[240px] cursor-pointer focus:ring-2 focus:ring-purple-400 outline-none"
+                            title="Partner-Quelle nachträglich zuordnen"
+                          >
+                            <option value="">Direkt (keine Quelle)</option>
+                            {sourceEdit && !partnerLinks.some((l) => l.partner_source === sourceEdit) && (
+                              <option value={sourceEdit}>{sourceEdit} (aktuell)</option>
+                            )}
+                            {partnerLinks.map((l, idx) => (
+                              <option key={`${l.partner_source}-${idx}`} value={l.partner_source}>
+                                {l.name} ({l.partner_source})
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="h-4 w-4 text-purple-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                         {sourceEdit !== (requestDetails.applicant.invite_source || '') && (
                           <button
                             onClick={handleSaveSource}

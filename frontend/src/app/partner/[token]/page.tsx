@@ -1003,28 +1003,37 @@ export default function PartnerViewPage() {
                     className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
                 </div>
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-                  className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-                  <option value="all">Alle Status</option>
-                  {statusOptionsList.map(([val, label]) => (
-                    <option key={val} value={val}>{label}</option>
-                  ))}
-                </select>
-                {posOptionsList.length > 0 && (
-                  <select value={posFilter} onChange={(e) => setPosFilter(e.target.value)}
-                    className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="all">Alle Stellenarten</option>
-                    {posOptionsList.map(([val, label]) => (
+                <div className="relative">
+                  <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                    className="appearance-none text-sm border border-gray-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white cursor-pointer focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <option value="all">Alle Status</option>
+                    {statusOptionsList.map(([val, label]) => (
                       <option key={val} value={val}>{label}</option>
                     ))}
                   </select>
+                  <ChevronDown className="h-4 w-4 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+                {posOptionsList.length > 0 && (
+                  <div className="relative">
+                    <select value={posFilter} onChange={(e) => setPosFilter(e.target.value)}
+                      className="appearance-none text-sm border border-gray-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white cursor-pointer focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                      <option value="all">Alle Stellenarten</option>
+                      {posOptionsList.map(([val, label]) => (
+                        <option key={val} value={val}>{label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="h-4 w-4 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                 )}
-                <select value={docsFilter} onChange={(e) => setDocsFilter(e.target.value)}
-                  className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-                  <option value="all">Alle Dokumente</option>
-                  <option value="complete">Dokumente vollständig</option>
-                  <option value="incomplete">Dokumente offen</option>
-                </select>
+                <div className="relative">
+                  <select value={docsFilter} onChange={(e) => setDocsFilter(e.target.value)}
+                    className="appearance-none text-sm border border-gray-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white cursor-pointer focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <option value="all">Alle Dokumente</option>
+                    <option value="complete">Dokumente vollständig</option>
+                    <option value="incomplete">Dokumente offen</option>
+                  </select>
+                  <ChevronDown className="h-4 w-4 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
                 <label className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
                   <input type="checkbox" checked={ijpDocsOnly} onChange={(e) => setIjpDocsOnly(e.target.checked)} className="h-4 w-4 accent-blue-600" />
                   Nur mit IJP-Unterlagen
