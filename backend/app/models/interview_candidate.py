@@ -46,5 +46,9 @@ class InterviewCandidate(Base):
     # Admin, der den Kandidaten angelegt hat (nur bei interner Anlage gesetzt)
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
+    # Optionale feste Verknüpfung mit einem bestehenden Studenten-Konto (Applicant)
+    # des Partners. Nur vom Admin gesetzt. SET NULL, falls der Student gelöscht wird.
+    applicant_id = Column(Integer, ForeignKey("applicants.id", ondelete="SET NULL"), nullable=True, index=True)
+
     created_at = Column(DateTime(timezone=True), default=utc_now)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)

@@ -748,6 +748,7 @@ def ensure_interview_candidates_table():
                 partner_link_id INTEGER REFERENCES partner_links(id) ON DELETE SET NULL,
                 partner_source VARCHAR(255),
                 created_by_user_id INTEGER REFERENCES users(id),
+                applicant_id INTEGER REFERENCES applicants(id) ON DELETE SET NULL,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
@@ -761,6 +762,7 @@ def ensure_interview_candidates_table():
             "ALTER TABLE interview_candidates ADD COLUMN IF NOT EXISTS cv_filename VARCHAR(255)",
             "ALTER TABLE interview_candidates ADD COLUMN IF NOT EXISTS cv_mime VARCHAR(100)",
             "ALTER TABLE interview_candidates ADD COLUMN IF NOT EXISTS cv_uploaded_at TIMESTAMP WITH TIME ZONE",
+            "ALTER TABLE interview_candidates ADD COLUMN IF NOT EXISTS applicant_id INTEGER REFERENCES applicants(id) ON DELETE SET NULL",
         ):
             try:
                 db.execute(text(stmt))

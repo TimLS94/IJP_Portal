@@ -712,6 +712,9 @@ class InterviewCandidateSchema(BaseModel):
     notes: Optional[str] = None
     interview_done: Optional[bool] = False
     interview_date: Optional[str] = None  # ISO (YYYY-MM-DD)
+    # Nur Admin: Partner zuordnen + mit Studenten-Konto verknüpfen (von Partner-Endpunkten ignoriert)
+    partner_source: Optional[str] = None
+    applicant_id: Optional[int] = None
 
 
 class InterviewCandidateUpdateSchema(BaseModel):
@@ -722,6 +725,9 @@ class InterviewCandidateUpdateSchema(BaseModel):
     notes: Optional[str] = None
     interview_done: Optional[bool] = None
     interview_date: Optional[str] = None
+    # Nur Admin: Partner zuordnen + mit Studenten-Konto verknüpfen (0 = Verknüpfung lösen)
+    partner_source: Optional[str] = None
+    applicant_id: Optional[int] = None
 
 
 def _parse_iso_date(value: Optional[str]):
@@ -738,7 +744,19 @@ def _parse_iso_date(value: Optional[str]):
         raise HTTPException(status_code=400, detail="Ungültiges Datum (Format: YYYY-MM-DD)")
 
 
-def _candidate_dict(c: "InterviewCandidate", partner_name: Optional[str] = None) -> dict:
+def _candidate_dict(c: "InterviewCandidate", partner_name: Optional[str] = None, db: Optional[Session] = None) -> dict:
+    # Verknüpftes Studenten-Konto (für klickbaren Link in der Admin-Liste)
+    linked_student = None
+    if getattr(c, "applicant_id", None) and db is not None:
+        appl = db.query(Applicant).filter(Applicant.id == c.applicant_id).first()
+        if appl:
+            _u = db.query(User).filter(User.id == appl.user_id).first()
+            linked_student = {
+                "applicant_id": appl.id,
+                "user_id": appl.user_id,
+                "name": f"{appl.first_name or ''} {appl.last_name or ''}".strip() or f"Bewerber #{appl.id}",
+                "email": _u.email if _u else None,
+            }
     return {
         "id": c.id,
         "first_name": c.first_name,
@@ -752,9 +770,50 @@ def _candidate_dict(c: "InterviewCandidate", partner_name: Optional[str] = None)
         "cv_filename": c.cv_filename,
         "partner_source": c.partner_source,
         "partner_name": partner_name,
+        "applicant_id": getattr(c, "applicant_id", None),
+        "linked_student": linked_student,
         "created_at": c.created_at,
         "updated_at": c.updated_at,
     }
+
+
+def _admin_link_fields(c: "InterviewCandidate", data, db: Session) -> None:
+    """Admin-only: ordnet den Kandidaten einem Partner zu und/oder verknüpft ihn mit
+    einem bestehenden Studenten-Konto (mit Auto-Fill von Name/Sprachen aus dem Profil)."""
+    # Partner zuordnen (partner_source -> partner_link_id)
+    if data.partner_source is not None:
+        ps = (data.partner_source or "").strip() or None
+        c.partner_source = ps
+        if ps:
+            link = db.query(PartnerLink).filter(PartnerLink.partner_source == ps).first()
+            c.partner_link_id = link.id if link else None
+        else:
+            c.partner_link_id = None
+    # Studenten-Konto verknüpfen (0/None-Sonderfall: 0 = Verknüpfung lösen)
+    if data.applicant_id is not None:
+        if data.applicant_id == 0:
+            c.applicant_id = None
+        else:
+            appl = db.query(Applicant).filter(Applicant.id == data.applicant_id).first()
+            if not appl:
+                raise HTTPException(status_code=404, detail="Student nicht gefunden")
+            c.applicant_id = appl.id
+            # Auto-Fill aus dem Profil (Name + Sprachniveaus)
+            if appl.first_name:
+                c.first_name = appl.first_name
+            if appl.last_name:
+                c.last_name = appl.last_name
+            gl = getattr(appl, "german_level", None)
+            el = getattr(appl, "english_level", None)
+            if gl:
+                c.german_level = gl.value if hasattr(gl, "value") else str(gl)
+            if el:
+                c.english_level = el.value if hasattr(el, "value") else str(el)
+            # Partner ggf. automatisch vom Studenten übernehmen, wenn noch nicht gesetzt
+            if not c.partner_source and getattr(appl, "invite_source", None):
+                c.partner_source = appl.invite_source
+                link = db.query(PartnerLink).filter(PartnerLink.partner_source == appl.invite_source).first()
+                c.partner_link_id = link.id if link else None
 
 
 def _apply_candidate_fields(c: "InterviewCandidate", data, *, partial: bool):
@@ -828,10 +887,34 @@ async def admin_list_interview_candidates(
     }
     return {
         "candidates": [
-            _candidate_dict(c, source_to_name.get(c.partner_source) if c.partner_source else None)
+            _candidate_dict(c, source_to_name.get(c.partner_source) if c.partner_source else None, db=db)
             for c in candidates
         ]
     }
+
+
+@router.get("/admin/interview-candidates/partner-students")
+async def admin_list_partner_students(
+    partner_source: str = Query(..., description="invite_source des Partners"),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Listet die Studenten (Applicants) eines Partners – für die Verknüpfungs-Auswahl."""
+    appls = (
+        db.query(Applicant)
+        .filter(Applicant.invite_source == partner_source)
+        .order_by(Applicant.id.desc())
+        .all()
+    )
+    students = []
+    for a in appls:
+        u = db.query(User).filter(User.id == a.user_id).first()
+        students.append({
+            "applicant_id": a.id,
+            "name": f"{a.first_name or ''} {a.last_name or ''}".strip() or f"Bewerber #{a.id}",
+            "email": u.email if u else None,
+        })
+    return {"students": students}
 
 
 @router.post("/admin/interview-candidates")
@@ -844,10 +927,11 @@ async def admin_create_interview_candidate(
         raise HTTPException(status_code=400, detail="Vor- und Nachname erforderlich")
     c = InterviewCandidate(created_by_user_id=current_user.id)
     _apply_candidate_fields(c, data, partial=False)
+    _admin_link_fields(c, data, db)
     db.add(c)
     db.commit()
     db.refresh(c)
-    return _candidate_dict(c)
+    return _candidate_dict(c, db=db)
 
 
 @router.patch("/admin/interview-candidates/{candidate_id}")
@@ -861,9 +945,10 @@ async def admin_update_interview_candidate(
     if not c:
         raise HTTPException(status_code=404, detail="Kandidat nicht gefunden")
     _apply_candidate_fields(c, data, partial=True)
+    _admin_link_fields(c, data, db)
     db.commit()
     db.refresh(c)
-    return _candidate_dict(c)
+    return _candidate_dict(c, db=db)
 
 
 @router.delete("/admin/interview-candidates/{candidate_id}")
