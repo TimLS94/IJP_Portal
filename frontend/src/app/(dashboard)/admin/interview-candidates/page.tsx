@@ -52,6 +52,64 @@ const EMPTY_FORM = {
   applicant_id: "",
 };
 
+// Suchbares Auswahlfeld für Studenten (statt nativem <select>, da oft viele Studenten).
+function StudentCombo({ students, value, disabled, onSelect }: {
+  students: StudentOption[];
+  value: string; // applicant_id als String, "" = keiner
+  disabled?: boolean;
+  onSelect: (id: string, student: StudentOption | null) => void;
+}) {
+  const selected = students.find((s) => String(s.applicant_id) === value) || null;
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => { if (!value) setQuery(""); }, [value]);
+
+  const label = selected ? `${selected.name}${selected.email ? ` (${selected.email})` : ""}` : "";
+  const q = query.trim().toLowerCase();
+  const filtered = (q
+    ? students.filter((s) => s.name.toLowerCase().includes(q) || (s.email || "").toLowerCase().includes(q))
+    : students
+  ).slice(0, 50);
+
+  return (
+    <div className="relative">
+      <input
+        className="input-styled"
+        disabled={disabled}
+        placeholder={disabled ? "Erst Partner wählen" : "Student suchen (Name oder E-Mail)…"}
+        value={open ? query : label}
+        onFocus={() => { setOpen(true); setQuery(""); }}
+        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {selected && !open && (
+        <button type="button" onClick={() => onSelect("", null)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          title="Verknüpfung entfernen">
+          <X className="h-4 w-4" />
+        </button>
+      )}
+      {open && !disabled && (
+        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+          <button type="button"
+            onMouseDown={(e) => { e.preventDefault(); onSelect("", null); setOpen(false); }}
+            className="block w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-50">— keiner —</button>
+          {filtered.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-gray-400">Keine Treffer</p>
+          ) : filtered.map((s) => (
+            <button key={s.applicant_id} type="button"
+              onMouseDown={(e) => { e.preventDefault(); onSelect(String(s.applicant_id), s); setOpen(false); }}
+              className="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+              {s.name}{s.email ? <span className="text-gray-400"> ({s.email})</span> : null}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminInterviewCandidatesPage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -340,19 +398,16 @@ export default function AdminInterviewCandidatesPage() {
             </div>
             <div>
               <label className="label">Mit Student verknüpfen (optional)</label>
-              <select className="input-styled" value={form.applicant_id} disabled={!form.partner_source}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  const stu = createStudents.find((s) => String(s.applicant_id) === id);
-                  setForm({
-                    ...form,
-                    applicant_id: id,
-                    ...(stu ? { first_name: stu.name.split(" ")[0] || form.first_name, last_name: stu.name.split(" ").slice(1).join(" ") || form.last_name } : {}),
-                  });
-                }}>
-                <option value="">— keiner —</option>
-                {createStudents.map((s) => <option key={s.applicant_id} value={s.applicant_id}>{s.name}{s.email ? ` (${s.email})` : ""}</option>)}
-              </select>
+              <StudentCombo
+                students={createStudents}
+                value={form.applicant_id}
+                disabled={!form.partner_source}
+                onSelect={(id, stu) => setForm({
+                  ...form,
+                  applicant_id: id,
+                  ...(stu ? { first_name: stu.name.split(" ")[0] || form.first_name, last_name: stu.name.split(" ").slice(1).join(" ") || form.last_name } : {}),
+                })}
+              />
               {form.partner_source && createStudents.length === 0 && (
                 <p className="text-xs text-gray-400 mt-1">Keine Studenten für diesen Partner gefunden.</p>
               )}
@@ -432,11 +487,12 @@ export default function AdminInterviewCandidatesPage() {
                     <option value="">Partner: — kein (IJP intern) —</option>
                     {partnerLinks.map((p) => <option key={p.id} value={p.partner_source}>Partner: {p.name}</option>)}
                   </select>
-                  <select className="input-styled" value={editForm.applicant_id} disabled={!editForm.partner_source}
-                    onChange={(e) => setEditForm({ ...editForm, applicant_id: e.target.value })}>
-                    <option value="">Student: — keiner —</option>
-                    {editStudents.map((s) => <option key={s.applicant_id} value={s.applicant_id}>{s.name}{s.email ? ` (${s.email})` : ""}</option>)}
-                  </select>
+                  <StudentCombo
+                    students={editStudents}
+                    value={editForm.applicant_id}
+                    disabled={!editForm.partner_source}
+                    onSelect={(id) => setEditForm({ ...editForm, applicant_id: id })}
+                  />
                   <div className="md:col-span-2 flex gap-2">
                     <button onClick={() => saveEdit(c.id)} disabled={saving}
                       className="btn-primary flex items-center gap-2">
