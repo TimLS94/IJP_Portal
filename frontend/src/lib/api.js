@@ -727,6 +727,7 @@ export const adminInterviewCandidatesAPI = {
   uploadCv: (id, formData) => api.post(`/admin/interview-candidates/${id}/cv`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   downloadCv: (id) => api.get(`/admin/interview-candidates/${id}/cv`, { responseType: 'blob' }),
   deleteCv: (id) => api.delete(`/admin/interview-candidates/${id}/cv`),
+  listPartnerStudents: (partnerSource) => api.get('/admin/interview-candidates/partner-students', { params: { partner_source: partnerSource } }),
 };
 
 // Verträge (IJP-Auftrag)

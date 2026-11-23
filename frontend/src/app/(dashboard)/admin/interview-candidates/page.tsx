@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   Calendar, Plus, Trash2, Loader2, CheckCircle2, Clock,
-  Pencil, X, Save, Users, FileText, Upload,
+  Pencil, X, Save, Users, FileText, Upload, ExternalLink, Link2,
 } from "lucide-react";
-import { adminInterviewCandidatesAPI } from "@/lib/api";
+import { adminInterviewCandidatesAPI, adminPartnerLinksAPI } from "@/lib/api";
 import toast from "react-hot-toast";
+
+interface LinkedStudent {
+  applicant_id: number;
+  user_id?: number;
+  name: string;
+  email?: string | null;
+}
 
 interface Candidate {
   id: number;
@@ -21,9 +29,14 @@ interface Candidate {
   cv_filename?: string | null;
   partner_source?: string | null;
   partner_name?: string | null;
+  applicant_id?: number | null;
+  linked_student?: LinkedStudent | null;
   created_at: string;
   updated_at?: string;
 }
+
+interface PartnerLinkLite { id: number; name: string; partner_source: string; }
+interface StudentOption { applicant_id: number; name: string; email?: string | null; }
 
 const LANG_LEVELS = ["", "A1", "A2", "B1", "B2", "C1", "C2", "Muttersprache"];
 
@@ -35,6 +48,8 @@ const EMPTY_FORM = {
   notes: "",
   interview_done: false,
   interview_date: "",
+  partner_source: "",
+  applicant_id: "",
 };
 
 export default function AdminInterviewCandidatesPage() {
@@ -47,18 +62,43 @@ export default function AdminInterviewCandidatesPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ ...EMPTY_FORM });
 
-  useEffect(() => {
-    load();
-  }, []);
+  const [partnerLinks, setPartnerLinks] = useState<PartnerLinkLite[]>([]);
+  const [filterPartner, setFilterPartner] = useState("");
+  // Studenten des aktuell gewählten Partners (im Anlege- bzw. Bearbeiten-Formular)
+  const [createStudents, setCreateStudents] = useState<StudentOption[]>([]);
+  const [editStudents, setEditStudents] = useState<StudentOption[]>([]);
 
-  const load = async () => {
+  const load = useCallback(async (partnerSource?: string) => {
+    setLoading(true);
     try {
-      const res = await adminInterviewCandidatesAPI.list();
+      const res = await adminInterviewCandidatesAPI.list(partnerSource || undefined);
       setCandidates(res.data.candidates || []);
     } catch {
       toast.error("Fehler beim Laden der Kandidaten");
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load(filterPartner);
+  }, [filterPartner, load]);
+
+  useEffect(() => {
+    adminPartnerLinksAPI.list()
+      .then((r) => setPartnerLinks((r.data.links || []).map((l: PartnerLinkLite) => ({ id: l.id, name: l.name, partner_source: l.partner_source }))))
+      .catch(() => {});
+  }, []);
+
+  // Lädt die Studenten eines Partners für die Verknüpfungs-Auswahl
+  const loadStudents = async (partnerSource: string, target: "create" | "edit") => {
+    if (!partnerSource) { target === "create" ? setCreateStudents([]) : setEditStudents([]); return; }
+    try {
+      const res = await adminInterviewCandidatesAPI.listPartnerStudents(partnerSource);
+      const list = res.data.students || [];
+      target === "create" ? setCreateStudents(list) : setEditStudents(list);
+    } catch {
+      target === "create" ? setCreateStudents([]) : setEditStudents([]);
     }
   };
 
@@ -73,6 +113,8 @@ export default function AdminInterviewCandidatesPage() {
       const res = await adminInterviewCandidatesAPI.create({
         ...form,
         interview_date: form.interview_date || null,
+        partner_source: form.partner_source || null,
+        applicant_id: form.applicant_id ? Number(form.applicant_id) : null,
       });
       // Optional direkt ausgewählten Lebenslauf anhängen
       if (cvFile && res?.data?.id) {
@@ -84,8 +126,9 @@ export default function AdminInterviewCandidatesPage() {
       toast.success("Kandidat angelegt");
       setForm({ ...EMPTY_FORM });
       setCvFile(null);
+      setCreateStudents([]);
       setShowCreate(false);
-      load();
+      load(filterPartner);
     } catch {
       toast.error("Fehler beim Anlegen");
     } finally {
@@ -114,7 +157,7 @@ export default function AdminInterviewCandidatesPage() {
     try {
       await adminInterviewCandidatesAPI.uploadCv(id, fd);
       toast.success("Lebenslauf angehängt");
-      load();
+      load(filterPartner);
     } catch (e: unknown) {
       toast.error((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Upload fehlgeschlagen");
     }
@@ -124,7 +167,7 @@ export default function AdminInterviewCandidatesPage() {
     if (!confirm("Lebenslauf entfernen?")) return;
     try {
       await adminInterviewCandidatesAPI.deleteCv(id);
-      load();
+      load(filterPartner);
     } catch {
       toast.error("Fehler beim Entfernen");
     }
@@ -140,7 +183,10 @@ export default function AdminInterviewCandidatesPage() {
       notes: c.notes || "",
       interview_done: c.interview_done,
       interview_date: c.interview_date || "",
+      partner_source: c.partner_source || "",
+      applicant_id: c.applicant_id ? String(c.applicant_id) : "",
     });
+    loadStudents(c.partner_source || "", "edit");
   };
 
   const saveEdit = async (id: number) => {
@@ -153,10 +199,13 @@ export default function AdminInterviewCandidatesPage() {
       await adminInterviewCandidatesAPI.update(id, {
         ...editForm,
         interview_date: editForm.interview_date || "",
+        partner_source: editForm.partner_source || null,
+        // 0 = Verknüpfung lösen (Backend interpretiert 0 als "entfernen")
+        applicant_id: editForm.applicant_id ? Number(editForm.applicant_id) : 0,
       });
       toast.success("Gespeichert");
       setEditId(null);
-      load();
+      load(filterPartner);
     } catch {
       toast.error("Fehler beim Speichern");
     } finally {
@@ -172,7 +221,7 @@ export default function AdminInterviewCandidatesPage() {
         // Beim Abhaken ohne Datum automatisch heute setzen
         interview_date: next && !c.interview_date ? new Date().toISOString().slice(0, 10) : (c.interview_date || ""),
       });
-      load();
+      load(filterPartner);
     } catch {
       toast.error("Fehler beim Aktualisieren");
     }
@@ -183,7 +232,7 @@ export default function AdminInterviewCandidatesPage() {
     try {
       await adminInterviewCandidatesAPI.delete(c.id);
       toast.success("Gelöscht");
-      load();
+      load(filterPartner);
     } catch {
       toast.error("Fehler beim Löschen");
     }
@@ -230,6 +279,25 @@ export default function AdminInterviewCandidatesPage() {
         </div>
       </div>
 
+      {/* Partner-Filter */}
+      <div className="card mb-6 flex items-center gap-3 flex-wrap py-3">
+        <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+          <Users className="h-4 w-4" /> Partner-Filter:
+        </span>
+        <select className="input-styled max-w-xs" value={filterPartner}
+          onChange={(e) => setFilterPartner(e.target.value)}>
+          <option value="">Alle (inkl. IJP intern)</option>
+          {partnerLinks.map((p) => (
+            <option key={p.id} value={p.partner_source}>{p.name}</option>
+          ))}
+        </select>
+        {filterPartner && (
+          <button onClick={() => setFilterPartner("")} className="text-sm text-gray-500 hover:text-gray-700 underline">
+            zurücksetzen
+          </button>
+        )}
+      </div>
+
       {/* Create form */}
       {showCreate && (
         <div className="card mb-6 border-2 border-primary-200 bg-primary-50">
@@ -261,6 +329,33 @@ export default function AdminInterviewCandidatesPage() {
                 onChange={(e) => setForm({ ...form, english_level: e.target.value })}>
                 {LANG_LEVELS.map((l) => <option key={l} value={l}>{l || "— keine Angabe —"}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="label">Partner (optional)</label>
+              <select className="input-styled" value={form.partner_source}
+                onChange={(e) => { const ps = e.target.value; setForm({ ...form, partner_source: ps, applicant_id: "" }); loadStudents(ps, "create"); }}>
+                <option value="">— kein Partner (IJP intern) —</option>
+                {partnerLinks.map((p) => <option key={p.id} value={p.partner_source}>{p.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Mit Student verknüpfen (optional)</label>
+              <select className="input-styled" value={form.applicant_id} disabled={!form.partner_source}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  const stu = createStudents.find((s) => String(s.applicant_id) === id);
+                  setForm({
+                    ...form,
+                    applicant_id: id,
+                    ...(stu ? { first_name: stu.name.split(" ")[0] || form.first_name, last_name: stu.name.split(" ").slice(1).join(" ") || form.last_name } : {}),
+                  });
+                }}>
+                <option value="">— keiner —</option>
+                {createStudents.map((s) => <option key={s.applicant_id} value={s.applicant_id}>{s.name}{s.email ? ` (${s.email})` : ""}</option>)}
+              </select>
+              {form.partner_source && createStudents.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">Keine Studenten für diesen Partner gefunden.</p>
+              )}
             </div>
             <div className="md:col-span-2">
               <label className="label">Notizen</label>
@@ -332,6 +427,16 @@ export default function AdminInterviewCandidatesPage() {
                   </label>
                   <input type="date" className="input-styled" value={editForm.interview_date}
                     onChange={(e) => setEditForm({ ...editForm, interview_date: e.target.value })} />
+                  <select className="input-styled" value={editForm.partner_source}
+                    onChange={(e) => { const ps = e.target.value; setEditForm({ ...editForm, partner_source: ps, applicant_id: "" }); loadStudents(ps, "edit"); }}>
+                    <option value="">Partner: — kein (IJP intern) —</option>
+                    {partnerLinks.map((p) => <option key={p.id} value={p.partner_source}>Partner: {p.name}</option>)}
+                  </select>
+                  <select className="input-styled" value={editForm.applicant_id} disabled={!editForm.partner_source}
+                    onChange={(e) => setEditForm({ ...editForm, applicant_id: e.target.value })}>
+                    <option value="">Student: — keiner —</option>
+                    {editStudents.map((s) => <option key={s.applicant_id} value={s.applicant_id}>{s.name}{s.email ? ` (${s.email})` : ""}</option>)}
+                  </select>
                   <div className="md:col-span-2 flex gap-2">
                     <button onClick={() => saveEdit(c.id)} disabled={saving}
                       className="btn-primary flex items-center gap-2">
@@ -366,6 +471,18 @@ export default function AdminInterviewCandidatesPage() {
                       <span>Englisch: <strong>{c.english_level || "–"}</strong></span>
                     </div>
                     {c.notes && <p className="text-sm text-gray-500 mt-1 whitespace-pre-wrap">{c.notes}</p>}
+                    {c.linked_student && (
+                      <div className="mt-1.5">
+                        <Link
+                          href={`/admin/users?search=${encodeURIComponent(c.linked_student.email || c.linked_student.name)}`}
+                          className="inline-flex items-center gap-1 text-sm text-primary-600 hover:underline font-medium"
+                          title="Verknüpftes Studenten-Konto in der Nutzerverwaltung öffnen"
+                        >
+                          <Link2 className="h-4 w-4" /> Verknüpfter Student: {c.linked_student.name}
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
+                    )}
                     <div className="mt-2">
                       {c.has_cv ? (
                         <span className="inline-flex items-center gap-3 text-sm">

@@ -42,7 +42,10 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  // Suche kann per ?search=<e-mail> vorbelegt werden (z.B. Link von Gesprächs-Kandidaten).
+  const [search, setSearch] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get("search") || ""; } catch { return ""; }
+  });
   const [roleFilter, setRoleFilter] = useState("");
   const [portalFilter, setPortalFilter] = useState("jobon"); // "jobon" | "ijp" – getrennte Tabellen (IJP zählt nicht zu JobOn)
   const [page, setPage] = useState(0);
