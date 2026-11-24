@@ -28,6 +28,10 @@ interface ApplicantEntry {
   registered_at: string | null;
   gender?: string | null;
   gender_label?: string | null;
+  salutation?: string | null;
+  date_of_birth?: string | null;
+  place_of_birth?: string | null;
+  studying_since?: string | null;
   address?: string | null;
   street?: string | null;
   house_number?: string | null;
@@ -772,6 +776,57 @@ export default function PartnerViewPage() {
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
+  // Werks-Export (clientseitig): feste Spaltenvorlage für die Werks-/Studentenliste.
+  // Felder, die (noch) nicht im Profil erfasst werden, bleiben leer.
+  const exportWerkCsv = () => {
+    const header = [
+      "Nr.", "Anrede", "Nachname", "Vorname", "Geb.Datum", "Geburtsort",
+      "Ferien von bis", "Studium seit", "Studium bis",
+      "wohnt in Straße", "Hausnr.", "PLZ", "Ort",
+      "Führerschein", "Schuhgröße", "Konfektionsgröße", "Werk",
+    ];
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const fmt = (d: string | null | undefined) => (d ? new Date(d).toLocaleDateString("de-DE") : "");
+    const ferien = (a: ApplicantEntry) => {
+      const von = fmt(a.semester_break_start);
+      const bis = fmt(a.semester_break_end);
+      if (von && bis) return `${von} – ${bis}`;
+      return von || bis || "";
+    };
+    const rows = filteredApplicants.map((a, i) => [
+      i + 1,
+      a.salutation ?? "",
+      a.last_name,
+      a.first_name,
+      fmt(a.date_of_birth),
+      a.place_of_birth ?? "",
+      ferien(a),
+      fmt(a.studying_since),
+      "", // Studium bis – nicht erfasst
+      a.street ?? "",
+      a.house_number ?? "",
+      a.postal_code ?? "",
+      a.city ?? "",
+      "", // Führerschein – nicht erfasst
+      "", // Schuhgröße – nicht erfasst
+      "", // Konfektionsgröße – nicht erfasst
+      "", // Werk – nicht erfasst
+    ]);
+    const csv = [header, ...rows].map((r) => r.map(esc).join(";")).join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `werksliste_${(data?.partner_name || "partner").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  };
+
   // Dokumenten-Export: ZIP aller von IJP bereitgestellten Unterlagen (Backend)
   const exportDocuments = async () => {
     setExportingZip(true);
@@ -1063,6 +1118,10 @@ export default function PartnerViewPage() {
                   <button type="button" onClick={exportCsv}
                     className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50">
                     <Download className="h-4 w-4" /> CSV
+                  </button>
+                  <button type="button" onClick={exportWerkCsv} title="Studentenliste in der Werks-Spaltenvorlage"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50">
+                    <Download className="h-4 w-4" /> Werksliste
                   </button>
                   <button type="button" onClick={exportDocuments} disabled={exportingZip}
                     className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg px-3 py-1.5 hover:bg-blue-700 disabled:opacity-50">

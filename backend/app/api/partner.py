@@ -166,6 +166,10 @@ def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
         # Personendaten für CSV-Export
         "gender": applicant.gender.value if getattr(applicant, "gender", None) else None,
         "gender_label": GENDER_LABELS.get(applicant.gender.value) if getattr(applicant, "gender", None) else None,
+        "salutation": {"male": "Herr", "female": "Frau"}.get(applicant.gender.value, "") if getattr(applicant, "gender", None) else "",
+        "date_of_birth": applicant.date_of_birth if getattr(applicant, "date_of_birth", None) else None,
+        "place_of_birth": applicant.place_of_birth or None,
+        "studying_since": applicant.studying_since if getattr(applicant, "studying_since", None) else None,
         "address": _compose_address(applicant),
         "street": applicant.street or None,
         "house_number": applicant.house_number or None,
