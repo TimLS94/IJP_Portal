@@ -51,6 +51,20 @@ POSITION_TYPE_LABELS = {
     "workandholiday": "Work & Holiday",
 }
 
+GENDER_LABELS = {
+    "male": "Männlich",
+    "female": "Weiblich",
+    "diverse": "Divers",
+}
+
+
+def _compose_address(applicant: Applicant) -> str:
+    """Baut die Heimatadresse als einzeiligen String zusammen (für CSV/Anzeige)."""
+    street = " ".join(p for p in [(applicant.street or "").strip(), (applicant.house_number or "").strip()] if p).strip()
+    city = " ".join(p for p in [(applicant.postal_code or "").strip(), (applicant.city or "").strip()] if p).strip()
+    parts = [p for p in [street, city, (applicant.country or "").strip()] if p]
+    return ", ".join(parts)
+
 
 def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
     """Baut einen Datensatz für die Partner-Ansicht auf."""
@@ -149,6 +163,17 @@ def _build_applicant_entry(applicant: Applicant, db: Session) -> dict:
         "position_type": pos_type,
         "position_type_label": POSITION_TYPE_LABELS.get(pos_type) if pos_type else None,
         "registered_at": applicant.created_at if hasattr(applicant, "created_at") else None,
+        # Personendaten für CSV-Export
+        "gender": applicant.gender.value if getattr(applicant, "gender", None) else None,
+        "gender_label": GENDER_LABELS.get(applicant.gender.value) if getattr(applicant, "gender", None) else None,
+        "address": _compose_address(applicant),
+        "street": applicant.street or None,
+        "house_number": applicant.house_number or None,
+        "postal_code": applicant.postal_code or None,
+        "city": applicant.city or None,
+        "country": applicant.country or None,
+        "semester_break_start": applicant.semester_break_start if getattr(applicant, "semester_break_start", None) else None,
+        "semester_break_end": applicant.semester_break_end if getattr(applicant, "semester_break_end", None) else None,
         # IJP-Auftrag
         "has_job_request": job_request is not None,
         "job_request_id": job_request.id if job_request else None,

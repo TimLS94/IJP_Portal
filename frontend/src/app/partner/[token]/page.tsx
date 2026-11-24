@@ -26,6 +26,16 @@ interface ApplicantEntry {
   position_type: string | null;
   position_type_label: string | null;
   registered_at: string | null;
+  gender?: string | null;
+  gender_label?: string | null;
+  address?: string | null;
+  street?: string | null;
+  house_number?: string | null;
+  postal_code?: string | null;
+  city?: string | null;
+  country?: string | null;
+  semester_break_start?: string | null;
+  semester_break_end?: string | null;
   has_job_request: boolean;
   job_request_id: number | null;
   job_request_created_at: string | null;
@@ -727,17 +737,23 @@ export default function PartnerViewPage() {
   // CSV-Export (clientseitig, berücksichtigt Suche + Filter; inkl. Status)
   const exportCsv = () => {
     const header = [
-      "Vorname", "Nachname", "E-Mail", "Stellenart", "IJP beauftragt am",
-      "Status", "Pflichtdokumente", "Dokumente vollständig", "Unterlagen von IJP",
+      "Vorname", "Nachname", "E-Mail", "Geschlecht", "Adresse", "Stellenart",
+      "Semesterferien von", "Semesterferien bis",
+      "IJP beauftragt am", "Status", "Pflichtdokumente", "Dokumente vollständig",
+      "Unterlagen von IJP",
     ];
     const esc = (v: unknown) => {
       const s = v == null ? "" : String(v);
       return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString("de-DE") : "");
+    const fmt = (d: string | null | undefined) => (d ? new Date(d).toLocaleDateString("de-DE") : "");
     const rows = filteredApplicants.map((a) => [
       a.first_name, a.last_name, a.email ?? "",
+      a.gender_label ?? "",
+      a.address ?? "",
       a.position_type_label ?? "",
+      fmt(a.semester_break_start),
+      fmt(a.semester_break_end),
       a.has_job_request ? fmt(a.job_request_created_at) : "",
       a.job_request_status_label ?? "",
       a.docs_required_total > 0 ? `${a.docs_required_uploaded}/${a.docs_required_total}` : "",
