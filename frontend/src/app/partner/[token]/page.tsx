@@ -781,7 +781,7 @@ export default function PartnerViewPage() {
   const exportWerkCsv = () => {
     const header = [
       "Nr.", "Anrede", "Nachname", "Vorname", "Geb.Datum", "Geburtsort",
-      "Ferien von bis", "Studium seit", "Studium bis",
+      "Ferien von", "Ferien bis", "Studium seit", "Studium bis",
       "wohnt in Straße", "Hausnr.", "PLZ", "Ort",
       "Führerschein", "Schuhgröße", "Konfektionsgröße", "Werk",
     ];
@@ -790,12 +790,6 @@ export default function PartnerViewPage() {
       return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const fmt = (d: string | null | undefined) => (d ? new Date(d).toLocaleDateString("de-DE") : "");
-    const ferien = (a: ApplicantEntry) => {
-      const von = fmt(a.semester_break_start);
-      const bis = fmt(a.semester_break_end);
-      if (von && bis) return `${von} – ${bis}`;
-      return von || bis || "";
-    };
     const rows = filteredApplicants.map((a, i) => [
       i + 1,
       a.salutation ?? "",
@@ -803,7 +797,8 @@ export default function PartnerViewPage() {
       a.first_name,
       fmt(a.date_of_birth),
       a.place_of_birth ?? "",
-      ferien(a),
+      fmt(a.semester_break_start),
+      fmt(a.semester_break_end),
       fmt(a.studying_since),
       "", // Studium bis – nicht erfasst
       a.street ?? "",
